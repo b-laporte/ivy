@@ -523,4 +523,6 @@ describe('IV parser', () => {
     });
 
     // todo accept spaces for JSON or Array attribute values - e.g. {a:"a", b:"b"} or [123, 456]
+    // todo support '.' in attribute names - e.g. [style.color] = myvar -> support JSON attributes?
+    // todo check that id and @name cannot be bound
 });

@@ -49,7 +49,7 @@ export const NacNodeType = {
     JS_BLOCK: 14        // e.g. % let foo = 3;
 };
 
-export const NacAttributeNature = {
+export const NacAttributeNature = { // warning: keep incremental values as used to index an array in nac2js
     STANDARD: 0,            // e.g. foo="bar"
     BOUND1WAY: 1,           // e.g. [foo]=c.bar+3
     BOUND2WAYS: 2,          // e.g. [[foo]]=c.bar
@@ -68,6 +68,7 @@ export class NacNode {
     _closeToLastChild /*:NacNode*/;     // node from which we should start looking for the last child
     nodeValue /*:string*/;
     nodeName;                           // node name for element nodes or optionally "#text", "#comment" or "#js" for other node types when created through n()
+    id;                                 // node id or undefined if not found
 
     /**
      * NacNode constructor
@@ -128,6 +129,9 @@ export class NacNode {
         }
         if (typeRef) {
             this.lastAttribute.typeRef = typeRef;
+        }
+        if (name === "id") {
+            this.id = value;
         }
         return this;
     }

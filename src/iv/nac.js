@@ -28,7 +28,9 @@ export function n(nodeName, nodeValue = null, value2 = null)/*:NacNode*/ {
                 endBlockExpression: (value2 || "}")
             }
         } else if (nodeName === "#comment") {
-            nd.nodeType = NacNodeType.COMMENT
+            nd.nodeType = NacNodeType.COMMENT;
+        } else if (nodeName === "#group") {
+            nd.nodeType = NacNodeType.ELEMENT;
         } else {
             nd.nodeValue = "#error - invalid type: " + nodeName;
             NacNode.logger.error("Invalid node type: " + nodeName);
@@ -60,26 +62,31 @@ export class NacNode {
     static defaultLogger;               // default logger if logger is not set (console by default - cf. below)
     static logger /*:{error:(m:string)=>void} */; // specific logger for this node
     nodeType /*:NacNodeType*/;
+    nodeValue /*:string*/;
+    nodeName;                           // node name for element nodes or optionally "#text", "#comment" or "#js" for other node types when created through n()
+    parentNode;
     nextSibling /*:NacNode*/;           // next sibling in the current linked list
     firstSibling /*:NacNode*/;		    // first sibling of the current node linked list
     firstAttribute /*:NacAttribute*/;	// reference to the first element of the attribute linked list
     lastAttribute /*:NacAttribute*/;	// reference to the last element of the attribute linked list
     firstChild /*:NacNode*/;			// first child node of the child node linked list (if any)
     _closeToLastChild /*:NacNode*/;     // node from which we should start looking for the last child
-    nodeValue /*:string*/;
-    nodeName;                           // node name for element nodes or optionally "#text", "#comment" or "#js" for other node types when created through n()
     id;                                 // node id or undefined if not found
+    index;                              // node index - used in to identify the node type in the virtual dom - optional
+    data;                               // meta data associated to this node - optional
 
     /**
      * NacNode constructor
      * @param nodeType the node type - cf. NacNodeType
      * @param nodeValue the value of the text / comment or js instruction (ignored for element nodes)
      */
-    constructor(nodeType, nodeValue = null) {
+    constructor(nodeType, nodeValue = null, parent = null) {
         this.nodeType = nodeType;
         this.nodeName = "";
         this.firstSibling = this;
         this.nodeValue = nodeValue;
+        this.data = null;
+        this.parentNode = parent;
     };
 
     /**
@@ -100,6 +107,7 @@ export class NacNode {
     addSibling(nd) {
         nd.firstSibling = this.firstSibling;
         nd.nextSibling = this.nextSibling;
+        nd.parentNode = this.parentNode;
         return this.nextSibling = nd;
     }
 
@@ -121,7 +129,7 @@ export class NacNode {
      * @param nature
      * @param typeRef
      */
-    addAttribute(name, value, nature, typeRef=null) {
+    addAttribute(name, value, nature, typeRef = null) {
         if (!this.lastAttribute) {
             this.firstAttribute = this.lastAttribute = new NacAttribute(name, value, nature);
         } else {
@@ -167,6 +175,11 @@ export class NacNode {
                     nd = nd.nextSibling;
                 } while (nd)
             }
+        }
+        var nd=this.firstChild;
+        while (nd) {
+            nd.parentNode = this;
+            nd = nd.nextSibling;
         }
         return this;
     };

@@ -6,3 +6,4 @@
 import {} from './nac.spec.js';
 import {} from './parser.spec.js';
 import {} from './nac2js.spec';
+import {} from './iv.spec';

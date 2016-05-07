@@ -209,50 +209,56 @@ var tpl = HtmlRenderer.render("mydiv", pkg.info.apply(myperson)); // arguments c
 // Refresh after data change
 tpl.refresh(myperson2);
 
-pkg = {
-    info: iv.$template(
-        function ($c, $n, $e, $a, person) {
-            var $v = $c.$v, personDetails = $c.$pkg.personDetails;
-            person = person || {};
+// General structure of pre compiled code
+pkg = (function () {
+    var importContainer = {}; // generate appropriate code here
+    return {
+        info: iv.$template({
+                templateFn: function ($c, $n, $e, $a, person) {
+                    var $v = $c.$v, personDetails = $c.$pkg.personDetails;
+                    person = person || {};
 
-            $c.n(0);
-            if (!person) {
-                $c.n(1, 14); // can be optimized when contains only one node
-                $n(1, 1, person.vip);
-                var text = person.title + " " + person.lastName;
-                $n(2, 15, 55<person.age);
-                $a("title");
-                $n(3, 3);
-                $n(4, 12);
-                $n(5, 3);
-                $a("content");
-                $n(6, 12, personDetails.apply(person));
-                $e(2);
-                $e(1);
-                $e(0);
-            } else {
+                    $c.n(0);
+                    if (!person) {
+                        $c.n(1, 14); // can be optimized when contains only one node
+                        $n(1, 1, person.vip);
+                        var text = person.title + " " + person.lastName;
+                        $n(2, 15, 55 < person.age);
+                        $a("title");
+                        $n(3, 3);
+                        $n(4, 12);
+                        $n(5, 3);
+                        $a("content");
+                        $n(6, 12, personDetails.apply(person));
+                        $e(2);
+                        $e(1);
+                        $e(0);
+                    } else {
 
 
+                    }
+                    $c.e(0);
+                },
+                templateStatics: [ // statics
+                    [0, 14], // JS block
+                    [1, "div",
+                        {
+                            "class": "main"
+                        }
+                        ,
+                        [["class", "vip"]]
+                    ],       // <div class="main" [class.vip]=person.vip>
+                    [2, "Section"],
+                    [3, " "],
+                    [4],
+                    [5, " "],
+                    [6]
+                ],
+                importContainer: importContainer
             }
-            $c.e(0);
-        }, [ // statics
-            [0, 14], // JS block
-            [1, "div", {"class": "main"}, [["class", "vip"]]],       // <div class="main" [class.vip]=person.vip>
-            [2, "Section"],
-            [3, " "],
-            [4],
-            [5, " "],
-            [6]
-        ]
-    ),
-    personDetails: iv.$template(
-        function () {
-
-        }, [ // statics
-
-        ]
-    )
-}
+        )
+    }
+})();
 
 // export const NacNodeType = {
 //     ELEMENT: 1,
@@ -264,39 +270,39 @@ pkg = {
 //     COMPONENT: 15
 // };
 
-var DbMonTemplate = n("template").a({ "id": "DbMonTemplate", "testName": null, "databases":null }).c(
+var DbMonTemplate = n("template").a({"id": "DbMonTemplate", "testName": null, "databases": null}).c(
     n("div").c(
-        n("#text","{{testName}}"),
-        n("table").a({"class":"table table-striped latest-data"}).c(
+        n("#text", "{{testName}}"),
+        n("table").a({"class": "table table-striped latest-data"}).c(
             n("tbody").c(
                 // Database
-                n("#jsbs","for (var i=0;databases.length>i;i++) {"),
-                n("#js","var db=databases[i];"),
+                n("#jsbs", "for (var i=0;databases.length>i;i++) {"),
+                n("#js", "var db=databases[i];"),
                 n("tr").c(
-                    n("td").a({"class":"dbname"}).c(
-                        n("#text","{{db.dbname}}")
+                    n("td").a({"class": "dbname"}).c(
+                        n("#text", "{{db.dbname}}")
                     ),
                     // Sample
-                    n("td").a({"class":"query-count"}).c(
-                        n("span").a({"[className]":"db.lastSample.countClassName"}).c(
-                            n("#text","{{db.lastSample.nbQueries}}")
+                    n("td").a({"class": "query-count"}).c(
+                        n("span").a({"[className]": "db.lastSample.countClassName"}).c(
+                            n("#text", "{{db.lastSample.nbQueries}}")
                         )
                     ),
                     // Query
-                    n("#jsbs","for (var j=0;db.lastSample.topFiveQueries.length>j;j++) {"),
-                    n("#js","var q=db.lastSample.topFiveQueries[j];"),
-                    n("td").a({"[className]":"q.elapsedClassName"}).c(
-                        n("#text","{{q.formatElapsed}}"),
-                        n("div").a({"class":"popover left"}).c(
-                            n("div").a({"class":"popover-content"}).c(
-                                n("#text","{{q.query}}")
+                    n("#jsbs", "for (var j=0;db.lastSample.topFiveQueries.length>j;j++) {"),
+                    n("#js", "var q=db.lastSample.topFiveQueries[j];"),
+                    n("td").a({"[className]": "q.elapsedClassName"}).c(
+                        n("#text", "{{q.formatElapsed}}"),
+                        n("div").a({"class": "popover left"}).c(
+                            n("div").a({"class": "popover-content"}).c(
+                                n("#text", "{{q.query}}")
                             ),
-                            n("div").a({"class":"arrow"})
+                            n("div").a({"class": "arrow"})
                         )
                     ),
-                    n("#jsbe","}")
+                    n("#jsbe", "}")
                 ),
-                n("#jsbe","}")
+                n("#jsbe", "}")
             )
         )
     )

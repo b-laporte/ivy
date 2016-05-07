@@ -40,6 +40,7 @@ class PkgContainer {
             if (nd.nodeName === "import") {
                 throw "todo";
             } else if (nd.nodeName === "template") {
+                // todo scan template attributes and validate that they don't have dynamic values + remove extra quotes
                 if (!nd.id) {
                     throw "Missing template id"; // todo provide line nbr
                 }
@@ -65,7 +66,7 @@ class TemplateCompiler {
     fnContent;
     statics;
     templateArgs;
-    templateArgsIdx;
+    templateArgIdx;
     templateFnContent;
     templateFn;
 
@@ -75,14 +76,14 @@ class TemplateCompiler {
     }
 
     compile(exposeInternals) {
-        var templateId = this.rootNode.id, args = [], argsIdx = {};
+        var templateId = this.rootNode.id;
         this.nodeIdx = 0;
         this.fnContent = [];
         this.statics = [];
         this.templateArgs = [];
-        this.templateArgsIdx = {};
+        this.templateArgIdx = {};
 
-        this.compileEltNode(this.rootNode);
+        this.compileTemplateNode(this.rootNode);
         this.templateFnContent = this.fnContent.join("\n");
         this.loadFunction();
 
@@ -91,8 +92,8 @@ class TemplateCompiler {
             templateFn: this.templateFn,
             templateStatics: this.statics,
             templateFnContent: exposeInternals ? this.templateFnContent : undefined,
-            templateArgs: this.templateArgs,
-            templateArgsIdx: this.templateArgsIdx
+            templateArgs: exposeInternals ? this.templateArgs : undefined,
+            templateArgIdx: this.templateArgIdx
         };
 
         this.pkg.update(templateId, templateData);
@@ -126,6 +127,48 @@ class TemplateCompiler {
     };
 
     /**
+     * Compile the root template node
+     * @param nd
+     */
+    compileTemplateNode(nd) {
+        // this is the template node
+        // generate the argument default values
+        var idx = this.nodeIdx;
+        this.nodeIdx++;
+
+        var atts = this.parseEltNodeAttributes(nd.firstAttribute), ls = atts[ATT_STANDARD], nm, val, argIdx = 0,
+            isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
+        ;
+        if (ls) {
+            for (var i = 0; ls.length > i; i++) {
+                nm = ls[i].name;
+                if (nm === "id") {
+                    continue;
+                }
+                val = ls[i].value || "{}"; // todo choose val according to type
+                this.fnContent.push(nm + '=(' + nm + '!==undefined)?' + nm + ':' + val + ';');
+
+                this.templateArgs[argIdx] = nm;
+                this.templateArgIdx[nm] = argIdx;
+                argIdx++;
+            }
+        }
+        if (isDynamic) {
+            throw "Bound attributes cannot be used on template definitions"; // todo
+        }
+        this.statics.push([0]);
+
+        // generate the template start instruction
+        this.fnContent.push('$c.ts(' + idx + '); // template');
+
+        // recursively compile content elements
+        this.compileChildNodes(nd);
+
+        // generate end node line
+        this.fnContent.push('$c.te(' + idx + ');');
+    }
+
+    /**
      * Compile an element or a template node
      * @param nd the Nac node corresponding to the element
      */
@@ -138,29 +181,7 @@ class TemplateCompiler {
         var atts = this.parseEltNodeAttributes(nd.firstAttribute), dynArgs = "0", staticFnArgs = "0", staticArgs = 0;
         var isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
 
-        if (idx === 0) {
-            // this is the template node
-            // generate the argument default values
-            var ls = atts[ATT_STANDARD], nm, val, argIdx = 0;
-            if (ls) {
-                for (var i = 0; ls.length > i; i++) {
-                    nm = ls[i].name;
-                    if (nm === "id") {
-                        continue;
-                    }
-                    val = ls[i].value || "{}"; // todo choose val according to type
-                    this.fnContent.push(nm + '=(' + nm + '!==undefined)?' + nm + ':' + val + ';')
-
-                    this.templateArgs[argIdx] = nm;
-                    this.templateArgsIdx[nm] = argIdx;
-                    argIdx++;
-                }
-            }
-            if (isDynamic) {
-                throw "Bound attributes cannot be used on template definitions"; // todo
-            }
-            this.statics.push([0]);
-        } else if (atts) {
+        if (atts) {
             // sort non-bound attributes
             var ls = atts[ATT_STANDARD], attVal;
             if (ls) {
@@ -207,14 +228,21 @@ class TemplateCompiler {
             this.statics.push([idx, nd.nodeType, nd.nodeName, 0]);
         }
 
-        // generate start node line
-        this.fnContent.push('$c.n(' + idx + ',' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
+        if (nd.firstChild) {
+            // this node has child nodes
 
-        // recursively compile content elements
-        this.compileChildNodes(nd);
+            // generate start node line
+            this.fnContent.push('$c.ns(' + idx + ',true,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
 
-        // generate end node line
-        this.fnContent.push('$c.e(' + idx + ');');
+            // recursively compile content elements
+            this.compileChildNodes(nd);
+
+            // generate end node line
+            this.fnContent.push('$c.ne(' + idx + ');');
+        } else {
+            // single node, no content
+            this.fnContent.push('$c.ns(' + idx + ',false,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
+        }
     }
 
     /**
@@ -233,6 +261,8 @@ class TemplateCompiler {
                 this.compileJsBlock(ch);
             } else if (ndt === NacNodeType.TEXT) {
                 this.compileTextNode(ch);
+            } else if (ndt === NacNodeType.COMMENT) {
+                this.compileComment(ch);
             } else {
                 throw "Invalid node type: " + ndt;
             }
@@ -250,6 +280,14 @@ class TemplateCompiler {
     }
 
     /**
+     * Compile comments
+     * @param nd
+     */
+    compileComment(nd) {
+        this.fnContent.push("// " + nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
+    }
+
+    /**
      * Compile a JS block (e.g. if / else if / else)
      * @param nd the js block node
      */
@@ -261,11 +299,11 @@ class TemplateCompiler {
         this.statics.push([idx]);
 
         this.fnContent.push(bStart);
-        this.fnContent.push('$c.b(' + idx + ');');
+        this.fnContent.push('$c.bs(' + idx + ');');
 
         this.compileChildNodes(nd);
 
-        this.fnContent.push('$c.e(' + idx + ');');
+        this.fnContent.push('$c.be(' + idx + ');');
         this.fnContent.push(bEnd);
     }
 

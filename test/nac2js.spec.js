@@ -26,8 +26,8 @@ describe('NAC compiler', () => {
         `;
         expect(r.foo.templateId).toBe("foo");
         expect(r.foo.templateFnContent).toEqual(`\
-$c.ts(0); // template
-$c.te(0);`);
+    $c.ts(0); // template
+    $c.te(0);`);
         expect(r.foo.templateStatics).toEqual([
             [0]
         ]);
@@ -56,14 +56,14 @@ $c.te(0);`);
             </template>
         `;
         expect(r.foo.templateFnContent).toEqual(`\
-bar=(bar!==undefined)?bar:123;
-$c.ts(0); // template
-$c.ns(1,true,0,0); // div
-$c.ns(2,false,["title",bar+3],["foo",123+456]); // span
-$c.ns(3,false,["value",bar],0); // input
-$c.ne(1);
-$c.ns(4,false,0,0); // br
-$c.te(0);`);
+    bar=(bar!==undefined)?bar:123;
+    $c.ts(0); // template
+    $c.ns(1,true,0,0); // div
+    $c.ns(2,false,["title",bar+3],["foo",123+456]); // span
+    $c.ns(3,false,["value",bar],0); // input
+    $c.ne(1);
+    $c.ns(4,false,0,0); // br
+    $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             [0],
@@ -87,16 +87,16 @@ $c.te(0);`);
             </template>
         `;
         expect(r.foo.templateFnContent).toEqual(`\
-$c.ts(0); // template
-$c.t(1); // Hello World 
-$c.ns(2,true,0,0); // div
-$c.t(3); // Here            (...)
-$c.ns(4,true,0,0); // span
-$c.t(5); // and here as well(...)
-$c.ne(4);
-$c.ne(2);
-$c.t(6); // Done ! 
-$c.te(0);`);
+    $c.ts(0); // template
+    $c.t(1); // Hello World 
+    $c.ns(2,true,0,0); // div
+    $c.t(3); // Here            (...)
+    $c.ns(4,true,0,0); // span
+    $c.t(5); // and here as well(...)
+    $c.ne(4);
+    $c.ne(2);
+    $c.t(6); // Done ! 
+    $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             [0],
@@ -121,13 +121,13 @@ $c.te(0);`);
             </template>
         `;
         expect(r.foo.templateFnContent).toEqual(`\
-$c.ts(0); // template
-$c.t(1); // Hello World 
-// comment 1
-$c.ns(2,true,0,0); // div
-// comment 2
-$c.ne(2);
-$c.te(0);`);
+    $c.ts(0); // template
+    $c.t(1); // Hello World 
+    // comment 1
+    $c.ns(2,true,0,0); // div
+    // comment 2
+    $c.ne(2);
+    $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             [0],
@@ -149,15 +149,15 @@ $c.te(0);`);
         `;
 
         expect(r.foo.templateFnContent).toEqual(`\
-bar=(bar!==undefined)?bar:123;
-$c.ts(0); // template
-var x = 1;
-$c.ns(1,true,0,0); // div
-x = 2+bar;
-$c.ne(1);
-$c.ns(2,false,0,0); // br
-x = 3;
-$c.te(0);`);
+    bar=(bar!==undefined)?bar:123;
+    $c.ts(0); // template
+    var x = 1;
+    $c.ns(1,true,0,0); // div
+    x = 2+bar;
+    $c.ne(1);
+    $c.ns(2,false,0,0); // br
+    x = 3;
+    $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             [0],
@@ -181,21 +181,21 @@ $c.te(0);`);
         `;
 
         expect(r.foo.templateFnContent).toEqual(`\
-bar=(bar!==undefined)?bar:123;
-$c.ts(0); // template
-if (bar % 2) {
-$c.bs(1);
-$c.ns(2,true,0,0); // div
-if (bar === 3) {
-$c.bs(3);
-$c.ns(4,false,0,0); // span
-$c.be(3);
-}
-$c.ne(2);
-$c.ns(5,false,0,0); // br
-$c.be(1);
-}
-$c.te(0);`);
+    bar=(bar!==undefined)?bar:123;
+    $c.ts(0); // template
+    if (bar % 2) {
+        $c.bs(1);
+        $c.ns(2,true,0,0); // div
+        if (bar === 3) {
+            $c.bs(3);
+            $c.ns(4,false,0,0); // span
+            $c.be(3);
+        }
+        $c.ne(2);
+        $c.ns(5,false,0,0); // br
+        $c.be(1);
+    }
+    $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             [0],
@@ -221,24 +221,24 @@ $c.te(0);`);
         `;
 
         expect(r.foo.templateFnContent).toEqual(`\
-bar=(bar!==undefined)?bar:123;
-$c.ts(0); // template
-if (bar % 2) {
-$c.bs(1);
-$c.ns(2,false,0,0); // div
-$c.be(1);
-}
-else if (bar % 3) {
-$c.bs(3);
-$c.ns(4,false,0,0); // div
-$c.be(3);
-}
-else {
-$c.bs(5);
-$c.ns(6,false,0,0); // div
-$c.be(5);
-}
-$c.te(0);`);
+    bar=(bar!==undefined)?bar:123;
+    $c.ts(0); // template
+    if (bar % 2) {
+        $c.bs(1);
+        $c.ns(2,false,0,0); // div
+        $c.be(1);
+    }
+    else if (bar % 3) {
+        $c.bs(3);
+        $c.ns(4,false,0,0); // div
+        $c.be(3);
+    }
+    else {
+        $c.bs(5);
+        $c.ns(6,false,0,0); // div
+        $c.be(5);
+    }
+    $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             [0],
@@ -296,7 +296,6 @@ $c.te(0);`);
         expect(c.logs.join("")).toEqual("ts0;bs3;ns4title:5;be3;te0;");
     });
 
-    // todo support indentation - ease debugging
     // todo event handlers
     // todo support $v
     // todo need for try catch in case of invalid expression?

@@ -59,6 +59,8 @@ class PkgContainer {
     }
 }
 
+var INDENT_SPACE = "    "; // 4 spaces
+
 class TemplateCompiler {
     rootNode;
     pkg;
@@ -69,6 +71,8 @@ class TemplateCompiler {
     templateArgIdx;
     templateFnContent;
     templateFn;
+    indent;         // current indentation (e.g. "    ")
+    indentArray;    // current list of indents - used to calculate new indent - e.g. ["    ", "    "]
 
     constructor(templateNode, pkg) {
         this.rootNode = templateNode;
@@ -82,6 +86,8 @@ class TemplateCompiler {
         this.statics = [];
         this.templateArgs = [];
         this.templateArgIdx = {};
+        this.indent = INDENT_SPACE;
+        this.indentArray = [INDENT_SPACE];
 
         this.compileTemplateNode(this.rootNode);
         this.templateFnContent = this.fnContent.join("\n");
@@ -99,30 +105,64 @@ class TemplateCompiler {
         this.pkg.update(templateId, templateData);
     }
 
+    increseIndentation() {
+        this.indentArray.push(INDENT_SPACE);
+        this.indent = this.indentArray.join("");
+    }
+
+    decreaseIndentation() {
+        this.indentArray.pop();
+        this.indent = this.indentArray.join("");
+    }
+
     /**
      * Instantiate the template function
      */
     loadFunction() {
         if (this.templateFnContent) {
             // clone args
-            var args2 = this.templateArgs.slice(0);
-            // TODO support more than 10 args
-            if (args2.length > 10) {
-                throw "Template cannot support more than 10 arguments"; // todo check
-            } else {
-                var i = args2.length;
-                while (i < 10) {
-                    args2[i] = "$arg" + i;
-                    i++;
-                }
-                // cannot use apply() in this context...
-                this.templateFn = new Function(
-                    "$c",
-                    args2[0], args2[1], args2[2], args2[3], args2[4],
-                    args2[5], args2[6], args2[7], args2[8], args2[9],
-                    this.templateFnContent
-                );
+            var args = this.templateArgs, argLength = args.length, fn, cn = this.templateFnContent;
+
+            // cannot use apply() in this context...
+            switch (argLength) {
+                case 0:
+                    fn = new Function("$c", cn);
+                    break;
+                case 1:
+                    fn = new Function("$c", args[0], cn);
+                    break;
+                case 2:
+                    fn = new Function("$c", args[0], args[1], cn);
+                    break;
+                case 3:
+                    fn = new Function("$c", args[0], args[1], args[2], cn);
+                    break;
+                case 4:
+                    fn = new Function("$c", args[0], args[1], args[2], args[3], cn);
+                    break;
+                case 5:
+                    fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], cn);
+                    break;
+                case 6:
+                    fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], args[5], cn);
+                    break;
+                case 7:
+                    fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], args[5], args[6], cn);
+                    break;
+                case 8:
+                    fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], args[5], args[6], args[7], cn);
+                    break;
+                case 9:
+                    fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], args[5], args[6], args[7], args[8], cn);
+                    break;
+                case 10:
+                    fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], args[5], args[6], args[7], args[8], args[9], cn);
+                    break;
+                default:
+                    throw "Template cannot support more than 10 arguments"; // todo check
             }
+            this.templateFn = fn;
+
         }
     };
 
@@ -146,7 +186,7 @@ class TemplateCompiler {
                     continue;
                 }
                 val = ls[i].value || "{}"; // todo choose val according to type
-                this.fnContent.push(nm + '=(' + nm + '!==undefined)?' + nm + ':' + val + ';');
+                this.fnContent.push(this.indent + nm + '=(' + nm + '!==undefined)?' + nm + ':' + val + ';');
 
                 this.templateArgs[argIdx] = nm;
                 this.templateArgIdx[nm] = argIdx;
@@ -159,13 +199,13 @@ class TemplateCompiler {
         this.statics.push([0]);
 
         // generate the template start instruction
-        this.fnContent.push('$c.ts(' + idx + '); // template');
+        this.fnContent.push(this.indent + '$c.ts(' + idx + '); // template');
 
         // recursively compile content elements
         this.compileChildNodes(nd);
 
         // generate end node line
-        this.fnContent.push('$c.te(' + idx + ');');
+        this.fnContent.push(this.indent + '$c.te(' + idx + ');');
     }
 
     /**
@@ -232,16 +272,16 @@ class TemplateCompiler {
             // this node has child nodes
 
             // generate start node line
-            this.fnContent.push('$c.ns(' + idx + ',true,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
+            this.fnContent.push(this.indent + '$c.ns(' + idx + ',true,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
 
             // recursively compile content elements
             this.compileChildNodes(nd);
 
             // generate end node line
-            this.fnContent.push('$c.ne(' + idx + ');');
+            this.fnContent.push(this.indent + '$c.ne(' + idx + ');');
         } else {
             // single node, no content
-            this.fnContent.push('$c.ns(' + idx + ',false,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
+            this.fnContent.push(this.indent + '$c.ns(' + idx + ',false,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
         }
     }
 
@@ -276,7 +316,7 @@ class TemplateCompiler {
      * @param nd the expresssion node
      */
     compileJsExpression(nd) {
-        this.fnContent.push(nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
+        this.fnContent.push(this.indent + nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
     }
 
     /**
@@ -284,7 +324,7 @@ class TemplateCompiler {
      * @param nd
      */
     compileComment(nd) {
-        this.fnContent.push("// " + nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
+        this.fnContent.push(this.indent + "// " + nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
     }
 
     /**
@@ -298,13 +338,15 @@ class TemplateCompiler {
         this.nodeIdx++;
         this.statics.push([idx]);
 
-        this.fnContent.push(bStart);
-        this.fnContent.push('$c.bs(' + idx + ');');
+        this.fnContent.push(this.indent + bStart);
+        this.increseIndentation();
+        this.fnContent.push(this.indent + '$c.bs(' + idx + ');');
 
         this.compileChildNodes(nd);
 
-        this.fnContent.push('$c.be(' + idx + ');');
-        this.fnContent.push(bEnd);
+        this.fnContent.push(this.indent + '$c.be(' + idx + ');');
+        this.decreaseIndentation();
+        this.fnContent.push(this.indent + bEnd);
     }
 
     /**
@@ -320,7 +362,7 @@ class TemplateCompiler {
             v = v.slice(0, 16) + "(...)";
         }
 
-        this.fnContent.push('$c.t(' + idx + '); // ' + v);
+        this.fnContent.push(this.indent + '$c.t(' + idx + '); // ' + v);
 
         this.statics.push([idx, nd.nodeType, nd.nodeValue]);
     }

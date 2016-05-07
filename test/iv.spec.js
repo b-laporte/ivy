@@ -453,7 +453,6 @@ describe('IV runtime', () => {
         var pkg = iv `
             <template #test list=[] condition=false>
                 <div>
-                    // % debugger
                     <div title="first"/>
                     % for (var i=0;list.length>i;i++) {
                         <div [title]=("item " + i + ": " + list[i])/>

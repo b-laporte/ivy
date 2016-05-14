@@ -13,7 +13,8 @@ const ATT_STANDARD = NacAttributeNature.STANDARD,                       // 0 - e
 
 var REGEXP_JS_LITERAL = /(^".*"$)|(^'.*'$)|(^true$)|(^false$)|(^\d+$)|(^\d+\.\d+$)/,
     REGEXP_FIRST_SPACES = /^\s+/,
-    REGEXP_NEWLINES = /\n/g;
+    REGEXP_NEWLINES = /\n/g,
+    REGEXP_QUOTED_STRING = /^"(.*)"$/;
 
 export function compile(nacNode, exposeInternals = false) {
     var pkg = new PkgContainer(), templates = pkg.load(nacNode), c;
@@ -44,6 +45,13 @@ class PkgContainer {
                 if (!nd.id) {
                     throw "Missing template id"; // todo provide line nbr
                 }
+
+                // remove extra double-quote on id
+                var m = nd.id.match(REGEXP_QUOTED_STRING);
+                if (m) {
+                    nd.id = m[1];
+                }
+
                 this.entities[nd.id] = {};
                 templates.push(nd);
             } else {
@@ -159,7 +167,7 @@ class TemplateCompiler {
                     fn = new Function("$c", args[0], args[1], args[3], args[3], args[4], args[5], args[6], args[7], args[8], args[9], cn);
                     break;
                 default:
-                    throw "Template cannot support more than 10 arguments"; // todo check
+                    throw "Templates cannot support more than 10 arguments"; // todo check
             }
             this.templateFn = fn;
 
@@ -178,7 +186,7 @@ class TemplateCompiler {
 
         var atts = this.parseEltNodeAttributes(nd.firstAttribute), ls = atts[ATT_STANDARD], nm, val, argIdx = 0,
             isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
-        ;
+
         if (ls) {
             for (var i = 0; ls.length > i; i++) {
                 nm = ls[i].name;
@@ -186,7 +194,7 @@ class TemplateCompiler {
                     continue;
                 }
                 val = ls[i].value || "{}"; // todo choose val according to type
-                this.fnContent.push(this.indent + nm + '=(' + nm + '!==undefined)?' + nm + ':' + val + ';');
+                this.fnContent.push([this.indent, nm, '=(', nm, '!==undefined)?', nm, ':', val, ';'].join(''));
 
                 this.templateArgs[argIdx] = nm;
                 this.templateArgIdx[nm] = argIdx;
@@ -196,16 +204,16 @@ class TemplateCompiler {
         if (isDynamic) {
             throw "Bound attributes cannot be used on template definitions"; // todo
         }
-        this.statics.push([0]);
+        this.statics.push(0);
 
         // generate the template start instruction
-        this.fnContent.push(this.indent + '$c.ts(' + idx + '); // template');
+        this.fnContent.push([this.indent, '$c.ts(', idx, '); // template'].join(''));
 
         // recursively compile content elements
         this.compileChildNodes(nd);
 
         // generate end node line
-        this.fnContent.push(this.indent + '$c.te(' + idx + ');');
+        this.fnContent.push([this.indent, '$c.te(', idx, ');'].join(''));
     }
 
     /**
@@ -215,6 +223,11 @@ class TemplateCompiler {
     compileEltNode(nd) {
         var idx = this.nodeIdx;
         this.nodeIdx++;
+
+        // determine if this is a component or a standard node
+        var isComponent = (this.pkg.entities[nd.nodeName] !== undefined),
+            methodPrefix = isComponent ? "$c.c" : "$c.n",
+            ndType = isComponent ? NacNodeType.COMPONENT : NacNodeType.ELEMENT;
 
 
         // calculate attributes
@@ -263,25 +276,25 @@ class TemplateCompiler {
                 dynArgs = "[" + dynAtts.join(",") + "]";
 
             }
-            this.statics.push([idx, nd.nodeType, nd.nodeName, staticArgs]);
+            this.statics.push([idx, ndType, nd.nodeName, staticArgs]);
         } else {
-            this.statics.push([idx, nd.nodeType, nd.nodeName, 0]);
+            this.statics.push([idx, ndType, nd.nodeName, 0]);
         }
 
         if (nd.firstChild) {
             // this node has child nodes
 
             // generate start node line
-            this.fnContent.push(this.indent + '$c.ns(' + idx + ',true,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
+            this.fnContent.push([this.indent, methodPrefix, 's(', idx, ',true,', dynArgs, ',', staticFnArgs, '); // ', nd.nodeName].join(''));
 
             // recursively compile content elements
             this.compileChildNodes(nd);
 
             // generate end node line
-            this.fnContent.push(this.indent + '$c.ne(' + idx + ');');
+            this.fnContent.push([this.indent, methodPrefix, 'e(', idx, ');'].join(''));
         } else {
             // single node, no content
-            this.fnContent.push(this.indent + '$c.ns(' + idx + ',false,' + dynArgs + ',' + staticFnArgs + '); // ' + nd.nodeName);
+            this.fnContent.push([this.indent, methodPrefix, 's(', idx, ',false,', dynArgs, ',', staticFnArgs, '); // ', nd.nodeName].join(''));
         }
     }
 
@@ -295,6 +308,8 @@ class TemplateCompiler {
             ndt = ch.nodeType;
             if (ndt === NacNodeType.ELEMENT) {
                 this.compileEltNode(ch);
+            } else if (ndt === NacNodeType.INSERT) {
+                this.compileInsert(ch);
             } else if (ndt === NacNodeType.JS_EXPRESSION) {
                 this.compileJsExpression(ch);
             } else if (ndt === NacNodeType.JS_BLOCK) {
@@ -316,7 +331,7 @@ class TemplateCompiler {
      * @param nd the expresssion node
      */
     compileJsExpression(nd) {
-        this.fnContent.push(this.indent + nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
+        this.fnContent.push([this.indent, nd.nodeValue.replace(REGEXP_FIRST_SPACES, "")].join(''));
     }
 
     /**
@@ -324,7 +339,18 @@ class TemplateCompiler {
      * @param nd
      */
     compileComment(nd) {
-        this.fnContent.push(this.indent + "// " + nd.nodeValue.replace(REGEXP_FIRST_SPACES, ""));
+        this.fnContent.push([this.indent, "// ", nd.nodeValue.replace(REGEXP_FIRST_SPACES, "")].join(''));
+    }
+
+    /**
+     * Compile insert node
+     * @param nd
+     */
+    compileInsert(nd) {
+        var idx = this.nodeIdx;
+        this.nodeIdx++;
+        this.fnContent.push([this.indent, '$c.ins(', idx, ',', nd.nodeValue, ');'].join(''));
+        this.statics.push(0);
     }
 
     /**
@@ -336,17 +362,17 @@ class TemplateCompiler {
             bStart = nd.nodeValue.startBlockExpression.replace(REGEXP_FIRST_SPACES, ""),
             bEnd = nd.nodeValue.endBlockExpression.replace(REGEXP_FIRST_SPACES, "");
         this.nodeIdx++;
-        this.statics.push([idx]);
+        this.statics.push(0);
 
-        this.fnContent.push(this.indent + bStart);
+        this.fnContent.push([this.indent, bStart].join(''));
         this.increseIndentation();
-        this.fnContent.push(this.indent + '$c.bs(' + idx + ');');
+        this.fnContent.push([this.indent, '$c.bs(', idx, ');'].join(''));
 
         this.compileChildNodes(nd);
 
-        this.fnContent.push(this.indent + '$c.be(' + idx + ');');
+        this.fnContent.push([this.indent, '$c.be(', idx, ');'].join(''));
         this.decreaseIndentation();
-        this.fnContent.push(this.indent + bEnd);
+        this.fnContent.push([this.indent, bEnd].join(''));
     }
 
     /**
@@ -362,7 +388,7 @@ class TemplateCompiler {
             v = v.slice(0, 16) + "(...)";
         }
 
-        this.fnContent.push(this.indent + '$c.t(' + idx + '); // ' + v);
+        this.fnContent.push([this.indent, '$c.t(', idx, '); // ', v].join(''));
 
         this.statics.push([idx, nd.nodeType, nd.nodeValue]);
     }

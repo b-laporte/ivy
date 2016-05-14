@@ -486,12 +486,15 @@ function nodeAttributeName(p, attMap) {
         value: undefined,    // the attribute value if defined
         nature: NacAttributeNature.STANDARD // attribute nature - cf. NacAttributeNature
     }, isId = false, isAttNode = false, endChar1 = null, endChar2 = null;
+    var b = [];
 
     if (p.advanceChar(CHAR_HASH, false)) {
         isId = true;
+        b.push('"');
         att.name = "id";
     } else if (p.advanceChar(CHAR_AT, false)) {
         isAttNode = true;
+        b.push('"');
         att.name = "@name";
     } else if (p.advanceChar(CHAR_VALUE, false)) {
         att.name = "@default";
@@ -512,9 +515,9 @@ function nodeAttributeName(p, attMap) {
         }
     }
 
-    var b = [];
     if (p.advanceMany(b, isJsIdentifierChar)) {
         if (isId || isAttNode) {
+            b.push('"');
             att.value = b.join("");
         } else {
             att.name = b.join("");

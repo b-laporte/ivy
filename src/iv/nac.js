@@ -48,7 +48,8 @@ export const NacNodeType = {
     COMMENT: 8,
     INSERT: 12,         // e.g. {{foo.bar}}
     JS_EXPRESSION: 13,  // e.g. % let foo = 3;
-    JS_BLOCK: 14        // e.g. % let foo = 3;
+    JS_BLOCK: 14,       // e.g. % let foo = 3;
+    COMPONENT: 15
 };
 
 export const NacAttributeNature = { // warning: keep incremental values as used to index an array in nac2js
@@ -176,7 +177,7 @@ export class NacNode {
                 } while (nd)
             }
         }
-        var nd=this.firstChild;
+        var nd = this.firstChild;
         while (nd) {
             nd.parentNode = this;
             nd = nd.nextSibling;

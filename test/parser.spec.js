@@ -260,7 +260,7 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div #foo bar  baz> blah </div>
         `, n("div").a({
-            "id": "foo",
+            "id": '"foo"',
             "bar": undefined,
             "baz": undefined
         }).c(
@@ -271,7 +271,7 @@ describe('IV parser', () => {
             <div @foo      
             bar     > blah </div>
         `, n("div").a({
-            "@name": "foo",
+            "@name": '"foo"',
             "bar": undefined
         }).c(
             n("#text", " blah ")

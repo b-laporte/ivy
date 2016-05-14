@@ -29,7 +29,7 @@ describe('NAC compiler', () => {
     $c.ts(0); // template
     $c.te(0);`);
         expect(r.foo.templateStatics).toEqual([
-            [0]
+            0
         ]);
     });
 
@@ -66,11 +66,28 @@ describe('NAC compiler', () => {
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
-            [0],
+            0,
             [1, 1, "div", ["class", "main"]],
             [2, 1, "span", ["ok", true]],
             [3, 1, "input", ["type", "text"]],
             [4, 1, "br", 0]
+        ]);
+    });
+
+    it('should compile id and @ properties', () => {
+        var r = cpl`
+            <template #foo>
+                <div #bar @baz/>
+            </template>
+        `;
+        expect(r.foo.templateFnContent).toEqual(`\
+    $c.ts(0); // template
+    $c.ns(1,false,0,0); // div
+    $c.te(0);`);
+
+        expect(r.foo.templateStatics).toEqual([
+            0,
+            [1, 1, "div", ["id", "bar", "@name", "baz"]]
         ]);
     });
 
@@ -99,7 +116,7 @@ describe('NAC compiler', () => {
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
-            [0],
+            0,
             [1, 3, ` Hello World `],
             [2, 1, "div", 0],
             [3, 3, ` Here
@@ -130,7 +147,7 @@ describe('NAC compiler', () => {
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
-            [0],
+            0,
             [1, 3, ` Hello World `],
             [2, 1, "div", 0],
         ]);
@@ -160,7 +177,7 @@ describe('NAC compiler', () => {
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
-            [0],
+            0,
             [1, 1, "div", ["class", "main"]],
             [2, 1, "br", 0]
         ]);
@@ -198,10 +215,10 @@ describe('NAC compiler', () => {
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
-            [0],
-            [1],
+            0,
+            0,
             [2, 1, "div", ["class", "main"]],
-            [3],
+            0,
             [4, 1, "span", ["title", "ok"]],
             [5, 1, "br", 0]
         ]);
@@ -241,12 +258,12 @@ describe('NAC compiler', () => {
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
-            [0],
-            [1],
+            0,
+            0,
             [2, 1, "div", ["class", "main"]],
-            [3],
+            0,
             [4, 1, "div", ["class", "main2"]],
-            [5],
+            0,
             [6, 1, "div", ["class", "main3"]]
         ]);
     });
@@ -296,6 +313,76 @@ describe('NAC compiler', () => {
         expect(c.logs.join("")).toEqual("ts0;bs3;ns4title:5;be3;te0;");
     });
 
+    it('should compile sub-template calls', () => {
+        var r = cpl`
+            <template #foo v:number=123>
+                <div>
+                    <span>first</span>
+                    <bar [value]=v+1/>
+                    <bar [value]=v+2/>
+                    <span>last</span>
+                </div>
+            </template>
+            
+            <template #bar value>
+                <span [title]=("Value: "+value)/>
+            </template>
+        `;
+
+        expect(r.foo.templateFnContent).toEqual(`\
+    v=(v!==undefined)?v:123;
+    $c.ts(0); // template
+    $c.ns(1,true,0,0); // div
+    $c.ns(2,true,0,0); // span
+    $c.t(3); // first
+    $c.ne(2);
+    $c.cs(4,false,["value",v+1],0); // bar
+    $c.cs(5,false,["value",v+2],0); // bar
+    $c.ns(6,true,0,0); // span
+    $c.t(7); // last
+    $c.ne(6);
+    $c.ne(1);
+    $c.te(0);`);
+
+        expect(r.foo.templateStatics).toEqual([
+            0,
+            [1, 1, "div", 0],
+            [2, 1, "span", 0],
+            [3, 3, "first"],
+            [4, 15, "bar", 0],
+            [5, 15, "bar", 0],
+            [6, 1, "span", 0],
+            [7, 3, "last"]
+        ]);
+    });
+
+    it('should compile text and node insert', () => {
+        var r = cpl`
+            <template #foo msg="hello">
+                <div>
+                    {{msg}}
+                </div>
+            </template>
+        `;
+
+        expect(r.foo.templateFnContent).toEqual(`\
+    msg=(msg!==undefined)?msg:"hello";
+    $c.ts(0); // template
+    $c.ns(1,true,0,0); // div
+    $c.ins(2,msg);
+    $c.ne(1);
+    $c.te(0);`);
+
+        expect(r.foo.templateStatics).toEqual([
+            0,
+            [1, 1, "div", 0],
+            0
+        ]);
+    });
+
+
+    // todo subtemplate or component call through <insert>
+    // todo subtemplates with content nodes, and with @name nodes
     // todo event handlers
     // todo support $v
     // todo need for try catch in case of invalid expression?

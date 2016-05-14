@@ -191,16 +191,40 @@ var pkg = `
         % }
     </template>
     
-    <template #personDetails person msg:IvNode>
+    <template #personDetails person msg:IvNode=null>
         % var properties = ["firstName", "lastName", "age", "gender"];
         % for (var k in properties) {
             <div class="detail">
                 <span class="key">{{k}}: </span>
-                <span class="value">{{properties[k]}}</span>
+                <span class="value">{{person[k]}}</span>
             </div>
+            % if (msg) {
+                <div class="msg">{{msg}}</div>
+            % }
         % }
         {{msg}}
     </template>
+    
+    // template using tabbars
+    <template #tabbarTest selectedTab="A" show3=true onchange:Function>
+        <tabbar [selection]=selectedTab (onselection)=onchange($event.selection)>
+            <div @tab key="A">
+                <div @title> First tab </div>
+                First tab content
+            </div>
+            
+            <div @tab key="B" title="Second tab">
+                Second tab content
+            </div>
+            
+            % if (show3) {
+                <div @tab key="C" title="Third tab">
+                    Third tab content (optional)
+                </div>
+            % /}
+        </tabbar>
+    </template>
+    
 `
 
 // Using it
@@ -260,53 +284,6 @@ pkg = (function () {
     }
 })();
 
-// export const NacNodeType = {
-//     ELEMENT: 1,
-//     TEXT: 3,
-//     COMMENT: 8,
-//     INSERT: 12,         // e.g. {{load.bar}}
-//     JS_EXPRESSION: 13,  // e.g. % let load = 3;
-//     JS_BLOCK: 14        // e.g. % let load = 3;
-//     COMPONENT: 15
-// };
-
-var DbMonTemplate = n("template").a({"id": "DbMonTemplate", "testName": null, "databases": null}).c(
-    n("div").c(
-        n("#text", "{{testName}}"),
-        n("table").a({"class": "table table-striped latest-data"}).c(
-            n("tbody").c(
-                // Database
-                n("#jsbs", "for (var i=0;databases.length>i;i++) {"),
-                n("#js", "var db=databases[i];"),
-                n("tr").c(
-                    n("td").a({"class": "dbname"}).c(
-                        n("#text", "{{db.dbname}}")
-                    ),
-                    // Sample
-                    n("td").a({"class": "query-count"}).c(
-                        n("span").a({"[className]": "db.lastSample.countClassName"}).c(
-                            n("#text", "{{db.lastSample.nbQueries}}")
-                        )
-                    ),
-                    // Query
-                    n("#jsbs", "for (var j=0;db.lastSample.topFiveQueries.length>j;j++) {"),
-                    n("#js", "var q=db.lastSample.topFiveQueries[j];"),
-                    n("td").a({"[className]": "q.elapsedClassName"}).c(
-                        n("#text", "{{q.formatElapsed}}"),
-                        n("div").a({"class": "popover left"}).c(
-                            n("div").a({"class": "popover-content"}).c(
-                                n("#text", "{{q.query}}")
-                            ),
-                            n("div").a({"class": "arrow"})
-                        )
-                    ),
-                    n("#jsbe", "}")
-                ),
-                n("#jsbe", "}")
-            )
-        )
-    )
-);
 
 var dbmonpkg = iv `
     <template #dbmon testName:string databases:Array>
@@ -315,23 +292,23 @@ var dbmonpkg = iv `
             <table class="table table-striped latest-data">
                 <tbody>
                     % for (var i=0;databases.length>i;i++) {
-                    % var db=databases[i];
-                    <tr>
-                        <td class="dbname">{{db.dbname}}</td>
-                        // Sample
-                        <td class="query-count">
-                            <span [className]=db.lastSample.countClassName> {{db.lastSample.nbQueries}} </span>
-                        </td>
-                        // Query
-                        % for (var j=0;db.lastSample.topFiveQueries.length>j;j++) {
-                        % var q=db.lastSample.topFiveQueries[j];
-                        <td [className]=q.elapsedClassName>
-                            {{q.formatElapsed}}
-                            <div class="popover-content">{{q.query}}</div>
-                            <div class="arrow"/>
-                        </td>
-                        % }
-                    </tr>
+                        % var db=databases[i];
+                        <tr>
+                            <td class="dbname">{{db.dbname}}</td>
+                            // Sample
+                            <td class="query-count">
+                                <span [className]=db.lastSample.countClassName>{{db.lastSample.nbQueries}}</span>
+                            </td>
+                            // Query
+                            % for (var j=0;db.lastSample.topFiveQueries.length>j;j++) {
+                                % var q=db.lastSample.topFiveQueries[j];
+                                <td [className]=q.elapsedClassName>
+                                    {{q.formatElapsed}}
+                                    <div class="popover-content">{{q.query}}</div>
+                                    <div class="arrow"/>
+                                </td>
+                            % }
+                        </tr>
                     % }
                 </tbody>
             </table>

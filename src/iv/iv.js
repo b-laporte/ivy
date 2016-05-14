@@ -27,7 +27,7 @@ export function iv(strings, ...values) {
     var pkg = {};
     for (var k in pkgEntities) {
         if (pkgEntities.hasOwnProperty(k)) {
-            pkg[k] = new IvTemplate(pkgEntities[k]);
+            pkg[k] = new IvTemplate(pkgEntities[k], pkg);
         }
     }
     return pkg;
@@ -39,87 +39,97 @@ export function iv(strings, ...values) {
 class IvTemplate {
     static templateCount = 0;
     templateData;
+    pkg;            // package associated to this template
     uid;            // unique identifier
 
-    constructor(templateData) {
+    constructor(templateData, pkg) {
         this.templateData = templateData;
         this.uid = "T" + (IvTemplate.templateCount++);
+        this.pkg = pkg;
     }
 
-    apply(argMap) {
-        var p = new IvProcessor(this.templateData, this.uid),
+    apply(argMap, context) {
+        var p = new IvProcessor(this.templateData, this.pkg, this.uid),
             view = {
                 vdom: null,
                 // hide the processor in the function closure
-                refresh: function (argMap, vdom) {
-                    this.vdom = p.refresh(argMap, vdom || this.vdom);
+                refresh: function (argMap, context) {
+                    this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
                 }
             };
-        view.refresh(argMap);
+        view.refresh(argMap, context);
         return view;
     }
 }
 
 class IvProcessor {
-    templateUID;        // template unique identifier
+    pkg;                 // template package
+    templateUID;         // template unique identifier
     fn;
     statics;
     argIndexes;
-    refreshLog;         // instruction set generated during last refresh call
-    srcNd;              // current node - node used as reference during the refresh process
-    srcNdDepth;         // current node depth
-    ancestorNodes;      // array of the nodes in the current path
-    targetDepth;        // tells at which depth next node should be (0 = root)
-    forceCreate;        // fast track for node creation
-    forceCreateTarget;  // force creation mode until a certain target is reached
+    refreshLog;          // instruction set generated during last refresh call
+    srcNd;               // current node - node used as reference during the refresh process
+    srcNdDepth;          // current node depth
+    rootNd;              // rootNode
+    ancestorNodes;       // array of the nodes in the current path
+    targetDepth;         // tells at which depth next node should be (0 = root)
+    creationMode;        // fast track for node creation
+    creationModeTarget;  // force creation mode until a certain target is reached
+    ignoreTemplateNode;  // true when the template is called from another template that has already created the template node
 
-    constructor(templateData, templateUID) {
+    constructor(templateData, pkg, templateUID) {
+        this.pkg = pkg;
         this.templateUID = templateUID;
         this.fn = templateData.templateFn;
         this.statics = templateData.templateStatics;
         this.argIndexes = templateData.templateArgIdx;
     }
 
-    refresh(argMap, previousNode) {
+    refresh(argMap, context) {
+        var groupNode = context.groupNode;
         this.refreshLog = null;
         // fake a node to bootstrap the chain
-        this.srcNd = {nextSibling: previousNode || null};
+        this.srcNd = null;
         this.srcNdDepth = 0;
+        this.targetDepth = 0;
+        this.ancestorNodes = [];
 
-        if (previousNode) {
-            this.forceCreate = false;
-            this.forceCreateTarget = -1;
+
+        if (context.creationMode || !groupNode) {
+            this.creationMode = true;
+            this.creationModeTarget = 0;
         } else {
-            this.forceCreate = true;
-            this.forceCreateTarget = 0;
+            this.creationMode = false;
+            this.creationModeTarget = -1;
+        }
+        if (groupNode) {
+            this.ignoreTemplateNode = true;
+            this.srcNd = groupNode;
+            this.ancestorNodes.push(groupNode);
+            this.rootNd = groupNode;
+        } else {
+            this.ignoreTemplateNode = false;
         }
 
         var args = [this], argsIdx = this.argIndexes;
-
         for (var k in argMap) {
             if (argMap.hasOwnProperty(k)) {
                 args[argsIdx[k] + 1] = argMap[k];
             }
         }
 
-        this.targetDepth = 0;
-        this.ancestorNodes = [];
-
         // call the template function
         this.fn.apply(null, args); // this will call the marker methods ns(), ne(), t(), bs()...
 
-        if (this.ancestorNodes.length) {
-            return this.ancestorNodes[0].firstSibling;
-        } else {
-            return null;
-        }
+        return this.rootNd;
     }
 
     advance(targetIdx) {
         var nextNode;
         if (this.srcNdDepth < this.targetDepth) {
             // we have to look for next node in the child list
-            var nd=this.srcNd;
+            var nd = this.srcNd;
             nextNode = nd.firstChild;
             while (nextNode && nextNode.index < targetIdx) {
                 this.deleteFirstChild(nd);
@@ -190,12 +200,14 @@ class IvProcessor {
      * @param idx
      */
     ts(idx) {
-        if (this.forceCreate) {
-            // creation fast track
-            this.createGroupNode(idx);
-        } else {
-            if (!this.advance(idx)) {
+        if (!this.ignoreTemplateNode) {
+            if (this.creationMode) {
+                // creation fast track
                 this.createGroupNode(idx);
+            } else {
+                if (!this.advance(idx)) {
+                    this.createGroupNode(idx);
+                }
             }
         }
         this.targetDepth++;
@@ -217,7 +229,7 @@ class IvProcessor {
      * @param sAttributes Array of static attributes that need be evaluated through an expression - e.g. ["title",bar+3]
      */
     ns(idx, hasChildren, dAttributes, sAttributes) {
-        if (this.forceCreate) {
+        if (this.creationMode) {
             // creation fast track
             this.createEltNode(idx, dAttributes, sAttributes);
         } else {
@@ -225,7 +237,7 @@ class IvProcessor {
                 // update
                 this.updateEltNode(this.srcNd, dAttributes);
             } else {
-                throw "invalid case"; // force creation should have been activated and we should not get here
+                throw "invalid case 1"; // force creation should have been activated and we should not get here
             }
         }
 
@@ -240,11 +252,11 @@ class IvProcessor {
      * @param idx the node index
      */
     ne(idx) {
-        if (this.forceCreate) {
-            if (idx === this.forceCreateTarget) {
+        if (this.creationMode) {
+            if (idx === this.creationModeTarget) {
                 // reset forced creation flags
-                this.forceCreate = false;
-                this.forceCreateTarget = -1;
+                this.creationMode = false;
+                this.creationModeTarget = -1;
             }
         } else {
             // delete last nodes
@@ -260,18 +272,90 @@ class IvProcessor {
     }
 
     /**
+     * Component start
+     * @param idx
+     * @param hasChildren
+     * @param dAttributes
+     * @param sAttributes
+     */
+    cs(idx, hasChildren, dAttributes, sAttributes) {
+        if (!hasChildren) {
+            if (this.creationMode) {
+                this.createCptNode(idx, dAttributes, sAttributes);
+                this.generateCptView(idx, this.srcNd);
+            } else {
+                if (this.advance(idx)) {
+                    this.updateCptNode(this.srcNd, dAttributes);
+                } else {
+                    throw "invalid case 2"; // force creation should have been activated and we should not get here
+                }
+            }
+        } else {
+            // node has child nodes
+            if (this.creationMode) {
+                this.createCptNode(idx, dAttributes, sAttributes);
+            } else {
+                if (this.advance(idx)) {
+                    // swap content node / view node
+                    var cptNd = this.srcNd;
+                    cptNd.data.viewDom = cptNd.firstChild;
+                    cptNd.data.dAttributes = dAttributes;
+                    cptNd.firstChild = cptNd.data.contentDom.firstChild; // todo is it necessary to keep the parent group?
+
+                    // then trigger update of the view node in ce()
+                } else {
+                    throw "invalid case 4"; // force creation should have been activated and we should not get here
+                }
+            }
+            this.targetDepth++;
+        }
+    }
+
+    /**
+     * Component end
+     * @param idx
+     */
+    ce(idx) {
+        // we are in the case where the component has children
+        this.ne(idx);
+
+        var cptNd = this.srcNd, attMap = {};
+        if (this.creationMode) {
+            var cptNd = this.srcNd;
+            var contentGroup = new NacNode(NacNodeType.ELEMENT);
+            contentGroup.nodeName = "#group";
+            contentGroup.index = idx;
+            contentGroup.firstChild = cptNd.firstChild;
+            // todo: contentNd.firstChild.parentNode?
+            cptNd.data.contentDom = contentGroup;
+            cptNd.firstChild = null;
+
+            // generate view nodes
+            attMap["content"] = contentGroup.firstChild;
+            this.generateCptView(idx, cptNd, attMap);
+        } else {
+            var contentNd = cptNd.firstChild;
+            cptNd.firstChild = cptNd.data.viewDom;
+            cptNd.data.contentDom.firstChild = contentNd;
+
+            // update view nodes
+            this.updateCptNode(cptNd, cptNd.data.dAttributes, ["content", contentNd]);
+        }
+    }
+
+    /**
      * Mark the beginning of a js block (Block Start)
      * @param idx the node index
      */
     bs(idx) {
-        if (this.forceCreate) {
+        if (this.creationMode) {
             // creation fast track
             this.createGroupNode(idx);
         } else {
             if (!this.advance(idx)) {
                 this.createGroupNode(idx);
-                this.forceCreate = true;
-                this.forceCreateTarget = idx;
+                this.creationMode = true;
+                this.creationModeTarget = idx;
             }
         }
         this.targetDepth++;
@@ -290,13 +374,30 @@ class IvProcessor {
      * @param idx the node index
      */
     t(idx) {
-        if (this.forceCreate) {
+        if (this.creationMode) {
             this.createTextNode(idx);
         } else {
             if (!this.advance(idx)) {
                 this.createTextNode(idx);
             }
             // text nodes are static - so no update needed
+        }
+    }
+
+    /**
+     * Insert statement
+     * @param idx
+     * @param content
+     */
+    ins(idx, content) {
+        if (this.creationMode) {
+            this.createInsertNode(idx, content);
+        } else {
+            if (this.advance(idx)) {
+                this.updateInsertNode(this.srcNd, content);
+            } else {
+                throw "invalid case 3"; // force creation should have been activated and we should not get here
+            }
         }
     }
 
@@ -337,10 +438,128 @@ class IvProcessor {
         this.appendNode(nd);
     }
 
+    createInsertNode(idx, content) {
+        // create a group node
+        var nd = new NacNode(NacNodeType.ELEMENT);
+        content = this.checkInsertContent(content);
+        nd.nodeName = "#group";
+        nd.index = idx;
+        this.appendNode(nd);
+
+        // if content is a piece of text, create a text node
+        if (!content.firstSibling) {
+            // text node
+            content = new NacNode(NacNodeType.TEXT, "" + content, nd);
+            content.index = -1;
+        }
+
+        // set the content as group child nodes
+        // todo set parentNode - is it really useful?
+        nd.firstChild = content;
+        content.parentNode = nd;
+    }
+
+    updateInsertNode(nd, content) {
+        var content = this.checkInsertContent(content),
+            textType = NacNodeType.TEXT,
+            ch = nd.firstChild;
+
+        if (ch.nodeType === textType) {
+            if (ch.index === -1) {
+                // update text
+                ch.nodeValue = content;
+            } else {
+                throw "todo 2";
+            }
+        }
+    }
+
+    checkInsertContent(content) {
+        if (content && content.firstSibling) {
+            return content
+        } else {
+            if (!content) {
+                return "";
+            }
+            return (typeof content === "object") ? "" : "" + content;
+        }
+    }
+
+    createCptNode(idx, dAttributes, sAttributes) {
+        // create a group node as container for the component
+        var statics = this.statics[idx], nd = new NacNode(NacNodeType.ELEMENT);
+        nd.nodeName = "#group";
+        nd.index = idx;
+        this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
+        nd.data = {
+            attributes: null,   // attribute map
+            view: null,         // view object generated by the cpt template
+            contentDom: null,    // content vdom - generated by the current template
+            viewDom: null        // view vdom firstChild
+        }
+        this.appendNode(nd);
+    }
+
+    generateCptView(idx, cptNd, attMap = {}) {
+        var statics = this.statics[idx];
+        // call the component template
+        var tpl = this.pkg[statics[2]];
+        if (!tpl) {
+            // we should not get there as template has already been identified earlier
+            throw "Invalid component reference: " + statics[2];
+        } else {
+            var atts = attMap, att = cptNd.firstAttribute, view;
+            while (att) {
+                if (!atts[att.name]) {
+                    atts[att.name] = att.value;
+                }
+                att = att.nextSibling;
+            }
+            view = tpl.apply(atts, {creationMode: true, groupNode: cptNd});
+            cptNd.data.view = view;
+            cptNd.data.attributes = atts;
+            cptNd.data.viewDom = view.vdom.firstChild;
+        }
+    }
+
+    updateCptNode(cptNd, dAttributes, nodeAttributes) {
+        if (!cptNd.data || !cptNd.data.view) {
+            throw "Invalid component node"; // todo provide more details + test
+        }
+        var atts = cptNd.data.attributes;
+        if (dAttributes) {
+            // attributes are created in the same order as they are in the dAttributes list
+            var att = cptNd.firstAttribute, val;
+            for (var i = 0; dAttributes.length > i; i += 2) {
+                val = dAttributes[i + 1];
+                atts[dAttributes[i]] = val;
+                att.value = val;
+                att = att.nextSibling;
+            }
+            cptNd.data.attributes = atts;
+        }
+        if (nodeAttributes) {
+            // node attributes are attribute of type IvNode - e.g. content
+            for (var j = 0; dAttributes.length > j; j += 2) {
+                atts[nodeAttributes[j]] = nodeAttributes[j + 1];
+            }
+        }
+        // todo check if template is pure function and skip refresh
+        var view = cptNd.data.view;
+        view.refresh(atts, {creationMode: false, groupNode: cptNd});
+        cptNd.data.viewDom = view.vdom.firstChild;
+    }
+
     createEltNode(idx, dAttributes, sAttributes) {
-        var statics = this.statics[idx], nd = new NacNode(statics[1]), i;
+        var statics = this.statics[idx], nd = new NacNode(statics[1]);
         nd.nodeName = statics[2];
         nd.index = idx;
+        this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
+        this.appendNode(nd);
+    }
+
+    setNodeAttributes(nd, statics, dAttributes, sAttributes) {
+        var i;
         // dynamic attributes first
         if (dAttributes) {
             for (i = 0; dAttributes.length > i; i += 2) {
@@ -360,8 +579,6 @@ class IvProcessor {
                 nd.addAttribute(sAttributes[i], sAttributes[i + 1]);
             }
         }
-
-        this.appendNode(nd);
     }
 
     updateEltNode(nd, dAttributes) {
@@ -381,6 +598,7 @@ class IvProcessor {
             // root node
             anNodes[0] = nd;
             this.srcNd = nd;
+            this.rootNd = nd;
         } else {
             var prev = anNodes[anLength - 1];
             if (this.targetDepth >= anLength) {

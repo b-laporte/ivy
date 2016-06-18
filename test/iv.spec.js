@@ -1,5 +1,5 @@
 /**
- * NAC JS compiler tests
+ * IV tests
  * Copyright Bertrand Laporte 2016
  * Created on 30/04/16.
  */
@@ -8,7 +8,7 @@
 
 import {n, NacNodeType} from '../src/iv/nac';
 import {iv} from '../src/iv/iv';
-import {compare} from './utils';
+import {compare, diff} from './utils';
 
 describe('IV runtime', () => {
 
@@ -630,50 +630,58 @@ describe('IV runtime', () => {
         `;
 
         var view = pkg.foo.apply({v: 9}), vdom1 = view.vdom;
-        expect(compare(view.vdom,
-            n("#group").c(
-                n("div").c(
-                    n("#text", " AAA "),
-                    n("#group").a({"value": 9}).c( // cpt group
-                        n("span").a({"title": 9}).c(n("#text", " first ")),
-                        n("#group").c(
-                            n("span").c(
-                                n("#text", "Z "),
-                                n("#group").c(
-                                    n("span").c(
-                                        n("#text", "content "),
-                                        n("#group").c(n("#text", "109"))
-                                    )
-                                ),
-                                n("#text", " Z")
-                            )
-                        ),
-                        n("span").c(n("#text", " last ")),
-                    ),
-                    n("#text", " BBB ")
-                )
-            )
-        )).toEqual('');
+        expect(diff(view.vdom.toString("            ", true), `\
+            <#group 0 template>
+                <div 1>
+                    <#text 2 " AAA "/>
+                    <#group 3 bar value=9>
+                        <span 1 title=9>
+                            <#text 2 " first "/>
+                        </span>
+                        <#group 3 js>
+                            <span 4>
+                                <#text 5 "Z "/>
+                                <#group 6 insert>
+                                    <span 4>
+                                        <#text 5 "content "/>
+                                        <#group 6 insert>
+                                            <#text -1 "109"/>
+                                        </#group>
+                                    </span>
+                                </#group>
+                                <#text 7 " Z"/>
+                            </span>
+                        </#group>
+                        <span 8>
+                            <#text 9 " last "/>
+                        </span>
+                    </#group>
+                    <#text 7 " BBB "/>
+                </div>
+            </#group>`)).toEqual(null);
 
         view.refresh({v: 42});
-        expect(compare(view.vdom,
-            n("#group").c(
-                n("div").c(
-                    n("#text", " AAA "),
-                    n("#group").a({"value": 42}).c( // cpt group
-                        n("span").a({"title": 42}).c(n("#text", " first ")),
-                        n("span").c(n("#text", " last "))
-                    ),
-                    n("#text", " BBB ")
-                )
-            )
-        )).toEqual('');
+        expect(diff(view.vdom.toString("            ", true), `\
+            <#group 0 template>
+                <div 1>
+                    <#text 2 " AAA "/>
+                    <#group 3 bar value=42>
+                        <span 1 title=42>
+                            <#text 2 " first "/>
+                        </span>
+                        <span 8>
+                            <#text 9 " last "/>
+                        </span>
+                    </#group>
+                    <#text 7 " BBB "/>
+                </div>
+            </#group>`)).toEqual(null);
 
         view.refresh({v: 9});
         expect(compare(view.vdom, vdom1)).toEqual('');
     });
 
-    xit('should support sub-templates with multiple content', () => {
+    it('should support sub-templates with multiple content', () => {
         var pkg = iv`
             <template #test testCase=1>
                 Case #{{testCase}}
@@ -687,11 +695,11 @@ describe('IV runtime', () => {
                 % }
             </template>
     
-            <template #panel title:IvNode="" body:IvNode="">
+            <template #panel title:IvObject="" body:IvNode="">
                 % if (body) {
                     <div class="panel">
                         % if (title) {
-                            <div class="title">{{title}}</div>
+                            <div class="title">{{title.content}}</div>
                         % }
                         <div class="body">{{body}}</div>
                     </div>
@@ -700,34 +708,36 @@ describe('IV runtime', () => {
         `;
 
         var view = pkg.test.apply({testCase: 1});
-        debugger
-        expect(compare(view.vdom,
-            n("#group").c( // template
-                n("#text", " Case #"),
-                n("#group").c( // insert
-                    n("#text", "1")
-                ),
-                n("#group").c( // panel
-                    n("#group").c( // if
-                        n("div").a({"class": "panel"}).c(
-                            n("#group").c( // if
-                                n("div").a({"class": "title"}).c(
-                                    n("#group").c( // insert
-                                        n("#text", " Hello "),
-                                        n("img").a({"src": "smile.png"})
-                                    )
-                                )
-                            ),
-                            n("div").a({"class": "body"}).c(
-                                n("#group").c( // insert
-                                    n("p").c(n("#text", "Some content"))
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )).toEqual('');
+        expect(diff(view.vdom.toString("            ", true), `\
+            <#group 0 template>
+                <#text 1 " Case #"/>
+                <#group 2 insert>
+                    <#text -1 "1"/>
+                </#group>
+                <#group 3 js>
+                    <#group 4 panel>
+                        <#group 1 js>
+                            <div 2 class="panel">
+                                <#group 3 js>
+                                    <div 4 class="title">
+                                        <#group 5 insert>
+                                            <#text 6 " Hello "/>
+                                            <img 7 src="smile.png"/>
+                                        </#group>
+                                    </div>
+                                </#group>
+                                <div 6 class="body">
+                                    <#group 7 insert>
+                                        <p 9>
+                                            <#text 10 "Some content"/>
+                                        </p>
+                                    </#group>
+                                </div>
+                            </div>
+                        </#group>
+                    </#group>
+                </#group>
+            </#group>`)).toEqual(null);
     });
 
     // todo subtemplate with if at root level
@@ -737,6 +747,7 @@ describe('IV runtime', () => {
     // todo component call in another component's content
     // todo check support of import
     // todo support value+' '+msg as attribute value
+    // todo raise error if id or @name are bound
 
 });
 

@@ -94,6 +94,7 @@ class TemplateCompiler {
         this.statics = [];
         this.templateArgs = [];
         this.templateArgIdx = {};
+        this.templateArgTypes = {};
         this.indent = INDENT_SPACE;
         this.indentArray = [INDENT_SPACE];
 
@@ -107,7 +108,8 @@ class TemplateCompiler {
             templateStatics: this.statics,
             templateFnContent: exposeInternals ? this.templateFnContent : undefined,
             templateArgs: exposeInternals ? this.templateArgs : undefined,
-            templateArgIdx: this.templateArgIdx
+            templateArgIdx: this.templateArgIdx,
+            templateArgTypes: this.templateArgTypes
         };
 
         this.pkg.update(templateId, templateData);
@@ -198,6 +200,7 @@ class TemplateCompiler {
 
                 this.templateArgs[argIdx] = nm;
                 this.templateArgIdx[nm] = argIdx;
+                this.templateArgTypes[nm] = ls[i].typeRef;
                 argIdx++;
             }
         }
@@ -217,7 +220,7 @@ class TemplateCompiler {
     }
 
     /**
-     * Compile an element or a template node
+     * Compile an element, a component node or an att node
      * @param nd the Nac node corresponding to the element
      */
     compileEltNode(nd) {
@@ -226,9 +229,27 @@ class TemplateCompiler {
 
         // determine if this is a component or a standard node
         var isComponent = (this.pkg.entities[nd.nodeName] !== undefined),
-            methodPrefix = isComponent ? "$c.c" : "$c.n",
-            ndType = isComponent ? NacNodeType.COMPONENT : NacNodeType.ELEMENT;
+            isAttNode = (nd.attName !== undefined),
+            methodPrefix = "$c.n",
+            ndType = isComponent ? NacNodeType.COMPONENT : NacNodeType.ELEMENT,
+            attName = "",
+            argName = nd.nodeName;
 
+        if (isComponent) {
+            methodPrefix = "$c.c";
+            // todo throw error if isAttNode + isComponent
+        } else if (isAttNode) {
+            var m;
+            methodPrefix = "$c.a";
+            if (m = nd.attName.match(REGEXP_QUOTED_STRING)) {
+                argName = m[1];
+            } else {
+                argName = nd.attName;
+            }
+            attName = "@" + argName;
+            ndType = NacNodeType.ATT_NODE;
+
+        }
 
         // calculate attributes
         var atts = this.parseEltNodeAttributes(nd.firstAttribute), dynArgs = "0", staticFnArgs = "0", staticArgs = 0;
@@ -241,6 +262,9 @@ class TemplateCompiler {
                 var statFnAtts = [], statAtts = [];
                 for (var i = 0; ls.length > i; i++) {
                     attVal = ls[i].value;
+                    if (ls[i].name === "@name") {
+                        continue;
+                    }
                     if (attVal.match(REGEXP_JS_LITERAL)) {
                         // js literal - push to statics
                         statAtts.push(ls[i].name);
@@ -276,16 +300,16 @@ class TemplateCompiler {
                 dynArgs = "[" + dynAtts.join(",") + "]";
 
             }
-            this.statics.push([idx, ndType, nd.nodeName, staticArgs]);
+            this.statics.push([idx, ndType, argName, staticArgs]);
         } else {
-            this.statics.push([idx, ndType, nd.nodeName, 0]);
+            this.statics.push([idx, ndType, argName, 0]);
         }
 
         if (nd.firstChild) {
             // this node has child nodes
 
             // generate start node line
-            this.fnContent.push([this.indent, methodPrefix, 's(', idx, ',true,', dynArgs, ',', staticFnArgs, '); // ', nd.nodeName].join(''));
+            this.fnContent.push([this.indent, methodPrefix, 's(', idx, ',true,', dynArgs, ',', staticFnArgs, '); // ', nd.nodeName, attName].join(''));
 
             // recursively compile content elements
             this.compileChildNodes(nd);
@@ -294,7 +318,7 @@ class TemplateCompiler {
             this.fnContent.push([this.indent, methodPrefix, 'e(', idx, ');'].join(''));
         } else {
             // single node, no content
-            this.fnContent.push([this.indent, methodPrefix, 's(', idx, ',false,', dynArgs, ',', staticFnArgs, '); // ', nd.nodeName].join(''));
+            this.fnContent.push([this.indent, methodPrefix, 's(', idx, ',false,', dynArgs, ',', staticFnArgs, '); // ', nd.nodeName, attName].join(''));
         }
     }
 

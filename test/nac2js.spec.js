@@ -38,7 +38,7 @@ describe('NAC compiler', () => {
             <template #foo arg1:string="bar" arg2 arg3:number arg4=123>
             </template>
         `;
-        expect(r.foo.templateArgs).toEqual(["arg1","arg2","arg3","arg4"]);
+        expect(r.foo.templateArgs).toEqual(["arg1", "arg2", "arg3", "arg4"]);
         expect(r.foo.templateArgIdx["arg1"]).toBe(0);
         expect(r.foo.templateArgIdx["arg2"]).toBe(1);
         expect(r.foo.templateArgIdx["arg3"]).toBe(2);
@@ -82,12 +82,12 @@ describe('NAC compiler', () => {
         `;
         expect(r.foo.templateFnContent).toEqual(`\
     $c.ts(0); // template
-    $c.ns(1,false,0,0); // div
+    $c.as(1,false,0,0); // div@baz
     $c.te(0);`);
 
         expect(r.foo.templateStatics).toEqual([
             0,
-            [1, 1, "div", ["id", "bar", "@name", "baz"]]
+            [1, 16, "baz", ["id", "bar"]]
         ]);
     });
 
@@ -282,34 +282,34 @@ describe('NAC compiler', () => {
         `;
 
         var c = {
-            logs:[],
+            logs: [],
             ts: function (idx) {
-                this.logs.push("ts"+idx+";");
+                this.logs.push("ts" + idx + ";");
             },
             te: function (idx) {
-                this.logs.push("te"+idx+";");
+                this.logs.push("te" + idx + ";");
             },
-            ns: function (idx,b,dynAtts) {
-                dynAtts=(dynAtts!==0)? dynAtts.join(":") : 0;
-                this.logs.push("ns"+idx+dynAtts+";");
+            ns: function (idx, b, dynAtts) {
+                dynAtts = (dynAtts !== 0) ? dynAtts.join(":") : 0;
+                this.logs.push("ns" + idx + dynAtts + ";");
             },
             bs: function (idx) {
-                this.logs.push("bs"+idx+";");
+                this.logs.push("bs" + idx + ";");
             },
             ne: function (idx) {
-                this.logs.push("ne"+idx+";");
+                this.logs.push("ne" + idx + ";");
             },
             be: function (idx) {
-                this.logs.push("be"+idx+";");
+                this.logs.push("be" + idx + ";");
             }
         };
-        r.foo.templateFn(c,42);
+        r.foo.templateFn(c, 42);
         expect(c.logs.join("")).toEqual("ts0;bs5;ns60;be5;te0;");
-        c.logs=[];
+        c.logs = [];
         r.foo.templateFn(c);
         expect(c.logs.join("")).toEqual("ts0;bs1;ns20;be1;te0;");
-        c.logs=[];
-        r.foo.templateFn(c,2);
+        c.logs = [];
+        r.foo.templateFn(c, 2);
         expect(c.logs.join("")).toEqual("ts0;bs3;ns4title:5;be3;te0;");
     });
 
@@ -356,6 +356,45 @@ describe('NAC compiler', () => {
         ]);
     });
 
+    it('should compile nodes with @name attributes', () => {
+        var r = cpl`
+            <template #foo v:number=123>
+                <div>
+                    <bar [value]=v+1>
+                        <div @baz>hello</div>
+                        <div @blah sth="argh"/>
+                    </bar>
+                </div>
+            </template>
+            
+            <template #bar value baz>
+                <span [title]=("Value: "+value)/>
+            </template>
+        `;
+
+        expect(r.foo.templateFnContent).toEqual(`\
+    v=(v!==undefined)?v:123;
+    $c.ts(0); // template
+    $c.ns(1,true,0,0); // div
+    $c.cs(2,true,["value",v+1],0); // bar
+    $c.as(3,true,0,0); // div@baz
+    $c.t(4); // hello
+    $c.ae(3);
+    $c.as(5,false,0,0); // div@blah
+    $c.ce(2);
+    $c.ne(1);
+    $c.te(0);`);
+
+        expect(r.foo.templateStatics).toEqual([
+            0,
+            [1, 1, "div", 0],
+            [2, 15, "bar", 0],
+            [3, 16, "baz", 0],
+            [4, 3, "hello"],
+            [5, 16, "blah", ['sth', 'argh']]
+        ]);
+    });
+
     it('should compile text and node insert', () => {
         var r = cpl`
             <template #foo msg="hello">
@@ -387,5 +426,6 @@ describe('NAC compiler', () => {
     // todo support $v
     // todo need for try catch in case of invalid expression?
     // todo raise error if template attributes are not a static values
+    // todo raise error if attName is not used as child of a cpt or of another att node
 
 });

@@ -56,7 +56,7 @@ describe('Nac nodes', () => {
         var nd = n("div");
         expect(nd.attributes()).toEqual(null);
 
-        nd = nd.a({ "foo": 1, "bar": "hello" });
+        nd = nd.a({"foo": 1, "bar": "hello"});
         var na = nd.attributes();
         expect(na.name).toEqual("foo");
         expect(na.value).toEqual(1);
@@ -64,8 +64,8 @@ describe('Nac nodes', () => {
         expect(na.nextSibling.value).toEqual("hello");
         expect(na.nextSibling.nextSibling).toEqual(undefined);
 
-        var x = { foo: 123 };
-        nd.a({ "third": x });
+        var x = {foo: 123};
+        nd.a({"third": x});
         expect(na.nextSibling.name).toEqual("bar");
         expect(na.nextSibling.nextSibling.name).toEqual("third");
         expect(na.nextSibling.nextSibling.value).toEqual(x);
@@ -189,8 +189,8 @@ describe('Nac nodes', () => {
 
     it("should log an error when child nodes are created outside element and js blocks", function () {
         n("div").c(
-            n("#text","foo").c(
-                n("#text","bar")
+            n("#text", "foo").c(
+                n("#text", "bar")
             )
         );
 
@@ -198,8 +198,8 @@ describe('Nac nodes', () => {
         consoleOutput = "";
 
         n("div").c(
-            n("#comment","foo").c(
-                n("#text","bar")
+            n("#comment", "foo").c(
+                n("#text", "bar")
             )
         );
 
@@ -207,8 +207,8 @@ describe('Nac nodes', () => {
         consoleOutput = "";
 
         n("#jsblock", "if (foo) {").c(
-            n("#insert","foo").c(
-                n("#text","bar")
+            n("#insert", "foo").c(
+                n("#text", "bar")
             )
         );
 
@@ -216,12 +216,46 @@ describe('Nac nodes', () => {
         consoleOutput = "";
 
         n("#jsblock", "if (foo) {").c(
-            n("#js","foo = 3;").c(
-                n("#text","bar")
+            n("#js", "foo = 3;").c(
+                n("#text", "bar")
             )
         );
 
         expect(consoleOutput).toEqual("Child nodes are not authorized in nodes of type 13");
         consoleOutput = "";
     });
+
+    it("should generate debug info with toString()", () => {
+        var nd = n("div").a({"att1": 1, "att2": "2"}).c(
+            n("#text", "foo")
+        );
+
+        expect(nd.toString("           ")).toEqual(`\
+           <div att1=1 att2="2">
+               <#text "foo"/>
+           </div>`
+        );
+
+        nd = n("div").c(
+            n("#text", "foo"),
+            n("div").c(
+                n("#text", "bar"),
+                n("#group").a({"id": "zzz"}).c(
+                    n("#text", "baz")
+                )
+            )
+        );
+        expect(nd.toString("           ")).toEqual(`\
+           <div>
+               <#text "foo"/>
+               <div>
+                   <#text "bar"/>
+                   <#group id="zzz">
+                       <#text "baz"/>
+                   </#group>
+               </div>
+           </div>`
+        );
+    })
+    ;
 });

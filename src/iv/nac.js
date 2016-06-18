@@ -49,8 +49,36 @@ export const NacNodeType = {
     INSERT: 12,         // e.g. {{foo.bar}}
     JS_EXPRESSION: 13,  // e.g. % let foo = 3;
     JS_BLOCK: 14,       // e.g. % let foo = 3;
-    COMPONENT: 15
+    COMPONENT: 15,
+    ATT_NODE: 16,         // attribute node e.g. <div @foo/>
+
+    /**
+     * Returns a friendly name for each type - useful for debug info
+     * @param type {number}
+     */
+    getName(type) {
+        switch (type) {
+            case this.ELEMENT:
+                return "#elt";
+            case this.COMPONENT:
+                return "#component";
+            case this.COMMENT:
+                return "#comment";
+            case this.INSERT:
+                return "#insert";
+            case this.JS_BLOCK:
+                return "#jsblock";
+            case this.JS_EXPRESSION:
+                return "#js";
+            case this.TEXT:
+                return "#text";
+            case this.ATT_NODE:
+                return "@node";
+        }
+        return "#invalidtype";
+    }
 };
+
 
 export const NacAttributeNature = { // warning: keep incremental values as used to index an array in nac2js
     STANDARD: 0,            // e.g. foo="bar"
@@ -72,9 +100,10 @@ export class NacNode {
     lastAttribute /*:NacAttribute*/;	// reference to the last element of the attribute linked list
     firstChild /*:NacNode*/;			// first child node of the child node linked list (if any)
     _closeToLastChild /*:NacNode*/;     // node from which we should start looking for the last child
-    id;                                 // node id or undefined if not found
     index;                              // node index - used in to identify the node type in the virtual dom - optional
     data;                               // meta data associated to this node - optional
+    id;                                 // node id or undefined if not found - id should not be changed once set
+    attName;                            // node @name or undefined if not found - @name should not be changed once set
 
     /**
      * NacNode constructor
@@ -84,8 +113,8 @@ export class NacNode {
     constructor(nodeType, nodeValue = null, parent = null) {
         this.nodeType = nodeType;
         this.nodeName = "";
-        this.firstSibling = this;
         this.nodeValue = nodeValue;
+        this.firstSibling = this;
         this.data = null;
         this.parentNode = parent;
     };
@@ -139,8 +168,11 @@ export class NacNode {
         if (typeRef) {
             this.lastAttribute.typeRef = typeRef;
         }
+        // id and attName shortcuts used to simplify and accelerate the template compilation
         if (name === "id") {
-            this.id = value;
+            this.id = value; // nb: in theory this could be de-synchronized with the actual attribute but this case should not happen
+        } else if (name === "@name") {
+            this.attName = value; // nb: in theory this could be de-synchronized with the actual attribute but this case should not happen
         }
         return this;
     }
@@ -191,14 +223,68 @@ export class NacNode {
     attributes()/*:NacAttribute*/ {
         var last = this.lastAttribute;
         return (last) ? (last.firstSibling || null) : null;
-    };
+    }
 
     /**
      * Return the first element of the child node linked list
      */
     childNodes()/*: NacNode*/ {
         return this.firstChild || null;
-    };
+    }
+
+    /**
+     * Serialize the node in a pseudo-xml structure to ease debugging
+     * @param indent
+     */
+    toString(indent = "    ", showIndex = true) {
+        var result = [];
+        var hasChildren = (this.firstChild !== undefined),
+            nm = this.nodeName || NacNodeType.getName(this.nodeType);
+
+        var endSign = hasChildren ? ">" : "/>", nvalue = "", natts = "", idx = "";
+        if (showIndex && this.index != undefined) {
+            idx = " " + this.index;
+        }
+
+        if (this.nodeValue) {
+            if (this.nodeName === "#group") {
+                nvalue = " " + this.nodeValue;
+            } else {
+                if (typeof this.nodeValue === "string") {
+                    nvalue = " \"" + this.nodeValue + "\"";
+                } else {
+                    nvalue = " " + this.nodeValue;
+                }
+            }
+        }
+        if (this.firstAttribute) {
+            var att = this.firstAttribute, buffer = [];
+            while (att) {
+                buffer.push(" " + att.name);
+                if (att.value) {
+                    if (typeof att.value === "string") {
+                        buffer.push("=\"" + att.value + "\"");
+                    } else {
+                        buffer.push("=" + att.value);
+                    }
+                }
+                att = att.nextSibling;
+            }
+            natts = buffer.join("");
+        }
+
+        result.push([indent, "<", nm, idx, nvalue, natts, endSign].join(""));
+        if (hasChildren) {
+            var ch = this.firstChild;
+            while (ch) {
+                result.push(ch.toString(indent + "    "));
+                ch = ch.nextSibling;
+            }
+            result.push([indent, "</", nm, ">"].join(""));
+        }
+
+        return result.join("\n");
+    }
 }
 
 NacNode.defaultLogger = console;

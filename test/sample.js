@@ -315,3 +315,56 @@ var dbmonpkg = iv `
         </div>
     </template>
 `
+
+// ########################
+// Sample todo mvc - from angular 2 sample in todomvc
+
+var pkg = iv `
+    <template #todolist todoCtl todoStore>
+        <section class="todoapp">
+            <header class="header">
+                <h1>todos</h1>
+                <input class="new-todo" placeholder="What needs to be done?" autofocus="" 
+                [[value]]="todoCtl.newTodoText" (onkeyup.enter)="todoCtl.addTodo()">
+            </header>
+        </section>
+        % if (todoStore.todos.length) {
+            <section class="main">
+                <input class="toggle-all" type="checkbox" [checked]=todoStore.allCompleted() (onclick)=todoStore.setAllTo($this.checked)>
+                <ul class="todo-list">
+                    % for (var i=0;todoStore.todos.length>i;i++) {
+                        % var todo = todoStore.todos[i];
+                        <li [class.completed]=todo.completed [class.editing]=todo.editing>
+                            <div class="view">
+                                <input class="toggle" type="checkbox" (onclick)=todoCtl.toggleCompletion(todo) [checked]=todo.completed>
+                                <label (ondblclick)=todoCtl.editTodo(todo)>{{todo.title}}</label>
+                                <button class="destroy" (onclick)=todoCtl.remove(todo)></button>
+                            </div>
+                            % if (todo.editing) {
+                                <input class="edit" [value]=todo.title (onblur)=todoCtl.stopEditing(todo, $this.value) 
+                                (onkeyup.enter)=todoCtl.updateEditingTodo(todo, $this.value) (onkeyup.escape)=todoCtl.cancelEditingTodo(todo)>
+                            % }
+                        </li>
+                    % }
+                </ul>
+            </section>
+            <footer class="footer">
+                <span class="todo-count">
+                    <strong>{{todoStore.getRemaining().length}}</strong> {{todoStore.getRemaining().length == 1 ? 'item' : 'items'}} left
+                </span>
+                % if (todoStore.getCompleted().length) {
+                    <button class="clear-completed" (onclick)="removeCompleted()">Clear completed</button>
+                % }
+            </footer>
+        % }
+    </template>
+`
+
+
+// ########
+// ideas for canvas support
+
+var cpkg=iv `
+    <template 
+`;
+

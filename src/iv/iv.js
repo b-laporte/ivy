@@ -3,6 +3,7 @@
  * Copyright Bertrand Laporte 2016
  */
 
+/* global console */
 import {NacNode, NacNodeType} from './nac';
 import {parse} from './parser';
 import {compile} from './nac2js';
@@ -19,7 +20,9 @@ export function iv(strings, ...values) {
     // parse and compile
     var r = parse(strings, values);
     if (r.error) {
-        throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
+        //throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
+        //iv.log`(${r.error.line}:${r.error.column}) ${r.error.description}`); // todo match IvError
+        return;
     }
     var pkgEntities = compile(r.nac, true);
 
@@ -34,6 +37,16 @@ export function iv(strings, ...values) {
 }
 
 /**
+ * Log function that will receive all error caught during iv parsing and dynamic refresh
+ * Default behavior is to output error in the console.
+ * Should be overridden by the user
+ * @param error {IvError}
+ */
+iv.log = function (error) {
+    console.error(error.description());
+}
+
+/**
  * Factory class to generate template instances (aka. IvViews)
  */
 class IvTemplate {
@@ -42,6 +55,11 @@ class IvTemplate {
     pkg;            // package associated to this template
     uid;            // unique identifier
 
+    /**
+     * Template factory constructor
+     * @param templateData the result of the template compilation - cf. nac2js compiler
+     * @param pkg package containing this template
+     */
     constructor(templateData, pkg) {
         this.templateData = templateData;
         this.uid = "T" + (IvTemplate.templateCount++);
@@ -54,7 +72,20 @@ class IvTemplate {
                 vdom: null,
                 // hide the processor in the function closure
                 refresh: function (argMap, context) {
-                    this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
+                    try {
+                        this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
+                    } catch (err) {
+                        iv.log(err);
+                        this.vdom = null;
+                    }
+                },
+                // log the current vdom in the console
+                log(indent) {
+                    if (!this.vdom) {
+                        console.log("[no virtual dom]")
+                    } else {
+                        console.log(this.vdom.toString(indent));
+                    }
                 }
             };
         view.refresh(argMap, context);
@@ -62,9 +93,51 @@ class IvTemplate {
     }
 }
 
+class IvError {
+    message;    // error message
+    templateId;
+    line;
+    column;
+    nodeIdx;    // optional - node index where the error was found
+    pkg;        // optional - reference to the package where the error was found
+    statics;    // optional - reference to the statics structure associated to the template where the error was found
+    // fileName ? Could be added to package info with pre-compilation?
+
+    constructor(msg) {
+        this.message = msg;
+        this.templateId = "";
+        this.line = null;
+        this.column = null;
+        this.nodeIdx = null;
+    }
+
+    /**
+     * Merge all information in one description
+     */
+    description() {
+        var tid = "", nm = "";
+        if (this.statics && this.nodeIdx) {
+            var ndType = this.statics[this.nodeIdx][1];
+            if (ndType === NacNodeType.ELEMENT || ndType === NacNodeType.COMPONENT) {
+                nm = this.statics[this.nodeIdx][2];
+            } else if (ndType === NacNodeType.ATT_NODE) {
+                nm = "@" + this.statics[this.nodeIdx][2];
+            } else {
+                nm = NacNodeType.getName(ndType);
+            }
+        }
+        if (this.templateId) {
+            tid = ["[template#", this.templateId, "/", nm, "] "].join("");
+        }
+
+        return [tid, this.message].join("");
+    }
+}
+
 class IvProcessor {
     pkg;                 // template package
-    templateUID;         // template unique identifier
+    templateUID;         // template unique identifier - generated
+    templateId;          // template id
     fn;
     statics;
     argIndexes;
@@ -84,6 +157,7 @@ class IvProcessor {
         this.fn = templateData.templateFn;
         this.statics = templateData.templateStatics;
         this.argIndexes = templateData.templateArgIdx;
+        this.templateId = templateData.templateId;
     }
 
     refresh(argMap, context) {
@@ -203,10 +277,10 @@ class IvProcessor {
         if (!this.ignoreTemplateNode) {
             if (this.creationMode) {
                 // creation fast track
-                this.createGroupNode(idx);
+                this.createGroupNode(idx, "template");
             } else {
                 if (!this.advance(idx)) {
-                    this.createGroupNode(idx);
+                    this.createGroupNode(idx, "template");
                 }
             }
         }
@@ -218,6 +292,13 @@ class IvProcessor {
      * @param idx
      */
     te(idx) {
+        if (this.creationMode) {
+            if (idx === this.creationModeTarget) {
+                // reset forced creation flags
+                this.creationMode = false;
+                this.creationModeTarget = -1;
+            }
+        }
         this.ne(idx);
     }
 
@@ -237,7 +318,7 @@ class IvProcessor {
                 // update
                 this.updateEltNode(this.srcNd, dAttributes);
             } else {
-                throw "invalid case 1"; // force creation should have been activated and we should not get here
+                this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
             }
         }
 
@@ -252,13 +333,7 @@ class IvProcessor {
      * @param idx the node index
      */
     ne(idx) {
-        if (this.creationMode) {
-            if (idx === this.creationModeTarget) {
-                // reset forced creation flags
-                this.creationMode = false;
-                this.creationModeTarget = -1;
-            }
-        } else {
+        if (!this.creationMode) {
             // delete last nodes
             this.deleteSrcSiblingsUntil(MAX_INDEX);
         }
@@ -287,7 +362,7 @@ class IvProcessor {
                 if (this.advance(idx)) {
                     this.updateCptNode(this.srcNd, dAttributes);
                 } else {
-                    throw "invalid case 2"; // force creation should have been activated and we should not get here
+                    this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
                 }
             }
         } else {
@@ -304,7 +379,7 @@ class IvProcessor {
 
                     // then trigger update of the view node in ce()
                 } else {
-                    throw "invalid case 4"; // force creation should have been activated and we should not get here
+                    this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
                 }
             }
             this.targetDepth++;
@@ -319,11 +394,12 @@ class IvProcessor {
         // we are in the case where the component has children
         this.ne(idx);
 
-        var cptNd = this.srcNd, attMap = {};
+        var cptNd = this.srcNd;
         if (this.creationMode) {
             var cptNd = this.srcNd;
             var contentGroup = new NacNode(NacNodeType.ELEMENT);
             contentGroup.nodeName = "#group";
+            contentGroup.nodeValue = "content"; // debug help
             contentGroup.index = idx;
             contentGroup.firstChild = cptNd.firstChild;
             // todo: contentNd.firstChild.parentNode?
@@ -331,8 +407,8 @@ class IvProcessor {
             cptNd.firstChild = null;
 
             // generate view nodes
-            attMap["content"] = contentGroup.firstChild;
-            this.generateCptView(idx, cptNd, attMap);
+            cptNd.data.attributes["content"] = contentGroup.firstChild;
+            this.generateCptView(idx, cptNd);
         } else {
             var contentNd = cptNd.firstChild;
             cptNd.firstChild = cptNd.data.viewDom;
@@ -344,16 +420,51 @@ class IvProcessor {
     }
 
     /**
+     * Attribute node start
+     * @param idx
+     * @param hasChildren
+     * @param dAttributes
+     * @param sAttributes
+     */
+    as(idx, hasChildren, dAttributes, sAttributes) {
+        if (this.creationMode) {
+            this.createGroupNode(idx, "@node");
+            // todo update attributes
+        } else {
+            if (this.advance(idx)) {
+                // todo update dynamic attributes
+            } else {
+                this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
+            }
+        }
+
+        if (hasChildren) {
+            this.targetDepth++;
+        } else {
+            this.setCurrentAttNodeAsParentAttribute(idx);
+        }
+    }
+
+    /**
+     * Attribute node end
+     * @param idx
+     */
+    ae(idx) {
+        this.ne(idx);
+        this.setCurrentAttNodeAsParentAttribute(idx);
+    }
+
+    /**
      * Mark the beginning of a js block (Block Start)
      * @param idx the node index
      */
     bs(idx) {
         if (this.creationMode) {
             // creation fast track
-            this.createGroupNode(idx);
+            this.createGroupNode(idx, "js");
         } else {
             if (!this.advance(idx)) {
-                this.createGroupNode(idx);
+                this.createGroupNode(idx, "js");
                 this.creationMode = true;
                 this.creationModeTarget = idx;
             }
@@ -366,6 +477,13 @@ class IvProcessor {
      * @param idx the node index
      */
     be(idx) {
+        if (this.creationMode) {
+            if (idx === this.creationModeTarget) {
+                // reset forced creation flags
+                this.creationMode = false;
+                this.creationModeTarget = -1;
+            }
+        }
         this.ne(idx);
     }
 
@@ -396,7 +514,7 @@ class IvProcessor {
             if (this.advance(idx)) {
                 this.updateInsertNode(this.srcNd, content);
             } else {
-                throw "invalid case 3"; // force creation should have been activated and we should not get here
+                this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
             }
         }
     }
@@ -425,15 +543,49 @@ class IvProcessor {
         }
     }
 
+    setCurrentAttNodeAsParentAttribute(idx) {
+        // todo create attribute wrapper and add it to the parent's node
+        var attNode = this.srcNd;
+        var parentNode = this.ancestorNodes[this.ancestorNodes.length - 2];
+
+        // todo create different kind of wrappers depending on content type
+
+        if (parentNode.data && parentNode.data.template) {
+            // parentNode is a component
+            var ivTemplate = parentNode.data.template, // template factory
+                attName = this.statics[idx][2],
+                attType = ivTemplate.templateData.templateArgTypes[attName];
+
+            var attWrapper;
+            if (!attType) {
+                this.throwError(idx, "Type description not found for the '" + attName + "' attribute -  IvNode or IvObject expected");
+            }
+            if (attType === "IvNode") {
+                attWrapper = attNode.firstChild;
+            } else if (attType === "IvObject") {
+                attWrapper = {content: attNode.firstChild};
+            } else {
+                this.throwError(idx, "Invalid type for the '" + attName + "' attribute: " + attType);
+            }
+
+            parentNode.data.attributes[this.statics[idx][2]] = attWrapper;
+        } else {
+            throw "TODO invalid att node parent" // todo support attnode as parent
+        }
+
+        // parentNode should be a component or another att node
+    }
+
     createTextNode(idx) {
         var nd = new NacNode(NacNodeType.TEXT, this.statics[idx][2]);
         nd.index = idx;
         this.appendNode(nd);
     }
 
-    createGroupNode(idx) {
+    createGroupNode(idx, label) {
         var nd = new NacNode(NacNodeType.ELEMENT);
         nd.nodeName = "#group";
+        nd.nodeValue = label; // debug help
         nd.index = idx;
         this.appendNode(nd);
     }
@@ -443,6 +595,7 @@ class IvProcessor {
         var nd = new NacNode(NacNodeType.ELEMENT);
         content = this.checkInsertContent(content);
         nd.nodeName = "#group";
+        nd.nodeValue = "insert"; // debug help
         nd.index = idx;
         this.appendNode(nd);
 
@@ -489,37 +642,39 @@ class IvProcessor {
         // create a group node as container for the component
         var statics = this.statics[idx], nd = new NacNode(NacNodeType.ELEMENT);
         nd.nodeName = "#group";
+        nd.nodeValue = statics[2];
         nd.index = idx;
         this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
+
+        var tpl = this.pkg[statics[2]];
+        if (!tpl) {
+            // we should not get there as template has already been identified earlier
+            // unless dynamic injection is used to change the package reference
+            this.throwError(idx, "Invalid component reference: " + statics[2]); // todo test
+        }
         nd.data = {
-            attributes: null,   // attribute map
-            view: null,         // view object generated by the cpt template
+            template: tpl,
+            attributes: {},      // attribute map
+            view: null,          // view object generated by the cpt template
             contentDom: null,    // content vdom - generated by the current template
             viewDom: null        // view vdom firstChild
         }
         this.appendNode(nd);
     }
 
-    generateCptView(idx, cptNd, attMap = {}) {
-        var statics = this.statics[idx];
-        // call the component template
-        var tpl = this.pkg[statics[2]];
-        if (!tpl) {
-            // we should not get there as template has already been identified earlier
-            throw "Invalid component reference: " + statics[2];
-        } else {
-            var atts = attMap, att = cptNd.firstAttribute, view;
-            while (att) {
-                if (!atts[att.name]) {
-                    atts[att.name] = att.value;
-                }
-                att = att.nextSibling;
+    generateCptView(idx, cptNd) {
+        var atts = cptNd.data.attributes, att = cptNd.firstAttribute, view;
+        // update attributes
+        while (att) {
+            if (!atts[att.name]) {
+                atts[att.name] = att.value;
             }
-            view = tpl.apply(atts, {creationMode: true, groupNode: cptNd});
-            cptNd.data.view = view;
-            cptNd.data.attributes = atts;
-            cptNd.data.viewDom = view.vdom.firstChild;
+            att = att.nextSibling;
         }
+        view = cptNd.data.template.apply(atts, {creationMode: true, groupNode: cptNd});
+        cptNd.data.view = view;
+        cptNd.data.attributes = atts;
+        cptNd.data.viewDom = view.vdom.firstChild;
     }
 
     updateCptNode(cptNd, dAttributes, nodeAttributes) {
@@ -621,6 +776,15 @@ class IvProcessor {
                 this.srcNd = nd;
             }
         }
+    }
+
+    throwError(idx, msg) {
+        var err = new IvError(msg);
+        err.nodeIdx = idx;
+        err.statics = this.statics;
+        err.pkg = this.pkg;
+        err.templateId = this.templateId;
+        throw err;
     }
 }
 

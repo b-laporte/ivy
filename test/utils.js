@@ -5,6 +5,7 @@
  */
 
 import {NacNodeType} from '../src/iv/nac';
+import {DiffMatchPatch} from './diffmatchpatch';
 
 /**
  * Recursively compare 2 NAC trees
@@ -34,6 +35,27 @@ export function compare(nac1, nac2) {
     return '';
 }
 
+var dmp = new DiffMatchPatch();
+/**
+ * Calculates the difference between 2 strings and return null if equal
+ * @param str1
+ * @param str2
+ * @returns {String} a human-readable string explaining the differences
+ */
+export function diff(str1, str2) {
+    if (str1 === str2) {
+        return null;
+    }
+    var d = dmp.diff_main(str1, str2), lv= dmp.diff_levenshtein(d);
+    if (lv===0) {
+        return null;
+    } else {
+        dmp.diff_cleanupEfficiency(d);
+        debugger;
+        return dmp.diff_prettyText(d);
+    }
+}
+
 function compareNodes(n1, n2) {
     if (!n1 && !n2) {
         return;
@@ -61,7 +83,7 @@ function compareNodes(n1, n2) {
                 throw "Different JS end block expression found: '" + a + "' vs '" + b + "'";
             }
         } else {
-            throw "Different node values found: " + n1.nodeValue + " vs. " + n2.nodeValue;
+            //throw "Different node values found: " + n1.nodeValue + " vs. " + n2.nodeValue;
         }
     }
     if (n1.nodeType === NacNodeType.ELEMENT && n1.nodeName !== n2.nodeName) {

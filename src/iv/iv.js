@@ -70,6 +70,7 @@ class IvTemplate {
         var p = new IvProcessor(this.templateData, this.pkg, this.uid),
             view = {
                 vdom: null,
+                refreshLog: null,
                 // hide the processor in the function closure
                 refresh: function (argMap, context) {
                     try {
@@ -162,7 +163,7 @@ class IvProcessor {
 
     refresh(argMap, context) {
         var groupNode = context.groupNode;
-        this.refreshLog = null;
+        this.refreshLog = new IvUpdateInstructionSet();
         // fake a node to bootstrap the chain
         this.srcNd = null;
         this.srcNdDepth = 0;
@@ -795,3 +796,84 @@ class IvProcessor {
 iv.$template = function (templateData) {
     return new IvTemplate(templateData);
 };
+
+var INSTRUCTION_CREATE_GROUP = 1,
+    INSTRUCTION_DELETE_GROUP = 2,
+    INSTRUCTION_UPDATE_NODE = 3;
+
+class IvUpdateInstruction {
+    // parentRef: string; // used for create and delete, undefined for update
+    // parentChildIndex: number = -1; // used for create and delete, -1 for update
+    // changedAttributes: any[] = null; // used by update for element nodes
+    //
+    // constructor(public type: IvUpdateInstructionType, public node: IvNode) { };
+}
+
+class IvUpdateInstructionSet {
+    finalized;      // true when all instructions have been added to the list
+    hasCreations;   // true if contains create instructions
+    hasUpdates;     // true if contains create instructions
+    hasDeletions;   // true if contains delete instructions
+    changes;        // list of changes
+    unchangedRefs;  // list of node refs that haven't been changed and that must be kept (allows for delete optimization)
+
+    constructor() {
+        this.finalized = false;
+        this.hasCreations = false;
+        this.hasUpdates = false;
+        this.hasDeletions = false;
+        this.changes = [];
+        this.unchangedRefs = [];
+    }
+
+    //
+    // /**
+    //  * Add a create instruction
+    //  * @param node {NacNode}
+    //  */
+    // addCreate(node) {
+    //     var ins = new IvUpdateInstruction(IvUpdateInstructionType.CREATE, node),
+    //         pnd = node.parentNode;
+    //     ins.parentRef = pnd.ref;
+    //     ins.parentChildIndex = pnd.childCursor - 1; // childCursor has already been incremented
+    //     this.changes.push(ins);
+    //     this.hasCreations = true;
+    // };
+    //
+    // /**
+    //  * Add an update instruction
+    //  */
+    // addUpdate(node: IvNode, updateRes: any) {
+    //     if (node.nodeType !== IvNodeType.MARKER_NODE) {
+    //         var ins = new IvUpdateInstruction(IvUpdateInstructionType.UPDATE, node);
+    //         if (updateRes !== true) {
+    //             ins.changedAttributes = updateRes;
+    //         }
+    //         this.changes.push(ins);
+    //         this.hasUpdates = true;
+    //     }
+    // };
+    //
+    // /**
+    //  * Add a delete instruction
+    //  */
+    // addDelete(node: IvNode) {
+    //     if (node.nodeType !== IvNodeType.MARKER_NODE) {
+    //         var ins = new IvUpdateInstruction(IvUpdateInstructionType.DELETE, node),
+    //             pnd = node.parentNode;
+    //         ins.parentRef = pnd.ref;
+    //         ins.parentChildIndex = pnd.childCursor;
+    //         this.changes.push(ins);
+    //         this.hasDeletions = true;
+    //     }
+    // };
+    //
+    // /**
+    //  * Add a node to the unchanged list
+    //  */
+    // addUnchanged(nodeRef: string) {
+    //     if (nodeRef) {
+    //         this.unchangedRefs.push(nodeRef);
+    //     }
+    // }
+}

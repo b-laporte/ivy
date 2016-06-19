@@ -4,6 +4,8 @@
  * Copyright Bertrand Laporte 2016
  */
 
+/* global console */
+
 import {NacNodeType} from '../src/iv/nac';
 import {DiffMatchPatch} from './diffmatchpatch';
 
@@ -50,8 +52,11 @@ export function diff(str1, str2) {
     if (lv===0) {
         return null;
     } else {
+        console.log("Diff string 1:");
+        console.log(str1);
+        console.log("Diff string 2:");
+        console.log(str2);
         dmp.diff_cleanupEfficiency(d);
-        debugger;
         return dmp.diff_prettyText(d);
     }
 }

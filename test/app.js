@@ -8,3 +8,4 @@ import {} from './parser.spec.js';
 import {} from './nac2js.spec';
 import {} from './iv.spec';
 import {} from './errors.spec';
+import {} from './node.spec';

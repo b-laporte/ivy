@@ -23,14 +23,17 @@ describe('IV runtime', () => {
             </template>
         `;
         var view = pkg.hello.apply({nbr: 42});
-        expect(compare(view.vdom,
-            n("#group").c(
-                n("div").a({"class": "hello"}).c(
-                    n("span").a({"class": "one", "title": "blah", "foo": 46}).c(n("#text", " Hello ")),
-                    n("span").a({"baz": 45, "bar": 84, "class": "two"}).c(n("#text", " World ")),
-                )
-            )
-        )).toEqual('');
+        expect(diff(view.vdom.toString("            "), `\
+            <#group 0 template>
+                <div 1 class="hello">
+                    <span 2 class="one" title="blah" foo=46>
+                        <#text 3 " Hello "/>
+                    </span>
+                    <span 4 baz=45 bar=84 class="two">
+                        <#text 5 " World "/>
+                    </span>
+                </div>
+            </#group>`)).toEqual(null);
 
         var vdom1 = view.vdom;
         expect(view.vdom.nodeType).toBe(NacNodeType.ELEMENT);

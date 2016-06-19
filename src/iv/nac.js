@@ -1,7 +1,6 @@
 /**
  * Nac Node library
  * (aka. Node / Attributes / Content)
- * Copyright Bertrand Laporte 2016
  */
 
 /**
@@ -85,7 +84,7 @@ export const NacAttributeNature = { // warning: keep incremental values as used 
     BOUND1WAY: 1,           // e.g. [foo]=c.bar+3
     BOUND2WAYS: 2,          // e.g. [[foo]]=c.bar
     DEFERRED_EXPRESSION: 3  // e.g. (onclick)=c.doSomething()
-}
+};
 
 export class NacNode {
     static defaultLogger;               // default logger if logger is not set (console by default - cf. below)
@@ -93,15 +92,12 @@ export class NacNode {
     nodeType /*:NacNodeType*/;
     nodeValue /*:string*/;
     nodeName;                           // node name for element nodes or optionally "#text", "#comment" or "#js" for other node types when created through n()
-    parentNode;
     nextSibling /*:NacNode*/;           // next sibling in the current linked list
     firstSibling /*:NacNode*/;		    // first sibling of the current node linked list
     firstAttribute /*:NacAttribute*/;	// reference to the first element of the attribute linked list
     lastAttribute /*:NacAttribute*/;	// reference to the last element of the attribute linked list
     firstChild /*:NacNode*/;			// first child node of the child node linked list (if any)
     _closeToLastChild /*:NacNode*/;     // node from which we should start looking for the last child
-    index;                              // node index - used in to identify the node type in the virtual dom - optional
-    data;                               // meta data associated to this node - optional
     id;                                 // node id or undefined if not found - id should not be changed once set
     attName;                            // node @name or undefined if not found - @name should not be changed once set
 
@@ -110,13 +106,11 @@ export class NacNode {
      * @param nodeType the node type - cf. NacNodeType
      * @param nodeValue the value of the text / comment or js instruction (ignored for element nodes)
      */
-    constructor(nodeType, nodeValue = null, parent = null) {
+    constructor(nodeType, nodeValue = null) {
         this.nodeType = nodeType;
         this.nodeName = "";
         this.nodeValue = nodeValue;
         this.firstSibling = this;
-        this.data = null;
-        this.parentNode = parent;
     };
 
     /**
@@ -137,7 +131,6 @@ export class NacNode {
     addSibling(nd) {
         nd.firstSibling = this.firstSibling;
         nd.nextSibling = this.nextSibling;
-        nd.parentNode = this.parentNode;
         return this.nextSibling = nd;
     }
 
@@ -209,11 +202,6 @@ export class NacNode {
                 } while (nd)
             }
         }
-        var nd = this.firstChild;
-        while (nd) {
-            nd.parentNode = this;
-            nd = nd.nextSibling;
-        }
         return this;
     };
 
@@ -236,15 +224,12 @@ export class NacNode {
      * Serialize the node in a pseudo-xml structure to ease debugging
      * @param indent
      */
-    toString(indent = "    ", showIndex = true) {
+    toString(indent = "    ") {
         var result = [];
         var hasChildren = (this.firstChild !== undefined),
             nm = this.nodeName || NacNodeType.getName(this.nodeType);
 
-        var endSign = hasChildren ? ">" : "/>", nvalue = "", natts = "", idx = "";
-        if (showIndex && this.index != undefined) {
-            idx = " " + this.index;
-        }
+        var endSign = hasChildren ? ">" : "/>", nvalue = "", natts = "";
 
         if (this.nodeValue) {
             if (this.nodeName === "#group") {
@@ -273,7 +258,7 @@ export class NacNode {
             natts = buffer.join("");
         }
 
-        result.push([indent, "<", nm, idx, nvalue, natts, endSign].join(""));
+        result.push([indent, "<", nm, nvalue, natts, endSign].join(""));
         if (hasChildren) {
             var ch = this.firstChild;
             while (ch) {

@@ -10,20 +10,21 @@ import {diff} from './utils';
 describe('IvNode', () => {
 
     it('should stringify node content', function () {
-        var gn = new IvGroupNode(0, null, "template");
-        gn.children.push(new IvTextNode(2, "some text"));
+        var gn = new IvGroupNode(0, null, "template"),
+            ch = new IvTextNode(2, "some text");
+        gn.firstChild = ch;
 
         var div = new IvEltNode(3, "div");
-        gn.children.push(div);
-        div.children.push(new IvTextNode(4, " div content "));
+        ch = ch.nextSibling = div;
+        div.firstChild = new IvTextNode(4, " div content ");
 
-        gn.children.push(new IvGroupNode(5, gn, "js"));
+        ch = ch.nextSibling = new IvGroupNode(5, gn, "js");
 
         div = new IvEltNode(6, "div");
-        gn.children.push(div);
+        ch.nextSibling = div;
         div.attributes["foo"] = "hello";
         div.attributes["b.bar"] = 123;
-        div.children.push(new IvTextNode(7, " div content 2 "));
+        div.firstChild = new IvTextNode(7, " div content 2 ");
 
         expect(diff(gn.toString("            "), `\
             <#group 0 template>
@@ -36,6 +37,6 @@ describe('IvNode', () => {
                     <#text 7 " div content 2 "/>
                 </div>
             </#group>`)).toEqual(null);
-        
+
     });
 });

@@ -4,9 +4,10 @@
  */
 
 /* global console */
-import {NacNode, NacNodeType} from './nac';
+import {NacNodeType} from './nac';
 import {parse} from './parser';
 import {compile} from './nac2js';
+import {IvGroupNode, IvEltNode, IvTextNode} from './node';
 
 var MAX_INDEX = Number.MAX_VALUE;
 
@@ -14,7 +15,7 @@ var MAX_INDEX = Number.MAX_VALUE;
  * Compile an iv package
  * @param strings the iv templates contained in the package
  * @param values the external values to be integrated in the package
- * @returns {} a Map of the different templates included the package - template ids are used as keys
+ * @returns Object a Map of the different templates included the package - template ids are used as keys
  */
 export function iv(strings, ...values) {
     // parse and compile
@@ -43,8 +44,12 @@ export function iv(strings, ...values) {
  * @param error {IvError}
  */
 iv.log = function (error) {
-    console.error(error.description());
-}
+    if (error.description) {
+        console.error(error.description());
+    } else {
+        console.error(error);
+    }
+};
 
 /**
  * Factory class to generate template instances (aka. IvViews)
@@ -397,13 +402,8 @@ class IvProcessor {
 
         var cptNd = this.srcNd;
         if (this.creationMode) {
-            var cptNd = this.srcNd;
-            var contentGroup = new NacNode(NacNodeType.ELEMENT);
-            contentGroup.nodeName = "#group";
-            contentGroup.nodeValue = "content"; // debug help
-            contentGroup.index = idx;
+            var contentGroup = new IvGroupNode(idx, null, "content"); // TODO parent?
             contentGroup.firstChild = cptNd.firstChild;
-            // todo: contentNd.firstChild.parentNode?
             cptNd.data.contentDom = contentGroup;
             cptNd.firstChild = null;
 
@@ -421,7 +421,7 @@ class IvProcessor {
     }
 
     /**
-     * Attribute node start
+     * Attribute node start - e.g. <div @tab idx=3>
      * @param idx
      * @param hasChildren
      * @param dAttributes
@@ -528,7 +528,7 @@ class IvProcessor {
                 nd.firstChild = ns;
                 var ns2 = ns.nextSibling;
                 while (ns2) {
-                    ns2.firstSibling = ns;
+                    //ns2.firstSibling = ns;
                     ns2 = ns2.nextSibling;
                 }
             } else {
@@ -571,57 +571,43 @@ class IvProcessor {
 
             parentNode.data.attributes[this.statics[idx][2]] = attWrapper;
         } else {
-            throw "TODO invalid att node parent" // todo support attnode as parent
+            throw "TODO invalid att node parent"; // todo support attnode as parent
         }
 
         // parentNode should be a component or another att node
     }
 
     createTextNode(idx) {
-        var nd = new NacNode(NacNodeType.TEXT, this.statics[idx][2]);
-        nd.index = idx;
-        this.appendNode(nd);
+        this.appendNode(new IvTextNode(idx, this.statics[idx][2]));
     }
 
     createGroupNode(idx, label) {
-        var nd = new NacNode(NacNodeType.ELEMENT);
-        nd.nodeName = "#group";
-        nd.nodeValue = label; // debug help
-        nd.index = idx;
-        this.appendNode(nd);
+        this.appendNode(new IvGroupNode(idx, null, label));
     }
 
     createInsertNode(idx, content) {
         // create a group node
-        var nd = new NacNode(NacNodeType.ELEMENT);
+        var nd = new IvGroupNode(idx, null, "insert");
         content = this.checkInsertContent(content);
-        nd.nodeName = "#group";
-        nd.nodeValue = "insert"; // debug help
-        nd.index = idx;
         this.appendNode(nd);
 
         // if content is a piece of text, create a text node
-        if (!content.firstSibling) {
+        if (!content.isNode) {
             // text node
-            content = new NacNode(NacNodeType.TEXT, "" + content, nd);
-            content.index = -1;
+            content = new IvTextNode(-1, "" + content);
         }
 
         // set the content as group child nodes
-        // todo set parentNode - is it really useful?
         nd.firstChild = content;
-        content.parentNode = nd;
     }
 
     updateInsertNode(nd, content) {
-        var content = this.checkInsertContent(content),
-            textType = NacNodeType.TEXT,
-            ch = nd.firstChild;
-
-        if (ch.nodeType === textType) {
+        var ch = nd.firstChild;
+        content = this.checkInsertContent(content);
+        if (ch.isTextNode) {
             if (ch.index === -1) {
                 // update text
-                ch.nodeValue = content;
+                ch.value = content;
             } else {
                 throw "todo 2";
             }
@@ -629,7 +615,7 @@ class IvProcessor {
     }
 
     checkInsertContent(content) {
-        if (content && content.firstSibling) {
+        if (content && content.isNode) {
             return content
         } else {
             if (!content) {
@@ -641,13 +627,7 @@ class IvProcessor {
 
     createCptNode(idx, dAttributes, sAttributes) {
         // create a group node as container for the component
-        var statics = this.statics[idx], nd = new NacNode(NacNodeType.ELEMENT);
-        nd.nodeName = "#group";
-        nd.nodeValue = statics[2];
-        nd.index = idx;
-        this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
-
-        var tpl = this.pkg[statics[2]];
+        var statics = this.statics[idx], nd = new IvGroupNode(idx, null, statics[2]), tpl = this.pkg[statics[2]];
         if (!tpl) {
             // we should not get there as template has already been identified earlier
             // unless dynamic injection is used to change the package reference
@@ -659,7 +639,9 @@ class IvProcessor {
             view: null,          // view object generated by the cpt template
             contentDom: null,    // content vdom - generated by the current template
             viewDom: null        // view vdom firstChild
-        }
+        };
+        this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
+
         this.appendNode(nd);
     }
 
@@ -684,15 +666,9 @@ class IvProcessor {
         }
         var atts = cptNd.data.attributes;
         if (dAttributes) {
-            // attributes are created in the same order as they are in the dAttributes list
-            var att = cptNd.firstAttribute, val;
             for (var i = 0; dAttributes.length > i; i += 2) {
-                val = dAttributes[i + 1];
-                atts[dAttributes[i]] = val;
-                att.value = val;
-                att = att.nextSibling;
+                atts[dAttributes[i]] = dAttributes[i + 1];
             }
-            cptNd.data.attributes = atts;
         }
         if (nodeAttributes) {
             // node attributes are attribute of type IvNode - e.g. content
@@ -707,43 +683,40 @@ class IvProcessor {
     }
 
     createEltNode(idx, dAttributes, sAttributes) {
-        var statics = this.statics[idx], nd = new NacNode(statics[1]);
-        nd.nodeName = statics[2];
-        nd.index = idx;
+        var statics = this.statics[idx], nd = new IvEltNode(idx, statics[2]);
         this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
         this.appendNode(nd);
     }
 
     setNodeAttributes(nd, statics, dAttributes, sAttributes) {
-        var i;
+        var i, atts = (nd.isGroupNode)? nd.data.attributes : nd.attributes;
+
         // dynamic attributes first
         if (dAttributes) {
             for (i = 0; dAttributes.length > i; i += 2) {
-                nd.addAttribute(dAttributes[i], dAttributes[i + 1]);
+                atts[dAttributes[i]] = dAttributes[i + 1];
             }
         }
         // static attributes from statics array
         var sAtts = statics[3];
         if (sAtts) {
             for (i = 0; sAtts.length > i; i += 2) {
-                nd.addAttribute(sAtts[i], sAtts[i + 1]);
+                atts[sAtts[i]] = sAtts[i + 1];
             }
         }
         // static attributes from arguments (i.e. using js expressions)
         if (sAttributes) {
             for (i = 0; sAttributes.length > i; i += 2) {
-                nd.addAttribute(sAttributes[i], sAttributes[i + 1]);
+                atts[sAttributes[i]] = sAttributes[i + 1];
             }
         }
     }
 
     updateEltNode(nd, dAttributes) {
         if (dAttributes) {
-            // attributes are created in the same order as they are in the dAttributes list
-            var att = nd.firstAttribute;
+            var atts = nd.attributes;
             for (var i = 0; dAttributes.length > i; i += 2) {
-                att.value = dAttributes[i + 1];
-                att = att.nextSibling;
+                atts[dAttributes[i]] = dAttributes[i + 1];
             }
         }
     }
@@ -761,18 +734,16 @@ class IvProcessor {
                 // insert as first child
                 var currentFirstChild = prev.firstChild;
                 prev.firstChild = nd;
-                nd.parentNode = prev;
-                nd.firstSibling = nd;
                 if (currentFirstChild) {
                     nd.nextSibling = currentFirstChild;
-                    currentFirstChild.firstSibling = nd;
                 }
                 this.srcNd = nd;
                 this.srcNdDepth++;
                 anNodes.push(nd);
             } else {
                 // add as sibling
-                prev.addSibling(nd);
+                nd.nextSibling = prev.nextSibling;
+                prev.nextSibling = nd;
                 anNodes[anLength - 1] = nd;
                 this.srcNd = nd;
             }

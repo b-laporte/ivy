@@ -66,14 +66,14 @@ function compareNodes(n1, n2) {
         return;
     }
     if (!n1 && n2) {
-        debugger
+        //debugger
         throw "Node1 not found: " + n2.nodeName;
     }
     if (n1 && !n2) {
         throw "Node2 not found: " + n1.nodeName;
     }
     if (n1.nodeType !== n2.nodeType) {
-        debugger
+        //debugger
         throw "Different node types found: " + n1.nodeType + " vs. " + n2.nodeType + " for " + n1.nodeName + " node";
     }
     if (n1.nodeValue !== n2.nodeValue) {
@@ -92,7 +92,7 @@ function compareNodes(n1, n2) {
         }
     }
     if (n1.nodeType === NacNodeType.ELEMENT && n1.nodeName !== n2.nodeName) {
-        debugger
+        //debugger
         throw "Different node names found: " + n1.nodeName + " vs. " + n2.nodeName;
     }
     if (n1.firstChild || n2.firstChild) {
@@ -103,7 +103,7 @@ function compareNodes(n1, n2) {
             nd1 = nd1.nextSibling;
             nd2 = nd2.nextSibling;
             if ((nd1 && !nd2) || (!nd1 && nd2)) {
-                debugger
+                //debugger
                 throw "Different number of child nodes in " + n1.nodeName;
             }
         }

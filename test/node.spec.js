@@ -32,7 +32,7 @@ describe('IvNode', () => {
                     <#text 4 " div content "/>
                 </div>
                 <#group 5 js/>
-                <div 6 foo="hello" b.bar=123>
+                <div 6 b.bar=123 foo="hello">
                     <#text 7 " div content 2 "/>
                 </div>
             </#group>`)).toEqual(null);

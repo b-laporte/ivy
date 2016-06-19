@@ -126,12 +126,18 @@ export class IvEltNode extends IvNode {
      */
     stringify(buffer, indent) {
         var hasChildren = this.children.length > 0,
-            endSign = hasChildren ? ">" : "/>", atts = this.attributes, batts = [], tmp;
+            endSign = hasChildren ? ">" : "/>", atts = this.attributes, attList=[], batts = [];
 
+        // sort the attributes by name to avoid x-browser discrepancies
         for (var k in atts) {
             if (atts.hasOwnProperty(k)) {
-                tmp = (typeof atts[k] === "string")? '"'+atts[k]+'"' : atts[k];
-                batts.push([" ", k, "=", tmp].join(""));
+                attList.push([k, (typeof atts[k] === "string")? '"'+atts[k]+'"' : atts[k]]);
+            }
+        }
+        if(attList.length>0) {
+            attList.sort((a,b) => a[0]>b[0]);
+            for (var i=0;attList.length>i;i++) {
+                batts.push([" ", attList[i][0], "=", attList[i][1]].join(""));
             }
         }
 

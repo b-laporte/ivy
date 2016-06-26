@@ -177,7 +177,7 @@ class IvProcessor {
         this.refreshLog = new IvUpdateInstructionSet();
         // fake a node to bootstrap the chain
         this.srcNd = null;
-        this.srcNdDepth = 0;
+        this.srcNdDepth = -1;
         this.targetDepth = 0;
         this.ancestorNodes = [];
 
@@ -191,8 +191,7 @@ class IvProcessor {
         }
         if (groupNode) {
             this.ignoreTemplateNode = true;
-            this.srcNd = groupNode;
-            this.ancestorNodes.push(groupNode);
+            this.addAncestor(groupNode);
             this.rootNd = groupNode;
         } else {
             this.ignoreTemplateNode = false;
@@ -228,9 +227,7 @@ class IvProcessor {
             }
 
             if (nextNode.index === targetIdx) {
-                this.srcNdDepth++;
-                this.srcNd = nextNode;
-                this.ancestorNodes.push(nextNode);
+                this.addAncestor(nextNode);
                 return true;
             } else {
                 // next node is after the target
@@ -246,9 +243,10 @@ class IvProcessor {
                     this.srcNd = nextNode;
                     if (this.ancestorNodes.length === 0) {
                         // we may fall in this case at bootstrap on the very first node
-                        this.ancestorNodes[0] = nextNode;
+                        this.addAncestor(nextNode);
                     } else {
-                        this.ancestorNodes[this.ancestorNodes.length - 1] = nextNode;
+                        // replace last ancestor node with new node
+                        this.replaceLastAncestor(nextNode);
                     }
                     return true;
                 } else if (nextNode.index > targetIdx) {
@@ -264,18 +262,17 @@ class IvProcessor {
 
     deleteSrcSiblingsUntil(targetIdx) {
         // return true if found
-        if (!this.srcNd.nextSibling) {
+        var nd = this.srcNd, nextNode = nd.nextSibling;
+        if (!nextNode) {
             return false;
         }
-        var nd = this.srcNd, nextNode = nd.nextSibling;
         while (nextNode && nextNode.index < targetIdx) {
             this.deleteNextNode(targetIdx, nd);
             nd = nextNode;
             nextNode = nd.nextSibling;
         }
         if (nextNode && nextNode.index === targetIdx) {
-            this.srcNd = nextNode;
-            this.ancestorNodes[this.ancestorNodes.length - 1] = nextNode;
+            this.replaceLastAncestor(nextNode);
             return true;
         } else {
             return false;
@@ -287,6 +284,42 @@ class IvProcessor {
      */
     getNewNodeRef() {
         return `${this.ref}:${this.nodeCount++}`;
+    }
+
+    /**
+     * Add a new node to the ancestorNodes stack with keeps the list of current parent nodes
+     * @param node
+     * @returns the new ancestor node
+     */
+    addAncestor(node) {
+        this.ancestorNodes.push(node);
+        this.srcNd = node;
+        this.srcNdDepth++;
+        return node;
+    }
+
+    /**
+     * Replace last node in the ancestorNodes stack
+     * @param node
+     * @returns the new ancestor node
+     */
+    replaceLastAncestor(node) {
+        this.ancestorNodes[this.ancestorNodes.length - 1] = node;
+        this.srcNd = node;
+        return node;
+    }
+
+    /**
+     * Remove last node from the ancestorNodes stack
+     * This must be called when we leave a container
+     * @returns the new ancestor node
+     */
+    removeLastAncestor() {
+        var ans = this.ancestorNodes;
+        ans.pop();
+        this.srcNdDepth--;
+        this.srcNd = ans[ans.length - 1]
+        return this.srcNd;
     }
 
     /**
@@ -357,11 +390,8 @@ class IvProcessor {
             // delete last nodes
             this.deleteSrcSiblingsUntil(MAX_INDEX);
         }
-        var anNodes = this.ancestorNodes;
-        if (anNodes.length > this.targetDepth) {
-            anNodes.pop(); // remove last content node
-            this.srcNd = anNodes[anNodes.length - 1];
-            this.srcNdDepth--;
+        if (this.ancestorNodes.length > this.targetDepth) {
+            this.srcNd = this.removeLastAncestor();
         }
         this.targetDepth--;
     }
@@ -840,8 +870,7 @@ class IvProcessor {
         var anNodes = this.ancestorNodes, anLength = anNodes.length;
         if (anLength === 0) {
             // root node
-            anNodes[0] = nd;
-            this.srcNd = nd;
+            this.addAncestor(nd);
             this.rootNd = nd;
         } else {
             var prev = anNodes[anLength - 1];
@@ -852,15 +881,12 @@ class IvProcessor {
                 if (currentFirstChild) {
                     nd.nextSibling = currentFirstChild;
                 }
-                this.srcNd = nd;
-                this.srcNdDepth++;
-                anNodes.push(nd);
+                this.addAncestor(nd);
             } else {
                 // add as sibling
                 nd.nextSibling = prev.nextSibling;
                 prev.nextSibling = nd;
-                anNodes[anLength - 1] = nd;
-                this.srcNd = nd;
+                this.replaceLastAncestor(nd);
             }
         }
     }

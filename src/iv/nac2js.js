@@ -109,7 +109,8 @@ class TemplateCompiler {
             templateFnContent: exposeInternals ? this.templateFnContent : undefined,
             templateArgs: exposeInternals ? this.templateArgs : undefined,
             templateArgIdx: this.templateArgIdx,
-            templateArgTypes: this.templateArgTypes
+            templateArgTypes: this.templateArgTypes,
+            instanceCount: 0     // used to count instances of the template to generate unique ref identifiers
         };
 
         this.pkg.update(templateId, templateData);

@@ -26,7 +26,7 @@ describe('IvNode', () => {
         div.attributes["b.bar"] = 123;
         div.firstChild = new IvTextNode(7, " div content 2 ");
 
-        expect(diff(gn.toString("            "), `\
+        expect(diff(gn.toString({indent:"            "}), `\
             <#group 0 template>
                 <#text 2 "some text"/>
                 <div 3>
@@ -36,7 +36,7 @@ describe('IvNode', () => {
                 <div 6 b.bar=123 foo="hello">
                     <#text 7 " div content 2 "/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
     });
 });

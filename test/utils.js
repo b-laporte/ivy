@@ -42,11 +42,11 @@ var dmp = new DiffMatchPatch();
  * Calculates the difference between 2 strings and return null if equal
  * @param str1
  * @param str2
- * @returns {String} a human-readable string explaining the differences
+ * @returns {String} a human-readable string explaining the differences or "equal" if there is no difference
  */
 export function diff(str1, str2) {
     if (str1 === str2) {
-        return null;
+        return "equal";
     }
     var d = dmp.diff_main(str1, str2), lv= dmp.diff_levenshtein(d);
     if (lv===0) {

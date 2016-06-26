@@ -6,11 +6,31 @@
 
 /* global describe, it, beforeEach, afterEach, expect */
 
-import {iv} from '../src/iv/iv';
+import {iv, INSTRUCTIONS} from '../src/iv/iv';
 import {compare, diff} from './utils';
 
 describe('IV runtime', () => {
-    var INDENT="            ";
+    var OPTIONS = {indent: "            "}, OPTIONS2 = {indent: OPTIONS.indent, showRef: true};
+
+    function compareInstructions(set1, set2) {
+        if (set1.length !== set2.length) {
+            return `different number of instructions: ${set1.length} and ${set2.length}`;
+        }
+        for (var i = 0; set1.length > i; i++) {
+            var ins1 = set1[i], ins2 = set2[i];
+            if (ins1.type !== ins2.type) {
+                debugger
+                return `different instruction type at position ${i}`;
+            }
+            if (!ins1.node) {
+                return `missing node in instruction at position ${i}`;
+            }
+            if (ins2.node && ins1.node.ref !== ins2.node.ref) {
+                return `different node reference at position ${i}`;
+            }
+        }
+        return "equal";
+    }
 
     it('should generate simple nodes', () => {
         var pkg = iv `
@@ -22,8 +42,9 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <div 1 class="hello">
                     <span 2 class="one" foo=46 title="blah">
@@ -33,24 +54,32 @@ describe('IV runtime', () => {
                         <#text 5 " World "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+
+        expect(view.vdom.isGroupNode).toBe(true);
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:0"}
+        }])).toBe("equal");
 
         var vdom1 = view.vdom;
-        expect(view.vdom.isGroupNode).toBe(true);
         view.refresh({nbr: 5});
         expect(view.vdom).toBe(vdom1);
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1 class="hello">
                     <span 2 class="one" foo=46 title="blah">
                         <#text 3 " Hello "/>
                     </span>
-                    <span 4 bar=10 baz=8 class="two">
+                    <span 4 ref="XX:0:1" bar=10 baz=8 class="two">
                         <#text 5 " World "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
-        // todo instructions
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.UPDATE_ELEMENT,
+            element: {ref: "XX:0:1"}
+        }])).toBe("equal");
 
     });
 
@@ -63,27 +92,32 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply({nbr: 42, msg: "Hello!"}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <span 2>
-                        <#group 3 insert>
+                        <#group 3 insert ref="XX:0:1">
                             <#text -1 "52"/>
                         </#group>
                     </span>
                     <span 4>
                         <#text 5 " A "/>
-                        <#group 6 insert>
+                        <#group 6 insert ref="XX:0:2">
                             <#text -1 "Hello!"/>
                         </#group>
                         <#text 7 " B "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:0"}
+        }])).toBe("equal");
 
         view.refresh({nbr: 9});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <div 1>
                     <span 2>
@@ -99,10 +133,17 @@ describe('IV runtime', () => {
                         <#text 7 " B "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.REPLACE_GROUP,
+            group: {ref: "XX:0:1"}
+        }, {
+            type: INSTRUCTIONS.REPLACE_GROUP,
+            group: {ref: "XX:0:2"}
+        }])).toBe("equal");
 
         view.refresh({nbr: 42, msg: "Hello!"});
-        expect(diff(view.vdom.toString(INDENT), vdom1)).toEqual(null);
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1)).toBe("equal");
     });
 
     it('should support simple if blocks', () => {
@@ -118,24 +159,30 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX"; // for test only to get a reproducible id value
+
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " ABC "/>
                     <span 8>
                         <#text 9 " DEF "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:0"}
+        }])).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " ABC "/>
-                    <#group 3 js>
+                    <#group 3 js ref="XX:0:1">
                         <span 4>
                             <#text 5 " Hello "/>
                         </span>
@@ -147,11 +194,55 @@ describe('IV runtime', () => {
                         <#text 9 " DEF "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
 
         // remove nodes
         view.refresh({nbr: 3, msg: "Hello!"});
-        expect(diff(view.vdom.toString(INDENT), vdom1)).toEqual(null);
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
+
+        // create again
+        view.refresh({nbr: 42, msg: "Hello!"});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
+                <div 1>
+                    <#text 2 " ABC "/>
+                    <#group 3 js ref="XX:0:2">
+                        <span 4>
+                            <#text 5 " Hello "/>
+                        </span>
+                        <span 6>
+                            <#text 7 " World "/>
+                        </span>
+                    </#group>
+                    <span 8>
+                        <#text 9 " DEF "/>
+                    </span>
+                </div>
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:2"}
+        }])).toBe("equal");
+
+        // test that template instance ref is increasing for view count (2nd part)
+        var view2 = pkg.test.apply({nbr: 9});
+        expect(diff(view2.vdom.toString({indent: OPTIONS.indent, showRef: true}), `\
+            <#group 0 template ref="XX:1:0">
+                <div 1>
+                    <#text 2 " ABC "/>
+                    <span 8>
+                        <#text 9 " DEF "/>
+                    </span>
+                </div>
+            </#group>`)).toBe("equal");
     });
 
     it('should support if blocks at template start', () => {
@@ -166,8 +257,9 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
+        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <div 4>
                     <#text 5 " ABC "/>
@@ -175,11 +267,11 @@ describe('IV runtime', () => {
                         <#text 7 " DEF "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <#group 1 js>
                     <span 2>
@@ -192,11 +284,19 @@ describe('IV runtime', () => {
                         <#text 7 " DEF "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
 
         // remove nodes
         view.refresh({nbr: 9});
         expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
     });
 
     it('should support if blocks at template end', () => {
@@ -211,8 +311,9 @@ describe('IV runtime', () => {
                 % }
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
+        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <div 1>
                     <#text 2 " ABC "/>
@@ -220,28 +321,36 @@ describe('IV runtime', () => {
                         <#text 4 " DEF "/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " ABC "/>
                     <span 3>
                         <#text 4 " DEF "/>
                     </span>
                 </div>
-                <#group 5 js>
+                <#group 5 js ref="XX:0:1">
                     <span 6>
                         <#text 7 " Hello World "/>
                     </span>
                 </#group>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
 
         // remove nodes
         view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS), vdom1)).toBe('equal');
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
     });
 
     it('should support if blocks as full template', () => {
@@ -254,12 +363,12 @@ describe('IV runtime', () => {
             </template>
         `;
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template/>`)).toEqual(null);
+        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
+            <#group 0 template/>`)).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <#group 1 js>
                     <span 2>
@@ -269,7 +378,7 @@ describe('IV runtime', () => {
                         <#text 5 " World "/>
                     </span>
                 </#group>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // remove nodes
         view.refresh({nbr: 9});
@@ -290,16 +399,16 @@ describe('IV runtime', () => {
             </template>
         `;
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
+        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <#text 1 " foo "/>
                 <div 2/>
                 <#text 8 " bar "/>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <#text 1 " foo "/>
                 <div 2>
@@ -313,7 +422,7 @@ describe('IV runtime', () => {
                     </#group>
                 </div>
                 <#text 8 " bar "/>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // remove nodes
         view.refresh({nbr: 9});
@@ -336,7 +445,7 @@ describe('IV runtime', () => {
             </template>
         `;
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
+        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <div 1>
                     <div 5>
@@ -346,11 +455,11 @@ describe('IV runtime', () => {
                         </span>
                     </div>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <div 1>
                     <#group 2 js>
@@ -365,7 +474,7 @@ describe('IV runtime', () => {
                         </span>
                     </div>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         // remove nodes
         view.refresh({nbr: 9});
@@ -386,36 +495,51 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " foo "/>
-                    <#group 6 js>
+                    <#group 6 js ref="XX:0:1">
                         <span 7>
                             <#text 8 " Case != 42 "/>
                         </span>
                     </#group>
                     <#text 9 " bar "/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " foo "/>
-                    <#group 3 js>
+                    <#group 3 js ref="XX:0:2">
                         <span 4>
                             <#text 5 " Case 42 "/>
                         </span>
                     </#group>
                     <#text 9 " bar "/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:2"}
+        }, {
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:1"}
+        }])).toBe("equal");
 
         view.refresh({nbr: 9});
         expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:2"}
+        }, {
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:3"} // note: could be improved through object pooling
+        }])).toBe("equal");
     });
 
     it('should support if+else blocks for full template', () => {
@@ -429,24 +553,24 @@ describe('IV runtime', () => {
             </template>
         `;
         var view = pkg.test.apply({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
+        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <#group 4 js>
                     <span 5>
                         <#text 6 " Case != 42 "/>
                     </span>
                 </#group>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         view.refresh({nbr: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <#group 1 js>
                     <span 2>
                         <#text 3 " Case 42 "/>
                     </span>
                 </#group>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         view.refresh({nbr: 9});
         expect(compare(view.vdom, vdom1)).toEqual('');
@@ -465,14 +589,15 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply(), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <div 2 title="first"/>
                     <div 5 title="last"/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         view.refresh({
             list: [
@@ -480,19 +605,26 @@ describe('IV runtime', () => {
                 {name: "Douglas"}
             ]
         });
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <div 2 title="first"/>
-                    <#group 3 js>
-                        <div 4 title="Hello Arthur"/>
+                    <#group 3 js ref="XX:0:1">
+                        <div 4 ref="XX:0:2" title="Hello Arthur"/>
                     </#group>
-                    <#group 3 js>
-                        <div 4 title="Hello Douglas"/>
+                    <#group 3 js ref="XX:0:3">
+                        <div 4 ref="XX:0:4" title="Hello Douglas"/>
                     </#group>
                     <div 5 title="last"/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:1"}
+        }, {
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:3"}
+        }])).toBe("equal");
 
         view.refresh({
             list: [
@@ -501,25 +633,42 @@ describe('IV runtime', () => {
                 {name: "Douglas"}
             ]
         });
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <div 2 title="first"/>
-                    <#group 3 js>
-                        <div 4 title="Hello Arthur"/>
+                    <#group 3 js ref="XX:0:1">
+                        <div 4 ref="XX:0:2" title="Hello Arthur"/>
                     </#group>
-                    <#group 3 js>
-                        <div 4 title="Hello Slartibartfast"/>
+                    <#group 3 js ref="XX:0:3">
+                        <div 4 ref="XX:0:4" title="Hello Slartibartfast"/>
                     </#group>
-                    <#group 3 js>
-                        <div 4 title="Hello Douglas"/>
+                    <#group 3 js ref="XX:0:5">
+                        <div 4 ref="XX:0:6" title="Hello Douglas"/>
                     </#group>
                     <div 5 title="last"/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.UPDATE_ELEMENT,
+            group: {ref: "XX:0:4"}
+        }, {
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:5"}
+        }])).toBe("equal");
 
         view.refresh({list: []});
         expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:1"}
+        }, {
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:3"}
+        }, {
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:5"}
+        }])).toBe("equal");
     });
 
     it('should support for loops with if statements', () => {
@@ -537,22 +686,23 @@ describe('IV runtime', () => {
                 </div>
             </template>
         `;
+        pkg.test.uid = "XX";
         var view = pkg.test.apply({list: ["Omer", "Marge"], condition: true}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <div 2 title="first"/>
-                    <#group 3 js>
-                        <div 4 title="item 0: Omer"/>
-                        <#group 5 js>
+                    <#group 3 js ref="XX:0:1">
+                        <div 4 ref="XX:0:2" title="item 0: Omer"/>
+                        <#group 5 js ref="XX:0:3">
                             <div 6>
                                 <#text 7 " OK "/>
                             </div>
                         </#group>
                     </#group>
-                    <#group 3 js>
-                        <div 4 title="item 1: Marge"/>
-                        <#group 5 js>
+                    <#group 3 js ref="XX:0:4">
+                        <div 4 ref="XX:0:5" title="item 1: Marge"/>
+                        <#group 5 js ref="XX:0:6">
                             <div 6>
                                 <#text 7 " OK "/>
                             </div>
@@ -560,10 +710,10 @@ describe('IV runtime', () => {
                     </#group>
                     <div 8 title="last"/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         view.refresh({list: ["Omer", "Marge"], condition: false});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <div 1>
                     <div 2 title="first"/>
@@ -575,7 +725,14 @@ describe('IV runtime', () => {
                     </#group>
                     <div 8 title="last"/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:3"}
+        }, {
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "XX:0:6"}
+        }])).toBe("equal");
 
         view.refresh({list: ["Omer", "Marge"], condition: true});
         expect(compare(view.vdom, vdom1)).toEqual('');
@@ -600,38 +757,44 @@ describe('IV runtime', () => {
             </template>
         `;
 
+        pkg.foo.uid = "XX";
+        pkg.bar.uid = "YY";
         var view = pkg.foo.apply({v: 9}), vdom1;
-        expect(diff(view.vdom.toString(INDENT), vdom1 = `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <span 2>
                         <#text 3 "first"/>
                     </span>
-                    <#group 4 bar data-msg="m1:9" data-value=10>
-                        <span 1 title="10 m1:9"/>
+                    <#group 4 bar ref="XX:0:1" data-msg="m1:9" data-value=10>
+                        <span 1 ref="YY:0:0" title="10 m1:9"/>
                     </#group>
-                    <#group 5 bar data-msg="m2:9" data-value=12>
-                        <span 1 title="12 m2:9"/>
+                    <#group 5 bar ref="XX:0:2" data-msg="m2:9" data-value=12>
+                        <span 1 ref="YY:1:0" title="12 m2:9"/>
                     </#group>
                     <span 6>
                         <#text 7 "last"/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "XX:0:0"}
+        }])).toBe("equal");
 
         view.refresh({v: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <span 2>
                         <#text 3 "first"/>
                     </span>
-                    <#group 4 bar data-msg="m1:9" data-value=43>
-                        <span 1 title="43 m1:9"/>
+                    <#group 4 bar ref="XX:0:1" data-msg="m1:9" data-value=43>
+                        <span 1 ref="YY:0:0" title="43 m1:9"/>
                     </#group>
-                    <#group 5 bar data-msg="m2:9" data-value=45>
-                        <span 1 title="45 m2:9"/>
-                        <#group 2 js>
+                    <#group 5 bar ref="XX:0:2" data-msg="m2:9" data-value=45>
+                        <span 1 ref="YY:1:0" title="45 m2:9"/>
+                        <#group 2 js ref="YY:1:1">
                             <span 3>
                                 <#text 4 " Hello 45! "/>
                             </span>
@@ -641,10 +804,42 @@ describe('IV runtime', () => {
                         <#text 7 "last"/>
                     </span>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.UPDATE_GROUP,
+            group: {ref: "XX:0:1"}
+        }, {
+            type: INSTRUCTIONS.UPDATE_ELEMENT,
+            group: {ref: "YY:0:0"}
+        }, {
+            type: INSTRUCTIONS.UPDATE_GROUP,
+            group: {ref: "XX:0:2"}
+        }, {
+            type: INSTRUCTIONS.UPDATE_ELEMENT,
+            group: {ref: "YY:1:0"}
+        }, {
+            type: INSTRUCTIONS.CREATE_GROUP,
+            group: {ref: "YY:1:1"}
+        }])).toBe("equal");
 
         view.refresh({v: 9});
         expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(compareInstructions(view.refreshLog.changes, [{
+            type: INSTRUCTIONS.UPDATE_GROUP,
+            group: {ref: "XX:0:1"}
+        }, {
+            type: INSTRUCTIONS.UPDATE_ELEMENT,
+            group: {ref: "YY:0:0"}
+        }, {
+            type: INSTRUCTIONS.UPDATE_GROUP,
+            group: {ref: "XX:0:2"}
+        }, {
+            type: INSTRUCTIONS.UPDATE_ELEMENT,
+            group: {ref: "YY:1:0"}
+        }, {
+            type: INSTRUCTIONS.DELETE_GROUP,
+            group: {ref: "YY:1:1"}
+        }])).toBe("equal");
     });
 
     it('should support sub-templates with content', () => {
@@ -668,22 +863,24 @@ describe('IV runtime', () => {
             </template>
         `;
 
+        pkg.foo.uid = "XX";
+        pkg.bar.uid = "YY";
         var view = pkg.foo.apply({v: 9}), vdom1 = view.vdom;
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " AAA "/>
-                    <#group 3 bar data-content=IvNode data-value=9>
-                        <span 1 title=9>
+                    <#group 3 bar ref="XX:0:1" data-content=IvNode data-value=9>
+                        <span 1 ref="YY:0:0" title=9>
                             <#text 2 " first "/>
                         </span>
-                        <#group 3 js>
+                        <#group 3 js ref="YY:0:1">
                             <span 4>
                                 <#text 5 "Z "/>
-                                <#group 6 insert>
+                                <#group 6 insert ref="YY:0:2">
                                     <span 4>
                                         <#text 5 "content "/>
-                                        <#group 6 insert>
+                                        <#group 6 insert ref="XX:0:2">
                                             <#text -1 "109"/>
                                         </#group>
                                     </span>
@@ -697,15 +894,15 @@ describe('IV runtime', () => {
                     </#group>
                     <#text 7 " BBB "/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
 
         view.refresh({v: 42});
-        expect(diff(view.vdom.toString(INDENT), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <div 1>
                     <#text 2 " AAA "/>
-                    <#group 3 bar data-content=IvNode data-value=42>
-                        <span 1 title=42>
+                    <#group 3 bar ref="XX:0:1" data-content=IvNode data-value=42>
+                        <span 1 ref="YY:0:0" title=42>
                             <#text 2 " first "/>
                         </span>
                         <span 8>
@@ -714,10 +911,20 @@ describe('IV runtime', () => {
                     </#group>
                     <#text 7 " BBB "/>
                 </div>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            REPLACE_GROUP: XX:0:2
+            UPDATE_GROUP: XX:0:1
+            UPDATE_ELEMENT: YY:0:0
+            DELETE_GROUP: YY:0:1`)).toBe("equal"); // todo: remove XX:0:2 as not part of final render...?
 
         view.refresh({v: 9});
         expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            REPLACE_GROUP: XX:0:2
+            UPDATE_GROUP: XX:0:1
+            UPDATE_ELEMENT: YY:0:0
+            CREATE_GROUP: YY:0:3`)).toBe("equal"); // todo: remove XX:0:2 from the list as not part of final dom
     });
 
     it('should support sub-templates with multiple content', () => {
@@ -747,7 +954,7 @@ describe('IV runtime', () => {
         `;
 
         var view = pkg.test.apply({testCase: 1});
-        expect(diff(view.vdom.toString(INDENT), `\
+        expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <#text 1 " Case #"/>
                 <#group 2 insert>
@@ -776,9 +983,10 @@ describe('IV runtime', () => {
                         </#group>
                     </#group>
                 </#group>
-            </#group>`)).toEqual(null);
+            </#group>`)).toBe("equal");
     });
 
+    // todo subtemplate in for loop
     // todo subtemplate with if at root level
     // todo template with content list  content:IvNode[]
     // todo dynamic content in template

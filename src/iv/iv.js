@@ -62,6 +62,8 @@ class IvTemplate {
 
     /**
      * Template factory constructor
+     * There is one IvTemplate per template kind - as such all templates of the same kind (i.e. associated
+     * to the sample template function) are genereated by the same IvTemplate instance
      * @param templateData the result of the template compilation - cf. nac2js compiler
      * @param pkg package containing this template
      */
@@ -72,14 +74,16 @@ class IvTemplate {
     }
 
     apply(argMap, context) {
-        var p = new IvProcessor(this.templateData, this.pkg, this.uid),
+        var p = new IvProcessor(this.templateData, this.pkg, this.uid + ":" + (this.templateData.instanceCount++)),
             view = {
                 vdom: null,
                 refreshLog: null,
                 // hide the processor in the function closure
                 refresh: function (argMap, context) {
+                    this.refreshLog = null;
                     try {
                         this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
+                        this.refreshLog = p.refreshLog;
                     } catch (err) {
                         iv.log(err);
                         this.vdom = null;
@@ -142,7 +146,7 @@ class IvError {
 
 class IvProcessor {
     pkg;                 // template package
-    templateUID;         // template unique identifier - generated
+    ref;                 // template instance unique identifier - generated
     templateId;          // template id
     fn;
     statics;
@@ -156,14 +160,16 @@ class IvProcessor {
     creationMode;        // fast track for node creation
     creationModeTarget;  // force creation mode until a certain target is reached
     ignoreTemplateNode;  // true when the template is called from another template that has already created the template node
+    nodeCount;           // internal counter used to create unique references
 
-    constructor(templateData, pkg, templateUID) {
+    constructor(templateData, pkg, instanceUID) {
         this.pkg = pkg;
-        this.templateUID = templateUID;
+        this.ref = instanceUID;
         this.fn = templateData.templateFn;
         this.statics = templateData.templateStatics;
         this.argIndexes = templateData.templateArgIdx;
         this.templateId = templateData.templateId;
+        this.nodeCount = 0;
     }
 
     refresh(argMap, context) {
@@ -202,6 +208,7 @@ class IvProcessor {
         // call the template function
         this.fn.apply(null, args); // this will call the marker methods ns(), ne(), t(), bs()...
 
+        this.refreshLog.finalized = true;
         return this.rootNd;
     }
 
@@ -212,7 +219,7 @@ class IvProcessor {
             var nd = this.srcNd;
             nextNode = nd.firstChild;
             while (nextNode && nextNode.index < targetIdx) {
-                this.deleteFirstChild(nd);
+                this.deleteFirstChild(targetIdx, nd);
                 nextNode = nd.firstChild;
             }
 
@@ -262,7 +269,7 @@ class IvProcessor {
         }
         var nd = this.srcNd, nextNode = nd.nextSibling;
         while (nextNode && nextNode.index < targetIdx) {
-            this.deleteNextNode(nd);
+            this.deleteNextNode(targetIdx, nd);
             nd = nextNode;
             nextNode = nd.nextSibling;
         }
@@ -273,6 +280,13 @@ class IvProcessor {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Return a new unique node reference
+     */
+    getNewNodeRef() {
+        return `${this.ref}:${this.nodeCount++}`;
     }
 
     /**
@@ -465,9 +479,9 @@ class IvProcessor {
             this.createGroupNode(idx, "js");
         } else {
             if (!this.advance(idx)) {
-                this.createGroupNode(idx, "js");
                 this.creationMode = true;
                 this.creationModeTarget = idx;
+                this.createGroupNode(idx, "js");
             }
         }
         this.targetDepth++;
@@ -520,7 +534,11 @@ class IvProcessor {
         }
     }
 
-    deleteFirstChild(nd) {
+    /**
+     * Delete the first child of a node
+     * @param nd
+     */
+    deleteFirstChild(idx, nd) {
         var ch = nd.firstChild;
         if (ch) {
             var ns = ch.nextSibling;
@@ -534,13 +552,23 @@ class IvProcessor {
             } else {
                 nd.firstChild = null;
             }
+            if (ch.isGroupNode) {
+                this.refreshLog.addInstruction(INSTRUCTION_DELETE_GROUP, ch);
+            }
         }
     }
 
-    deleteNextNode(nd) {
+    /**
+     * Delete the next sibling of a node
+     * @param nd
+     */
+    deleteNextNode(idx, nd) {
         var nextNode = nd.nextSibling;
         if (nextNode) {
             nd.nextSibling = nextNode.nextSibling || null;
+            if (nextNode.isGroupNode) {
+                this.refreshLog.addInstruction(INSTRUCTION_DELETE_GROUP, nextNode);
+            }
         }
     }
 
@@ -577,19 +605,35 @@ class IvProcessor {
         // parentNode should be a component or another att node
     }
 
+    /**
+     * Create a text node and append it to the current vdom
+     * @param idx
+     */
     createTextNode(idx) {
         this.appendNode(new IvTextNode(idx, this.statics[idx][2]));
     }
 
+    /**
+     * Create a group node and append it to the current vdom
+     * @param idx
+     * @param label {String} the group type (e.g. "insert", "template", etc.)
+     * @returns {IvGroupNode}
+     */
     createGroupNode(idx, label) {
-        this.appendNode(new IvGroupNode(idx, null, label));
+        var gn = new IvGroupNode(idx, null, label);
+        gn.ref = this.getNewNodeRef();
+        this.appendNode(gn);
+        if (idx === this.creationModeTarget) {
+            // we are in creation mode and the current group is the root of the new nodes
+            this.refreshLog.addInstruction(INSTRUCTION_CREATE_GROUP, gn);
+        }
+        return gn;
     }
 
     createInsertNode(idx, content) {
         // create a group node
-        var nd = new IvGroupNode(idx, null, "insert");
+        var nd = this.createGroupNode(idx, "insert");
         content = this.checkInsertContent(content);
-        this.appendNode(nd);
 
         // if content is a piece of text, create a text node
         if (!content.isNode) {
@@ -608,6 +652,7 @@ class IvProcessor {
             if (ch.index === -1) {
                 // update text
                 ch.value = content;
+                this.refreshLog.addInstruction(INSTRUCTION_REPLACE_GROUP, nd);
             } else {
                 throw "todo 2";
             }
@@ -625,9 +670,17 @@ class IvProcessor {
         }
     }
 
+    /**
+     * Create and initialize the group node associated to a component / sub-template
+     * @param idx
+     * @param dAttributes
+     * @param sAttributes
+     */
     createCptNode(idx, dAttributes, sAttributes) {
         // create a group node as container for the component
-        var statics = this.statics[idx], nd = new IvGroupNode(idx, null, statics[2]), tpl = this.pkg[statics[2]];
+        var statics = this.statics[idx],
+            tpl = this.pkg[statics[2]],
+            nd = this.createGroupNode(idx, statics[2]);
         if (!tpl) {
             // we should not get there as template has already been identified earlier
             // unless dynamic injection is used to change the package reference
@@ -641,10 +694,14 @@ class IvProcessor {
             viewDom: null        // view vdom firstChild
         };
         this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
-
-        this.appendNode(nd);
     }
 
+    /**
+     * Generate the view instance associated to a sub-component / sub-template
+     * This view with then be stored as meta-data of the component's group node
+     * @param idx
+     * @param cptNd
+     */
     generateCptView(idx, cptNd) {
         var atts = cptNd.data.attributes, att = cptNd.firstAttribute, view;
         // update attributes
@@ -660,14 +717,29 @@ class IvProcessor {
         cptNd.data.viewDom = view.vdom.firstChild;
     }
 
+    /**
+     * Update a component node - i.e. update its arguments and refresh its view
+     * @param cptNd
+     * @param dAttributes
+     * @param nodeAttributes
+     */
     updateCptNode(cptNd, dAttributes, nodeAttributes) {
         if (!cptNd.data || !cptNd.data.view) {
             throw "Invalid component node"; // todo provide more details + test
         }
         var atts = cptNd.data.attributes;
         if (dAttributes) {
+            var nm, val, changed = false;
             for (var i = 0; dAttributes.length > i; i += 2) {
-                atts[dAttributes[i]] = dAttributes[i + 1];
+                nm = dAttributes[i];
+                val = dAttributes[i + 1];
+                if (atts[nm] !== val) {
+                    atts[nm] = val;
+                    changed = true;
+                }
+            }
+            if (changed) {
+                this.refreshLog.addInstruction(INSTRUCTION_UPDATE_GROUP, cptNd);
             }
         }
         if (nodeAttributes) {
@@ -679,22 +751,46 @@ class IvProcessor {
         // todo check if template is pure function and skip refresh
         var view = cptNd.data.view;
         view.refresh(atts, {creationMode: false, groupNode: cptNd});
+        this.refreshLog.concat(view.refreshLog);
         cptNd.data.viewDom = view.vdom.firstChild;
     }
 
+    /**
+     * Create a new element node and append it to the vdom
+     * @param idx
+     * @param dAttributes dynamic attributes
+     * @param sAttributes static attributes defined through a dynamic js expression
+     */
     createEltNode(idx, dAttributes, sAttributes) {
         var statics = this.statics[idx], nd = new IvEltNode(idx, statics[2]);
         this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
         this.appendNode(nd);
+        if (dAttributes) {
+            nd.ref = this.getNewNodeRef();
+        }
     }
 
+    /**
+     * Set all attributes on a given element or group node
+     * @param nd
+     * @param statics
+     * @param dAttributes
+     * @param sAttributes
+     */
     setNodeAttributes(nd, statics, dAttributes, sAttributes) {
-        var i, atts = (nd.isGroupNode)? nd.data.attributes : nd.attributes;
+        var i, atts = (nd.isGroupNode) ? nd.data.attributes : nd.attributes;
 
         // dynamic attributes first
         if (dAttributes) {
+            var initDynAtts = nd.isElementNode && nd.dynAttributes === null;
+            if (initDynAtts) {
+                nd.dynAttributes = [];
+            }
             for (i = 0; dAttributes.length > i; i += 2) {
                 atts[dAttributes[i]] = dAttributes[i + 1];
+                if (initDynAtts) {
+                    nd.dynAttributes.push(dAttributes[i]);
+                }
             }
         }
         // static attributes from statics array
@@ -712,15 +808,34 @@ class IvProcessor {
         }
     }
 
+    /**
+     * Update the dynamic attributes of an element node
+     * @param nd
+     * @param dAttributes
+     */
     updateEltNode(nd, dAttributes) {
         if (dAttributes) {
-            var atts = nd.attributes;
+            var atts = nd.attributes, v1, v2, createInstruction = false;
             for (var i = 0; dAttributes.length > i; i += 2) {
-                atts[dAttributes[i]] = dAttributes[i + 1];
+                v1 = atts[dAttributes[i]];
+                v2 = dAttributes[i + 1];
+                if (v1 !== v2) {
+                    createInstruction = true;
+                    atts[dAttributes[i]] = v2;
+                }
+            }
+            if (createInstruction) {
+                this.refreshLog.addInstruction(INSTRUCTION_UPDATE_ELEMENT, nd);
             }
         }
     }
 
+    /**
+     * Append a node to the last node that has been processed
+     * Depending on the targetDepth value the node will be added as a first child or has a sibling of the last
+     * processed node
+     * @param nd
+     */
     appendNode(nd) {
         var anNodes = this.ancestorNodes, anLength = anNodes.length;
         if (anLength === 0) {
@@ -768,83 +883,79 @@ iv.$template = function (templateData) {
     return new IvTemplate(templateData);
 };
 
-var INSTRUCTION_CREATE_GROUP = 1,
+const INSTRUCTION_CREATE_GROUP = 1,
     INSTRUCTION_DELETE_GROUP = 2,
-    INSTRUCTION_UPDATE_NODE = 3;
+    INSTRUCTION_REPLACE_GROUP = 3,
+    INSTRUCTION_UPDATE_GROUP = 4,
+    INSTRUCTION_UPDATE_ELEMENT = 5;
 
-class IvUpdateInstruction {
-    // parentRef: string; // used for create and delete, undefined for update
-    // parentChildIndex: number = -1; // used for create and delete, -1 for update
-    // changedAttributes: any[] = null; // used by update for element nodes
-    //
-    // constructor(public type: IvUpdateInstructionType, public node: IvNode) { };
+export const INSTRUCTIONS = {
+    "CREATE_GROUP": INSTRUCTION_CREATE_GROUP,
+    "DELETE_GROUP": INSTRUCTION_DELETE_GROUP,
+    "REPLACE_GROUP": INSTRUCTION_REPLACE_GROUP,
+    "UPDATE_GROUP": INSTRUCTION_UPDATE_GROUP,
+    "UPDATE_ELEMENT": INSTRUCTION_UPDATE_ELEMENT
 }
 
 class IvUpdateInstructionSet {
-    finalized;      // true when all instructions have been added to the list
-    hasCreations;   // true if contains create instructions
-    hasUpdates;     // true if contains create instructions
-    hasDeletions;   // true if contains delete instructions
+    finalized;      // true when all instructions have been added to the list\
     changes;        // list of changes
     unchangedRefs;  // list of node refs that haven't been changed and that must be kept (allows for delete optimization)
 
     constructor() {
         this.finalized = false;
-        this.hasCreations = false;
-        this.hasUpdates = false;
-        this.hasDeletions = false;
         this.changes = [];
         this.unchangedRefs = [];
     }
 
-    //
-    // /**
-    //  * Add a create instruction
-    //  * @param node {NacNode}
-    //  */
-    // addCreate(node) {
-    //     var ins = new IvUpdateInstruction(IvUpdateInstructionType.CREATE, node),
-    //         pnd = node.parentNode;
-    //     ins.parentRef = pnd.ref;
-    //     ins.parentChildIndex = pnd.childCursor - 1; // childCursor has already been incremented
-    //     this.changes.push(ins);
-    //     this.hasCreations = true;
-    // };
-    //
-    // /**
-    //  * Add an update instruction
-    //  */
-    // addUpdate(node: IvNode, updateRes: any) {
-    //     if (node.nodeType !== IvNodeType.MARKER_NODE) {
-    //         var ins = new IvUpdateInstruction(IvUpdateInstructionType.UPDATE, node);
-    //         if (updateRes !== true) {
-    //             ins.changedAttributes = updateRes;
-    //         }
-    //         this.changes.push(ins);
-    //         this.hasUpdates = true;
-    //     }
-    // };
-    //
-    // /**
-    //  * Add a delete instruction
-    //  */
-    // addDelete(node: IvNode) {
-    //     if (node.nodeType !== IvNodeType.MARKER_NODE) {
-    //         var ins = new IvUpdateInstruction(IvUpdateInstructionType.DELETE, node),
-    //             pnd = node.parentNode;
-    //         ins.parentRef = pnd.ref;
-    //         ins.parentChildIndex = pnd.childCursor;
-    //         this.changes.push(ins);
-    //         this.hasDeletions = true;
-    //     }
-    // };
-    //
-    // /**
-    //  * Add a node to the unchanged list
-    //  */
-    // addUnchanged(nodeRef: string) {
-    //     if (nodeRef) {
-    //         this.unchangedRefs.push(nodeRef);
-    //     }
-    // }
+    /**
+     * Add a new instruction to the instruction set
+     * @param type {number} an instruction set - cf INSTRUCTIONS
+     * @param node {IvNode} the node associated to the instruction
+     */
+    addInstruction(type, node) {
+        this.changes.push({
+            type: type,
+            node: node
+        });
+    }
+
+    /**
+     * Tells that a node is still referenced even though it may not require any update
+     * Allows to discard unused reference in the VDOM renderer
+     * @param node
+     */
+    addUnchangedNode(node) {
+        // todo
+    }
+
+    /**
+     * Concat a 2nd set of instructions with the current set
+     * Used to concat sub-template / sub-component instructions in the parent set
+     * @param instructionSet2
+     */
+    concat(instructionSet2) {
+        if (instructionSet2.changes.length > 0) {
+            this.hasCreations = this.hasCreations || instructionSet2.hasCreations;
+            this.hasUpdates = this.hasUpdates || instructionSet2.hasUpdates;
+            this.hasDeletions = this.hasDeletions || instructionSet2.hasDeletions;
+            this.changes = this.changes.concat(instructionSet2.changes);
+            this.unchangedRefs = this.unchangedRefs.concat(instructionSet2.unchangedRefs);
+        }
+    }
+
+    toString(options = {indent: ""}) {
+        var lines = [], TYPES = [], instr;
+        TYPES[INSTRUCTION_CREATE_GROUP] = "CREATE_GROUP";
+        TYPES[INSTRUCTION_DELETE_GROUP] = "DELETE_GROUP";
+        TYPES[INSTRUCTION_REPLACE_GROUP] = "REPLACE_GROUP";
+        TYPES[INSTRUCTION_UPDATE_GROUP] = "UPDATE_GROUP";
+        TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";
+
+        for (var i = 0; this.changes.length > i; i++) {
+            instr = this.changes[i];
+            lines.push([options.indent, TYPES[instr.type], ": ", instr.node.ref].join(""));
+        }
+        return lines.join("\n");
+    }
 }

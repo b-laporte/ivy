@@ -10,7 +10,7 @@ import {diff} from './utils';
 describe('IvNode', () => {
 
     it('should stringify node content', function () {
-        var gn = new IvGroupNode(0, null, "template"),
+        var gn = new IvGroupNode(0, "template"),
             ch = new IvTextNode(2, "some text");
         gn.firstChild = ch;
 
@@ -18,7 +18,7 @@ describe('IvNode', () => {
         ch = ch.nextSibling = div;
         div.firstChild = new IvTextNode(4, " div content ");
 
-        ch = ch.nextSibling = new IvGroupNode(5, gn, "js");
+        ch = ch.nextSibling = new IvGroupNode(5, "js");
 
         div = new IvEltNode(6, "div");
         ch.nextSibling = div;

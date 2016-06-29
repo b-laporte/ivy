@@ -148,39 +148,40 @@ class IvProcessor {
     pkg;                 // template package
     ref;                 // template instance unique identifier - generated
     templateId;          // template id
-    fn;
-    statics;
-    argIndexes;
+    fn;                  // template function
+    statics;             // template statics data
+    argIndexes;          // template argument indexes - i.e. map of "argName":argIndex (e.g. "msg":0)
     refreshLog;          // instruction set generated during last refresh call
-    srcNd;               // current node - node used as reference during the refresh process
-    srcNdDepth;          // current node depth
-    rootNd;              // rootNode
+    currentNd;           // current node - last node processed during the refresh process
+    currentNdDepth;      // current node depth = index of currentNd in ancestorNodes - equivalent to ancestorNodes length-1
+    rootNd;              // rootNode - equivalent to ancestorNodes[0]
     ancestorNodes;       // array of the nodes in the current path
+    currentGroupNd;      // current group node - i.e. the highest (last) group node in the ancestor stack
     targetDepth;         // tells at which depth next node should be (0 = root)
-    creationMode;        // fast track for node creation
-    creationModeTarget;  // force creation mode until a certain target is reached
+    creationMode;        // fast track for node creation - activated when we create a new group
+    creationModeTarget;  // force creation mode until a certain target is reached, then move creationMode back to false
     ignoreTemplateNode;  // true when the template is called from another template that has already created the template node
     nodeCount;           // internal counter used to create unique references
 
-    constructor(templateData, pkg, instanceUID) {
+    constructor(templateData, pkg, templateRef) {
         this.pkg = pkg;
-        this.ref = instanceUID;
+        this.ref = templateRef;
         this.fn = templateData.templateFn;
         this.statics = templateData.templateStatics;
         this.argIndexes = templateData.templateArgIdx;
         this.templateId = templateData.templateId;
         this.nodeCount = 0;
+        this.currentGroupNd = null;
     }
 
     refresh(argMap, context) {
         var groupNode = context.groupNode;
         this.refreshLog = new IvUpdateInstructionSet();
         // fake a node to bootstrap the chain
-        this.srcNd = null;
-        this.srcNdDepth = -1;
+        this.currentNd = null;
+        this.currentNdDepth = -1;
         this.targetDepth = 0;
         this.ancestorNodes = [];
-
 
         if (context.creationMode || !groupNode) {
             this.creationMode = true;
@@ -213,9 +214,9 @@ class IvProcessor {
 
     advance(targetIdx) {
         var nextNode;
-        if (this.srcNdDepth < this.targetDepth) {
+        if (this.currentNdDepth < this.targetDepth) {
             // we have to look for next node in the child list
-            var nd = this.srcNd;
+            var nd = this.currentNd;
             nextNode = nd.firstChild;
             while (nextNode && nextNode.index < targetIdx) {
                 this.deleteFirstChild(targetIdx, nd);
@@ -235,13 +236,12 @@ class IvProcessor {
             }
         } else {
             // next nodes are siblings
-            nextNode = this.srcNd.nextSibling;
+            nextNode = this.currentNd.nextSibling;
             if (!nextNode) {
                 return false;
             } else {
                 if (nextNode.index === targetIdx) {
-                    this.srcNd = nextNode;
-                    if (this.ancestorNodes.length === 0) {
+                    if (this.currentNdDepth === -1) {
                         // we may fall in this case at bootstrap on the very first node
                         this.addAncestor(nextNode);
                     } else {
@@ -262,7 +262,7 @@ class IvProcessor {
 
     deleteSrcSiblingsUntil(targetIdx) {
         // return true if found
-        var nd = this.srcNd, nextNode = nd.nextSibling;
+        var nd = this.currentNd, nextNode = nd.nextSibling;
         if (!nextNode) {
             return false;
         }
@@ -288,38 +288,47 @@ class IvProcessor {
 
     /**
      * Add a new node to the ancestorNodes stack with keeps the list of current parent nodes
+     * This is called when we enter a new element or group node
      * @param node
-     * @returns the new ancestor node
      */
     addAncestor(node) {
         this.ancestorNodes.push(node);
-        this.srcNd = node;
-        this.srcNdDepth++;
-        return node;
+        this.currentNd = node;
+        this.currentNdDepth++;
+        if (node.isGroupNode) {
+            this.currentGroupNd = node;
+        }
     }
 
     /**
      * Replace last node in the ancestorNodes stack
      * @param node
-     * @returns the new ancestor node
      */
     replaceLastAncestor(node) {
-        this.ancestorNodes[this.ancestorNodes.length - 1] = node;
-        this.srcNd = node;
-        return node;
+        var ans = this.ancestorNodes, prev = this.currentNd;
+        ans[ans.length - 1] = node;
+        this.currentNd = node;
+        if (prev === this.currentGroupNd) {
+            if (node.isGroupNode) {
+                this.currentGroupNd = node;
+            } else {
+                this.currentGroupNd = findLastGroup(ans);
+            }
+        }
     }
 
     /**
      * Remove last node from the ancestorNodes stack
      * This must be called when we leave a container
-     * @returns the new ancestor node
      */
     removeLastAncestor() {
-        var ans = this.ancestorNodes;
+        var ans = this.ancestorNodes, prev = this.currentNd;
         ans.pop();
-        this.srcNdDepth--;
-        this.srcNd = ans[ans.length - 1]
-        return this.srcNd;
+        this.currentNdDepth--;
+        this.currentNd = ans[ans.length - 1];
+        if (prev === this.currentGroupNd) {
+            this.currentGroupNd = findLastGroup(ans);
+        }
     }
 
     /**
@@ -365,11 +374,11 @@ class IvProcessor {
     ns(idx, hasChildren, dAttributes, sAttributes) {
         if (this.creationMode) {
             // creation fast track
-            this.createEltNode(idx, dAttributes, sAttributes);
+            this.createEltNode(idx, hasChildren, dAttributes, sAttributes);
         } else {
             if (this.advance(idx)) {
                 // update
-                this.updateEltNode(this.srcNd, dAttributes);
+                this.updateEltNode(this.currentNd, dAttributes);
             } else {
                 this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
             }
@@ -390,8 +399,8 @@ class IvProcessor {
             // delete last nodes
             this.deleteSrcSiblingsUntil(MAX_INDEX);
         }
-        if (this.ancestorNodes.length > this.targetDepth) {
-            this.srcNd = this.removeLastAncestor();
+        if (this.currentNdDepth === this.targetDepth) {
+            this.removeLastAncestor();
         }
         this.targetDepth--;
     }
@@ -407,10 +416,10 @@ class IvProcessor {
         if (!hasChildren) {
             if (this.creationMode) {
                 this.createCptNode(idx, dAttributes, sAttributes);
-                this.generateCptView(idx, this.srcNd);
+                this.generateCptView(idx, this.currentNd);
             } else {
                 if (this.advance(idx)) {
-                    this.updateCptNode(this.srcNd, dAttributes);
+                    this.updateCptNode(this.currentNd, dAttributes);
                 } else {
                     this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
                 }
@@ -422,7 +431,7 @@ class IvProcessor {
             } else {
                 if (this.advance(idx)) {
                     // swap content node / view node
-                    var cptNd = this.srcNd;
+                    var cptNd = this.currentNd;
                     cptNd.data.viewDom = cptNd.firstChild;
                     cptNd.data.dAttributes = dAttributes;
                     cptNd.firstChild = cptNd.data.contentDom.firstChild; // todo is it necessary to keep the parent group?
@@ -444,9 +453,9 @@ class IvProcessor {
         // we are in the case where the component has children
         this.ne(idx);
 
-        var cptNd = this.srcNd;
+        var cptNd = this.currentNd;
         if (this.creationMode) {
-            var contentGroup = new IvGroupNode(idx, null, "content"); // TODO parent?
+            var contentGroup = new IvGroupNode(idx, "content");
             contentGroup.firstChild = cptNd.firstChild;
             cptNd.data.contentDom = contentGroup;
             cptNd.firstChild = null;
@@ -557,7 +566,7 @@ class IvProcessor {
             this.createInsertNode(idx, content);
         } else {
             if (this.advance(idx)) {
-                this.updateInsertNode(this.srcNd, content);
+                this.updateInsertNode(this.currentNd, content);
             } else {
                 this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
             }
@@ -604,8 +613,8 @@ class IvProcessor {
 
     setCurrentAttNodeAsParentAttribute(idx) {
         // todo create attribute wrapper and add it to the parent's node
-        var attNode = this.srcNd;
-        var parentNode = this.ancestorNodes[this.ancestorNodes.length - 2];
+        var attNode = this.currentNd;
+        var parentNode = this.ancestorNodes[this.currentNdDepth - 1];
 
         // todo create different kind of wrappers depending on content type
 
@@ -650,12 +659,28 @@ class IvProcessor {
      * @returns {IvGroupNode}
      */
     createGroupNode(idx, label) {
-        var gn = new IvGroupNode(idx, null, label);
+        var parentNd = null;
+        if (this.targetDepth > this.currentNdDepth) {
+            // group will be created as a child of current node
+            // group will be created as a child of current node
+            parentNd = this.currentNd;
+        } else {
+            // group will be created as a sibling of current node
+            if (this.currentNdDepth > 0) {
+                parentNd = this.ancestorNodes[this.currentNdDepth - 1];
+            }
+        }
+        if (parentNd && !parentNd.ref) {
+            parentNd.ref = this.getNewNodeRef();
+        }
+
+        var gn = new IvGroupNode(idx, label);
         gn.ref = this.getNewNodeRef();
         this.appendNode(gn);
         if (idx === this.creationModeTarget) {
             // we are in creation mode and the current group is the root of the new nodes
-            this.refreshLog.addInstruction(INSTRUCTION_CREATE_GROUP, gn);
+            var pref = parentNd ? parentNd.ref : null;
+            this.refreshLog.addInstruction(INSTRUCTION_CREATE_GROUP, gn, pref);
         }
         return gn;
     }
@@ -788,14 +813,15 @@ class IvProcessor {
     /**
      * Create a new element node and append it to the vdom
      * @param idx
+     * @param hasChidren tell if this element node may contain children
      * @param dAttributes dynamic attributes
      * @param sAttributes static attributes defined through a dynamic js expression
      */
-    createEltNode(idx, dAttributes, sAttributes) {
+    createEltNode(idx, hasChildren, dAttributes, sAttributes) {
         var statics = this.statics[idx], nd = new IvEltNode(idx, statics[2]);
         this.setNodeAttributes(nd, statics, dAttributes, sAttributes);
         this.appendNode(nd);
-        if (dAttributes) {
+        if (hasChildren || dAttributes) {
             nd.ref = this.getNewNodeRef();
         }
     }
@@ -867,14 +893,13 @@ class IvProcessor {
      * @param nd
      */
     appendNode(nd) {
-        var anNodes = this.ancestorNodes, anLength = anNodes.length;
-        if (anLength === 0) {
-            // root node
+        if (this.currentNdDepth === -1) {
+            // root node - currentNd not initialized yet
             this.addAncestor(nd);
             this.rootNd = nd;
         } else {
-            var prev = anNodes[anLength - 1];
-            if (this.targetDepth >= anLength) {
+            var prev = this.currentNd;
+            if (this.targetDepth > this.currentNdDepth) {
                 // insert as first child
                 var currentFirstChild = prev.firstChild;
                 prev.firstChild = nd;
@@ -899,6 +924,20 @@ class IvProcessor {
         err.templateId = this.templateId;
         throw err;
     }
+}
+
+/**
+ * Find the last group node in an array of nodes
+ * @param nodes {Array}
+ * @returns {IvNode} the group node
+ */
+function findLastGroup(nodes) {
+    for (var i = nodes.length - 1; i > -1; i--) {
+        if (nodes[i].isGroupNode) {
+            return nodes[i];
+        }
+    }
+    return null;
 }
 
 /**
@@ -938,21 +977,17 @@ class IvUpdateInstructionSet {
      * Add a new instruction to the instruction set
      * @param type {number} an instruction set - cf INSTRUCTIONS
      * @param node {IvNode} the node associated to the instruction
+     * @param parentRef {String} reference of the parent node where the instruction applies (only for create)
      */
-    addInstruction(type, node) {
-        this.changes.push({
+    addInstruction(type, node, parentRef = null) {
+        var instr = {
             type: type,
             node: node
-        });
-    }
-
-    /**
-     * Tells that a node is still referenced even though it may not require any update
-     * Allows to discard unused reference in the VDOM renderer
-     * @param node
-     */
-    addUnchangedNode(node) {
-        // todo
+        };
+        if (parentRef) {
+            instr.parentRef = parentRef;
+        }
+        this.changes.push(instr);
     }
 
     /**
@@ -962,25 +997,25 @@ class IvUpdateInstructionSet {
      */
     concat(instructionSet2) {
         if (instructionSet2.changes.length > 0) {
-            this.hasCreations = this.hasCreations || instructionSet2.hasCreations;
-            this.hasUpdates = this.hasUpdates || instructionSet2.hasUpdates;
-            this.hasDeletions = this.hasDeletions || instructionSet2.hasDeletions;
             this.changes = this.changes.concat(instructionSet2.changes);
-            this.unchangedRefs = this.unchangedRefs.concat(instructionSet2.unchangedRefs);
         }
     }
 
     toString(options = {indent: ""}) {
-        var lines = [], TYPES = [], instr;
-        TYPES[INSTRUCTION_CREATE_GROUP] = "CREATE_GROUP";
-        TYPES[INSTRUCTION_DELETE_GROUP] = "DELETE_GROUP";
-        TYPES[INSTRUCTION_REPLACE_GROUP] = "REPLACE_GROUP";
-        TYPES[INSTRUCTION_UPDATE_GROUP] = "UPDATE_GROUP";
-        TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";
+        var lines = [], TYPES = [], instr, misc;
+        TYPES[INSTRUCTION_CREATE_GROUP] = "CREATE_GROUP";       // requires parent + node ref (node index will give the position)
+        TYPES[INSTRUCTION_DELETE_GROUP] = "DELETE_GROUP";       // requires group ref only
+        TYPES[INSTRUCTION_REPLACE_GROUP] = "REPLACE_GROUP";     // requires group ref only
+        TYPES[INSTRUCTION_UPDATE_GROUP] = "UPDATE_GROUP";       // requires group ref only
+        TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";   // requires element ref only
 
         for (var i = 0; this.changes.length > i; i++) {
             instr = this.changes[i];
-            lines.push([options.indent, TYPES[instr.type], ": ", instr.node.ref].join(""));
+            misc = [];
+            if (instr.parentRef) {
+                misc.push(" in " + instr.parentRef);
+            }
+            lines.push([options.indent, TYPES[instr.type], ": ", instr.node.ref, misc.join("")].join(""));
         }
         return lines.join("\n");
     }

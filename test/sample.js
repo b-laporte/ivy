@@ -364,7 +364,4 @@ var pkg = iv `
 // ########
 // ideas for canvas support
 
-var cpkg=iv `
-    <template 
-`;
 

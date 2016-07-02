@@ -80,10 +80,10 @@ class IvTemplate {
                 refreshLog: null,
                 // hide the processor in the function closure
                 refresh: function (argMap, context) {
-                    this.refreshLog = null;
+                    this.refreshLog = new IvUpdateInstructionSet();
                     try {
                         this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
-                        this.refreshLog = p.refreshLog;
+                        this.refreshLog.changes = this.vdom.changes;
                     } catch (err) {
                         iv.log(err);
                         this.vdom = null;
@@ -151,12 +151,11 @@ class IvProcessor {
     fn;                  // template function
     statics;             // template statics data
     argIndexes;          // template argument indexes - i.e. map of "argName":argIndex (e.g. "msg":0)
-    refreshLog;          // instruction set generated during last refresh call
     currentNd;           // current node - last node processed during the refresh process
     currentNdDepth;      // current node depth = index of currentNd in ancestorNodes - equivalent to ancestorNodes length-1
+    currentParentNd;     // parent of the current node
     rootNd;              // rootNode - equivalent to ancestorNodes[0]
     ancestorNodes;       // array of the nodes in the current path
-    currentGroupNd;      // current group node - i.e. the highest (last) group node in the ancestor stack
     targetDepth;         // tells at which depth next node should be (0 = root)
     creationMode;        // fast track for node creation - activated when we create a new group
     creationModeTarget;  // force creation mode until a certain target is reached, then move creationMode back to false
@@ -171,14 +170,14 @@ class IvProcessor {
         this.argIndexes = templateData.templateArgIdx;
         this.templateId = templateData.templateId;
         this.nodeCount = 0;
-        this.currentGroupNd = null;
     }
 
     refresh(argMap, context) {
         var groupNode = context.groupNode;
-        this.refreshLog = new IvUpdateInstructionSet();
+
         // fake a node to bootstrap the chain
         this.currentNd = null;
+        this.currentParentNd = null;
         this.currentNdDepth = -1;
         this.targetDepth = 0;
         this.ancestorNodes = [];
@@ -197,6 +196,9 @@ class IvProcessor {
         } else {
             this.ignoreTemplateNode = false;
         }
+        if (this.rootNd) {
+            this.rootNd.changes = [];
+        }
 
         var args = [this], argsIdx = this.argIndexes;
         for (var k in argMap) {
@@ -208,10 +210,15 @@ class IvProcessor {
         // call the template function
         this.fn.apply(null, args); // this will call the marker methods ns(), ne(), t(), bs()...
 
-        this.refreshLog.finalized = true;
         return this.rootNd;
     }
 
+    /**
+     * Moves the current node cursor and deletes useless nodes until the target node index (or a higher index)
+     * is reached
+     * @param targetIdx {number} the index of the targeted node
+     * @returns {Boolean} true the the node corresponding to targetIdx has been found (and is the new currentNd)
+     */
     advance(targetIdx) {
         var nextNode;
         if (this.currentNdDepth < this.targetDepth) {
@@ -257,10 +264,10 @@ class IvProcessor {
         }
 
         // delete all coming elements until the node is found or no more sibling are available
-        return this.deleteSrcSiblingsUntil(targetIdx);
+        return this.deleteSiblingsUntil(targetIdx);
     }
 
-    deleteSrcSiblingsUntil(targetIdx) {
+    deleteSiblingsUntil(targetIdx) {
         // return true if found
         var nd = this.currentNd, nextNode = nd.nextSibling;
         if (!nextNode) {
@@ -293,11 +300,9 @@ class IvProcessor {
      */
     addAncestor(node) {
         this.ancestorNodes.push(node);
+        this.currentParentNd = this.currentNd;
         this.currentNd = node;
         this.currentNdDepth++;
-        if (node.isGroupNode) {
-            this.currentGroupNd = node;
-        }
     }
 
     /**
@@ -305,16 +310,10 @@ class IvProcessor {
      * @param node
      */
     replaceLastAncestor(node) {
-        var ans = this.ancestorNodes, prev = this.currentNd;
+        var ans = this.ancestorNodes;
+        this.moveChanges(this.currentNd);
         ans[ans.length - 1] = node;
         this.currentNd = node;
-        if (prev === this.currentGroupNd) {
-            if (node.isGroupNode) {
-                this.currentGroupNd = node;
-            } else {
-                this.currentGroupNd = findLastGroup(ans);
-            }
-        }
     }
 
     /**
@@ -326,8 +325,11 @@ class IvProcessor {
         ans.pop();
         this.currentNdDepth--;
         this.currentNd = ans[ans.length - 1];
-        if (prev === this.currentGroupNd) {
-            this.currentGroupNd = findLastGroup(ans);
+        this.moveChanges(prev, this.currentNd);
+        if (ans.length > 1) {
+            this.currentParentNd = ans[ans.length - 2];
+        } else {
+            this.currentParentNd = null;
         }
     }
 
@@ -397,7 +399,7 @@ class IvProcessor {
     ne(idx) {
         if (!this.creationMode) {
             // delete last nodes
-            this.deleteSrcSiblingsUntil(MAX_INDEX);
+            this.deleteSiblingsUntil(MAX_INDEX);
         }
         if (this.currentNdDepth === this.targetDepth) {
             this.removeLastAncestor();
@@ -435,6 +437,14 @@ class IvProcessor {
                     cptNd.data.viewDom = cptNd.firstChild;
                     cptNd.data.dAttributes = dAttributes;
                     cptNd.firstChild = cptNd.data.contentDom.firstChild; // todo is it necessary to keep the parent group?
+
+                    // remove unprocessed changes from previous refresh (e.g. changes associated
+                    // to a content node that wasn't inserted
+                    var ch = cptNd.firstChild;
+                    while (ch) {
+                        ch.changes = null;
+                        ch = ch.nextSibling;
+                    }
 
                     // then trigger update of the view node in ce()
                 } else {
@@ -592,7 +602,8 @@ class IvProcessor {
                 nd.firstChild = null;
             }
             if (ch.isGroupNode) {
-                this.refreshLog.addInstruction(INSTRUCTION_DELETE_GROUP, ch);
+                this.addInstruction(INSTRUCTION_DELETE_GROUP, ch);
+                this.moveChanges(ch, this.currentNd);
             }
         }
     }
@@ -606,7 +617,8 @@ class IvProcessor {
         if (nextNode) {
             nd.nextSibling = nextNode.nextSibling || null;
             if (nextNode.isGroupNode) {
-                this.refreshLog.addInstruction(INSTRUCTION_DELETE_GROUP, nextNode);
+                this.addInstruction(INSTRUCTION_DELETE_GROUP, nextNode);
+                this.moveChanges(nextNode, this.currentNd);
             }
         }
     }
@@ -658,7 +670,7 @@ class IvProcessor {
      * @param label {String} the group type (e.g. "insert", "template", etc.)
      * @returns {IvGroupNode}
      */
-    createGroupNode(idx, label) {
+    createGroupNode(idx, label, propagateChanges = true) {
         var parentNd = null;
         if (this.targetDepth > this.currentNdDepth) {
             // group will be created as a child of current node
@@ -676,11 +688,12 @@ class IvProcessor {
 
         var gn = new IvGroupNode(idx, label);
         gn.ref = this.getNewNodeRef();
+        gn.propagateChanges = propagateChanges;
         this.appendNode(gn);
         if (idx === this.creationModeTarget) {
             // we are in creation mode and the current group is the root of the new nodes
             var pref = parentNd ? parentNd.ref : null;
-            this.refreshLog.addInstruction(INSTRUCTION_CREATE_GROUP, gn, pref);
+            this.addInstruction(INSTRUCTION_CREATE_GROUP, gn, pref);
         }
         return gn;
     }
@@ -694,6 +707,7 @@ class IvProcessor {
         if (!content.isNode) {
             // text node
             content = new IvTextNode(-1, "" + content);
+            content.ref = this.getNewNodeRef();
         }
 
         // set the content as group child nodes
@@ -707,10 +721,15 @@ class IvProcessor {
             if (ch.index === -1) {
                 // update text
                 ch.value = content;
-                this.refreshLog.addInstruction(INSTRUCTION_REPLACE_GROUP, nd);
+                this.addInstruction(INSTRUCTION_UPDATE_TEXT, ch);
+                this.moveChanges(ch, nd);
             } else {
                 throw "todo 2";
+                // this.addInstruction(INSTRUCTION_REPLACE_GROUP, nd);
             }
+        } else {
+            nd.firstChild = content;
+            this.moveChanges(content, nd);
         }
     }
 
@@ -735,7 +754,7 @@ class IvProcessor {
         // create a group node as container for the component
         var statics = this.statics[idx],
             tpl = this.pkg[statics[2]],
-            nd = this.createGroupNode(idx, statics[2]);
+            nd = this.createGroupNode(idx, statics[2], false);
         if (!tpl) {
             // we should not get there as template has already been identified earlier
             // unless dynamic injection is used to change the package reference
@@ -766,7 +785,9 @@ class IvProcessor {
             }
             att = att.nextSibling;
         }
+        cptNd.propagateChanges = true;
         view = cptNd.data.template.apply(atts, {creationMode: true, groupNode: cptNd});
+        cptNd.propagateChanges = false;
         cptNd.data.view = view;
         cptNd.data.attributes = atts;
         cptNd.data.viewDom = view.vdom.firstChild;
@@ -794,7 +815,8 @@ class IvProcessor {
                 }
             }
             if (changed) {
-                this.refreshLog.addInstruction(INSTRUCTION_UPDATE_GROUP, cptNd);
+                this.addInstruction(INSTRUCTION_UPDATE_GROUP, cptNd);
+                this.moveChanges(cptNd);
             }
         }
         if (nodeAttributes) {
@@ -805,8 +827,11 @@ class IvProcessor {
         }
         // todo check if template is pure function and skip refresh
         var view = cptNd.data.view;
+        cptNd.propagateChanges = true;
         view.refresh(atts, {creationMode: false, groupNode: cptNd});
-        this.refreshLog.concat(view.refreshLog);
+        cptNd.propagateChanges = false;
+
+        //this.refreshLog.concat(view.refreshLog);
         cptNd.data.viewDom = view.vdom.firstChild;
     }
 
@@ -881,15 +906,15 @@ class IvProcessor {
                 }
             }
             if (createInstruction) {
-                this.refreshLog.addInstruction(INSTRUCTION_UPDATE_ELEMENT, nd);
+                this.addInstruction(INSTRUCTION_UPDATE_ELEMENT, nd);
             }
         }
     }
 
     /**
      * Append a node to the last node that has been processed
-     * Depending on the targetDepth value the node will be added as a first child or has a sibling of the last
-     * processed node
+     * Depending on the targetDepth value, the node will be added as a first child or has a sibling
+     * of the last processed node
      * @param nd
      */
     appendNode(nd) {
@@ -916,6 +941,51 @@ class IvProcessor {
         }
     }
 
+    /**
+     * Add a new instruction to the instruction log
+     * The node associated to this instruction should be part of the child node tree (i.e. no necessarily a direct child)
+     * @param type {number} an instruction set - cf INSTRUCTIONS
+     * @param node {IvNode} the node associated to the instruction
+     * @param parentRef {String} reference of the parent node where the instruction applies (only for create)
+     */
+    addInstruction(type, node, parentRef = null) {
+        var instr = {
+            type: type,
+            node: node
+        };
+        if (parentRef) {
+            instr.parentRef = parentRef;
+        }
+        if (!node.changes) {
+            node.changes = [instr];
+        } else {
+            node.changes.push(instr);
+        }
+    }
+
+    /**
+     * Move change instructions from node1 to node2
+     * node1 changes will be concatenated to node2, and node1 changes will be emptied afterwards
+     * if node2 is null, it will be defaulted to currentParentNd or rootNd
+     * @param node1
+     * @param node2
+     */
+    moveChanges(node1, node2 = null) {
+        if (node1.changes) {
+            if (!node2) {
+                node2 = this.currentParentNd || this.rootNd;
+            }
+            if (node2 && node2.propagateChanges) {
+                if (!node2.changes) {
+                    node2.changes = node1.changes;
+                } else {
+                    node2.changes = node2.changes.concat(node1.changes);
+                }
+                node1.changes = null;
+            }
+        }
+    }
+
     throwError(idx, msg) {
         var err = new IvError(msg);
         err.nodeIdx = idx;
@@ -924,20 +994,6 @@ class IvProcessor {
         err.templateId = this.templateId;
         throw err;
     }
-}
-
-/**
- * Find the last group node in an array of nodes
- * @param nodes {Array}
- * @returns {IvNode} the group node
- */
-function findLastGroup(nodes) {
-    for (var i = nodes.length - 1; i > -1; i--) {
-        if (nodes[i].isGroupNode) {
-            return nodes[i];
-        }
-    }
-    return null;
 }
 
 /**
@@ -952,62 +1008,36 @@ const INSTRUCTION_CREATE_GROUP = 1,
     INSTRUCTION_DELETE_GROUP = 2,
     INSTRUCTION_REPLACE_GROUP = 3,
     INSTRUCTION_UPDATE_GROUP = 4,
-    INSTRUCTION_UPDATE_ELEMENT = 5;
+    INSTRUCTION_UPDATE_ELEMENT = 5,
+    INSTRUCTION_UPDATE_TEXT = 6;
+
 
 export const INSTRUCTIONS = {
     "CREATE_GROUP": INSTRUCTION_CREATE_GROUP,
     "DELETE_GROUP": INSTRUCTION_DELETE_GROUP,
     "REPLACE_GROUP": INSTRUCTION_REPLACE_GROUP,
     "UPDATE_GROUP": INSTRUCTION_UPDATE_GROUP,
-    "UPDATE_ELEMENT": INSTRUCTION_UPDATE_ELEMENT
-}
+    "UPDATE_ELEMENT": INSTRUCTION_UPDATE_ELEMENT,
+    "UPDATE_TEXT": INSTRUCTION_UPDATE_TEXT
+};
+
+var TYPES = [];
+TYPES[INSTRUCTION_CREATE_GROUP] = "CREATE_GROUP";       // requires parent + node ref (node index will give the position)
+TYPES[INSTRUCTION_DELETE_GROUP] = "DELETE_GROUP";       // requires group ref only
+TYPES[INSTRUCTION_REPLACE_GROUP] = "REPLACE_GROUP";     // requires group ref only
+TYPES[INSTRUCTION_UPDATE_GROUP] = "UPDATE_GROUP";       // requires group ref only
+TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";   // requires element ref only
+TYPES[INSTRUCTION_UPDATE_TEXT] = "UPDATE_TEXT";         // requires element ref only
 
 class IvUpdateInstructionSet {
-    finalized;      // true when all instructions have been added to the list\
     changes;        // list of changes
-    unchangedRefs;  // list of node refs that haven't been changed and that must be kept (allows for delete optimization)
 
     constructor() {
-        this.finalized = false;
         this.changes = [];
-        this.unchangedRefs = [];
-    }
-
-    /**
-     * Add a new instruction to the instruction set
-     * @param type {number} an instruction set - cf INSTRUCTIONS
-     * @param node {IvNode} the node associated to the instruction
-     * @param parentRef {String} reference of the parent node where the instruction applies (only for create)
-     */
-    addInstruction(type, node, parentRef = null) {
-        var instr = {
-            type: type,
-            node: node
-        };
-        if (parentRef) {
-            instr.parentRef = parentRef;
-        }
-        this.changes.push(instr);
-    }
-
-    /**
-     * Concat a 2nd set of instructions with the current set
-     * Used to concat sub-template / sub-component instructions in the parent set
-     * @param instructionSet2
-     */
-    concat(instructionSet2) {
-        if (instructionSet2.changes.length > 0) {
-            this.changes = this.changes.concat(instructionSet2.changes);
-        }
     }
 
     toString(options = {indent: ""}) {
-        var lines = [], TYPES = [], instr, misc;
-        TYPES[INSTRUCTION_CREATE_GROUP] = "CREATE_GROUP";       // requires parent + node ref (node index will give the position)
-        TYPES[INSTRUCTION_DELETE_GROUP] = "DELETE_GROUP";       // requires group ref only
-        TYPES[INSTRUCTION_REPLACE_GROUP] = "REPLACE_GROUP";     // requires group ref only
-        TYPES[INSTRUCTION_UPDATE_GROUP] = "UPDATE_GROUP";       // requires group ref only
-        TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";   // requires element ref only
+        var lines = [], instr, misc;
 
         for (var i = 0; this.changes.length > i; i++) {
             instr = this.changes[i];

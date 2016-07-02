@@ -7,16 +7,21 @@
  * Sub-classed by Text, Element or Group node classes
  */
 class IvNode {
-    isNode;         // true - indicates that this object is an IvNode
-    index;          // integer identifying the node type in the node template
-    ref;            // non-static nodes have a unique ref to be easily updated
-    nextSibling;    // next IvNode in a node list
+    isNode;             // true - indicates that this object is an IvNode
+    index;              // integer identifying the node type in the node template
+    ref;                // non-static nodes have a unique ref to be easily updated
+    nextSibling;        // next IvNode in a node list
+    changes;            // array of instructions associated to this group - used during refresh process
+    propagateChanges;   // boolean telling if changes should be automatically propagated to parent node
+
 
     constructor(index) {
         this.isNode = true;
         this.index = index;
         this.ref = null;
         this.nextSibling = null;
+        this.changes = null;
+        this.propagateChanges = true;
     }
 
     /**
@@ -72,11 +77,10 @@ export class IvTextNode extends IvNode {
 }
 
 export class IvGroupNode extends IvNode {
-    isGroupNode;    // true - to easily identify group nodes
-    groupType;      // string identifying the type of group - e.g. "template", "insert" or "js"
-    firstChild;     // first child node (linked list)
-    data;           // meta-data associated to this node
-    refreshLog;     // array of instructions associated to this group - used during refresh process
+    isGroupNode;        // true - to easily identify group nodes
+    groupType;          // string identifying the type of group - e.g. "template", "insert" or "js"
+    firstChild;         // first child node (linked list)
+    data;               // meta-data associated to this node
 
     constructor(index, groupType) {
         super(index);
@@ -84,7 +88,6 @@ export class IvGroupNode extends IvNode {
         this.groupType = groupType;
         this.firstChild = null;
         this.data = {};
-        this.refreshLog = [];
     }
 
     /**
@@ -111,24 +114,6 @@ export class IvGroupNode extends IvNode {
             stringifyChildNodes(buffer, options, this.firstChild);
             buffer.push([options.indent, "</#group>"].join(""));
         }
-    }
-
-    /**
-     * Add a new instruction to the instruction log
-     * The node associated to this instruction should be part of the child node tree (i.e. no necessarily a direct child)
-     * @param type {number} an instruction set - cf INSTRUCTIONS
-     * @param node {IvNode} the node associated to the instruction
-     * @param parentRef {String} reference of the parent node where the instruction applies (only for create)
-     */
-    addInstruction(type, node, parentRef = null) {
-        var instr = {
-            type: type,
-            node: node
-        };
-        if (parentRef) {
-            instr.parentRef = parentRef;
-        }
-        this.changes.push(instr);
     }
 }
 

@@ -6,7 +6,7 @@
 
 /* global describe, it, beforeEach, afterEach, expect */
 
-import {iv, INSTRUCTIONS} from '../src/iv/iv';
+import {iv} from '../src/iv/iv';
 import {compare, diff} from './utils';
 
 describe('IV runtime', () => {
@@ -79,13 +79,13 @@ describe('IV runtime', () => {
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#group 3 insert ref="XX:0:3">
-                            <#text -1 "52"/>
+                            <#text -1 ref="XX:0:4" "52"/>
                         </#group>
                     </span>
-                    <span 4 ref="XX:0:4">
+                    <span 4 ref="XX:0:5">
                         <#text 5 " A "/>
-                        <#group 6 insert ref="XX:0:5">
-                            <#text -1 "Hello!"/>
+                        <#group 6 insert ref="XX:0:6">
+                            <#text -1 ref="XX:0:7" "Hello!"/>
                         </#group>
                         <#text 7 " B "/>
                     </span>
@@ -115,8 +115,8 @@ describe('IV runtime', () => {
                 </div>
             </#group>`)).toBe("equal");
         expect(diff(view.refreshLog.toString(OPTIONS), `\
-            REPLACE_GROUP: XX:0:3
-            REPLACE_GROUP: XX:0:5`
+            UPDATE_TEXT: XX:0:4
+            UPDATE_TEXT: XX:0:7`
         )).toBe("equal");
 
         view.refresh({nbr: 42, msg: "Hello!"});
@@ -815,7 +815,7 @@ describe('IV runtime', () => {
 
         pkg.foo.uid = "XX";
         pkg.bar.uid = "YY";
-        var view = pkg.foo.apply({v: 9}), vdom1 = view.vdom;
+        var view = pkg.foo.apply({v: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -831,7 +831,7 @@ describe('IV runtime', () => {
                                     <span 4 ref="XX:0:3">
                                         <#text 5 "content "/>
                                         <#group 6 insert ref="XX:0:4">
-                                            <#text -1 "109"/>
+                                            <#text -1 ref="XX:0:5" "109"/>
                                         </#group>
                                     </span>
                                 </#group>
@@ -865,20 +865,84 @@ describe('IV runtime', () => {
             </#group>`
         )).toBe("equal");
         expect(diff(view.refreshLog.toString(OPTIONS), `\
-            REPLACE_GROUP: XX:0:4
             UPDATE_GROUP: XX:0:2
             UPDATE_ELEMENT: YY:0:0
             DELETE_GROUP: YY:0:1`
-        )).toBe("equal"); // todo: remove XX:0:4 as not part of final render...?
+        )).toBe("equal");
 
         view.refresh({v: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
+                <div 1 ref="XX:0:1">
+                    <#text 2 " AAA "/>
+                    <#group 3 bar ref="XX:0:2" data-content=IvNode data-value=9>
+                        <span 1 ref="YY:0:0" title=9>
+                            <#text 2 " first "/>
+                        </span>
+                        <#group 3 js ref="YY:0:5">
+                            <span 4 ref="YY:0:6">
+                                <#text 5 "Z "/>
+                                <#group 6 insert ref="YY:0:7">
+                                    <span 4 ref="XX:0:3">
+                                        <#text 5 "content "/>
+                                        <#group 6 insert ref="XX:0:4">
+                                            <#text -1 ref="XX:0:5" "109"/>
+                                        </#group>
+                                    </span>
+                                </#group>
+                                <#text 7 " Z"/>
+                            </span>
+                        </#group>
+                        <span 8 ref="YY:0:4">
+                            <#text 9 " last "/>
+                        </span>
+                    </#group>
+                    <#text 7 " BBB "/>
+                </div>
+            </#group>`
+        )).toBe("equal");
         expect(diff(view.refreshLog.toString(OPTIONS), `\
-            REPLACE_GROUP: XX:0:4
             UPDATE_GROUP: XX:0:2
             UPDATE_ELEMENT: YY:0:0
             CREATE_GROUP: YY:0:5 in XX:0:2`
-        )).toBe("equal"); // todo: remove XX:0:2 from the list as not part of final dom
+        )).toBe("equal");
+
+        view.refresh({v: 31});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
+                <div 1 ref="XX:0:1">
+                    <#text 2 " AAA "/>
+                    <#group 3 bar ref="XX:0:2" data-content=IvNode data-value=31>
+                        <span 1 ref="YY:0:0" title=31>
+                            <#text 2 " first "/>
+                        </span>
+                        <#group 3 js ref="YY:0:5">
+                            <span 4 ref="YY:0:6">
+                                <#text 5 "Z "/>
+                                <#group 6 insert ref="YY:0:7">
+                                    <span 4 ref="XX:0:3">
+                                        <#text 5 "content "/>
+                                        <#group 6 insert ref="XX:0:4">
+                                            <#text -1 ref="XX:0:5" "131"/>
+                                        </#group>
+                                    </span>
+                                </#group>
+                                <#text 7 " Z"/>
+                            </span>
+                        </#group>
+                        <span 8 ref="YY:0:4">
+                            <#text 9 " last "/>
+                        </span>
+                    </#group>
+                    <#text 7 " BBB "/>
+                </div>
+            </#group>`
+        )).toBe("equal");
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            UPDATE_GROUP: XX:0:2
+            UPDATE_ELEMENT: YY:0:0
+            UPDATE_TEXT: XX:0:5`
+        )).toBe("equal");
     });
 
     it('should support sub-templates with multiple content', () => {
@@ -907,28 +971,30 @@ describe('IV runtime', () => {
             </template>
         `;
 
+        pkg.test.uid = "XX";
+        pkg.panel.uid = "YY";
         var view = pkg.test.apply({testCase: 1});
-        expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
                 <#text 1 " Case #"/>
-                <#group 2 insert>
-                    <#text -1 "1"/>
+                <#group 2 insert ref="XX:0:1">
+                    <#text -1 ref="XX:0:2" "1"/>
                 </#group>
-                <#group 3 js>
-                    <#group 4 panel data-body=IvNode data-content=IvNode data-title=Object>
-                        <#group 1 js>
-                            <div 2 class="panel">
-                                <#group 3 js>
-                                    <div 4 class="title">
-                                        <#group 5 insert>
+                <#group 3 js ref="XX:0:3">
+                    <#group 4 panel ref="XX:0:4" data-body=IvNode data-content=IvNode data-title=Object>
+                        <#group 1 js ref="YY:0:0">
+                            <div 2 ref="YY:0:1" class="panel">
+                                <#group 3 js ref="YY:0:2">
+                                    <div 4 ref="YY:0:3" class="title">
+                                        <#group 5 insert ref="YY:0:4">
                                             <#text 6 " Hello "/>
                                             <img 7 src="smile.png"/>
                                         </#group>
                                     </div>
                                 </#group>
-                                <div 6 class="body">
-                                    <#group 7 insert>
-                                        <p 9>
+                                <div 6 ref="YY:0:5" class="body">
+                                    <#group 7 insert ref="YY:0:6">
+                                        <p 9 ref="XX:0:7">
                                             <#text 10 "Some content"/>
                                         </p>
                                     </#group>

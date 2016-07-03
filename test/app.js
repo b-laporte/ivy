@@ -9,3 +9,5 @@ import {} from './nac2js.spec';
 import {} from './iv.spec';
 import {} from './errors.spec';
 import {} from './node.spec';
+import {} from './htmlrenderer.spec';
+

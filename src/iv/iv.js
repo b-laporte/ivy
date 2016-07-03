@@ -21,7 +21,7 @@ export function iv(strings, ...values) {
     // parse and compile
     var r = parse(strings, values);
     if (r.error) {
-        //throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
+        throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
         //iv.log`(${r.error.line}:${r.error.column}) ${r.error.description}`); // todo match IvError
         return;
     }
@@ -78,12 +78,17 @@ class IvTemplate {
             view = {
                 vdom: null,
                 refreshLog: null,
+                renderer: null,
+
                 // hide the processor in the function closure
                 refresh: function (argMap, context) {
                     this.refreshLog = new IvUpdateInstructionSet();
                     try {
                         this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
-                        this.refreshLog.changes = this.vdom.changes;
+                        this.refreshLog.setChanges(this.vdom.changes);
+                        if (this.renderer) {
+                            this.renderer.processRefreshLog(this.refreshLog);
+                        }
                     } catch (err) {
                         iv.log(err);
                         this.vdom = null;
@@ -692,8 +697,7 @@ class IvProcessor {
         this.appendNode(gn);
         if (idx === this.creationModeTarget) {
             // we are in creation mode and the current group is the root of the new nodes
-            var pref = parentNd ? parentNd.ref : null;
-            this.addInstruction(INSTRUCTION_CREATE_GROUP, gn, pref);
+            this.addInstruction(INSTRUCTION_CREATE_GROUP, gn, parentNd);
         }
         return gn;
     }
@@ -946,15 +950,19 @@ class IvProcessor {
      * The node associated to this instruction should be part of the child node tree (i.e. no necessarily a direct child)
      * @param type {number} an instruction set - cf INSTRUCTIONS
      * @param node {IvNode} the node associated to the instruction
-     * @param parentRef {String} reference of the parent node where the instruction applies (only for create)
+     * @param parentNode {IvNode} parent node where the instruction applies (only for create)
      */
-    addInstruction(type, node, parentRef = null) {
+    addInstruction(type, node, parentNode = null) {
         var instr = {
             type: type,
             node: node
         };
-        if (parentRef) {
-            instr.parentRef = parentRef;
+        if (parentNode) {
+            instr.parent = parentNode;
+        }
+        if (type === INSTRUCTION_DELETE_GROUP) {
+            instr.deletedRefNodes = [];
+            getRefNodes(instr.node, instr.deletedRefNodes);
         }
         if (!node.changes) {
             node.changes = [instr];
@@ -1036,17 +1044,42 @@ class IvUpdateInstructionSet {
         this.changes = [];
     }
 
+    setChanges(changes) {
+        this.changes = changes;
+    }
+
+    /**
+     * Return a concise, human-readable version of the change list
+     * @param options {Object} options.indent specifies the string to be prepended to each line (empty string by default)
+     * @returns {string}
+     */
     toString(options = {indent: ""}) {
         var lines = [], instr, misc;
 
         for (var i = 0; this.changes.length > i; i++) {
             instr = this.changes[i];
             misc = [];
-            if (instr.parentRef) {
-                misc.push(" in " + instr.parentRef);
+            if (instr.parent) {
+                misc.push(" in " + instr.parent.ref);
             }
             lines.push([options.indent, TYPES[instr.type], ": ", instr.node.ref, misc.join("")].join(""));
         }
         return lines.join("\n");
+    }
+}
+
+/**
+ * Get all the nodes that have a reference in a tree of nodes
+ * @param node the root node
+ * @param result {Array} the array where the nodes will be pushed
+ */
+function getRefNodes(node, result) {
+    if (node.ref) {
+        result.push(node);
+    }
+    var ch = node.firstChild;
+    while (ch) {
+        getRefNodes(ch, result);
+        ch = ch.nextSibling;
     }
 }

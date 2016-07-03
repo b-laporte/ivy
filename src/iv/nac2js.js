@@ -227,7 +227,6 @@ class TemplateCompiler {
     compileEltNode(nd) {
         var idx = this.nodeIdx;
         this.nodeIdx++;
-
         // determine if this is a component or a standard node
         var isComponent = (this.pkg.entities[nd.nodeName] !== undefined),
             isAttNode = (nd.attName !== undefined),
@@ -266,7 +265,7 @@ class TemplateCompiler {
                     if (ls[i].name === "@name") {
                         continue;
                     }
-                    if (attVal.match(REGEXP_JS_LITERAL)) {
+                    if (attVal && attVal.match(REGEXP_JS_LITERAL)) {
                         // js literal - push to statics
                         statAtts.push(ls[i].name);
                         statAtts.push(eval(ls[i].value));

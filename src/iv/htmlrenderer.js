@@ -19,7 +19,6 @@ export function render(template, domContainer, args) {
 
 class HtmlRenderer {
     nodeMap;        // list of nodes being rendered (key=node.ref). Only node that have the possibility to change are stored
-    firstRefresh;   // true if first refresh - in this case the main dom is injected in the domContainer
     domContainer;   // reference to the root DOM element where the DOM view should be appended
     connected;      // boolean indicating that the renderer has been connected to a view
 

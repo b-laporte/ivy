@@ -131,3 +131,16 @@ gulp.task('html', ['jasmine'], function () {
 });
 
 gulp.task('play', ['watchify'], function () {});
+
+// dbmon build
+
+gulp.task('dbmon', function () {
+    var bundler = browserify("./samples/dbmon/app.js").transform(babelify, BABEL_OPTIONS)
+
+    return bundler.bundle()
+        .on('error', map_error)
+        .pipe(source('app.js'))
+        .pipe(buffer())
+        .pipe(rename('dbmon.min.js')) //.pipe(uglify())
+        .pipe(gulp.dest('dist'))
+});

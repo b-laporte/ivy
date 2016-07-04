@@ -141,6 +141,6 @@ gulp.task('dbmon', function () {
         .on('error', map_error)
         .pipe(source('app.js'))
         .pipe(buffer())
-        .pipe(rename('dbmon.min.js')) //.pipe(uglify())
+        .pipe(rename('dbmon.min.js'))//.pipe(uglify())
         .pipe(gulp.dest('dist'))
 });

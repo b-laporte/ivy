@@ -11,16 +11,14 @@ class IvNode {
     index;              // integer identifying the node type in the node template
     ref;                // non-static nodes have a unique ref to be easily updated
     nextSibling;        // next IvNode in a node list
-    changes;            // array of instructions associated to this group - used during refresh process
+    firstChange;        // first change of the change linked list - used during refresh process
+    lastChange;         // last change of the change linked list
     propagateChanges;   // boolean telling if changes should be automatically propagated to parent node
-
-
+    
     constructor(index) {
         this.isNode = true;
         this.index = index;
-        this.ref = null;
-        this.nextSibling = null;
-        this.changes = null;
+        this.nextSibling = this.ref = this.firstChange = this.lastChange = null;
         this.propagateChanges = true;
     }
 

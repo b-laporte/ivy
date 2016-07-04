@@ -85,7 +85,7 @@ class IvTemplate {
                     this.refreshLog = new IvUpdateInstructionSet();
                     try {
                         this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
-                        this.refreshLog.setChanges(this.vdom.changes);
+                        this.refreshLog.setChanges(this.vdom.firstChange);
                         if (this.renderer) {
                             this.renderer.processRefreshLog(this.refreshLog);
                         }
@@ -202,7 +202,7 @@ class IvProcessor {
             this.ignoreTemplateNode = false;
         }
         if (this.rootNd) {
-            this.rootNd.changes = [];
+            this.rootNd.firstChange = this.rootNd.firstChange = null;
         }
 
         var args = [this], argsIdx = this.argIndexes;
@@ -214,6 +214,7 @@ class IvProcessor {
 
         // call the template function
         this.fn.apply(null, args); // this will call the marker methods ns(), ne(), t(), bs()...
+        this.ancestorNodes = null;
 
         return this.rootNd;
     }
@@ -304,10 +305,10 @@ class IvProcessor {
      * @param node
      */
     addAncestor(node) {
-        this.ancestorNodes.push(node);
         this.currentParentNd = this.currentNd;
         this.currentNd = node;
         this.currentNdDepth++;
+        this.ancestorNodes[this.currentNdDepth] = node;
     }
 
     /**
@@ -315,9 +316,8 @@ class IvProcessor {
      * @param node
      */
     replaceLastAncestor(node) {
-        var ans = this.ancestorNodes;
         this.moveChanges(this.currentNd);
-        ans[ans.length - 1] = node;
+        this.ancestorNodes[this.currentNdDepth] = node;
         this.currentNd = node;
     }
 
@@ -327,12 +327,11 @@ class IvProcessor {
      */
     removeLastAncestor() {
         var ans = this.ancestorNodes, prev = this.currentNd;
-        ans.pop();
-        this.currentNdDepth--;
-        this.currentNd = ans[ans.length - 1];
+        var depth = --this.currentNdDepth;
+        this.currentNd = ans[this.currentNdDepth];
         this.moveChanges(prev, this.currentNd);
-        if (ans.length > 1) {
-            this.currentParentNd = ans[ans.length - 2];
+        if (depth > 0) {
+            this.currentParentNd = ans[depth - 1];
         } else {
             this.currentParentNd = null;
         }
@@ -447,7 +446,7 @@ class IvProcessor {
                     // to a content node that wasn't inserted
                     var ch = cptNd.firstChild;
                     while (ch) {
-                        ch.changes = null;
+                        ch.firstChange = ch.lastChange = null;
                         ch = ch.nextSibling;
                     }
 
@@ -835,7 +834,6 @@ class IvProcessor {
         view.refresh(atts, {creationMode: false, groupNode: cptNd});
         cptNd.propagateChanges = false;
 
-        //this.refreshLog.concat(view.refreshLog);
         cptNd.data.viewDom = view.vdom.firstChild;
     }
 
@@ -955,7 +953,8 @@ class IvProcessor {
     addInstruction(type, node, parentNode = null) {
         var instr = {
             type: type,
-            node: node
+            node: node,
+            next: null
         };
         if (parentNode) {
             instr.parent = parentNode;
@@ -964,10 +963,11 @@ class IvProcessor {
             instr.deletedRefNodes = [];
             getRefNodes(instr.node, instr.deletedRefNodes);
         }
-        if (!node.changes) {
-            node.changes = [instr];
+        if (!node.firstChange) {
+            node.firstChange = node.lastChange = instr;
         } else {
-            node.changes.push(instr);
+            node.lastChange.next = instr;
+            node.lastChange = instr;
         }
     }
 
@@ -979,17 +979,19 @@ class IvProcessor {
      * @param node2
      */
     moveChanges(node1, node2 = null) {
-        if (node1.changes) {
+        if (node1.lastChange) {
             if (!node2) {
                 node2 = this.currentParentNd || this.rootNd;
             }
             if (node2 && node2.propagateChanges) {
-                if (!node2.changes) {
-                    node2.changes = node1.changes;
+                if (!node2.firstChange) {
+                    node2.firstChange = node1.firstChange;
+                    node2.lastChange = node1.lastChange;
                 } else {
-                    node2.changes = node2.changes.concat(node1.changes);
+                    node2.lastChange.next = node1.firstChange;
+                    node2.lastChange = node1.lastChange;
                 }
-                node1.changes = null;
+                node1.firstChange = node1.lastChange = null;
             }
         }
     }
@@ -1038,10 +1040,10 @@ TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";   // requires element ref 
 TYPES[INSTRUCTION_UPDATE_TEXT] = "UPDATE_TEXT";         // requires element ref only
 
 class IvUpdateInstructionSet {
-    changes;        // list of changes
+    changes;        // linked list
 
     constructor() {
-        this.changes = [];
+        this.changes = null;
     }
 
     setChanges(changes) {
@@ -1056,13 +1058,14 @@ class IvUpdateInstructionSet {
     toString(options = {indent: ""}) {
         var lines = [], instr, misc;
 
-        for (var i = 0; this.changes.length > i; i++) {
-            instr = this.changes[i];
+        instr = this.changes;
+        while (instr) {
             misc = [];
             if (instr.parent) {
                 misc.push(" in " + instr.parent.ref);
             }
             lines.push([options.indent, TYPES[instr.type], ": ", instr.node.ref, misc.join("")].join(""));
+            instr = instr.next;
         }
         return lines.join("\n");
     }

@@ -48,15 +48,30 @@ class HtmlRenderer {
             return;
         }
 
-        var len = log.changes.length, ins, type, node;
-        for (var i = 0; len > i; i++) {
-            ins = log.changes[i];
-
+        var ins=log.changes, type, node, domNd;
+        while (ins) {
             type = ins.type;
             node = ins.node;
-            if (type === INSTRUCTIONS.UPDATE_GROUP) {
+            if (type === INSTRUCTIONS.UPDATE_TEXT) {
+                domNd = this.nodeMap[node.ref];
+                if (domNd) {
+                    domNd.textContent = node.value;
+                }
+            } else if (type === INSTRUCTIONS.UPDATE_ELEMENT) {
+                var dynAtts = node.dynAttributes, domNd = this.nodeMap[node.ref], atts = node.attributes;
+                if (domNd) {
+                    var nm;
+                    for (var j = 0; dynAtts.length > j; j++) {
+                        nm = dynAtts[j];
+                        if (nm === "class" || nm === "className") {
+                            domNd.className = atts[nm];
+                        } else {
+                            domNd.setAttribute(nm, atts[nm]);
+                        }
+                    }
+                }
+            } else if (type === INSTRUCTIONS.UPDATE_GROUP) {
                 // nothing to do in this case
-                continue;
             } else if (type === INSTRUCTIONS.CREATE_GROUP) {
                 var groupData;
                 if (!ins.parent) {
@@ -110,24 +125,6 @@ class HtmlRenderer {
                         console.error("[iv html renderer] Invalid create instruction");
                     }
                 }
-            } else if (type === INSTRUCTIONS.UPDATE_ELEMENT) {
-                var dynAtts = node.dynAttributes, domNd = this.nodeMap[node.ref], atts = node.attributes;
-                if (domNd) {
-                    var nm;
-                    for (var j = 0; dynAtts.length > j; j++) {
-                        nm = dynAtts[j];
-                        if (nm === "class" || nm === "className") {
-                            domNd.className = atts[nm];
-                        } else {
-                            domNd.setAttribute(nm, atts[nm]);
-                        }
-                    }
-                }
-            } else if (type === INSTRUCTIONS.UPDATE_TEXT) {
-                var domNd = this.nodeMap[node.ref];
-                if (domNd) {
-                    domNd.nodeValue = node.value;
-                }
             } else if (type === INSTRUCTIONS.DELETE_GROUP) {
                 var data = this.nodeMap[node.ref],
                     domComment1 = data.startComment,
@@ -151,7 +148,7 @@ class HtmlRenderer {
             } else {
                 console.error("[iv html renderer] Invalid instruction type: " + type);
             }
-
+            ins = ins.next;
         }
     }
 

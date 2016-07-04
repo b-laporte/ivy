@@ -40,20 +40,19 @@ var app = {
     view:null,
 
     refresh: function() {
-        Monitoring.renderRate.ping();
         var args = {"testName":"iv", "databases":ENV.generateData().toArray()};
         if (!this.view) {
             this.view = render(pkg.dbmon, document.getElementById("app"), args);
         } else {
             this.view.refresh(args);
         }
-
+        Monitoring.renderRate.ping();
     }
-}
+};
 
 setInterval(function main(){
     app.refresh();
-}, ENV.timeout)
+}, ENV.timeout);
 
 
 // nb: to run chrome with precise memory flag on a mac:

@@ -1,4 +1,4 @@
-import {INSTRUCTIONS} from './iv';
+import {INSTRUCTIONS} from './instructions';
 
 /* global document, DocumentFragment */
 

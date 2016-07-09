@@ -10,4 +10,4 @@ import {} from './iv.spec';
 import {} from './errors.spec';
 import {} from './node.spec';
 import {} from './htmlrenderer.spec';
-
+import {} from './instructions.spec';

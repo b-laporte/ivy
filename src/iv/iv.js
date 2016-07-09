@@ -8,8 +8,17 @@ import {NacNodeType} from './nac';
 import {parse} from './parser';
 import {compile} from './nac2js';
 import {IvGroupNode, IvEltNode, IvTextNode} from './node';
+import {IvInstructionPool, INSTRUCTIONS, IvInstructionSet} from './instructions';
 
 var MAX_INDEX = Number.MAX_VALUE;
+var instructionPool = new IvInstructionPool();
+
+const INSTRUCTION_CREATE_GROUP = INSTRUCTIONS.CREATE_GROUP,
+    INSTRUCTION_DELETE_GROUP = INSTRUCTIONS.DELETE_GROUP,
+    INSTRUCTION_REPLACE_GROUP = INSTRUCTIONS.REPLACE_GROUP,
+    INSTRUCTION_UPDATE_GROUP = INSTRUCTIONS.UPDATE_GROUP,
+    INSTRUCTION_UPDATE_ELEMENT = INSTRUCTIONS.UPDATE_ELEMENT,
+    INSTRUCTION_UPDATE_TEXT = INSTRUCTIONS.UPDATE_TEXT;
 
 /**
  * Compile an iv package
@@ -82,7 +91,7 @@ class IvTemplate {
 
                 // hide the processor in the function closure
                 refresh: function (argMap, context) {
-                    this.refreshLog = new IvUpdateInstructionSet();
+                    this.refreshLog = new IvInstructionSet();
                     try {
                         this.vdom = p.refresh(argMap, context || {groupNode: this.vdom});
                         this.refreshLog.setChanges(this.vdom.firstChange);
@@ -178,7 +187,7 @@ class IvProcessor {
     }
 
     refresh(argMap, context) {
-        var groupNode = context.groupNode;
+        var groupNode = context.groupNode, rootNd = this.rootNd;
 
         // fake a node to bootstrap the chain
         this.currentNd = null;
@@ -201,8 +210,9 @@ class IvProcessor {
         } else {
             this.ignoreTemplateNode = false;
         }
-        if (this.rootNd) {
-            this.rootNd.firstChange = this.rootNd.firstChange = null;
+        if (rootNd) {
+            instructionPool.addInstructionList(rootNd.firstChange, rootNd.lastChange);
+            rootNd.firstChange = rootNd.lastChange = null;
         }
 
         var args = [this], argsIdx = this.argIndexes;
@@ -951,23 +961,16 @@ class IvProcessor {
      * @param parentNode {IvNode} parent node where the instruction applies (only for create)
      */
     addInstruction(type, node, parentNode = null) {
-        var instr = {
-            type: type,
-            node: node,
-            next: null
-        };
-        if (parentNode) {
-            instr.parent = parentNode;
-        }
+        var ins = instructionPool.getInstruction(type, node, parentNode);
         if (type === INSTRUCTION_DELETE_GROUP) {
-            instr.deletedRefNodes = [];
-            getRefNodes(instr.node, instr.deletedRefNodes);
+            ins.deletedRefNodes = [];
+            getRefNodes(ins.node, ins.deletedRefNodes);
         }
         if (!node.firstChange) {
-            node.firstChange = node.lastChange = instr;
+            node.firstChange = node.lastChange = ins;
         } else {
-            node.lastChange.next = instr;
-            node.lastChange = instr;
+            node.lastChange.next = ins;
+            node.lastChange = ins;
         }
     }
 
@@ -1014,62 +1017,6 @@ iv.$template = function (templateData) {
     return new IvTemplate(templateData);
 };
 
-const INSTRUCTION_CREATE_GROUP = 1,
-    INSTRUCTION_DELETE_GROUP = 2,
-    INSTRUCTION_REPLACE_GROUP = 3,
-    INSTRUCTION_UPDATE_GROUP = 4,
-    INSTRUCTION_UPDATE_ELEMENT = 5,
-    INSTRUCTION_UPDATE_TEXT = 6;
-
-
-export const INSTRUCTIONS = {
-    "CREATE_GROUP": INSTRUCTION_CREATE_GROUP,
-    "DELETE_GROUP": INSTRUCTION_DELETE_GROUP,
-    "REPLACE_GROUP": INSTRUCTION_REPLACE_GROUP,
-    "UPDATE_GROUP": INSTRUCTION_UPDATE_GROUP,
-    "UPDATE_ELEMENT": INSTRUCTION_UPDATE_ELEMENT,
-    "UPDATE_TEXT": INSTRUCTION_UPDATE_TEXT
-};
-
-var TYPES = [];
-TYPES[INSTRUCTION_CREATE_GROUP] = "CREATE_GROUP";       // requires parent + node ref (node index will give the position)
-TYPES[INSTRUCTION_DELETE_GROUP] = "DELETE_GROUP";       // requires group ref only
-TYPES[INSTRUCTION_REPLACE_GROUP] = "REPLACE_GROUP";     // requires group ref only
-TYPES[INSTRUCTION_UPDATE_GROUP] = "UPDATE_GROUP";       // requires group ref only
-TYPES[INSTRUCTION_UPDATE_ELEMENT] = "UPDATE_ELEMENT";   // requires element ref only
-TYPES[INSTRUCTION_UPDATE_TEXT] = "UPDATE_TEXT";         // requires element ref only
-
-class IvUpdateInstructionSet {
-    changes;        // linked list
-
-    constructor() {
-        this.changes = null;
-    }
-
-    setChanges(changes) {
-        this.changes = changes;
-    }
-
-    /**
-     * Return a concise, human-readable version of the change list
-     * @param options {Object} options.indent specifies the string to be prepended to each line (empty string by default)
-     * @returns {string}
-     */
-    toString(options = {indent: ""}) {
-        var lines = [], instr, misc;
-
-        instr = this.changes;
-        while (instr) {
-            misc = [];
-            if (instr.parent) {
-                misc.push(" in " + instr.parent.ref);
-            }
-            lines.push([options.indent, TYPES[instr.type], ": ", instr.node.ref, misc.join("")].join(""));
-            instr = instr.next;
-        }
-        return lines.join("\n");
-    }
-}
 
 /**
  * Get all the nodes that have a reference in a tree of nodes

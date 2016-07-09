@@ -284,40 +284,13 @@ pkg = (function () {
     }
 })();
 
-
-var dbmonpkg = iv `
-    <template #dbmon testName:string databases:Array>
-        <div>
-            {{testName}}
-            <table class="table table-striped latest-data">
-                <tbody>
-                    % for (var i=0;databases.length>i;i++) {
-                        % var db=databases[i];
-                        <tr>
-                            <td class="dbname">{{db.dbname}}</td>
-                            // Sample
-                            <td class="query-count">
-                                <span [className]=db.lastSample.countClassName>{{db.lastSample.nbQueries}}</span>
-                            </td>
-                            // Query
-                            % for (var j=0;db.lastSample.topFiveQueries.length>j;j++) {
-                                % var q=db.lastSample.topFiveQueries[j];
-                                <td [className]=q.elapsedClassName>
-                                    {{q.formatElapsed}}
-                                    <div class="popover-content">{{q.query}}</div>
-                                    <div class="arrow"/>
-                                </td>
-                            % }
-                        </tr>
-                    % }
-                </tbody>
-            </table>
-        </div>
-    </template>
-`
-
 // ########################
 // Sample todo mvc - from angular 2 sample in todomvc
+
+// double binding on text fields
+// dotted properties: onkeyup.enter, class.completed
+// event handlers
+// support $this? and $event in event handlers
 
 var pkg = iv `
     <template #todolist todoCtl todoStore>

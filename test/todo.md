@@ -1,9 +1,11 @@
 
 ## TODO
 
+- change function syntax to foo()
 - support event callbacks
 - support todomvc sample
 
+- support @nodes for any kind of node/attribute (not only components)
 - support multiple levels of @names for IvObject attributes
 - support list of IvNodes and IvObjects
 - support line/column nbr & node path in errors

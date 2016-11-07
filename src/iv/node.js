@@ -206,7 +206,7 @@ function stringifyAttributes(atts, namePrefix = "") {
         }
     }
     if (attList.length > 0) {
-        attList.sort((a, b) => a[0] > b[0]);
+        attList.sort();
         for (var i = 0; attList.length > i; i++) {
             buffer.push([" ", attList[i][0], "=", attList[i][1]].join(""));
         }

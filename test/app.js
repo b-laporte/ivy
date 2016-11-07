@@ -3,11 +3,11 @@
  * Copyright Bertrand Laporte 2016
  */
 
-import {} from './nac.spec.js';
-import {} from './parser.spec.js';
-import {} from './nac2js.spec';
-import {} from './iv.spec';
-import {} from './errors.spec';
-import {} from './node.spec';
-import {} from './htmlrenderer.spec';
-import {} from './instructions.spec';
+import './nac.spec';
+import './parser.spec.js';
+import './nac2js.spec';
+import './iv.spec';
+import './errors.spec';
+import './node.spec';
+import './htmlrenderer.spec';
+import './instructions.spec';

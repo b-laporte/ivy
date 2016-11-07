@@ -287,10 +287,12 @@ pkg = (function () {
 // ########################
 // Sample todo mvc - from angular 2 sample in todomvc
 
-// double binding on text fields
-// dotted properties: onkeyup.enter, class.completed
 // event handlers
 // support $this? and $event in event handlers
+// double binding on text fields -> value / onvaluechange, selection / onselectionchange
+
+// dotted properties: onkeyup.enter, class.completed
+
 
 var pkg = iv `
     <template #todolist todoCtl todoStore>

@@ -48,7 +48,7 @@ class HtmlRenderer {
             return;
         }
 
-        var ins=log.changes, type, node, domNd;
+        var ins = log.changes, type, node, domNd;
         while (ins) {
             type = ins.type;
             node = ins.node;
@@ -63,6 +63,7 @@ class HtmlRenderer {
                     var nm;
                     for (var j = 0; dynAtts.length > j; j++) {
                         nm = dynAtts[j];
+                        // note: function attribute are not dynamic and cannot be found here
                         if (nm === "class" || nm === "className") {
                             domNd.className = atts[nm];
                         } else {
@@ -195,15 +196,19 @@ class HtmlRenderer {
     }
 
     createElement(node, domParent) {
-        var domNd = document.createElement(node.name), atts = node.attributes;
+        var domNd = document.createElement(node.name), atts = node.attributes, val;
 
         for (var k in atts) {
             if (!atts.hasOwnProperty(k)) continue;
             // TODO support complex attributes such as class.foo
+            val = atts[k];
             if (k === "class" || k === "className") {
-                domNd.className = atts[k];
+                domNd.className = val;
+            } else if (val.constructor === Function) {
+                // e.g. onclick=myfunction()
+                domNd[k] = val;
             } else {
-                domNd.setAttribute(k, atts[k]);
+                domNd.setAttribute(k, val);
             }
         }
         if (node.ref) {

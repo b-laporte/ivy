@@ -147,12 +147,13 @@ export class NacNode {
 
     /**
      * Add a single attribute to the attribute list
-     * @param name
-     * @param value
-     * @param nature
-     * @param typeRef
+     * @param name the attribute name
+     * @param value the attribute value
+     * @param nature the attribute nature (cf. NacAttributeNature)
+     * @param typeRef the type associated to this attribute (e.g. "string" in foo:string)
+     * @param params array of parameter names associated to this attribute (for function attributes)
      */
-    addAttribute(name, value, nature, typeRef = null) {
+    addAttribute(name, value, nature, typeRef = null, params = null) {
         if (!this.lastAttribute) {
             this.firstAttribute = this.lastAttribute = new NacAttribute(name, value, nature);
         } else {
@@ -160,6 +161,9 @@ export class NacNode {
         }
         if (typeRef) {
             this.lastAttribute.typeRef = typeRef;
+        }
+        if (params) {
+            this.lastAttribute.parameters = params;
         }
         // id and attName shortcuts used to simplify and accelerate the template compilation
         if (name === "id") {
@@ -282,6 +286,7 @@ class NacAttribute {
     value/*:any*/;
     nature/*:NacAttributeNature*/;
     typeRef/*:string*/;
+    parameters; // array of parameter names - for function attributes
 
     constructor(name, value, nature) {
         this.name = name;
@@ -289,6 +294,7 @@ class NacAttribute {
         this.nature = nature || NacAttributeNature.STANDARD;
         this.firstSibling = this;
         this.typeRef = null;
+        this.parameters = null;
     };
 
     addSibling(name, value, nature) {

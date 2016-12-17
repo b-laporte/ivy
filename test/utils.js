@@ -48,8 +48,8 @@ export function diff(str1, str2) {
     if (str1 === str2) {
         return "equal";
     }
-    var d = dmp.diff_main(str1, str2), lv= dmp.diff_levenshtein(d);
-    if (lv===0) {
+    var d = dmp.diff_main(str1, str2), lv = dmp.diff_levenshtein(d);
+    if (lv === 0) {
         return null;
     } else {
         console.log("Diff string 1:");
@@ -122,6 +122,14 @@ function compareNodes(n1, n2) {
         checkProperty("nature", att1, att2);
         checkProperty("typeRef", att1, att2);
 
+        if (att1.parameters || att2.parameters) {
+            var p1 = att1.parameters ? att1.parameters.join(",") : "",
+                p2 = att2.parameters ? att2.parameters.join(",") : "";
+            if (p1 !== p2) {
+                throw "Different attribute parameters found: [" + p1 + "] vs [" + p2 + "]";
+            }
+        }
+
         att1 = att1.nextSibling;
         att2 = att2.nextSibling;
     }
@@ -129,6 +137,6 @@ function compareNodes(n1, n2) {
 
 function checkProperty(name, att1, att2) {
     if (att1[name] !== att2[name]) {
-        throw "Different attribute "+name+": " + att1[name] + " vs " + att2[name];
+        throw "Different attribute " + name + ": " + att1[name] + " vs " + att2[name];
     }
 }

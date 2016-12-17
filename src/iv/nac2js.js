@@ -9,7 +9,7 @@ import {NacAttributeNature, NacNodeType} from './nac';
 const ATT_STANDARD = NacAttributeNature.STANDARD,                       // 0 - e.g. foo="bar"
     ATT_BOUND1WAY = NacAttributeNature.BOUND1WAY,                       // 1 - e.g. [foo]=c.bar+3
     ATT_BOUND2WAYS = NacAttributeNature.BOUND2WAYS,                     // 2 - e.g. [[foo]]=c.bar
-    ATT_DEFERRED_EXPRESSION = NacAttributeNature.DEFERRED_EXPRESSION;   // 3 - e.g. (onclick)=c.doSomething()
+    ATT_DEFERRED_EXPRESSION = NacAttributeNature.DEFERRED_EXPRESSION;   // 3 - e.g. onclick()=c.doSomething()
 
 var REGEXP_JS_LITERAL = /(^".*"$)|(^'.*'$)|(^true$)|(^false$)|(^\d+$)|(^\d+\.\d+$)/,
     REGEXP_FIRST_SPACES = /^\s+/,
@@ -250,16 +250,15 @@ class TemplateCompiler {
             ndType = NacNodeType.ATT_NODE;
 
         }
-
         // calculate attributes
         var atts = this.parseEltNodeAttributes(nd.firstAttribute), dynArgs = "0", staticFnArgs = "0", staticArgs = 0;
         var isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
 
         if (atts) {
-            // sort non-bound attributes
-            var ls = atts[ATT_STANDARD], attVal;
+            // process non-bound attributes
+            var ls = atts[ATT_STANDARD], attVal, statFnAtts = [];
             if (ls) {
-                var statFnAtts = [], statAtts = [];
+                var statAtts = [];
                 for (var i = 0; ls.length > i; i++) {
                     attVal = ls[i].value;
                     if (ls[i].name === "@name") {
@@ -277,10 +276,23 @@ class TemplateCompiler {
                 if (statAtts.length) {
                     staticArgs = statAtts;
                 }
-                if (statFnAtts.length) {
-                    staticFnArgs = "[" + statFnAtts.join(",") + "]";
+            }
+
+            // process function attributes
+            ls = atts[ATT_DEFERRED_EXPRESSION];
+            if (ls) {
+                var params;
+                for (var i = 0; ls.length > i; i++) {
+                    attVal = ls[i].value;
+                    params = ls[i].parameters ? ls[i].parameters.join(",") : "";
+                    statFnAtts.push('"' + ls[i].name + '"');
+                    statFnAtts.push(["function(", params, "){", ls[i].value, "}"].join(""));
                 }
             }
+            if (statFnAtts.length) {
+                staticFnArgs = "[" + statFnAtts.join(",") + "]";
+            }
+
             if (isDynamic) {
                 var dynAtts = [];
                 ls = atts[ATT_BOUND1WAY];

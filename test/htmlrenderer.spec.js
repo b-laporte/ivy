@@ -252,12 +252,39 @@ describe('HTML renderer', () => {
 
         var df = new DocumentFragment();
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {msg:"hello"}), nd;
+        var view = render(pkg.test, df, {msg: "hello"}), nd;
         expect(df.childNodes.length).toBe(8);
         expect(df.childNodes[2].title).toBe("hello");
 
-        view.refresh({msg:"hello2"});
+        view.refresh({msg: "hello2"});
         expect(df.childNodes[2].title).toBe("hello2");
+    });
+
+    it('should support event handlers', () => {
+        var pkg = iv `
+            <template #test ctrl>
+                <div class="foo">
+                    <span class="bar" onclick(e)=ctrl.doClick(123,e)> click here </span>
+                </div>
+            </template>
+        `;
+
+        var data = 0, clsName = null, c = {
+            doClick: function (msg, e) {
+                data = msg + "!";
+                clsName = e.target.className;
+            }
+        };
+
+        var df = new DocumentFragment();
+        pkg.test.uid = "XX";
+        var view = render(pkg.test, df, {ctrl: c}), nd;
+
+        expect(df.childNodes.length).toBe(3);
+        var span = df.childNodes[1].childNodes[0];
+        span.click();
+        expect(data).toBe("123!");
+        expect(clsName).toBe("bar");
     });
 
 });

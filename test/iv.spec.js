@@ -1007,6 +1007,87 @@ describe('IV runtime', () => {
         )).toBe("equal");
     });
 
+    it('should support sub-templates with for loops', () => {
+        var pkg = iv`
+            <template #test list>
+               <div #main>
+                  % for (var i=0;list.length>i;i++) {
+                      <sub [data]=list[i]/>
+                  % }
+               </div>
+            </template>
+    
+            <template #sub data>
+                <div [title]=data.title>{{data.content}}</div>
+            </template>
+        `;
+
+        pkg.test.uid = "XX";
+        pkg.sub.uid = "YY";
+        var list = [
+            {title: "ta0", content: "ca0"},
+            {title: "tb0", content: "cb0"}
+        ];
+
+        var view = pkg.test.apply({list: list});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
+                <div 1 ref="XX:0:1" id="main">
+                    <#group 2 js ref="XX:0:2">
+                        <#group 3 sub ref="XX:0:3" data-data=Object>
+                            <div 1 ref="YY:0:0" title="ta0">
+                                <#group 2 insert ref="YY:0:1">
+                                    <#text -1 ref="YY:0:2" "ca0"/>
+                                </#group>
+                            </div>
+                        </#group>
+                    </#group>
+                    <#group 2 js ref="XX:0:4">
+                        <#group 3 sub ref="XX:0:5" data-data=Object>
+                            <div 1 ref="YY:1:0" title="tb0">
+                                <#group 2 insert ref="YY:1:1">
+                                    <#text -1 ref="YY:1:2" "cb0"/>
+                                </#group>
+                            </div>
+                        </#group>
+                    </#group>
+                </div>
+            </#group>`
+        )).toBe("equal");
+
+        list = [
+            {title: "ta1", content: "ca1"},
+            {title: "tb1", content: "cb1"}
+        ];
+        view.refresh({list: list});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
+                <div 1 ref="XX:0:1" id="main">
+                    <#group 2 js ref="XX:0:2">
+                        <#group 3 sub ref="XX:0:3" data-data=Object>
+                            <div 1 ref="YY:0:0" title="ta1">
+                                <#group 2 insert ref="YY:0:1">
+                                    <#text -1 ref="YY:0:2" "ca1"/>
+                                </#group>
+                            </div>
+                        </#group>
+                    </#group>
+                    <#group 2 js ref="XX:0:4">
+                        <#group 3 sub ref="XX:0:5" data-data=Object>
+                            <div 1 ref="YY:1:0" title="tb1">
+                                <#group 2 insert ref="YY:1:1">
+                                    <#text -1 ref="YY:1:2" "cb1"/>
+                                </#group>
+                            </div>
+                        </#group>
+                    </#group>
+                </div>
+            </#group>`
+        )).toBe("equal");
+
+    });
+
+
     // todo subtemplate in for loop
     // todo subtemplate with if at root level
     // todo template with content list  content:IvNode[]

@@ -315,11 +315,53 @@ describe('IV parser', () => {
 
     it('should parse bound and function attributes', () => {
         expect(compare(nac`
-            <div [foo]=c.getValue() [[bar]]=c.attName (onclick)=c.doSomething($event,123) > blah </div>
+            <div [foo]=c.getValue() [[bar]]=c.attName onclick()=c.doSomething($event,123) > blah </div>
         `, n("div")
             .addAttribute("foo", "c.getValue()", NacAttributeNature.BOUND1WAY)
             .addAttribute("bar", "c.attName", NacAttributeNature.BOUND2WAYS)
             .addAttribute("onclick", "c.doSomething($event,123)", NacAttributeNature.DEFERRED_EXPRESSION)
+            .c(
+                n("#text", " blah ")
+            ))).toEqual('');
+    });
+
+    it('should parse function attributes with parameters', () => {
+        expect(compare(nac`
+            <div onclick1(param1)=c.doSomething(param1)
+                 onclick2( $param2 )=c.doSomething($param2)
+                 onclick3( p1, p2,p3)=c.doSomething(p1+p2+p3)
+            > blah </div>
+        `, n("div") // todo test param1
+            .addAttribute("onclick1", "c.doSomething(param1)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["param1"])
+            .addAttribute("onclick2", "c.doSomething($param2)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["$param2"])
+            .addAttribute("onclick3", "c.doSomething(p1+p2+p3)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["p1", "p2", "p3"])
+            .c(
+                n("#text", " blah ")
+            ))).toEqual('');
+    });
+
+    it('should parse function attributes with surrounding parens and spaces', () => {
+        expect(compare(nac`
+            <div onclick()={ doThis(); return 123 } > blah </div>
+        `, n("div")
+            .addAttribute("onclick", "doThis(); return 123", NacAttributeNature.DEFERRED_EXPRESSION)
+            .c(
+                n("#text", " blah ")
+            ))).toEqual('');
+    });
+
+    it('should raise an error for invalid binding on function attributes', () => {
+        expect(error`
+          <div [onclick()]=foo()> x </div>
+        `).toBe("(2:16) Function attributes cannot be bound");
+    });
+
+    it('should parse attributes with mixed parens and curly brackets', () => {
+        expect(compare(nac`
+            <div foo = doThis({a:123, b : 444}) baz = { aa:1, bb:(2) }> blah </div>
+        `, n("div")
+            .addAttribute("foo", "doThis({a:123, b : 444})", NacAttributeNature.STANDARD)
+            .addAttribute("baz", "{ aa:1, bb:(2) }", NacAttributeNature.STANDARD)
             .c(
                 n("#text", " blah ")
             ))).toEqual('');
@@ -362,11 +404,11 @@ describe('IV parser', () => {
 
         expect(error`
           <div (  bar="2"> Hello </div>
-        `).toBe("(2:17) Attribute name cannot be empty");
+        `).toBe("(2:16) Unexpected '(' was found instead of '>'");
 
         expect(error`
           <div ()  bar="2"> Hello </div>
-        `).toBe("(2:17) Attribute name cannot be empty");
+        `).toBe("(2:16) Unexpected '(' was found instead of '>'");
     });
 
     it('should raise an error for no-value attributes used with modifiers', () => {
@@ -375,7 +417,7 @@ describe('IV parser', () => {
         `).toBe("(2:22) Attribute value is mandatory for bound attributes and deferred expressions");
 
         expect(error`
-          <div (foo)  > Hello </div>
+          <div foo()  > Hello </div>
         `).toBe("(2:23) Attribute value is mandatory for bound attributes and deferred expressions");
 
         expect(error`
@@ -396,7 +438,7 @@ describe('IV parser', () => {
           <div foo [foo]="bar" > Hello </div>
         `).toBe("(2:24) Duplicate attribute: 'foo'");
 
-        var foo=1, bar=2;
+        var foo = 1, bar = 2;
         expect(error`
           <div ${foo} ${bar} > Hello </div>
         `).toBe("(2:-1) Duplicate attribute: '@default'");

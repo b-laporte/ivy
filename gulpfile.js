@@ -31,15 +31,20 @@ const processWebpackErrors = function (done) {
 };
 
 gulp.task("build", function (done) {
-    webpack(webpackConfig).run(processWebpackErrors(done));
+    webpack(webpackConfig.tests).run(processWebpackErrors(done));
 });
 
 gulp.task("watch", function (done) {
-    webpack(webpackConfig).watch({}, processWebpackErrors());
+    webpack(webpackConfig.tests).watch({}, processWebpackErrors());
 });
 
 gulp.task("clean", function (done) {
-    rimraf(webpackConfig.output.path, done);
+    rimraf(webpackConfig.tests.output.path, done);
 });
 
 gulp.task("default", ["build"]);
+
+// dbmon build task
+gulp.task("buildDbmon", function (done) {
+    webpack(webpackConfig.dbmon).run(processWebpackErrors(done));
+});

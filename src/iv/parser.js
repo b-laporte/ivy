@@ -20,6 +20,7 @@ var CHAR_GT = 62,               // >
     CHAR_HASH = 35,             // #
     CHAR_DOLLAR = 36,           // $
     CHAR_COLON = 58,            // :
+    CHAR_COMMA = 44,            // ,
     CHAR_EQUAL = 61,            // =
     CHAR_DOUBLEQUOTE = 34,      // "
     CHAR_SINGLEQUOTE = 39,      // '
@@ -75,6 +76,40 @@ class Parser {
         this.nodeStack = [];
         this.targetNodeDepth = 0;
         this.jsBlockStack = [];
+    }
+
+    /**
+     * Return a state object which allows to come back in time if a parsing attempt fails
+     * @see setState()
+     * @return Array
+     */
+    getCurrentState() {
+        return [
+            "lineNbr", this.lineNbr,
+            "colNbr", this.colNbr,
+            "blockIdx", this.colIdx,
+            "block", this.block,
+            "charIdx", this.charIdx,
+            "currentCharCode", this.currentCharCode,
+            "currentChar", this.currentChar,
+            "value", this.value,
+            "valueSymbol", this.valueSymbol,
+            "currentNode", this.currentNode,
+            "targetNodeDepth", this.targetNodeDepth,
+            "nodeStack", this.nodeStack.slice(0),
+            "jsBlockStack", this.jsBlockStack.slice(0)
+        ];
+    }
+
+    /**
+     * Reinstate a previous state
+     * @see getCurrentState
+     * @param {Array} state - previously retrieved through getCurrentState()
+     */
+    setState(state) {
+        for (var i = 0; state.length > i; i += 2) {
+            this[state[i]] = state[i + 1];
+        }
     }
 
     /**
@@ -382,6 +417,7 @@ function textNode(p) {
 /**
  * Parse a full node e.g. <foo title="bar>Some text</foo>
  * @param p the current parser
+ * @return boolean true if a node has been parsed
  */
 function node(p) {
     p.moveNext();
@@ -467,7 +503,7 @@ function nodeAttributes(p, nd) {
             }
 
             // add attribute to current node
-            nd.addAttribute(att.name, att.value, att.nature, att.typeRef);
+            nd.addAttribute(att.name, att.value, att.nature, att.typeRef, att.parameters);
         }
     }
 
@@ -486,7 +522,7 @@ function nodeAttributeName(p, attMap) {
         value: undefined,    // the attribute value if defined
         nature: NacAttributeNature.STANDARD // attribute nature - cf. NacAttributeNature
     }, isId = false, isAttNode = false, endChar1 = null, endChar2 = null;
-    var b = [];
+    var b = [], colNbr0 = p.colNbr;
 
     if (p.advanceChar(CHAR_HASH, false)) {
         isId = true;
@@ -502,9 +538,9 @@ function nodeAttributeName(p, attMap) {
         p.currentCharCode = null;
         registerAttribute("@default", attMap);
         return att;
-    } else if (p.advanceChar(CHAR_PARENSTART, false)) {
-        endChar1 = CHAR_PARENEND;
-        att.nature = NacAttributeNature.DEFERRED_EXPRESSION;
+        // } else if (p.advanceChar(CHAR_PARENSTART, false)) {
+        //     endChar1 = CHAR_PARENEND;
+        //     att.nature = NacAttributeNature.DEFERRED_EXPRESSION;
     } else if (p.advanceChar(CHAR_BRACKETSTART, false)) {
         endChar1 = CHAR_BRACKETEND;
         if (p.advanceChar(CHAR_BRACKETSTART, false)) {
@@ -524,6 +560,7 @@ function nodeAttributeName(p, attMap) {
         }
         registerAttribute(att.name, attMap);
 
+        // look for type information
         if (p.advanceChar(CHAR_COLON, false)) {
             // parse the type name
             b = [];
@@ -537,6 +574,16 @@ function nodeAttributeName(p, attMap) {
             } else {
                 att.typeRef = b.join("");
             }
+        } else if (p.advanceChar(CHAR_PARENSTART, false)) {
+            // function attribute e.g. foo(event)=bar(event.value)
+            spaces(p);
+            nodeAttributeParameters(p, att);
+            p.advanceChar(CHAR_PARENEND, true);
+            if (att.nature === NacAttributeNature.BOUND1WAY || att.nature === NacAttributeNature.BOUND2WAYS) {
+                p.colNbr = colNbr0; // set colNbr to original position for better error description
+                throw "Function attributes cannot be bound";
+            }
+            att.nature = NacAttributeNature.DEFERRED_EXPRESSION;
         }
 
         if (endChar1) {
@@ -573,12 +620,39 @@ function nodeAttributeValue(p, att) {
     spaces(p);
     if (p.advanceChar(CHAR_EQUAL, false)) {
         spaces(p);
-        if (!attValueWithQuotes(p, att) && !attValueWithParens(p, att)) {
+        if (!attValueWithQuotes(p, att) && !attValueAsBlock(p, att, true) && !attValueAsBlock(p, att, false)) {
             throw "Invalid attribute value";
+        }
+        if (att.nature === NacAttributeNature.DEFERRED_EXPRESSION) {
+            // remove optional surrounding {} for function attributes
+            att.value = att.value.replace(/(^\s*{\s*)|(\s*}\s*$)/g, "");
         }
         return true;
     }
     return false;
+}
+
+/**
+ * Parse the parameter names of a function attribute
+ * @param p
+ * @param att
+ */
+function nodeAttributeParameters(p, att) {
+    var b, keepGoing = true;
+    while (keepGoing) {
+        b = [];
+        spaces(p);
+        if (p.advanceMany(b, isJsIdentifierChar)) {
+            if (!att.parameters) {
+                att.parameters = [];
+            }
+            att.parameters.push(b.join(""));
+            spaces(p);
+            keepGoing = p.advanceChar(CHAR_COMMA, false);
+        } else {
+            keepGoing = false;
+        }
+    }
 }
 
 /**
@@ -636,13 +710,29 @@ function attValueWithQuotes(p, att) {
  * Parse an attribute value surrounded by parens - e.g. (123 + (a *b))
  * @param p the current parser
  * @param att the current attribute
+ * @param useCurlyBrackets {boolean} true if curly brackets or parens (default) should be considered as block delimiters
  * @returns {boolean} true if an attribute value has been found
  */
-function attValueWithParens(p, att) {
-    var b = [], keepGoing = true, parenCount = 0, col = p.colNbr, line = p.lineNbr;
+function attValueAsBlock(p, att, useCurlyBrackets = false) {
+    var b = [], keepGoing = true, parenCount = 0, col = p.colNbr, line = p.lineNbr,
+        START = CHAR_PARENSTART, END = CHAR_PARENEND;
+
+    if (useCurlyBrackets) {
+        START = CHAR_CURLYSTART;
+        END = CHAR_CURLYEND;
+        // curly chars have to surround the full expression
+        var found = p.advanceChar(START, false);
+        if (found) {
+            parenCount = 1;
+        } else {
+            return false;
+        }
+    }
+
     while (keepGoing) {
+
         p.advanceMany(b, (c) => {
-            var parenOrNewlineOrValue = (c === CHAR_PARENEND || c === CHAR_PARENSTART || c === CHAR_NEWLINE || c === CHAR_VALUE);
+            var parenOrNewlineOrValue = (c === START || c === END || c === CHAR_NEWLINE || c === CHAR_VALUE);
             //noinspection JSReferencingMutableVariableFromClosure
             if (parenCount > 0) {
                 return !parenOrNewlineOrValue;
@@ -650,12 +740,12 @@ function attValueWithParens(p, att) {
                 return !parenOrNewlineOrValue && c !== CHAR_SPACE && c !== CHAR_TAB && c !== CHAR_SLASH && c !== CHAR_GT;
             }
         });
-        if (p.currentCharCode === CHAR_PARENSTART) {
+        if (p.currentCharCode === START) {
             parenCount++;
             b.push(p.currentChar);
             p.currentCharCode = null;
             p.moveNext();
-        } else if (p.currentCharCode === CHAR_PARENEND) {
+        } else if (p.currentCharCode === END) {
             parenCount--;
             b.push(p.currentChar);
             p.currentCharCode = null;
@@ -679,7 +769,7 @@ function attValueWithParens(p, att) {
         }
     }
     if (b.length) {
-        att.value = b.join("");
+        att.value = useCurlyBrackets ? "{" + b.join("") : b.join("");
         return true;
     }
 

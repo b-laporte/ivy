@@ -13,17 +13,34 @@ if (prod) {
 }
 
 module.exports = {
-    entry: path.join(__dirname, "test/app.js"),
-    output: {
-        path: path.join(__dirname, "dist"),
-        filename: "app.js"
+    tests: {
+        entry: path.join(__dirname, "test/app.js"),
+        output: {
+            path: path.join(__dirname, "dist"),
+            filename: "app.js"
+        },
+        module: {
+            loaders: [
+                {test: /\.js$/, exclude: /node_modules/, loader: "babel-loader"}
+            ]
+        },
+        plugins: plugins,
+        debug: !prod,
+        devtool: prod ? "source-map" : null
     },
-    module: {
-        loaders: [
-            {test: /\.js$/, exclude: /node_modules/, loader: "babel-loader"}
-        ]
-    },
-    plugins: plugins,
-    debug: !prod,
-    devtool: prod ? "source-map" : null
+    dbmon: {
+        entry: path.join(__dirname, "samples/dbmon/app.js"),
+        output: {
+            path: path.join(__dirname, "dist/dbmon"),
+            filename: "app.js"
+        },
+        module: {
+            loaders: [
+                {test: /\.js$/, exclude: /node_modules/, loader: "babel-loader"}
+            ]
+        },
+        plugins: plugins,
+        debug: !prod,
+        devtool: prod ? "source-map" : null
+    }
 };

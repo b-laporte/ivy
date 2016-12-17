@@ -420,6 +420,57 @@ describe('NAC compiler', () => {
     });
 
 
+    it('should compile function attributes', () => {
+        var r = cpl`
+            <template #foo msg="hello">
+                <div>
+                    <span onclick()=doSomething(msg)/>
+                    <span foo=123+321 bar()={foo();baz()}/>
+                    <span onswap()={ doThis(); doThat() }/>
+                </div>
+            </template>
+        `;
+
+        expect(r.foo.templateFnContent).toEqual(`\
+    msg=(msg!==undefined)?msg:"hello";
+    $c.ts(0); // template
+    $c.ns(1,true,0,0); // div
+    $c.ns(2,false,0,["onclick",function(){doSomething(msg)}]); // span
+    $c.ns(3,false,0,["foo",123+321,"bar",function(){foo();baz()}]); // span
+    $c.ns(4,false,0,["onswap",function(){doThis(); doThat()}]); // span
+    $c.ne(1);
+    $c.te(0);`);
+
+        expect(r.foo.templateStatics).toEqual([
+            0,
+            [1, 1, "div", 0],
+            [ 2, 1, "span", 0 ],
+            [ 3, 1, "span", 0 ],
+            [ 4, 1, "span", 0 ]
+        ]);
+    });
+
+    it('should compile function attributes with parameters', () => {
+        var r = cpl`
+            <template #foo msg="hello">
+                <div>
+                    <span onclick(a )=doSomething(msg)/>
+                    <span foo=123+321 bar(p1, p2)={foo();baz()}/>
+                </div>
+            </template>
+        `;
+
+        expect(r.foo.templateFnContent).toEqual(`\
+    msg=(msg!==undefined)?msg:"hello";
+    $c.ts(0); // template
+    $c.ns(1,true,0,0); // div
+    $c.ns(2,false,0,["onclick",function(a){doSomething(msg)}]); // span
+    $c.ns(3,false,0,["foo",123+321,"bar",function(p1,p2){foo();baz()}]); // span
+    $c.ne(1);
+    $c.te(0);`);
+    });
+
+
     // todo subtemplate or component call through <insert>
     // todo subtemplates with content nodes, and with @name nodes
     // todo event handlers

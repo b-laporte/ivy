@@ -8,11 +8,12 @@
 
 import {parse} from '../src/iv/parser';
 import {compile} from '../src/iv/nac2js';
+import {diff} from './utils';
 
 describe('NAC compiler', () => {
 
     function cpl(strings, ...values) {
-        var r = parse(strings, values);
+        let r = parse(strings, values);
         if (r.error) {
             throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
         }
@@ -20,7 +21,7 @@ describe('NAC compiler', () => {
     }
 
     it('should compile an empty template', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo>
             </template>
         `;
@@ -34,7 +35,7 @@ describe('NAC compiler', () => {
     });
 
     it('should properly identify template arguments', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo arg1:string="bar" arg2 arg3:number arg4=123>
             </template>
         `;
@@ -46,7 +47,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile element nodes', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo bar:number=123>
                 <div class="main">
                     <span [title]=bar+3 ok=true foo=123+456></span>
@@ -75,7 +76,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile id and @ properties', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo>
                 <div #bar @baz/>
             </template>
@@ -92,7 +93,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile text nodes', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo>
                 Hello World
                 <div>
@@ -127,8 +128,8 @@ describe('NAC compiler', () => {
         ]);
     });
 
-    it('should compile comment nodes', () => {
-        var r = cpl`
+    it('should compile single-line comments', () => {
+        let r = cpl`
             <template #foo>
                 Hello World
                 // comment 1
@@ -153,10 +154,40 @@ describe('NAC compiler', () => {
         ]);
     });
 
+    it('should compile multi-line comments', () => {
+        let r = cpl`
+            <template #foo>
+                Hello World
+                /* comment 1 */
+                <div>
+                    /**
+                     * comment 2
+                     **/
+                </div>
+            </template>
+        `;
+        expect(diff (r.foo.templateFnContent, `\
+    $c.ts(0); // template
+    $c.t(1); // Hello World 
+    /* comment 1 */
+    $c.ns(2,true,0,0); // div
+    /**
+     * comment 2
+     **/
+    $c.ne(2);
+    $c.te(0);`)).toBe("equal");
+
+        expect(r.foo.templateStatics).toEqual([
+            0,
+            [1, 3, ` Hello World `],
+            [2, 1, "div", 0],
+        ]);
+    });
+
     it('should compile js expressions', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo bar:number=123>
-                % var x = 1;
+                % let x = 1;
                 <div class="main">
                     % x = 2+bar;
                 </div>
@@ -168,7 +199,7 @@ describe('NAC compiler', () => {
         expect(r.foo.templateFnContent).toEqual(`\
     bar=(bar!==undefined)?bar:123;
     $c.ts(0); // template
-    var x = 1;
+    let x = 1;
     $c.ns(1,true,0,0); // div
     x = 2+bar;
     $c.ne(1);
@@ -184,7 +215,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile simple js blocks', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo bar:number=123>
                 % if (bar % 2) {
                 <div class="main">
@@ -225,7 +256,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile complex js blocks', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo bar:number=123>
                 % if (bar % 2) {
                 <div class="main"></div>
@@ -269,7 +300,7 @@ describe('NAC compiler', () => {
     });
 
     it('should load the template function', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo bar:number=123>
                 % if (bar % 2) {
                 <div class="main"></div>
@@ -281,7 +312,7 @@ describe('NAC compiler', () => {
             </template>
         `;
 
-        var c = {
+        let c = {
             logs: [],
             ts: function (idx) {
                 this.logs.push("ts" + idx + ";");
@@ -314,7 +345,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile sub-template calls', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo v:number=123>
                 <div>
                     <span>first</span>
@@ -357,7 +388,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile nodes with @name attributes', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo v:number=123>
                 <div>
                     <bar [value]=v+1>
@@ -396,7 +427,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile text and node insert', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo msg="hello">
                 <div>
                     {{msg}}
@@ -421,7 +452,7 @@ describe('NAC compiler', () => {
 
 
     it('should compile function attributes', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo msg="hello">
                 <div>
                     <span onclick()=doSomething(msg)/>
@@ -451,7 +482,7 @@ describe('NAC compiler', () => {
     });
 
     it('should compile function attributes with parameters', () => {
-        var r = cpl`
+        let r = cpl`
             <template #foo msg="hello">
                 <div>
                     <span onclick(a )=doSomething(msg)/>

@@ -6,9 +6,10 @@
 import {NacNode, NacNodeType, NacAttributeNature} from './nac';
 
 
-var CHAR_GT = 62,               // >
+let CHAR_GT = 62,               // >
     CHAR_SLASH = 47,            // /
     CHAR_BACKSLASH = 92,        // \
+    CHAR_STAR = 42,             // *
     CHAR_LT = 60,               // <
     CHAR_PERCENT = 37,          // %
     CHAR_NEWLINE = 10,          // \n
@@ -107,7 +108,7 @@ class Parser {
      * @param {Array} state - previously retrieved through getCurrentState()
      */
     setState(state) {
-        for (var i = 0; state.length > i; i += 2) {
+        for (let i = 0; state.length > i; i += 2) {
             this[state[i]] = state[i + 1];
         }
     }
@@ -120,7 +121,7 @@ class Parser {
         if (this.currentCharCode !== null) {
             return this.currentCharCode;
         }
-        var c;
+        let c;
         if (this.charIdx === this.blockLength) {
             // return EOF or EOB next value and move to next block
             if (this.blockIdx >= this.strings.length - 1 && this.blockIdx >= this.values.length) {
@@ -177,7 +178,7 @@ class Parser {
      * @returns {boolean} true if at least one character has been matched
      */
     advanceMany(buffer, okFunction) {
-        var ok = true, hasMoved = false, i = 0;
+        let ok = true, hasMoved = false, i = 0;
         while (ok) {
             this.moveNext();
             if (this.currentCharCode === CHAR_EOF) {
@@ -271,7 +272,7 @@ class Parser {
         } else {
             if (this.targetNodeDepth >= this.nodeStack.length) {
                 // target node must be a child of the current node
-                var nd = new NacNode(nodeType, nodeValue);
+                let nd = new NacNode(nodeType, nodeValue);
                 this.currentNode.c(nd);
                 this.currentNode = nd;
                 this.nodeStack.push(nd);
@@ -316,10 +317,10 @@ class Parser {
  * (can be null as well)
  */
 export function parse(strings, values) {
-    var p = new Parser(strings, values), root = null, error = null;
+    let p = new Parser(strings, values), root = null, error = null;
 
     try {
-        var keepGoing = true;
+        let keepGoing = true;
         while (keepGoing) {
             if (!node(p) && !jsComment(p) && (spaces(p).length === 0)) {
                 // nothing more can be found
@@ -332,7 +333,7 @@ export function parse(strings, values) {
         }
         root = p.rootNode;
     } catch (e) {
-        var d = e.description || e;
+        let d = e.description || e;
         error = {description: d, line: p.lineNbr, column: p.colNbr};
         root = null;
     }
@@ -346,7 +347,7 @@ export function parse(strings, values) {
  * @returns {string} the spaces that have been parsed or an empty string
  */
 function spaces(p) {
-    var b = [];
+    let b = [];
     if (p.advanceMany(b, (c) => c === CHAR_SPACE || c === CHAR_NEWLINE || c === CHAR_TAB)) {
         return b.join('');
     }
@@ -360,7 +361,7 @@ function spaces(p) {
  * @return {boolean} true if a text node has been found
  */
 function textNode(p) {
-    var b = [], keepGoing = true, ccc = null;
+    let b = [], keepGoing = true, ccc = null;
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== CHAR_LT && c !== CHAR_CURLYSTART && c !== CHAR_BACKSLASH && c !== CHAR_PERCENT && c !== CHAR_SLASH && c !== CHAR_VALUE));
         ccc = p.currentCharCode;
@@ -386,7 +387,8 @@ function textNode(p) {
             }
         } else if (ccc === CHAR_SLASH) {
             // check if we start a comment node
-            if (p.nextCharCode(1) === CHAR_SLASH) {
+            let next = p.nextCharCode(1);
+            if (next === CHAR_SLASH || next === CHAR_STAR) {
                 // beginning of a comment node
                 keepGoing = false;
             } else {
@@ -404,7 +406,7 @@ function textNode(p) {
     }
 
     if (b.length) {
-        var s = b.join('').replace(/(^\s+)|(\s+$)/ig, " ");
+        let s = b.join('').replace(/(^\s+)|(\s+$)/ig, " ");
         if (!s.match(/^\s+$/)) {
             // ignore white spaces only
             p.addNode(NacNodeType.TEXT, s);
@@ -424,13 +426,13 @@ function node(p) {
     if (p.currentCharCode !== CHAR_LT || p.nextCharCode(1) === CHAR_SLASH) {
         return false; // this is not a node start but an end node
     }
-    var ns = nodeStart(p);
-    var initialJsStackDepth = p.jsBlockStack.length;
+    let ns = nodeStart(p);
+    let initialJsStackDepth = p.jsBlockStack.length;
     if (!ns.closed) {
         p.shiftNodeDepth(1);
         nodeContent(p);
-        var cn = p.colNbr;
-        var nm = nodeEnd(p);
+        let cn = p.colNbr;
+        let nm = nodeEnd(p);
         if (nm !== ns.node.nodeName) {
             if (cn > -1) {
                 p.colNbr = cn + 2; // to have a better error message
@@ -453,7 +455,7 @@ function node(p) {
  * @param p the current parser
  */
 function nodeContent(p) {
-    var keepGoing = true;
+    let keepGoing = true;
     while (keepGoing) {
         if (!node(p) && !jsNode(p) && !insertNode(p) && !jsComment(p) && !textNode(p)) {
             // nothing more can be found
@@ -468,10 +470,10 @@ function nodeContent(p) {
  * @returns Object an object with a name and closed property
  */
 function nodeStart(p) {
-    var ns = {node: null, closed: false};
+    let ns = {node: null, closed: false};
     p.advanceChar(CHAR_LT, true);
     spaces(p);
-    var nd = p.addNode(NacNodeType.ELEMENT);
+    let nd = p.addNode(NacNodeType.ELEMENT);
     nd.nodeName = nodeName(p);
     ns.node = nd;
     spaces(p);
@@ -487,7 +489,7 @@ function nodeStart(p) {
  * @param nd the current node object
  */
 function nodeAttributes(p, nd) {
-    var keepGoing = true, att, attMap = {};
+    let keepGoing = true, att, attMap = {};
     while (keepGoing) {
         att = nodeAttributeName(p, attMap);
         if (!att) {
@@ -516,13 +518,13 @@ function nodeAttributes(p, nd) {
  * @returns {Object} an object representing the attribute - or null if no attribute name was found
  */
 function nodeAttributeName(p, attMap) {
-    var att = {
+    let att = {
         name: "",            // name without # or @ prefix
         typeRef: "",        // type name specified after the : separator
         value: undefined,    // the attribute value if defined
         nature: NacAttributeNature.STANDARD // attribute nature - cf. NacAttributeNature
     }, isId = false, isAttNode = false, endChar1 = null, endChar2 = null;
-    var b = [], colNbr0 = p.colNbr;
+    let b = [], colNbr0 = p.colNbr;
 
     if (p.advanceChar(CHAR_HASH, false)) {
         isId = true;
@@ -625,7 +627,7 @@ function nodeAttributeValue(p, att) {
         }
         if (att.nature === NacAttributeNature.DEFERRED_EXPRESSION) {
             // remove optional surrounding {} for function attributes
-            att.value = att.value.replace(/(^\s*{\s*)|(\s*}\s*$)/g, "");
+            att.value = att.value.replace(/(^\s*\{\s*)|(\s*}\s*$)/g, "");
         }
         return true;
     }
@@ -638,7 +640,7 @@ function nodeAttributeValue(p, att) {
  * @param att
  */
 function nodeAttributeParameters(p, att) {
-    var b, keepGoing = true;
+    let b, keepGoing = true;
     while (keepGoing) {
         b = [];
         spaces(p);
@@ -662,7 +664,7 @@ function nodeAttributeParameters(p, att) {
  * @returns {boolean} true if an attribute value has been found
  */
 function attValueWithQuotes(p, att) {
-    var boundaryCharCode = null, boundaryChar = "";
+    let boundaryCharCode = null, boundaryChar = "";
     if (p.advanceChar(CHAR_DOUBLEQUOTE, false)) {
         boundaryCharCode = CHAR_DOUBLEQUOTE;
         boundaryChar = '"';
@@ -673,7 +675,7 @@ function attValueWithQuotes(p, att) {
         return false;
     }
 
-    var b = [], keepGoing = true;
+    let b = [], keepGoing = true;
     b.push(boundaryChar);
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== boundaryCharCode && c !== CHAR_BACKSLASH && c !== CHAR_NEWLINE && c !== CHAR_VALUE));
@@ -714,14 +716,14 @@ function attValueWithQuotes(p, att) {
  * @returns {boolean} true if an attribute value has been found
  */
 function attValueAsBlock(p, att, useCurlyBrackets = false) {
-    var b = [], keepGoing = true, parenCount = 0, col = p.colNbr, line = p.lineNbr,
+    let b = [], keepGoing = true, parenCount = 0, col = p.colNbr, line = p.lineNbr,
         START = CHAR_PARENSTART, END = CHAR_PARENEND;
 
     if (useCurlyBrackets) {
         START = CHAR_CURLYSTART;
         END = CHAR_CURLYEND;
         // curly chars have to surround the full expression
-        var found = p.advanceChar(START, false);
+        let found = p.advanceChar(START, false);
         if (found) {
             parenCount = 1;
         } else {
@@ -732,7 +734,7 @@ function attValueAsBlock(p, att, useCurlyBrackets = false) {
     while (keepGoing) {
 
         p.advanceMany(b, (c) => {
-            var parenOrNewlineOrValue = (c === START || c === END || c === CHAR_NEWLINE || c === CHAR_VALUE);
+            let parenOrNewlineOrValue = (c === START || c === END || c === CHAR_NEWLINE || c === CHAR_VALUE);
             //noinspection JSReferencingMutableVariableFromClosure
             if (parenCount > 0) {
                 return !parenOrNewlineOrValue;
@@ -784,7 +786,7 @@ function attValueAsBlock(p, att, useCurlyBrackets = false) {
 function nodeEnd(p) {
     p.advanceChar(CHAR_LT, true);
     p.advanceChar(CHAR_SLASH, true);
-    var name = nodeName(p);
+    let name = nodeName(p);
     spaces(p);
     p.advanceChar(CHAR_GT, true);
     return name;
@@ -796,7 +798,7 @@ function nodeEnd(p) {
  * @returns {string} the node name
  */
 function nodeName(p) {
-    var b = [];
+    let b = [];
     if (!p.advanceMany(b, isJsIdentifierChar)) {
         throw "Invalid character in node name: '" + p.currentChar + "'";
     }
@@ -804,7 +806,7 @@ function nodeName(p) {
 }
 
 /**
- * Parse a js expression or a js block - e.g. % var x = 3;
+ * Parse a js expression or a js block - e.g. % let x = 3;
  * @param p the current parser
  * @returns {boolean} true if a jsNode has been found
  */
@@ -814,13 +816,13 @@ function jsNode(p) {
         return false;
     }
 
-    var line = p.lineNbr, col = p.colNbr, d = jsLine(p);
+    let line = p.lineNbr, col = p.colNbr, d = jsLine(p);
     if (d) {
         if (!d.isBlockStart && !d.isBlockEnd) {
             // simple instruction node
             p.addNode(NacNodeType.JS_EXPRESSION, d.expression);
         } else {
-            var nd;
+            let nd;
             if (d.isBlockEnd) {
                 nd = p.jsBlockStack.pop();
                 if (!nd) {
@@ -833,7 +835,7 @@ function jsNode(p) {
                 if (!d.isBlockStart) {
                     nd.nodeValue.endBlockExpression = d.expression;
                 } else {
-                    var endBlockRxp = /^[^}]*};?/i;
+                    let endBlockRxp = /^[^}]*};?/i;
                     nd.nodeValue.endBlockExpression = d.expression.match(endBlockRxp)[0];
                     // remove the current end block part and keep last part for the next block node
                     d.expression = d.expression.replace(endBlockRxp, "");
@@ -860,7 +862,7 @@ function jsNode(p) {
 function jsLine(p) {
     p.advanceChar(CHAR_PERCENT, true);
 
-    var b = [], s, keepGoing = true;
+    let b = [], s, keepGoing = true;
     while (keepGoing) {
         p.advanceMany(b, (c) => c !== CHAR_NEWLINE && c !== CHAR_VALUE);
         if (p.currentCharCode === CHAR_VALUE) {
@@ -872,7 +874,7 @@ function jsLine(p) {
     }
     s = b.join("");
     if (!s.match(/^\s*$/)) {
-        var data = {isBlockStart: false, isBlockEnd: false, expression: ""};
+        let data = {isBlockStart: false, isBlockEnd: false, expression: ""};
         // todo refactor parsing here
         data.isBlockStart = (s.match(/\{\s*$/) !== null);
         data.isBlockEnd = (s.match(/^[^}]*}/) !== null);
@@ -892,29 +894,57 @@ function jsLine(p) {
  */
 function jsComment(p) {
     p.moveNext();
-    if (p.currentCharCode !== CHAR_SLASH || p.nextCharCode(1) !== CHAR_SLASH) {
+    if (p.currentCharCode !== CHAR_SLASH) {
+        return false;
+    }
+    let nextChar = p.nextCharCode(1), isMultiLineComment = (nextChar === CHAR_STAR);
+    if (!isMultiLineComment && nextChar !== CHAR_SLASH) {
         return false;
     }
 
     p.advanceChar(CHAR_SLASH, true);
-    p.advanceChar(CHAR_SLASH, true);
+    p.advanceChar(isMultiLineComment ? CHAR_STAR : CHAR_SLASH, true);
 
-    var b = [], keepGoing = true;
-    while (keepGoing) {
-        p.advanceMany(b, (c) => (c !== CHAR_NEWLINE && c !== CHAR_VALUE));
-        if (p.currentCharCode === CHAR_VALUE) {
-            b.push(p.value);
-            p.currentCharCode = null;
-        } else {
-            keepGoing = false;
+    let b = [], keepGoing = true;
+    if (isMultiLineComment) {
+        while (keepGoing) {
+            p.advanceMany(b, (c) => (c !== CHAR_STAR && c !== CHAR_VALUE));
+            if (p.currentCharCode === CHAR_VALUE) {
+                b.push(p.value);
+                p.currentCharCode = null;
+            } else {
+                // star char, check next
+                if (p.nextCharCode(1) === CHAR_SLASH) {
+                    keepGoing = false;
+                } else {
+                    b.push("*");
+                    p.advanceChar(CHAR_STAR, true);
+                }
+            }
         }
-    }
-    var s = b.join("");
-    if (!s.match(/^\s*$/)) {
-        p.addNode(NacNodeType.COMMENT, s);
+        // eat closing sequence "*/
+        p.advanceChar(CHAR_STAR, true);
+        p.advanceChar(CHAR_SLASH, true);
+    } else {
+        while (keepGoing) {
+            p.advanceMany(b, (c) => (c !== CHAR_NEWLINE && c !== CHAR_VALUE));
+            if (p.currentCharCode === CHAR_VALUE) {
+                b.push(p.value);
+                p.currentCharCode = null;
+            } else {
+                keepGoing = false;
+            }
+        }
 
     }
-    // eat next new line
+
+    let s = b.join("");
+    if (!s.match(/^\s*$/)) {
+        // empty comments are ignored
+        p.addNode(isMultiLineComment ? NacNodeType.COMMENT_ML : NacNodeType.COMMENT, s);
+
+    }
+    // eat next new line, if any
     p.advanceChar(CHAR_NEWLINE, false);
     return true;
 }
@@ -931,7 +961,7 @@ function insertNode(p) {
     p.advanceChar(CHAR_CURLYSTART, true);
     p.advanceChar(CHAR_CURLYSTART, true);
 
-    var keepGoing = true, b = [];
+    let keepGoing = true, b = [];
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== CHAR_CURLYEND && c !== CHAR_VALUE));
 
@@ -951,7 +981,7 @@ function insertNode(p) {
     }
 
     if (b.length) {
-        var s = b.join("");
+        let s = b.join("");
         if (!s.match(/^\s*$/)) {
             // ignore empty expressions
             p.addNode(NacNodeType.INSERT, b.join(""));

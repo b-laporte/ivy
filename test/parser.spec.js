@@ -13,7 +13,7 @@ import {compare} from './utils';
 describe('IV parser', () => {
 
     function nac(strings, ...values) {
-        var r = parse(strings, values);
+        let r = parse(strings, values);
         if (r.error) {
             throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
         }
@@ -21,7 +21,7 @@ describe('IV parser', () => {
     }
 
     function error(strings, ...values) {
-        var r = parse(strings, values);
+        let r = parse(strings, values);
         return (r.error) ? `(${r.error.line}:${r.error.column}) ${r.error.description}` : "[expected error not found]";
     }
 
@@ -256,6 +256,47 @@ describe('IV parser', () => {
         )).toEqual('');
     });
 
+    it('should parse multi-line comment blocks', () => {
+        expect(compare(nac`
+            /* comment 0 */
+            <div>   
+                /**
+                 *  comment 1 
+                 **/
+                <span>
+                    blah 
+                    \\/*
+                      not a comment
+                    */
+                    baz
+                </span>
+            </div>
+            /*
+             comment 2 */
+        `, n("#commentML", " comment 0 ").n("div").c(
+            n("#commentML", `*
+                 *  comment 1 
+                 *`),
+            n("span").c(
+                n("#text", ` blah 
+                    /*
+                      not a comment
+                    */
+                    baz `)
+            )).n("#commentML", `
+             comment 2 `)
+        )).toEqual('');
+    });
+
+    it('should shift error line numbers when multi-line comments are used before', () => {
+        expect(error`
+          /*
+           A comment
+          */
+          <div <></div>
+        `).toBe("(5:16) Unexpected '<' was found instead of '>'");
+    });
+
     it('should parse no-value attributes', () => {
         expect(compare(nac`
             <div #foo bar  baz> blah </div>
@@ -438,14 +479,14 @@ describe('IV parser', () => {
           <div foo [foo]="bar" > Hello </div>
         `).toBe("(2:24) Duplicate attribute: 'foo'");
 
-        var foo = 1, bar = 2;
+        let foo = 1, bar = 2;
         expect(error`
           <div ${foo} ${bar} > Hello </div>
         `).toBe("(2:-1) Duplicate attribute: '@default'");
     });
 
     it('should support ${expression} in attribute values', () => {
-        var text2 = "text2";
+        let text2 = "text2";
         expect(compare(nac`
             <div foo=${123} bar=c.attName baz="text ${text2}" blah=c.getSomething(1,${text2}) foo2='${text2}'> blah </div>
         `, n("div")
@@ -460,7 +501,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} in text nodes', () => {
-        var bar = "BAR";
+        let bar = "BAR";
         expect(compare(nac`
             <div> foo ${bar} baz </div>
         `, n("div").c(
@@ -469,7 +510,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} in js expressions', () => {
-        var bar = "BAR";
+        let bar = "BAR";
         expect(compare(nac`
             <div>   
                 % var x = ${bar};
@@ -487,7 +528,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} in js blocks', () => {
-        var foo = true, bar = false, baz = 123;
+        let foo = true, bar = false, baz = 123;
         expect(compare(nac`
             <div>   
                 % if (${foo}) {
@@ -513,7 +554,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} in insert nodes', () => {
-        var foo = 42, bar = "hello";
+        let foo = 42, bar = "hello";
         expect(compare(nac`
             <div>   
                 foo {{foo[${bar}] + f( x=> { return x+${foo} })}}
@@ -526,7 +567,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} in comment blocks', () => {
-        var foo = 42, bar = "hello";
+        let foo = 42, bar = "hello";
         expect(compare(nac`
             // comment ${foo}
             <div> // comment ${bar} 
@@ -537,7 +578,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} as single attribute', () => {
-        var bar = 42;
+        let bar = 42;
         expect(compare(nac`
             <div foo=123 ${bar}> blah </div>
             <div ${bar}/>
@@ -553,7 +594,7 @@ describe('IV parser', () => {
     });
 
     it('should support ${expression} in attribute types', () => {
-        var obj = Object;
+        let obj = Object;
         expect(compare(nac`
             <div foo:${obj}={foo:"bar"} > blah </div>
         `, n("div")
@@ -564,6 +605,8 @@ describe('IV parser', () => {
         )).toEqual('');
     });
 
+
+    // TODO script at root level
     // todo accept spaces for JSON or Array attribute values - e.g. {a:"a", b:"b"} or [123, 456]
     // todo support '.' in attribute names - e.g. [style.color] = myvar -> support JSON attributes?
     // todo check that id and @name cannot be bound

@@ -11,15 +11,16 @@ const ATT_STANDARD = NacAttributeNature.STANDARD,                       // 0 - e
     ATT_BOUND2WAYS = NacAttributeNature.BOUND2WAYS,                     // 2 - e.g. [[foo]]=c.bar
     ATT_DEFERRED_EXPRESSION = NacAttributeNature.DEFERRED_EXPRESSION;   // 3 - e.g. onclick()=c.doSomething()
 
-var REGEXP_JS_LITERAL = /(^".*"$)|(^'.*'$)|(^true$)|(^false$)|(^\d+$)|(^\d+\.\d+$)/,
+let REGEXP_JS_LITERAL = /(^".*"$)|(^'.*'$)|(^true$)|(^false$)|(^\d+$)|(^\d+\.\d+$)/,
     REGEXP_FIRST_SPACES = /^\s+/,
+    REGEXP_FIRST_SPACES_AFTER_NEW_LINE = /\n\s*/g,
     REGEXP_NEWLINES = /\n/g,
     REGEXP_QUOTED_STRING = /^"(.*)"$/;
 
 export function compile(nacNode, exposeInternals = false) {
-    var pkg = new PkgContainer(), templates = pkg.load(nacNode), c;
+    let pkg = new PkgContainer(), templates = pkg.load(nacNode), c;
 
-    for (var i = 0; i < templates.length; i++) {
+    for (let i = 0; i < templates.length; i++) {
         c = new TemplateCompiler(templates[i], pkg);
         c.compile(pkg, exposeInternals);
     }
@@ -36,7 +37,7 @@ class PkgContainer {
 
     load(nacNode) {
         // we assume that the node is well formed and that errors have already been caught by the parser
-        var nd = nacNode, templates = [];
+        let nd = nacNode, templates = [];
         while (nd) {
             if (nd.nodeName === "import") {
                 throw "todo";
@@ -47,7 +48,7 @@ class PkgContainer {
                 }
 
                 // remove extra double-quote on id
-                var m = nd.id.match(REGEXP_QUOTED_STRING);
+                let m = nd.id.match(REGEXP_QUOTED_STRING);
                 if (m) {
                     nd.id = m[1];
                 }
@@ -67,7 +68,7 @@ class PkgContainer {
     }
 }
 
-var INDENT_SPACE = "    "; // 4 spaces
+let INDENT_SPACE = "    "; // 4 spaces
 
 class TemplateCompiler {
     rootNode;
@@ -88,7 +89,7 @@ class TemplateCompiler {
     }
 
     compile(exposeInternals) {
-        var templateId = this.rootNode.id;
+        let templateId = this.rootNode.id;
         this.nodeIdx = 0;
         this.fnContent = [];
         this.statics = [];
@@ -102,7 +103,7 @@ class TemplateCompiler {
         this.templateFnContent = this.fnContent.join("\n");
         this.loadFunction();
 
-        var templateData = {
+        let templateData = {
             templateId: templateId,
             templateFn: this.templateFn,
             templateStatics: this.statics,
@@ -132,7 +133,7 @@ class TemplateCompiler {
     loadFunction() {
         if (this.templateFnContent) {
             // clone args
-            var args = this.templateArgs, argLength = args.length, fn, cn = this.templateFnContent;
+            let args = this.templateArgs, argLength = args.length, fn, cn = this.templateFnContent;
 
             // cannot use apply() in this context...
             switch (argLength) {
@@ -184,14 +185,14 @@ class TemplateCompiler {
     compileTemplateNode(nd) {
         // this is the template node
         // generate the argument default values
-        var idx = this.nodeIdx;
+        let idx = this.nodeIdx;
         this.nodeIdx++;
 
-        var atts = this.parseEltNodeAttributes(nd.firstAttribute), ls = atts[ATT_STANDARD], nm, val, argIdx = 0,
+        let atts = this.parseEltNodeAttributes(nd.firstAttribute), ls = atts[ATT_STANDARD], nm, val, argIdx = 0,
             isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
 
         if (ls) {
-            for (var i = 0; ls.length > i; i++) {
+            for (let i = 0; ls.length > i; i++) {
                 nm = ls[i].name;
                 if (nm === "id") {
                     continue;
@@ -225,10 +226,10 @@ class TemplateCompiler {
      * @param nd the Nac node corresponding to the element
      */
     compileEltNode(nd) {
-        var idx = this.nodeIdx;
+        let idx = this.nodeIdx;
         this.nodeIdx++;
         // determine if this is a component or a standard node
-        var isComponent = (this.pkg.entities[nd.nodeName] !== undefined),
+        let isComponent = (this.pkg.entities[nd.nodeName] !== undefined),
             isAttNode = (nd.attName !== undefined),
             methodPrefix = "$c.n",
             ndType = isComponent ? NacNodeType.COMPONENT : NacNodeType.ELEMENT,
@@ -239,7 +240,7 @@ class TemplateCompiler {
             methodPrefix = "$c.c";
             // todo throw error if isAttNode + isComponent
         } else if (isAttNode) {
-            var m;
+            let m;
             methodPrefix = "$c.a";
             if (m = nd.attName.match(REGEXP_QUOTED_STRING)) {
                 argName = m[1];
@@ -251,15 +252,15 @@ class TemplateCompiler {
 
         }
         // calculate attributes
-        var atts = this.parseEltNodeAttributes(nd.firstAttribute), dynArgs = "0", staticFnArgs = "0", staticArgs = 0;
-        var isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
+        let atts = this.parseEltNodeAttributes(nd.firstAttribute), dynArgs = "0", staticFnArgs = "0", staticArgs = 0;
+        let isDynamic = atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null);
 
         if (atts) {
             // process non-bound attributes
-            var ls = atts[ATT_STANDARD], attVal, statFnAtts = [];
+            let ls = atts[ATT_STANDARD], attVal, statFnAtts = [];
             if (ls) {
-                var statAtts = [];
-                for (var i = 0; ls.length > i; i++) {
+                let statAtts = [];
+                for (let i = 0; ls.length > i; i++) {
                     attVal = ls[i].value;
                     if (ls[i].name === "@name") {
                         continue;
@@ -281,8 +282,8 @@ class TemplateCompiler {
             // process function attributes
             ls = atts[ATT_DEFERRED_EXPRESSION];
             if (ls) {
-                var params;
-                for (var i = 0; ls.length > i; i++) {
+                let params;
+                for (let i = 0; ls.length > i; i++) {
                     attVal = ls[i].value;
                     params = ls[i].parameters ? ls[i].parameters.join(",") : "";
                     statFnAtts.push('"' + ls[i].name + '"');
@@ -294,17 +295,17 @@ class TemplateCompiler {
             }
 
             if (isDynamic) {
-                var dynAtts = [];
+                let dynAtts = [];
                 ls = atts[ATT_BOUND1WAY];
                 if (ls) {
-                    for (var i = 0; ls.length > i; i++) {
+                    for (let i = 0; ls.length > i; i++) {
                         dynAtts.push('"' + ls[i].name + '"');
                         dynAtts.push(ls[i].value);
                     }
                 }
                 ls = atts[ATT_BOUND2WAYS];
                 if (ls) {
-                    for (var i = 0; ls.length > i; i++) {
+                    for (let i = 0; ls.length > i; i++) {
                         dynAtts.push('"' + ls[i].name + '"');
                         dynAtts.push(ls[i].value);
                     }
@@ -339,7 +340,7 @@ class TemplateCompiler {
      * @param nd the container node
      */
     compileChildNodes(nd) {
-        var ch = nd.firstChild, ndt;
+        let ch = nd.firstChild, ndt;
         while (ch) {
             ndt = ch.nodeType;
             if (ndt === NacNodeType.ELEMENT) {
@@ -354,6 +355,8 @@ class TemplateCompiler {
                 this.compileTextNode(ch);
             } else if (ndt === NacNodeType.COMMENT) {
                 this.compileComment(ch);
+            } else if (ndt === NacNodeType.COMMENT_ML) {
+                this.compileCommentMl(ch);
             } else {
                 throw "Invalid node type: " + ndt;
             }
@@ -379,11 +382,22 @@ class TemplateCompiler {
     }
 
     /**
+     * Compile multi-line comments
+     * @param nd
+     */
+    compileCommentMl(nd) {
+        let s = nd.nodeValue.replace(REGEXP_FIRST_SPACES, " ");
+        s = s.replace(REGEXP_FIRST_SPACES_AFTER_NEW_LINE, "\n" + this.indent + " ");
+
+        this.fnContent.push([this.indent, "/*", s, "*/"].join(''));
+    }
+
+    /**
      * Compile insert node
      * @param nd
      */
     compileInsert(nd) {
-        var idx = this.nodeIdx;
+        let idx = this.nodeIdx;
         this.nodeIdx++;
         this.fnContent.push([this.indent, '$c.ins(', idx, ',', nd.nodeValue, ');'].join(''));
         this.statics.push(0);
@@ -394,7 +408,7 @@ class TemplateCompiler {
      * @param nd the js block node
      */
     compileJsBlock(nd) {
-        var idx = this.nodeIdx,
+        let idx = this.nodeIdx,
             bStart = nd.nodeValue.startBlockExpression.replace(REGEXP_FIRST_SPACES, ""),
             bEnd = nd.nodeValue.endBlockExpression.replace(REGEXP_FIRST_SPACES, "");
         this.nodeIdx++;
@@ -416,10 +430,10 @@ class TemplateCompiler {
      * @param nd
      */
     compileTextNode(nd) {
-        var idx = this.nodeIdx;
+        let idx = this.nodeIdx;
         this.nodeIdx++;
 
-        var v = nd.nodeValue.replace(REGEXP_NEWLINES, " ").replace(REGEXP_FIRST_SPACES, "");
+        let v = nd.nodeValue.replace(REGEXP_NEWLINES, " ").replace(REGEXP_FIRST_SPACES, "");
         if (v.length > 16) {
             v = v.slice(0, 16) + "(...)";
         }
@@ -434,9 +448,9 @@ class TemplateCompiler {
      */
     parseEltNodeAttributes(attList) {
         if (!attList) return null;
-        var attNature, res = [null, null, null, null]; // cf. ATT_XXX values
+        let attNature, res = [null, null, null, null]; // cf. ATT_XXX values
 
-        var elt = attList.firstSibling;
+        let elt = attList.firstSibling;
         while (elt) {
             attNature = elt.nature;
             if (!res[attNature]) {

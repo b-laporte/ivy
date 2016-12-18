@@ -19,7 +19,7 @@ export function compare(nac1, nac2) {
     if (!nac1 || !nac2) {
         return "Compare arguments cannot be null";
     }
-    var n1 = nac1.firstSibling, n2 = nac2.firstSibling;
+    let n1 = nac1.firstSibling, n2 = nac2.firstSibling;
     try {
         while (n1 || n2) {
             compareNodes(n1, n2);
@@ -37,7 +37,7 @@ export function compare(nac1, nac2) {
     return '';
 }
 
-var dmp = new DiffMatchPatch();
+let dmp = new DiffMatchPatch();
 /**
  * Calculates the difference between 2 strings and return null if equal
  * @param str1
@@ -48,9 +48,9 @@ export function diff(str1, str2) {
     if (str1 === str2) {
         return "equal";
     }
-    var d = dmp.diff_main(str1, str2), lv = dmp.diff_levenshtein(d);
+    let d = dmp.diff_main(str1, str2), lv = dmp.diff_levenshtein(d);
     if (lv === 0) {
-        return null;
+        return "equal";
     } else {
         console.log("Diff string 1:");
         console.log(str1);
@@ -73,12 +73,11 @@ function compareNodes(n1, n2) {
         throw "Node2 not found: " + n1.nodeName;
     }
     if (n1.nodeType !== n2.nodeType) {
-        //debugger
         throw "Different node types found: " + n1.nodeType + " vs. " + n2.nodeType + " for " + n1.nodeName + " node";
     }
     if (n1.nodeValue !== n2.nodeValue) {
         if (n1.nodeValue && n1.nodeValue.startBlockExpression) {
-            var a = n1.nodeValue.startBlockExpression, b = n2.nodeValue.startBlockExpression;
+            let a = n1.nodeValue.startBlockExpression, b = n2.nodeValue.startBlockExpression;
             if (a !== b) {
                 throw "Different JS start block expression found: \n" + a + "\n" + b;
             }
@@ -88,7 +87,10 @@ function compareNodes(n1, n2) {
                 throw "Different JS end block expression found: '" + a + "' vs '" + b + "'";
             }
         } else {
-            //throw "Different node values found: " + n1.nodeValue + " vs. " + n2.nodeValue;
+            let d = diff(n1.nodeValue, n2.nodeValue);
+            if (d) {
+                throw "Different node values found:\n" + d;
+            }
         }
     }
     if (n1.nodeType === NacNodeType.ELEMENT && n1.nodeName !== n2.nodeName) {
@@ -97,7 +99,7 @@ function compareNodes(n1, n2) {
     }
     if (n1.firstChild || n2.firstChild) {
         // compare children
-        var nd1 = n1.firstChild, nd2 = n2.firstChild;
+        let nd1 = n1.firstChild, nd2 = n2.firstChild;
         while (nd1 || nd2) {
             compareNodes(nd1, nd2);
             nd1 = nd1.nextSibling;
@@ -109,7 +111,7 @@ function compareNodes(n1, n2) {
         }
     }
     // compare attributes
-    var att1 = n1.firstAttribute, att2 = n2.firstAttribute;
+    let att1 = n1.firstAttribute, att2 = n2.firstAttribute;
     while (att1 || att2) {
         if (!att1) {
             throw "Missing attribute in first node: " + att2.name;
@@ -123,7 +125,7 @@ function compareNodes(n1, n2) {
         checkProperty("typeRef", att1, att2);
 
         if (att1.parameters || att2.parameters) {
-            var p1 = att1.parameters ? att1.parameters.join(",") : "",
+            let p1 = att1.parameters ? att1.parameters.join(",") : "",
                 p2 = att2.parameters ? att2.parameters.join(",") : "";
             if (p1 !== p2) {
                 throw "Different attribute parameters found: [" + p1 + "] vs [" + p2 + "]";

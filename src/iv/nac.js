@@ -10,7 +10,7 @@
  * @param value2 an optional value to describe the end block expression for js blocks
  */
 export function n(nodeName, nodeValue = null, value2 = null)/*:NacNode*/ {
-    var nd = new NacNode(NacNodeType.ELEMENT, nodeValue);
+    let nd = new NacNode(NacNodeType.ELEMENT, nodeValue);
 
     nd.nodeName = nodeName;
     if (nodeName.charAt(0) === "#") {
@@ -28,6 +28,8 @@ export function n(nodeName, nodeValue = null, value2 = null)/*:NacNode*/ {
             }
         } else if (nodeName === "#comment") {
             nd.nodeType = NacNodeType.COMMENT;
+        } else if (nodeName === "#commentML") {
+            nd.nodeType = NacNodeType.COMMENT_ML;
         } else if (nodeName === "#group") {
             nd.nodeType = NacNodeType.ELEMENT;
         } else {
@@ -45,11 +47,12 @@ export const NacNodeType = {
     ELEMENT: 1,
     TEXT: 3,
     COMMENT: 8,
+    COMMENT_ML: 9,      // multi-line comment
     INSERT: 12,         // e.g. {{foo.bar}}
     JS_EXPRESSION: 13,  // e.g. % let foo = 3;
     JS_BLOCK: 14,       // e.g. % let foo = 3;
     COMPONENT: 15,
-    ATT_NODE: 16,         // attribute node e.g. <div @foo/>
+    ATT_NODE: 16,       // attribute node e.g. <div @foo/>
 
     /**
      * Returns a friendly name for each type - useful for debug info
@@ -63,6 +66,8 @@ export const NacNodeType = {
                 return "#component";
             case this.COMMENT:
                 return "#comment";
+            case this.COMMENT_ML:
+                return "#commentML";
             case this.INSERT:
                 return "#insert";
             case this.JS_BLOCK:
@@ -138,7 +143,7 @@ export class NacNode {
      * Add attributes to the current node
      */
     a(attributeMap)/*:NacNode*/ {
-        for (var k in attributeMap) {
+        for (let k in attributeMap) {
             if (!attributeMap.hasOwnProperty(k)) continue;
             this.addAttribute(k, attributeMap[k]);
         }
@@ -182,9 +187,9 @@ export class NacNode {
         if (this.nodeType !== NacNodeType.ELEMENT && this.nodeType !== NacNodeType.JS_BLOCK) {
             return NacNode.logger.error("Child nodes are not authorized in nodes of type " + this.nodeType);
         }
-        var nodeList = arguments;
-        for (var i = 0; nodeList.length > i; i++) {
-            var ndl = nodeList[i];
+        let nodeList = arguments;
+        for (let i = 0; nodeList.length > i; i++) {
+            let ndl = nodeList[i];
             if (!ndl) {
                 continue;
             }
@@ -193,12 +198,12 @@ export class NacNode {
                 this._closeToLastChild = ndl;
             } else {
                 // find last child
-                var nd = this._closeToLastChild;
+                let nd = this._closeToLastChild;
                 while (nd.nextSibling) {
                     nd = nd.nextSibling;
                 }
                 nd.nextSibling = ndl.firstSibling;
-                var first = this.firstChild;
+                let first = this.firstChild;
                 do {
                     nd.firstSibling = first;
                     this._closeToLastChild = nd;
@@ -213,7 +218,7 @@ export class NacNode {
      * Return the first element of the attribute linked list
      */
     attributes()/*:NacAttribute*/ {
-        var last = this.lastAttribute;
+        let last = this.lastAttribute;
         return (last) ? (last.firstSibling || null) : null;
     }
 
@@ -229,11 +234,11 @@ export class NacNode {
      * @param indent
      */
     toString(indent = "    ") {
-        var result = [];
-        var hasChildren = (this.firstChild !== undefined),
+        let result = [];
+        let hasChildren = (this.firstChild !== undefined),
             nm = this.nodeName || NacNodeType.getName(this.nodeType);
 
-        var endSign = hasChildren ? ">" : "/>", nvalue = "", natts = "";
+        let endSign = hasChildren ? ">" : "/>", nvalue = "", natts = "";
 
         if (this.nodeValue) {
             if (this.nodeName === "#group") {
@@ -247,7 +252,7 @@ export class NacNode {
             }
         }
         if (this.firstAttribute) {
-            var att = this.firstAttribute, buffer = [];
+            let att = this.firstAttribute, buffer = [];
             while (att) {
                 buffer.push(" " + att.name);
                 if (att.value) {
@@ -264,7 +269,7 @@ export class NacNode {
 
         result.push([indent, "<", nm, nvalue, natts, endSign].join(""));
         if (hasChildren) {
-            var ch = this.firstChild;
+            let ch = this.firstChild;
             while (ch) {
                 result.push(ch.toString(indent + "    "));
                 ch = ch.nextSibling;
@@ -298,7 +303,7 @@ class NacAttribute {
     };
 
     addSibling(name, value, nature) {
-        var na = new NacAttribute(name, value, nature);
+        let na = new NacAttribute(name, value, nature);
         na.firstSibling = this.firstSibling;
         return this.nextSibling = na;
     };

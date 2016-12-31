@@ -123,20 +123,21 @@ class IvError {
      * Merge all information in one description
      */
     description() {
-        let tid = "", nm = "";
+        let lineNbr = "", nm = "";
         if (this.statics && this.nodeIdx) {
-            let ndType = this.statics[this.nodeIdx][1];
+            let statics = this.statics[this.nodeIdx];
+            let ndType = statics[1];
             if (ndType === NacNodeType.ELEMENT || ndType === NacNodeType.COMPONENT) {
-                nm = this.statics[this.nodeIdx][2];
+                nm = statics[3];
             } else if (ndType === NacNodeType.ATT_NODE) {
-                nm = ":" + this.statics[this.nodeIdx][2];
+                nm = ":" + statics[3];
             } else {
                 nm = NacNodeType.getName(ndType);
             }
+            lineNbr = statics[2];
         }
-        tid = ["[", nm, "] "].join("");
 
-        return [tid, this.message].join("");
+        return ["[", nm , "@line:", lineNbr ,"] ", this.message].join("");
     }
 }
 
@@ -631,18 +632,18 @@ class IvProcessor {
         if (parentNode.data && parentNode.data.template) {
             // parentNode is a component
             let ivFunction = parentNode.data.template, // template factory
-                nodeName = this.statics[idx][2],
+                nodeName = this.statics[idx][3],
                 attIdx = ivFunction.templateData.templateArgIdx[nodeName],
                 attType = ivFunction.templateData.templateArgTypes[attIdx];
 
             let attWrapper;
             if (!attType) {
-                this.throwError(idx, "Type description not found for the '" + nodeName + "' attribute");
+                this.throwError(idx, "Type description not found");
             }
             if (attType === IvNode) {
                 attWrapper = dataNode.firstChild;
             } else {
-                this.throwError(idx, "Invalid type for the '" + nodeName + "' attribute");
+                this.throwError(idx, "Type mismatch");
             }
 
             parentNode.data.attributes[nodeName] = attWrapper;
@@ -658,7 +659,7 @@ class IvProcessor {
      * @param idx
      */
     createTextNode(idx) {
-        this.appendNode(new IvTextNode(idx, this.statics[idx][2]));
+        this.appendNode(new IvTextNode(idx, this.statics[idx][3]));
     }
 
     /**
@@ -740,7 +741,7 @@ class IvProcessor {
     createCptNode(idx, cptRef, dAttributes, sAttributes) {
         // create a group node as container for the component
         let statics = this.statics[idx],
-            nd = this.createGroupNode(idx, statics[2], false);
+            nd = this.createGroupNode(idx, statics[3], false);
         if (!cptRef) {
             // we should not get there as template has already been identified earlier
             // unless dynamic injection is used to change the package reference
@@ -809,7 +810,7 @@ class IvProcessor {
      * @param sAttributes static attributes defined through a dynamic js expression
      */
     createEltNode(idx, hasChildren, dAttributes, sAttributes) {
-        let statics = this.statics[idx], nd = new IvEltNode(idx, statics[2]);
+        let statics = this.statics[idx], nd = new IvEltNode(idx, statics[3]);
         setNodeAttributes(nd, statics, dAttributes, sAttributes);
         this.appendNode(nd);
         if (hasChildren || dAttributes) {
@@ -932,7 +933,7 @@ function setNodeAttributes(nd, statics, dAttributes, sAttributes) {
         }
     }
     // static attributes from statics array
-    let sAtts = statics[3];
+    let sAtts = statics[4];
     if (sAtts) {
         for (i = 0; sAtts.length > i; i += 2) {
             atts[sAtts[i]] = sAtts[i + 1];

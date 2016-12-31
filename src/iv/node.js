@@ -62,14 +62,14 @@ export class IvFunctionNode extends IvNode {
         this.isFunctionNode = true;
         this.templateData = {
             templateFn: func,
-            templateArgIdx: statics[0][3],
+            templateArgIdx: statics[0][4],
             templateStatics: statics,
-            templateArgTypes: statics[0][4],
+            templateArgTypes: statics[0][5],
             //templateId: "foo",
             instanceCount: 0
         };
         this.uid = "T" + (IvFunctionNode.templateCount++);
-        this.contentName = statics[0][5];
+        this.contentName = statics[0][6];
     }
 
     createView(argMap, context) {

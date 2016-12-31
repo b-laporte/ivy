@@ -52,11 +52,12 @@ describe('IV errors', () => {
         `;
 
         pkg.test.createView();
-        expect(lastError.description()).toBe("[:title] Type description not found for the 'title' attribute");
+        expect(lastError.description()).toBe("[:title@line:4] Type description not found");
     });
 
     it('should be raised when invalid type information is passed for IvNode attributes', () => {
         let pkg = iv`
+
             <function #test>
                 <panel>
                     <:title> Hello </:title>
@@ -67,6 +68,6 @@ describe('IV errors', () => {
         `;
 
         pkg.test.createView();
-        expect(lastError.description()).toBe("[:title] Invalid type for the 'title' attribute");
+        expect(lastError.description()).toBe("[:title@line:5] Type mismatch");
     });
 });

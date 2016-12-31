@@ -264,21 +264,23 @@ class Parser {
      * Add a node at the current position
      * @param nodeType the node type - cf. n in nac.js
      * @param nodeValue the node value - e.g. "some text" for nodeName="#text"
+     * @param lineNbr the line number to use - will be the current line number by default
      */
-    addNode(nodeType, nodeValue = null) {
+    addNode(nodeType, nodeValue = null, lineNbr = -1) {
+        let nd = new NacNode(nodeType, nodeValue);
+        nd.lineNbr = (lineNbr > -1) ? lineNbr : this.lineNbr;
         if (!this.currentNode) {
-            this.rootNode = this.currentNode = new NacNode(nodeType, nodeValue);
+            this.rootNode = this.currentNode = nd;
             this.nodeStack[0] = this.currentNode;
         } else {
             if (this.targetNodeDepth >= this.nodeStack.length) {
                 // target node must be a child of the current node
-                let nd = new NacNode(nodeType, nodeValue);
                 this.currentNode.c(nd);
                 this.currentNode = nd;
                 this.nodeStack.push(nd);
             } else if (this.targetNodeDepth === this.nodeStack.length - 1) {
                 // target node is a sibling from the current node
-                this.currentNode = this.currentNode.addSibling(new NacNode(nodeType, nodeValue));
+                this.currentNode = this.currentNode.addSibling(nd);
                 this.nodeStack[this.nodeStack.length - 1] = this.currentNode;
             } else {
                 // target node is a parent from current node
@@ -361,7 +363,7 @@ function spaces(p) {
  * @return {boolean} true if a text node has been found
  */
 function textNode(p) {
-    let b = [], keepGoing = true, ccc = null;
+    let b = [], keepGoing = true, ccc = null, ln = p.lineNbr;
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== CHAR_LT && c !== CHAR_CURLYSTART && c !== CHAR_BACKSLASH && c !== CHAR_PERCENT && c !== CHAR_SLASH && c !== CHAR_VALUE));
         ccc = p.currentCharCode;
@@ -409,7 +411,7 @@ function textNode(p) {
         let s = b.join('').replace(/(^\s+)|(\s+$)/ig, " ");
         if (!s.match(/^\s+$/)) {
             // ignore white spaces only
-            p.addNode(NacNodeType.TEXT, s);
+            p.addNode(NacNodeType.TEXT, s, ln);
         }
         return true;
     }

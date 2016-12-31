@@ -110,6 +110,7 @@ export class NacNode {
     _closeToLastChild /*:NacNode*/;     // node from which we should start looking for the last child
     id;                                 // node id or undefined if not found - id should not be changed once set
     attName;                            // node @name or undefined if not found - @name should not be changed once set
+    lineNbr;                            // line number for error messages
 
     /**
      * NacNode constructor
@@ -122,6 +123,7 @@ export class NacNode {
         this.nodeNameSpace = undefined;
         this.nodeValue = nodeValue;
         this.firstSibling = this;
+        this.lineNbr = -1;
     };
 
     /**

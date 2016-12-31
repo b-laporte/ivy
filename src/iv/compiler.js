@@ -36,6 +36,7 @@ class CompilerBase {
     exposeInternals;// boolean - true is internal data should be exposed (test purpose)
     entityScope;    // context object inheriting from parent context and containing properties for each entity in the current scope
     parentScope;    // parent entityScope
+    lineNbrShift;   // shift to apply to all line numbers
 
     /**
      * Initialize common properties at the beginning of the compilation
@@ -49,6 +50,7 @@ class CompilerBase {
         this.baseIndent = initIndent;
         this.indentArray = [initIndent];
         this.exposeInternals = exposeInternals;
+        this.lineNbrShift = 0;
 
         let sc = {foundEntities: {}, entityList: []};
         this.scanEntities(nd, sc);
@@ -264,6 +266,15 @@ class CompilerBase {
         this.indentArray.pop();
         this.indent = this.indentArray.join("");
     }
+
+    /**
+     * Return the line number to put in the statics description
+     * @param nd
+     * @returns {*}
+     */
+    getLineNbr(nd) {
+        return this.lineNbrShift + nd.lineNbr;
+    }
 }
 
 class PkgCompiler extends CompilerBase {
@@ -381,7 +392,7 @@ class FunctionCompiler extends CompilerBase {
 
         let argType;
         for (let i = 0; argInitInstructions.length > i; i += 2) {
-            argType=typeMap[argInitInstructions[i]]
+            argType = typeMap[argInitInstructions[i]];
             if (argType !== "IvContent" && argType !== "IvNode") {
                 // we don't create default value for IvContent and IvNode nodes
                 this.fnContent.push([this.indent, argInitInstructions[i + 1]].join(''));
@@ -390,7 +401,7 @@ class FunctionCompiler extends CompilerBase {
 
         this.fnContent.push([this.indent, '$c.fs(', idx, '); // function start'].join(''));
 
-        this.statics.push([this.baseIndent, '[', idx, ', ', NacNodeType.FUNCTION, ', ',
+        this.statics.push([this.baseIndent, '[', idx, ', ', NacNodeType.FUNCTION, ', ', this.getLineNbr(nd), ', ',
             argNamesJs, ', ', argIdxJs, ', ', argTypesJs, ', "', contentName, '"]'].join(''));
 
         // recursively compile content elements
@@ -517,11 +528,11 @@ class FunctionCompiler extends CompilerBase {
                 staticArgsJs = '["' + staticArgs.join('", "') + '"]';
             }
 
-            this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', "',
+            this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', ', this.getLineNbr(nd), ', "',
                 argName, '", ', staticArgsJs, ']'].join(''));
 
         } else {
-            this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', "',
+            this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', ', this.getLineNbr(nd), ', "',
                 argName, '", 0]'].join(''));
         }
 
@@ -577,7 +588,7 @@ class FunctionCompiler extends CompilerBase {
 
         this.fnContent.push([this.indent, '$c.t(', idx, '); // ', v].join(''));
         let sv = nd.nodeValue.replace(REGEXP_NEWLINES, "\\n").replace(REGEXP_DOUBLE_QUOTES, "\\\"");
-        this.statics.push([this.baseIndent, '[', idx, ', ', nd.nodeType, ', "', sv, '"]'].join(''));
+        this.statics.push([this.baseIndent, '[', idx, ', ', nd.nodeType, ', ', this.getLineNbr(nd), ', "', sv, '"]'].join(''));
     }
 }
 

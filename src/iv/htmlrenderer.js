@@ -12,7 +12,7 @@ import {INSTRUCTIONS} from './instructions';
  */
 export function render(template, domContainer, args) {
     var hr = new HtmlRenderer(domContainer);
-    var view = template.apply(args);
+    var view = template.createView(args);
     hr.connect(view);
     return view;
 }

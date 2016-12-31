@@ -5,7 +5,7 @@
 
 import './nac.spec';
 import './parser.spec.js';
-import './nac2js.spec';
+import './compiler.spec';
 import './iv.spec';
 import './errors.spec';
 import './node.spec';

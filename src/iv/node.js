@@ -6,15 +6,15 @@
  * IV Virtual Node - abstract base class
  * Sub-classed by Text, Element or Group node classes
  */
-class IvNode {
+export class IvNode {
     isNode;             // true - indicates that this object is an IvNode
     index;              // integer identifying the node type in the node template
-    ref;                // non-static nodes have a unique ref to be easily updated
+    ref;                // non-static nodes have a unique ref to be easily updated by their renderer
     nextSibling;        // next IvNode in a node list
     firstChange;        // first change of the change linked list - used during refresh process
     lastChange;         // last change of the change linked list
     propagateChanges;   // boolean telling if changes should be automatically propagated to parent node
-    
+
     constructor(index) {
         this.isNode = true;
         this.index = index;
@@ -27,7 +27,7 @@ class IvNode {
      * @param options
      */
     toString(options = {indent: "", showRef: false}) {
-        var result = [];
+        let result = [];
         this.stringify(result, options);
         return result.join("\n");
     }
@@ -39,6 +39,53 @@ class IvNode {
      */
     stringify(buffer, options = {indent: "", showRef: false}) {
         /* Must be overridden by child classes */
+    }
+}
+
+/**
+ * Special class to differentiate nodes attributes that are used to reference the node content
+ */
+export class IvContent extends IvNode {
+
+}
+
+export class IvFunctionNode extends IvNode {
+    static templateCount = 0;
+    static createViewFn = null; // function used to create views -  injected by iv
+    isFunctionNode;             // true - to easily identify text nodes
+    templateData;
+    uid;                        // unique identifier
+    contentName;
+
+    constructor(index, func, statics) {
+        super(index);
+        this.isFunctionNode = true;
+        this.templateData = {
+            templateFn: func,
+            templateArgIdx: statics[0][3],
+            templateStatics: statics,
+            templateArgTypes: statics[0][4],
+            //templateId: "foo",
+            instanceCount: 0
+        };
+        this.uid = "T" + (IvFunctionNode.templateCount++);
+        this.contentName = statics[0][5];
+    }
+
+    createView(argMap, context) {
+        return IvFunctionNode.createViewFn(this, argMap, context);
+    }
+
+    /**
+     * Serialize the node into line-based strings pushed in the buffer passed as argument
+     * @param buffer {Array} array where the string will be pushed
+     * @param options {Object} optional, default: {indent: "", showRef: false}
+     */
+    stringify(buffer, options = {indent: "", showRef: false}) {
+        buffer.push([
+                options.indent, "<#function ", this.index, "/>"
+            ].join("")
+        )
     }
 }
 
@@ -58,7 +105,7 @@ export class IvTextNode extends IvNode {
      * @param options {Object} optional, default: {indent: "", showRef: false}
      */
     stringify(buffer, options = {indent: "", showRef: false}) {
-        var v = this.value, nv;
+        let v = this.value, nv;
         options = checkOptions(options);
 
         if (typeof v === "string") {
@@ -94,7 +141,7 @@ export class IvGroupNode extends IvNode {
      * @param options {Object} optional, default: {indent: "", showRef: false}
      */
     stringify(buffer, options = {indent: "", showRef: false}) {
-        var hasChildren = this.firstChild !== null,
+        let hasChildren = this.firstChild !== null,
             dataAtts = "",
             endSign = hasChildren ? ">" : "/>";
         options = checkOptions(options);
@@ -111,6 +158,48 @@ export class IvGroupNode extends IvNode {
         if (hasChildren) {
             stringifyChildNodes(buffer, options, this.firstChild);
             buffer.push([options.indent, "</#group>"].join(""));
+        }
+    }
+}
+
+/**
+ * Attribute node - e.g. <:header important=true>Some Message</:header>
+ */
+export class IvDataNode extends IvNode {
+    isDataNode;        // true - to easily identify data nodes
+    firstChild;       // first child node (linked list)
+    data;             // meta-data associated to this node
+
+    constructor(index) {
+        super(index);
+        this.isDataNode = true;
+        this.firstChild = null;
+        this.data = {};
+        this.propagateChanges = true;
+    }
+
+    /**
+     * Serialize the node into line-based strings pushed in the buffer passed as argument
+     * @param buffer {Array} array where the string will be pushed
+     * @param options {Object} optional, default: {indent: "", showRef: false}
+     */
+    stringify(buffer, options = {indent: "", showRef: false}) {
+        let hasChildren = this.firstChild !== null,
+            endSign = hasChildren ? ">" : "/>";
+        options = checkOptions(options);
+
+        // if (this.data && this.data.attributes) {
+        //     dataAtts = stringifyAttributes(this.data.attributes, "data-");
+        // }
+
+        buffer.push([
+                options.indent, "<#data ", this.index, " ", endSign
+            ].join("")
+        );
+
+        if (hasChildren) {
+            stringifyChildNodes(buffer, options, this.firstChild);
+            buffer.push([options.indent, "</#data>"].join(""));
         }
     }
 }
@@ -137,11 +226,11 @@ export class IvEltNode extends IvNode {
      * @param options {Object} optional, default: {indent: "", showRef: false}
      */
     stringify(buffer, options = {indent: "", showRef: false}) {
-        var hasChildren = this.firstChild !== null,
+        let hasChildren = this.firstChild !== null,
             endSign = hasChildren ? ">" : "/>";
         options = checkOptions(options);
 
-        var atts = stringifyAttributes(this.attributes);
+        let atts = stringifyAttributes(this.attributes);
 
         buffer.push([
                 options.indent, "<", this.name, " ", this.index, refAtt(this, options), atts, endSign
@@ -178,7 +267,7 @@ function refAtt(obj, options) {
 }
 
 function stringifyChildNodes(buffer, options, firstChild) {
-    var options2 = {
+    let options2 = {
         indent: options.indent + "    ",
         showRef: options.showRef
     }, ch = firstChild;
@@ -190,9 +279,9 @@ function stringifyChildNodes(buffer, options, firstChild) {
 }
 
 function stringifyAttributes(atts, namePrefix = "") {
-    var attList = [], buffer = [], val;
+    let attList = [], buffer = [], val;
     // sort the attributes by name to avoid x-browser discrepancies
-    for (var k in atts) {
+    for (let k in atts) {
         if (atts.hasOwnProperty(k)) {
             val = atts[k];
             if (typeof atts[k] === "string") {
@@ -207,7 +296,7 @@ function stringifyAttributes(atts, namePrefix = "") {
     }
     if (attList.length > 0) {
         attList.sort();
-        for (var i = 0; attList.length > i; i++) {
+        for (let i = 0; attList.length > i; i++) {
             buffer.push([" ", attList[i][0], "=", attList[i][1]].join(""));
         }
     }

@@ -9,7 +9,7 @@
 import {iv} from '../src/iv/iv';
 
 describe('IV errors', () => {
-    var originalLog = iv.log, lastError = null;
+    let originalLog = iv.log, lastError = null;
 
     function errlog(err) {
         lastError = err;
@@ -24,33 +24,49 @@ describe('IV errors', () => {
         iv.log = originalLog;
     });
 
+    // it('should be raised when no content attribute is defined but content is passed', () => {
+    //     let pkg = iv`
+    //             <function #test>
+    //                 <panel>
+    //                     Some content
+    //                 </panel>
+    //             </function>
+    //
+    //             <function #panel title="" />
+    //         `;
+    //
+    //     pkg.test.createView();
+    //     expect(lastError.description()).toBe("[#foo/panel] Content not supported by this component");
+    // });
+
+
     it('should be raised when no type information is passed for IvNode attributes', () => {
-        var pkg = iv`
-            <template #test>
+        let pkg = iv`
+            <function #test>
                 <panel>
-                    <div @title> Hello </div>
+                    <:title> Hello </:title>
                 </panel>
-            </template>
-    
-            <template #panel title="" />
+            </function>
+
+            <function #panel title="" />
         `;
 
-        pkg.test.apply();
-        expect(lastError.description()).toBe("[template#test/@title] Type description not found for the 'title' attribute -  IvNode or IvObject expected");
+        pkg.test.createView();
+        expect(lastError.description()).toBe("[:title] Type description not found for the 'title' attribute");
     });
 
     it('should be raised when invalid type information is passed for IvNode attributes', () => {
-        var pkg = iv`
-            <template #test>
+        let pkg = iv`
+            <function #test>
                 <panel>
-                    <div @title> Hello </div>
+                    <:title> Hello </:title>
                 </panel>
-            </template>
-    
-            <template #panel title:string="" />
+            </function>
+
+            <function #panel title:String="" />
         `;
 
-        pkg.test.apply();
-        expect(lastError.description()).toBe("[template#test/@title] Invalid type for the 'title' attribute: string");
+        pkg.test.createView();
+        expect(lastError.description()).toBe("[:title] Invalid type for the 'title' attribute");
     });
 });

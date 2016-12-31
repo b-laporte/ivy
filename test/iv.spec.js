@@ -10,20 +10,20 @@ import {iv} from '../src/iv/iv';
 import {compare, diff} from './utils';
 
 describe('IV runtime', () => {
-    var OPTIONS = {indent: "            "}, OPTIONS2 = {indent: OPTIONS.indent, showRef: true};
+    let OPTIONS = {indent: "            "}, OPTIONS2 = {indent: OPTIONS.indent, showRef: true};
 
     it('should generate simple nodes', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 <div class="hello">
                     // some comment
                     <span class="one" title="blah" foo=nbr+4> Hello </span>
                     <span class="two" [baz]=nbr+3 [bar]=nbr*2> World </span>
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply({nbr: 42});
+        let view = pkg.test.createView({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
             <#group 0 template>
                 <div 1 class="hello">
@@ -42,7 +42,7 @@ describe('IV runtime', () => {
             CREATE_GROUP: XX:0:0`
         )).toBe("equal");
 
-        var vdom1 = view.vdom;
+        let vdom1 = view.vdom;
         view.refresh({nbr: 5});
         expect(view.vdom).toBe(vdom1);
         expect(diff(view.vdom.toString(OPTIONS2), `\
@@ -64,16 +64,16 @@ describe('IV runtime', () => {
     });
 
     it('should support text inserts', () => {
-        var pkg = iv `
-            <template #test nbr msg>
+        let pkg = iv `
+            <function #test nbr msg>
                 <div>
                     <span> {{nbr+10}} </span>
                     <span> A {{msg}} B </span>
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply({nbr: 42, msg: "Hello!"}), vdom1;
+        let view = pkg.test.createView({nbr: 42, msg: "Hello!"}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -123,9 +123,10 @@ describe('IV runtime', () => {
         expect(diff(view.vdom.toString(OPTIONS2), vdom1)).toBe("equal");
     });
 
+
     it('should support simple if blocks', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 <div>
                     ABC
                     % if (nbr===42) {
@@ -134,11 +135,11 @@ describe('IV runtime', () => {
                     % }
                     <span> DEF </span>
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX"; // for test only to get a reproducible id value
 
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -208,7 +209,7 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         // test that template instance ref is increasing for view count (2nd part)
-        var view2 = pkg.test.apply({nbr: 9});
+        let view2 = pkg.test.createView({nbr: 9});
         expect(diff(view2.vdom.toString({indent: OPTIONS.indent, showRef: true}), `\
             <#group 0 template ref="XX:1:0">
                 <div 1 ref="XX:1:1">
@@ -221,9 +222,10 @@ describe('IV runtime', () => {
         )).toBe("equal");
     });
 
+
     it('should support if blocks at template start', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 % if (nbr===42) {
                     <span> Hello World </span>
                 % }
@@ -231,10 +233,10 @@ describe('IV runtime', () => {
                     ABC
                     <span> DEF </span>
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <div 4>
@@ -276,8 +278,8 @@ describe('IV runtime', () => {
     });
 
     it('should support if blocks at template end', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 <div>
                     ABC
                     <span> DEF </span>
@@ -285,10 +287,10 @@ describe('IV runtime', () => {
                 % if (nbr===42) {
                     <span> Hello World </span>
                 % }
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <div 1>
@@ -329,15 +331,15 @@ describe('IV runtime', () => {
     });
 
     it('should support if blocks as full template', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 % if (nbr===42) {
                     <span> Hello </span>
                     <span> World </span>
                 % }
-            </template>
+            </function>
         `;
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template/>`
         )).toBe("equal");
@@ -362,9 +364,10 @@ describe('IV runtime', () => {
         expect(compare(view.vdom, vdom1)).toEqual('');
     });
 
+
     it('should support if blocks as full node content', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 foo
                 <div>
                 % if (nbr===42) {
@@ -373,9 +376,9 @@ describe('IV runtime', () => {
                 % }
                 </div>
                 bar
-            </template>
+            </function>
         `;
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <#text 1 " foo "/>
@@ -408,10 +411,9 @@ describe('IV runtime', () => {
         expect(compare(view.vdom, vdom1)).toEqual('');
     });
 
-
     it('should support if blocks at node start', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 <div>
                     % if (nbr===42) {
                         <span> Hello World </span>
@@ -421,9 +423,9 @@ describe('IV runtime', () => {
                         <span> DEF </span>
                     </div>
                 </div>
-            </template>
+            </function>
         `;
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <div 1>
@@ -463,8 +465,8 @@ describe('IV runtime', () => {
     });
 
     it('should support if+else blocks', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 <div>
                     foo
                     % if (nbr===42) {
@@ -474,10 +476,10 @@ describe('IV runtime', () => {
                     % }
                     bar
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -520,16 +522,16 @@ describe('IV runtime', () => {
     });
 
     it('should support if+else blocks for full template', () => {
-        var pkg = iv `
-            <template #test nbr>
+        let pkg = iv `
+            <function #test nbr>
                 % if (nbr===42) {
                     <span> Case 42 </span>
                 % } else {
                     <span> Case != 42 </span>
                 % }
-            </template>
+            </function>
         `;
-        var view = pkg.test.apply({nbr: 3}), vdom1;
+        let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
             <#group 0 template>
                 <#group 4 js>
@@ -556,20 +558,20 @@ describe('IV runtime', () => {
     });
 
     it('should support for loops', () => {
-        var pkg = iv `
-            <template #test list=[]>
+        let pkg = iv `
+            <function #test list=[]>
                 <div>
                     // % debugger
                     <div title="first"/>
-                    % for (var i=0;list.length>i;i++) {
+                    % for (let i=0;list.length>i;i++) {
                         <div [title]=("Hello " + list[i].name)/>
                     % }
                     <div title="last"/>
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply(), vdom1;
+        let view = pkg.test.createView(), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -643,11 +645,11 @@ describe('IV runtime', () => {
     });
 
     it('should support for loops with if statements', () => {
-        var pkg = iv `
-            <template #test list=[] condition=false>
+        let pkg = iv `
+            <function #test list=[] condition=false>
                 <div>
                     <div title="first"/>
-                    % for (var i=0;list.length>i;i++) {
+                    % for (let i=0;list.length>i;i++) {
                         <div [title]=("item " + i + ": " + list[i])/>
                         % if (condition) {
                         <div> OK </div>
@@ -655,10 +657,10 @@ describe('IV runtime', () => {
                     % }
                     <div title="last"/>
                 </div>
-            </template>
+            </function>
         `;
         pkg.test.uid = "XX";
-        var view = pkg.test.apply({list: ["Omer", "Marge"], condition: true}), vdom1;
+        let view = pkg.test.createView({list: ["Omer", "Marge"], condition: true}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -708,28 +710,29 @@ describe('IV runtime', () => {
         expect(compare(view.vdom, vdom1)).toEqual('');
     });
 
+
     it('should support sub-templates', () => {
-        var pkg = iv`
-            <template #foo v:number=123>
+        let pkg = iv`
+            <function #foo v:Number=123>
                 <div>
                     <span>first</span>
                     <bar [value]=v+1 msg=("m1:"+v)/>
                     <bar [value]=v+3 msg=("m2:"+v)/>
                     <span>last</span>
                 </div>
-            </template>
+            </function>
             
-            <template #bar value msg="">
+            <function #bar value msg="">
                 <span [title]=(value+' '+msg)/>
                 % if (value === 45) {
                     <span> Hello 45! </span>
                 % }
-            </template>
+            </function>
         `;
 
         pkg.foo.uid = "XX";
         pkg.bar.uid = "YY";
-        var view = pkg.foo.apply({v: 9}), vdom1;
+        let view = pkg.foo.createView({v: 9}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
@@ -793,8 +796,8 @@ describe('IV runtime', () => {
     });
 
     it('should support sub-templates with content', () => {
-        var pkg = iv`
-            <template #foo v:number=1 msg="hello">
+        let pkg = iv`
+            <function #foo v:Number=1 msg="hello">
                 <div>
                     AAA
                     <bar [value]=v>
@@ -802,25 +805,25 @@ describe('IV runtime', () => {
                     </bar>
                     BBB
                 </div>
-            </template>
+            </function>
     
-            <template #bar value=1 content:IvNode="">
+            <function #bar value=1 body:IvContent>
                 <span [title]=value> first </span>
                 % if (value !== 42) {
-                    <span>Z {{content}} Z</span>
+                    <span>Z {{body}} Z</span>
                 % }
                 <span> last </span>
-            </template>
+            </function>
         `;
 
         pkg.foo.uid = "XX";
         pkg.bar.uid = "YY";
-        var view = pkg.foo.apply({v: 9});
+        let view = pkg.foo.createView({v: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-content=IvNode data-value=9>
+                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=9>
                         <span 1 ref="YY:0:0" title=9>
                             <#text 2 " first "/>
                         </span>
@@ -852,7 +855,7 @@ describe('IV runtime', () => {
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-content=IvNode data-value=42>
+                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=42>
                         <span 1 ref="YY:0:0" title=42>
                             <#text 2 " first "/>
                         </span>
@@ -875,7 +878,7 @@ describe('IV runtime', () => {
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-content=IvNode data-value=9>
+                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=9>
                         <span 1 ref="YY:0:0" title=9>
                             <#text 2 " first "/>
                         </span>
@@ -912,7 +915,7 @@ describe('IV runtime', () => {
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-content=IvNode data-value=31>
+                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=31>
                         <span 1 ref="YY:0:0" title=31>
                             <#text 2 " first "/>
                         </span>
@@ -945,91 +948,29 @@ describe('IV runtime', () => {
         )).toBe("equal");
     });
 
-    it('should support sub-templates with multiple content', () => {
-        var pkg = iv`
-            <template #test testCase=1>
-                Case #{{testCase}}
-                % if (testCase === 1) {
-                    <panel>
-                        <div @title> Hello <img src="smile.png"/></div>
-                        <div @body> 
-                            <p>Some content</p>
-                        </div>
-                    </panel>
-                % }
-            </template>
-    
-            <template #panel title:IvObject="" body:IvNode="">
-                % if (body) {
-                    <div class="panel">
-                        % if (title) {
-                            <div class="title">{{title.content}}</div>
-                        % }
-                        <div class="body">{{body}}</div>
-                    </div>
-                % }
-            </template>
-        `;
-
-        pkg.test.uid = "XX";
-        pkg.panel.uid = "YY";
-        var view = pkg.test.apply({testCase: 1});
-        expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
-                <#text 1 " Case #"/>
-                <#group 2 insert ref="XX:0:1">
-                    <#text -1 ref="XX:0:2" "1"/>
-                </#group>
-                <#group 3 js ref="XX:0:3">
-                    <#group 4 panel ref="XX:0:4" data-body=IvNode data-content=IvNode data-title=Object>
-                        <#group 1 js ref="YY:0:0">
-                            <div 2 ref="YY:0:1" class="panel">
-                                <#group 3 js ref="YY:0:2">
-                                    <div 4 ref="YY:0:3" class="title">
-                                        <#group 5 insert ref="YY:0:4">
-                                            <#text 6 " Hello "/>
-                                            <img 7 src="smile.png"/>
-                                        </#group>
-                                    </div>
-                                </#group>
-                                <div 6 ref="YY:0:5" class="body">
-                                    <#group 7 insert ref="YY:0:6">
-                                        <p 9 ref="XX:0:7">
-                                            <#text 10 "Some content"/>
-                                        </p>
-                                    </#group>
-                                </div>
-                            </div>
-                        </#group>
-                    </#group>
-                </#group>
-            </#group>`
-        )).toBe("equal");
-    });
-
     it('should support sub-templates with for loops', () => {
-        var pkg = iv`
-            <template #test list>
+        let pkg = iv`
+            <function #test list>
                <div #main>
-                  % for (var i=0;list.length>i;i++) {
+                  % for (let i=0;list.length>i;i++) {
                       <sub [data]=list[i]/>
                   % }
                </div>
-            </template>
+            </function>
     
-            <template #sub data>
+            <function #sub data>
                 <div [title]=data.title>{{data.content}}</div>
-            </template>
+            </function>
         `;
 
         pkg.test.uid = "XX";
         pkg.sub.uid = "YY";
-        var list = [
+        let list = [
             {title: "ta0", content: "ca0"},
             {title: "tb0", content: "cb0"}
         ];
 
-        var view = pkg.test.apply({list: list});
+        let view = pkg.test.createView({list: list});
         expect(diff(view.vdom.toString(OPTIONS2), `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1" id="main">
@@ -1087,7 +1028,70 @@ describe('IV runtime', () => {
 
     });
 
+    it('should support sub-templates with multiple content', () => {
+        let pkg = iv`
+            <function #test testCase=1>
+                Case #{{testCase}}
+                % if (testCase === 1) {
+                    <panel>
+                        <:title> Hello <img src="smile.png"/></:title>
+                        <:body>
+                            <p>Some content</p>
+                        </:body>
+                    </panel>
+                % }
+            </function>
 
+            <function #panel title:IvNode body:IvNode>
+                % if (body) {
+                    <div class="panel">
+                        % if (title) {
+                            <div class="title">{{title}}</div>
+                        % }
+                        <div class="body">{{body}}</div>
+                    </div>
+                % }
+            </function>
+        `;
+
+        pkg.test.uid = "XX";
+        pkg.panel.uid = "YY";
+        let view = pkg.test.createView( {testCase: 1});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 template ref="XX:0:0">
+                <#text 1 " Case #"/>
+                <#group 2 insert ref="XX:0:1">
+                    <#text -1 ref="XX:0:2" "1"/>
+                </#group>
+                <#group 3 js ref="XX:0:3">
+                    <#group 4 panel ref="XX:0:4" data-$content=IvNode data-body=IvNode data-title=IvNode>
+                        <#group 1 js ref="YY:0:0">
+                            <div 2 ref="YY:0:1" class="panel">
+                                <#group 3 js ref="YY:0:2">
+                                    <div 4 ref="YY:0:3" class="title">
+                                        <#group 5 insert ref="YY:0:4">
+                                            <#text 6 " Hello "/>
+                                            <img 7 src="smile.png"/>
+                                        </#group>
+                                    </div>
+                                </#group>
+                                <div 6 ref="YY:0:5" class="body">
+                                    <#group 7 insert ref="YY:0:6">
+                                        <p 9 ref="XX:0:5">
+                                            <#text 10 "Some content"/>
+                                        </p>
+                                    </#group>
+                                </div>
+                            </div>
+                        </#group>
+                    </#group>
+                </#group>
+            </#group>`
+        )).toBe("equal");
+    });
+
+
+    // todo $v test
     // todo subtemplate in for loop
     // todo subtemplate with if at root level
     // todo template with content list  content:IvNode[]

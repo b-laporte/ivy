@@ -322,7 +322,7 @@ export function parse(strings, values) {
     try {
         let keepGoing = true;
         while (keepGoing) {
-            if (!node(p) && !jsComment(p) && (spaces(p).length === 0)) {
+            if (!node(p) && !jsComment(p) && !jsNode(p) && (spaces(p).length === 0)) {
                 // nothing more can be found
                 keepGoing = false;
             }
@@ -433,17 +433,24 @@ function node(p) {
         nodeContent(p);
         let cn = p.colNbr;
         let nm = nodeEnd(p);
-        if (nm !== ns.node.nodeName) {
+        if (nm.name !== ns.node.nodeName) {
             if (cn > -1) {
                 p.colNbr = cn + 2; // to have a better error message
             }
-            throw "End element '" + nm + "' doesn't match start element name";
+            throw "End element '" + nm.name + "' doesn't match start element name";
+        } else if (nm.prefix !== undefined || ns.prefix !== undefined) {
+            if (nm.prefix !== ns.node.nodeNameSpace) {
+                throw "End element namespace '" + nm.prefix + "' doesn't match start element namespace";
+            }
         }
         if (initialJsStackDepth !== p.jsBlockStack.length) {
             if (cn > -1) {
-                p.colNbr -= (nm.length + 2);
+                p.colNbr -= (nm.name.length + 2);
+                if (nm.prefix !== undefined) {
+                    p.colNbr -= (nm.prefix.length + 1);
+                }
             }
-            throw "End of '" + nm + "' node is incompatible with JS block structure";
+            throw "End of '" + nm.name + "' node is incompatible with JS block structure";
         }
         p.shiftNodeDepth(-1);
     }
@@ -473,9 +480,13 @@ function nodeStart(p) {
     let ns = {node: null, closed: false};
     p.advanceChar(CHAR_LT, true);
     spaces(p);
-    let nd = p.addNode(NacNodeType.ELEMENT);
-    nd.nodeName = nodeName(p);
+    let nd = p.addNode(NacNodeType.ELEMENT), nm = nodeName(p);
+    nd.nodeName = nm.name;
+    if (nm.prefix !== undefined) {
+        nd.nodeNameSpace = nm.prefix;
+    }
     ns.node = nd;
+    ns.prefix = nm.prefix;
     spaces(p);
     nodeAttributes(p, nd);
     ns.closed = p.advanceChar(CHAR_SLASH, false);
@@ -786,23 +797,32 @@ function attValueAsBlock(p, att, useCurlyBrackets = false) {
 function nodeEnd(p) {
     p.advanceChar(CHAR_LT, true);
     p.advanceChar(CHAR_SLASH, true);
-    let name = nodeName(p);
+    let nm = nodeName(p);
     spaces(p);
     p.advanceChar(CHAR_GT, true);
-    return name;
+    return nm;
 }
 
 /**
  * Parse an element name. Must be alpha char first, and alpha num then - e.g. div
  * @param p the current parser
- * @returns {string} the node name
+ * @returns {} the node name structure (with name and prefix properties)
  */
 function nodeName(p) {
-    let b = [];
-    if (!p.advanceMany(b, isJsIdentifierChar)) {
+    let b = [], hasEmptyNamespace = p.advanceChar(CHAR_COLON, false);
+
+    if (!hasEmptyNamespace && !p.advanceMany(b, isJsIdentifierChar)) {
         throw "Invalid character in node name: '" + p.currentChar + "'";
     }
-    return b.join("");
+    if (hasEmptyNamespace || p.advanceChar(CHAR_COLON, false)) {
+        let b2 = [];
+        if (!p.advanceMany(b2, isJsIdentifierChar)) {
+            throw "Invalid character in node name: '" + p.currentChar + "'";
+        }
+        return {prefix: b.join(""), name: b2.join("")};
+    } else {
+        return {name: b.join("")};
+    }
 }
 
 /**

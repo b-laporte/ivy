@@ -45,6 +45,7 @@ export function n(nodeName, nodeValue = null, value2 = null)/*:NacNode*/ {
 
 export const NacNodeType = {
     ELEMENT: 1,
+    FUNCTION: 2,        // function node e.g. <function #foo/>
     TEXT: 3,
     COMMENT: 8,
     COMMENT_ML: 9,      // multi-line comment
@@ -53,6 +54,7 @@ export const NacNodeType = {
     JS_BLOCK: 14,       // e.g. % let foo = 3;
     COMPONENT: 15,
     ATT_NODE: 16,       // attribute node e.g. <div @foo/>
+
 
     /**
      * Returns a friendly name for each type - useful for debug info
@@ -78,6 +80,8 @@ export const NacNodeType = {
                 return "#text";
             case this.ATT_NODE:
                 return "@node";
+            case this.FUNCTION:
+                return "#function";
         }
         return "#invalidtype";
     }
@@ -97,6 +101,7 @@ export class NacNode {
     nodeType /*:NacNodeType*/;
     nodeValue /*:string*/;
     nodeName;                           // node name for element nodes or optionally "#text", "#comment" or "#js" for other node types when created through n()
+    nodeNameSpace;                      // namespace - or undefined
     nextSibling /*:NacNode*/;           // next sibling in the current linked list
     firstSibling /*:NacNode*/;		    // first sibling of the current node linked list
     firstAttribute /*:NacAttribute*/;	// reference to the first element of the attribute linked list
@@ -114,6 +119,7 @@ export class NacNode {
     constructor(nodeType, nodeValue = null) {
         this.nodeType = nodeType;
         this.nodeName = "";
+        this.nodeNameSpace = undefined;
         this.nodeValue = nodeValue;
         this.firstSibling = this;
     };

@@ -11,29 +11,29 @@ import {render} from '../src/iv/htmlrenderer';
 import {diff} from './utils';
 
 describe('HTML renderer', () => {
-    var OPTIONS2 = {indent: "            ", showRef: true};
+    let OPTIONS2 = {indent: "            ", showRef: true};
 
     it('should render CREATE_GROUP for root template', () => {
-        var pkg = iv `
-            <template #test nbr msg>
+        let pkg = iv `
+            <function #test nbr msg>
                 <div class="hello">
                     // some comment
                     <span class="one" title="blah" foo=nbr+4> {{msg}} </span>
                     <span [class]=("two"+nbr) [baz]=nbr+3 [bar]=nbr*2> World </span>
                 </div>
-            </template>
+            </function>
         `;
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
 
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {nbr: 42, msg: "Hello"}), nd;
+        let view = render(pkg.test, df, {nbr: 42, msg: "Hello"}), nd;
 
         nd = df.firstChild;
         expect(nd.nodeType).toBe(Node.COMMENT_NODE);
         expect(nd.nodeValue).toBe("start: template XX:0:0");
 
-        var divHello = nd = nd.nextSibling;
+        let divHello = nd = nd.nextSibling;
         expect(nd.nodeType).toBe(Node.ELEMENT_NODE);
 
         nd = nd.nextSibling;
@@ -50,7 +50,7 @@ describe('HTML renderer', () => {
         expect(nd.getAttribute("title")).toBe("blah");
         expect(nd.getAttribute("foo")).toBe("46");
 
-        var txt = nd.childNodes[1];
+        let txt = nd.childNodes[1];
         expect(txt.nodeValue).toBe("Hello");
         expect(txt.nodeType).toBe(Node.TEXT_NODE);
 
@@ -62,20 +62,20 @@ describe('HTML renderer', () => {
     });
 
     it('should render UPDATE_ELEMENT and UPDATE_TEXT', () => {
-        var pkg = iv `
-            <template #test nbr msg>
+        let pkg = iv `
+            <function #test nbr msg>
                 <div class="hello">
                     // some comment
                     <span class="one" title="blah" foo=nbr+4> {{msg}} </span>
                     <span [class]=("two"+nbr) [baz]=nbr+3 [bar]=nbr*2> World </span>
                 </div>
-            </template>
+            </function>
         `;
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
 
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {nbr: 42, msg: "Hello"}), nd;
+        let view = render(pkg.test, df, {nbr: 42, msg: "Hello"}), nd;
 
         view.refresh({nbr: 5, msg: "Hi"});
 
@@ -93,8 +93,8 @@ describe('HTML renderer', () => {
     });
 
     it('should render CREATE_GROUP and DELETE_GROUP in element', () => {
-        var pkg = iv `
-            <template #test nbr msg>
+        let pkg = iv `
+            <function #test nbr msg>
                 <div class="hello">
                     first
                     % if (nbr === 9) {
@@ -102,13 +102,13 @@ describe('HTML renderer', () => {
                     % }
                     last
                 </div>
-            </template>
+            </function>
         `;
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
 
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {nbr: 42}), nd;
+        let view = render(pkg.test, df, {nbr: 42}), nd;
 
         nd = df.childNodes[1].childNodes[1]; // text: last
         expect(df.childNodes[1].childNodes.length).toBe(2);
@@ -145,8 +145,8 @@ describe('HTML renderer', () => {
     });
 
     it('should render CREATE_GROUP and DELETE_GROUP in group', () => {
-        var pkg = iv `
-            <template #test a b c>
+        let pkg = iv `
+            <function #test a b c>
                 <div class="hello">
                     hello
                     % if (true) {
@@ -161,12 +161,12 @@ describe('HTML renderer', () => {
                         % }
                     % }
                 </div>
-            </template>
+            </function>
         `;
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {a: true, b: false, c: false}), nd;
+        let view = render(pkg.test, df, {a: true, b: false, c: false}), nd;
         expect(diff(view.vdom.toString(OPTIONS2), `\
             <#group 0 template ref="XX:0:0">
                 <div 1 ref="XX:0:1" class="hello">
@@ -208,20 +208,20 @@ describe('HTML renderer', () => {
     });
 
     it('should render CREATE_GROUP and DELETE_GROUP at element end', () => {
-        var pkg = iv `
-            <template #test a>
+        let pkg = iv `
+            <function #test a>
                 <div class="hello">
                     hello
                     % if (a) {
                         <span> A </span>
                     % }
                 </div>
-            </template>
+            </function>
         `;
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {a: false}), nd;
+        let view = render(pkg.test, df, {a: false}), nd;
 
         nd = df.childNodes[1]; // div.hello
         expect(nd.childNodes.length).toBe(1);
@@ -239,20 +239,20 @@ describe('HTML renderer', () => {
     });
 
     it('should ignore UPDATE_GROUP', () => {
-        var pkg = iv `
-            <template #test msg>
+        let pkg = iv `
+            <function #test msg>
                 <someTextInSpan [msg]=msg/>
                 <someTextInSpan [msg]=msg/>
-            </template>
+            </function>
             
-            <template #someTextInSpan msg>
+            <function #someTextInSpan msg>
                 <span [title]=msg>Some Text</span>
-            </template>
+            </function>
         `;
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {msg: "hello"}), nd;
+        let view = render(pkg.test, df, {msg: "hello"}), nd;
         expect(df.childNodes.length).toBe(8);
         expect(df.childNodes[2].title).toBe("hello");
 
@@ -261,27 +261,27 @@ describe('HTML renderer', () => {
     });
 
     it('should support event handlers', () => {
-        var pkg = iv `
-            <template #test ctrl>
+        let pkg = iv `
+            <function #test ctrl>
                 <div class="foo">
                     <span class="bar" onclick(e)=ctrl.doClick(123,e)> click here </span>
                 </div>
-            </template>
+            </function>
         `;
 
-        var data = 0, clsName = null, c = {
+        let data = 0, clsName = null, c = {
             doClick: function (msg, e) {
                 data = msg + "!";
                 clsName = e.target.className;
             }
         };
 
-        var df = new DocumentFragment();
+        let df = new DocumentFragment();
         pkg.test.uid = "XX";
-        var view = render(pkg.test, df, {ctrl: c}), nd;
+        let view = render(pkg.test, df, {ctrl: c}), nd;
 
         expect(df.childNodes.length).toBe(3);
-        var span = df.childNodes[1].childNodes[0];
+        let span = df.childNodes[1].childNodes[0];
         span.click();
         expect(data).toBe("123!");
         expect(clsName).toBe("bar");

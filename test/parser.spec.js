@@ -63,12 +63,37 @@ describe('IV parser', () => {
     });
 
     it('should parse a simple node', () => {
-        expect(compare(nac`
+        let nc = nac`
             <div></div>
             <Hello/>
             <$yes/>
-        `, n("div").n("Hello").n("$yes")
-        )).toEqual('');
+        `;
+        expect(compare(nc, n("div").n("Hello").n("$yes"))).toEqual('');
+        expect(nc.nodeNameSpace).toBe(undefined);
+    });
+
+    it('should parse a simple node with namespace', () => {
+        let nc = nac`
+            <foo:div> </foo:div>
+            <Hello/>
+            <$yes/>
+        `;
+        expect(compare(nc, n("div").n("Hello").n("$yes"))).toEqual('');
+        expect(nc.nodeNameSpace).toBe("foo");
+
+        nc = nac`
+            <:div> </:div>
+            <Hello/>
+            <$yes/>
+        `;
+        expect(compare(nc, n("div").n("Hello").n("$yes"))).toEqual('');
+        expect(nc.nodeNameSpace).toBe("");
+    });
+
+    it('should raise an error for invalid end prefix', () => {
+        expect(error`
+          <foo:bar> blah </fo:bar>
+        `).toBe("(2:34) End element namespace 'fo' doesn't match start element namespace");
     });
 
     it('should parse nested nodes', () => {

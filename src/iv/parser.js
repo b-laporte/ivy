@@ -213,7 +213,7 @@ class Parser {
         } else {
             if (mandatory) {
                 if (this.currentCharCode === CHAR_EOF) {
-                    throw "Unexpected end of template";
+                    throw "Unexpected end of package: " + String.fromCharCode(charCode) + " expected instead";
                 } else {
                     if (this.currentCharCode === CHAR_NEWLINE) {
                         this.currentChar = "\\n";
@@ -588,6 +588,11 @@ function nodeAttributeName(p, attMap) {
                 }
             } else {
                 att.typeRef = b.join("");
+            }
+            // parse [] for arrays
+            if (p.advanceChar(CHAR_BRACKETSTART, false)) {
+                p.advanceChar(CHAR_BRACKETEND, true);
+                att.typeRef += "[]";
             }
         } else if (p.advanceChar(CHAR_PARENSTART, false)) {
             // function attribute e.g. foo(event)=bar(event.value)

@@ -39,13 +39,13 @@ describe('Iv compiler', () => {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, [], ""]
+                [0, 2, 2, [], {}, 0, 0, 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
     });
 
-    it('should properly identify template arguments', () => {
+    it('should properly identify function arguments', () => {
         let r = cpl`
             <function #foo arg1:String="bar" arg2 arg3:Number arg4=123>
             </function>
@@ -61,7 +61,27 @@ describe('Iv compiler', () => {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["arg1", "arg2", "arg3", "arg4"], {"arg1":0, "arg2":1, "arg3":2, "arg4":3}, [String, 0, Number, 0], ""]
+                [0, 2, 2, ["arg1", "arg2", "arg3", "arg4"], {"arg1":0, "arg2":1, "arg3":2, "arg4":3}, ["arg1", String, "arg2", 0, "arg3", Number, "arg4", 0], 0, 0, 0]
+            ]);
+            return {foo:foo};`
+        )).toBe("equal");
+    });
+
+    it('should support list arguments', () => {
+        let r = cpl`
+            <function #foo nameList:String[] nbrList:Number[]=[1,2,3]>
+            </function>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var foo;
+            foo = $c.fn(0, function($c, nameList, nbrList) {
+                nameList = (nameList !== undefined)? nameList : [];
+                nbrList = (nbrList !== undefined)? nbrList : [1,2,3];
+                $c.fs(0); // function start
+                $c.fe(0); // function end
+            },[
+                [0, 2, 2, ["nameList", "nbrList"], {"nameList":0, "nbrList":1}, 0, ["nameList", "name", String, "nbrList", "nbr", Number], 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -80,9 +100,57 @@ describe('Iv compiler', () => {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["arg", "body"], {"arg":0, "body":1}, [String, $iv.IvContent], "body"]
+                [0, 2, 2, ["arg", "body"], {"arg":0, "body":1}, ["arg", String], 0, "body", 0]
             ]);
             return {foo:foo};`
+        )).toBe("equal");
+    });
+
+    it('should compile type nodes', () => {
+        let r = cpl`
+            <type #Basic simple:String active:Boolean nbr:Number title:IvNode selection/>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var Basic;
+            Basic = $c.td(2, ["simple", String, "active", Boolean, "nbr", Number, "title", $iv.IvNode, "selection", 0], 0, 0, 0);
+            return {Basic:Basic};`
+        )).toBe("equal");
+    });
+
+    it('should compile type nodes with content', () => {
+        let r = cpl`
+            <type #Basic body:IvContent/>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var Basic;
+            Basic = $c.td(2, 0, 0, "body", 0);
+            return {Basic:Basic};`
+        )).toBe("equal");
+    });
+
+    it('should compile type nodes with attribute lists', () => {
+        let r = cpl`
+            <type #Basic simpleList:String[] fooList:IvAny[] barList/>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var Basic;
+            Basic = $c.td(2, 0, ["simpleList", "simple", String, "fooList", "foo", $iv.IvAny, "barList", "bar", 0], 0, 0);
+            return {Basic:Basic};`
+        )).toBe("equal");
+    });
+
+    it('should compile type nodes with IvContentList', () => {
+        let r = cpl`
+            <type #Basic simpleList:String[] content:IvContentList/>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var Basic;
+            Basic = $c.td(2, 0, ["simpleList", "simple", String], 0, "content");
+            return {Basic:Basic};`
         )).toBe("equal");
     });
 
@@ -109,11 +177,11 @@ describe('Iv compiler', () => {
                 $c.ns(4, false, 0, 0); // br
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, [Number], ""],
-                [1, 1, 3, "div", ["class", "main"]],
-                [2, 1, 4, "span", ["ok", "true"]],
-                [3, 1, 5, "input", ["type", "text"]],
-                [4, 1, 7, "br", 0]
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [1, 1, 3, "div", ["class", "main"], 0],
+                [2, 1, 4, "span", ["ok", "true"], 1],
+                [3, 1, 5, "input", ["type", "text"], 1],
+                [4, 1, 7, "br", 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -146,11 +214,11 @@ describe('Iv compiler', () => {
                 $c.t(6); // Done ! 
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, [], ""],
+                [0, 2, 2, [], {}, 0, 0, 0, 0],
                 [1, 3, 3, " Hello World "],
-                [2, 1, 4, "div", 0],
+                [2, 1, 4, "div", 0, 0],
                 [3, 3, 5, " Here\\n                    and \\"here\\" "],
-                [4, 1, 7, "span", 0],
+                [4, 1, 7, "span", 0, 2],
                 [5, 3, 7, " and here as well "],
                 [6, 3, 9, " Done ! "]
             ]);
@@ -181,9 +249,9 @@ describe('Iv compiler', () => {
                 $c.ne(2);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, [], ""],
+                [0, 2, 2, [], {}, 0, 0, 0, 0],
                 [1, 3, 3, " Hello World "],
-                [2, 1, 5, "div", 0]
+                [2, 1, 5, "div", 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -215,9 +283,9 @@ describe('Iv compiler', () => {
                 $c.ne(2);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, [], ""],
+                [0, 2, 2, [], {}, 0, 0, 0, 0],
                 [1, 3, 3, " Hello World "],
-                [2, 1, 5, "div", 0]
+                [2, 1, 5, "div", 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -248,9 +316,9 @@ describe('Iv compiler', () => {
                 x = 3;
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, [Number], ""],
-                [1, 1, 4, "div", ["class", "main"]],
-                [2, 1, 7, "br", 0]
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [1, 1, 4, "div", ["class", "main"], 0],
+                [2, 1, 7, "br", 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -289,12 +357,12 @@ describe('Iv compiler', () => {
                 }
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, [Number], ""],
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
                  1,
-                [2, 1, 4, "div", ["class", "main"]],
+                [2, 1, 4, "div", ["class", "main"], 0],
                  3,
-                [4, 1, 6, "span", ["title", "ok"]],
-                [5, 1, 9, "br", 0]
+                [4, 1, 6, "span", ["title", "ok"], 2],
+                [5, 1, 9, "br", 0, 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -335,13 +403,13 @@ describe('Iv compiler', () => {
                 }
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, [Number], ""],
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
                  1,
-                [2, 1, 4, "div", ["class", "main"]],
+                [2, 1, 4, "div", ["class", "main"], 0],
                  3,
-                [4, 1, 6, "div", ["class", "main2"]],
+                [4, 1, 6, "div", ["class", "main2"], 0],
                  5,
-                [6, 1, 8, "div", ["class", "main3"]]
+                [6, 1, 8, "div", ["class", "main3"], 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -381,13 +449,13 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["v"], {"v":0}, [Number], ""],
-                [1, 1, 3, "div", 0],
-                [2, 1, 4, "span", 0],
+                [0, 2, 2, ["v"], {"v":0}, ["v", Number], 0, 0, 0],
+                [1, 1, 3, "div", 0, 0],
+                [2, 1, 4, "span", 0, 1],
                 [3, 3, 4, "first"],
-                [4, 15, 5, "bar", 0],
-                [5, 15, 6, "bar", 0],
-                [6, 1, 7, "span", 0],
+                [4, 15, 5, "bar", 0, 1],
+                [5, 15, 6, "bar", 0, 1],
+                [6, 1, 7, "span", 0, 1],
                 [7, 3, 7, "last"]
             ]);
             bar = $c.fn(1, function($c, value) {
@@ -396,8 +464,8 @@ describe('Iv compiler', () => {
                 $c.ns(1, false, ["title", ("Value: "+value)], 0); // span
                 $c.fe(0); // function end
             },[
-                [0, 2, 11, ["value"], {"value":0}, [0], ""],
-                [1, 1, 12, "span", 0]
+                [0, 2, 11, ["value"], {"value":0}, ["value", 0], 0, 0, 0],
+                [1, 1, 12, "span", 0, 0]
             ]);
             return {foo:foo, bar:bar};`
         )).toBe("equal");
@@ -422,8 +490,8 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["msg"], {"msg":0}, [0], ""],
-                [1, 1, 3, "div", 0],
+                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0],
+                [1, 1, 3, "div", 0, 0],
                  2
             ]);
             return {foo:foo};`
@@ -453,11 +521,11 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["msg"], {"msg":0}, [0], ""],
-                [1, 1, 3, "div", 0],
-                [2, 1, 4, "span", 0],
-                [3, 1, 5, "span", 0],
-                [4, 1, 6, "span", 0]
+                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0],
+                [1, 1, 3, "div", 0, 0],
+                [2, 1, 4, "span", 0, 1],
+                [3, 1, 5, "span", 0, 1],
+                [4, 1, 6, "span", 0, 1]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -484,10 +552,10 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["msg"], {"msg":0}, [0], ""],
-                [1, 1, 3, "div", 0],
-                [2, 1, 4, "span", 0],
-                [3, 1, 5, "span", 0]
+                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0],
+                [1, 1, 3, "div", 0, 0],
+                [2, 1, 4, "span", 0, 1],
+                [3, 1, 5, "span", 0, 1]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -538,13 +606,13 @@ describe('Iv compiler', () => {
                 }
                 $c.fe(0); // function end
             },[
-                [0, 2, 7, ["bar"], {"bar":0}, [Number], ""],
+                [0, 2, 7, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
                  1,
-                [2, 1, 9, "div", ["class", "main"]],
+                [2, 1, 9, "div", ["class", "main"], 0],
                  3,
-                [4, 1, 11, "div", ["class", "main2"]],
+                [4, 1, 11, "div", ["class", "main2"], 0],
                  5,
-                [6, 1, 13, "div", ["class", "main3"]]
+                [6, 1, 13, "div", ["class", "main3"], 0]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -620,10 +688,10 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 3, ["v"], {"v":0}, [Number], ""],
-                [1, 1, 4, "div", 0],
-                [2, 15, 5, "bar", 0],
-                [3, 15, 6, "bar", 0]
+                [0, 2, 3, ["v"], {"v":0}, ["v", Number], 0, 0, 0],
+                [1, 1, 4, "div", 0, 0],
+                [2, 15, 5, "bar", 0, 1],
+                [3, 15, 6, "bar", 0, 1]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -635,7 +703,9 @@ describe('Iv compiler', () => {
                 <div>
                     <bar [value]=v+1>
                         <:head>hello</:head>
-                        <:body>world</:body>
+                        % if (v===12) {
+                            <:body>world</:body>
+                        % }
                     </bar>
                 </div>
             </function>
@@ -658,20 +728,25 @@ describe('Iv compiler', () => {
                 $c.as(3, true, 0, 0); // :head
                 $c.t(4); // hello
                 $c.ae(3);
-                $c.as(5, true, 0, 0); // :body
-                $c.t(6); // world
-                $c.ae(5);
+                if (v===12) {
+                    $c.bs(5);
+                    $c.as(6, true, 0, 0); // :body
+                    $c.t(7); // world
+                    $c.ae(6);
+                    $c.be(5);
+                }
                 $c.ce(2);
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["v"], {"v":0}, [Number], ""],
-                [1, 1, 3, "div", 0],
-                [2, 15, 4, "bar", 0],
-                [3, 16, 5, "head", 0],
+                [0, 2, 2, ["v"], {"v":0}, ["v", Number], 0, 0, 0],
+                [1, 1, 3, "div", 0, 0],
+                [2, 15, 4, "bar", 0, 1],
+                [3, 16, 5, "head", 0, 2],
                 [4, 3, 5, "hello"],
-                [5, 16, 6, "body", 0],
-                [6, 3, 6, "world"]
+                 5,
+                [6, 16, 7, "body", 0, 2],
+                [7, 3, 7, "world"]
             ]);
             bar = $c.fn(1, function($c, value, head, body) {
                 value = (value !== undefined)? value : {};
@@ -682,8 +757,8 @@ describe('Iv compiler', () => {
                 $c.ins(3, body);
                 $c.fe(0); // function end
             },[
-                [0, 2, 11, ["value", "head", "body"], {"value":0, "head":1, "body":2}, [0, $iv.IvNode, $iv.IvNode], ""],
-                [1, 1, 12, "span", 0],
+                [0, 2, 13, ["value", "head", "body"], {"value":0, "head":1, "body":2}, ["value", 0, "head", $iv.IvNode, "body", $iv.IvNode], 0, 0, 0],
+                [1, 1, 14, "span", 0, 0],
                  2,
                  3
             ]);
@@ -711,6 +786,10 @@ describe('Iv compiler', () => {
     // });
 
 
+    // todo test missing id in type def
+    // todo test error is contentList and no attribute list
+    // todo test error if Iv type is passed as list attribute
+    // todo raise error if default is passed in types?
     // todo subtemplate or component call through <insert>
     // todo subtemplates with content nodes, and with @name nodes
     // todo need for try catch in case of invalid expression?

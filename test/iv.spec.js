@@ -25,7 +25,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 1 class="hello">
                     <span 2 class="one" foo=46 title="blah">
                         <#text 3 " Hello "/>
@@ -46,7 +46,7 @@ describe('IV runtime', () => {
         view.refresh({nbr: 5});
         expect(view.vdom).toBe(vdom1);
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1" class="hello">
                     <span 2 ref="XX:0:2" class="one" foo=46 title="blah">
                         <#text 3 " Hello "/>
@@ -75,7 +75,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 42, msg: "Hello!"}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#group 3 insert ref="XX:0:3">
@@ -98,7 +98,7 @@ describe('IV runtime', () => {
 
         view.refresh({nbr: 9});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 1>
                     <span 2>
                         <#group 3 insert>
@@ -141,7 +141,7 @@ describe('IV runtime', () => {
 
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <span 8 ref="XX:0:2">
@@ -156,7 +156,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <#group 3 js ref="XX:0:3">
@@ -187,7 +187,7 @@ describe('IV runtime', () => {
         // create again
         view.refresh({nbr: 42, msg: "Hello!"});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <#group 3 js ref="XX:0:6">
@@ -208,10 +208,10 @@ describe('IV runtime', () => {
             CREATE_GROUP: XX:0:6 in XX:0:1`
         )).toBe("equal");
 
-        // test that template instance ref is increasing for view count (2nd part)
+        // test that function instance ref is increasing for view count (2nd part)
         let view2 = pkg.test.createView({nbr: 9});
         expect(diff(view2.vdom.toString({indent: OPTIONS.indent, showRef: true}), `\
-            <#group 0 template ref="XX:1:0">
+            <#group 0 function ref="XX:1:0">
                 <div 1 ref="XX:1:1">
                     <#text 2 " ABC "/>
                     <span 8 ref="XX:1:2">
@@ -223,7 +223,7 @@ describe('IV runtime', () => {
     });
 
 
-    it('should support if blocks at template start', () => {
+    it('should support if blocks at function start', () => {
         let pkg = iv `
             <function #test nbr>
                 % if (nbr===42) {
@@ -238,7 +238,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 4>
                     <#text 5 " ABC "/>
                     <span 6>
@@ -251,7 +251,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <#group 1 js ref="XX:0:3">
                     <span 2 ref="XX:0:4">
                         <#text 3 " Hello World "/>
@@ -277,7 +277,7 @@ describe('IV runtime', () => {
         )).toBe("equal");
     });
 
-    it('should support if blocks at template end', () => {
+    it('should support if blocks at function end', () => {
         let pkg = iv `
             <function #test nbr>
                 <div>
@@ -292,7 +292,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 1>
                     <#text 2 " ABC "/>
                     <span 3>
@@ -304,7 +304,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <span 3 ref="XX:0:2">
@@ -330,7 +330,7 @@ describe('IV runtime', () => {
         )).toBe("equal");
     });
 
-    it('should support if blocks as full template', () => {
+    it('should support if blocks as full function', () => {
         let pkg = iv `
             <function #test nbr>
                 % if (nbr===42) {
@@ -341,13 +341,13 @@ describe('IV runtime', () => {
         `;
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 template/>`
+            <#group 0 function/>`
         )).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <#group 1 js>
                     <span 2>
                         <#text 3 " Hello "/>
@@ -380,7 +380,7 @@ describe('IV runtime', () => {
         `;
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 template>
+            <#group 0 function>
                 <#text 1 " foo "/>
                 <div 2/>
                 <#text 8 " bar "/>
@@ -390,7 +390,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <#text 1 " foo "/>
                 <div 2>
                     <#group 3 js>
@@ -427,7 +427,7 @@ describe('IV runtime', () => {
         `;
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 1>
                     <div 5>
                         <#text 6 " ABC "/>
@@ -442,7 +442,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 1>
                     <#group 2 js>
                         <span 3>
@@ -481,7 +481,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " foo "/>
                     <#group 6 js ref="XX:0:2">
@@ -496,7 +496,7 @@ describe('IV runtime', () => {
 
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " foo "/>
                     <#group 3 js ref="XX:0:4">
@@ -521,7 +521,7 @@ describe('IV runtime', () => {
         )).toBe("equal"); // note: could be improved through object pooling
     });
 
-    it('should support if+else blocks for full template', () => {
+    it('should support if+else blocks for full function', () => {
         let pkg = iv `
             <function #test nbr>
                 % if (nbr===42) {
@@ -533,7 +533,7 @@ describe('IV runtime', () => {
         `;
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 template>
+            <#group 0 function>
                 <#group 4 js>
                     <span 5>
                         <#text 6 " Case != 42 "/>
@@ -544,7 +544,7 @@ describe('IV runtime', () => {
 
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <#group 1 js>
                     <span 2>
                         <#text 3 " Case 42 "/>
@@ -573,7 +573,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView(), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <div 5 title="last"/>
@@ -588,7 +588,7 @@ describe('IV runtime', () => {
             ]
         });
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <#group 3 js ref="XX:0:2">
@@ -614,7 +614,7 @@ describe('IV runtime', () => {
             ]
         });
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <#group 3 js ref="XX:0:2">
@@ -662,7 +662,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({list: ["Omer", "Marge"], condition: true}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <#group 3 js ref="XX:0:2">
@@ -688,7 +688,7 @@ describe('IV runtime', () => {
 
         view.refresh({list: ["Omer", "Marge"], condition: false});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 template>
+            <#group 0 function>
                 <div 1>
                     <div 2 title="first"/>
                     <#group 3 js>
@@ -734,15 +734,15 @@ describe('IV runtime', () => {
         pkg.bar.uid = "YY";
         let view = pkg.foo.createView({v: 9}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#text 3 "first"/>
                     </span>
-                    <#group 4 bar ref="XX:0:3" data-msg="m1:9" data-value=10>
+                    <#group 4 bar ref="XX:0:3" att-msg="m1:9" att-value=10>
                         <span 1 ref="YY:0:0" title="10 m1:9"/>
                     </#group>
-                    <#group 5 bar ref="XX:0:4" data-msg="m2:9" data-value=12>
+                    <#group 5 bar ref="XX:0:4" att-msg="m2:9" att-value=12>
                         <span 1 ref="YY:1:0" title="12 m2:9"/>
                     </#group>
                     <span 6 ref="XX:0:5">
@@ -754,15 +754,15 @@ describe('IV runtime', () => {
 
         view.refresh({v: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#text 3 "first"/>
                     </span>
-                    <#group 4 bar ref="XX:0:3" data-msg="m1:9" data-value=43>
+                    <#group 4 bar ref="XX:0:3" att-msg="m1:9" att-value=43>
                         <span 1 ref="YY:0:0" title="43 m1:9"/>
                     </#group>
-                    <#group 5 bar ref="XX:0:4" data-msg="m2:9" data-value=45>
+                    <#group 5 bar ref="XX:0:4" att-msg="m2:9" att-value=45>
                         <span 1 ref="YY:1:0" title="45 m2:9"/>
                         <#group 2 js ref="YY:1:1">
                             <span 3 ref="YY:1:2">
@@ -820,10 +820,10 @@ describe('IV runtime', () => {
         pkg.bar.uid = "YY";
         let view = pkg.foo.createView({v: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=9>
+                    <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=9>
                         <span 1 ref="YY:0:0" title=9>
                             <#text 2 " first "/>
                         </span>
@@ -852,10 +852,10 @@ describe('IV runtime', () => {
 
         view.refresh({v: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=42>
+                    <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=42>
                         <span 1 ref="YY:0:0" title=42>
                             <#text 2 " first "/>
                         </span>
@@ -875,10 +875,10 @@ describe('IV runtime', () => {
 
         view.refresh({v: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=9>
+                    <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=9>
                         <span 1 ref="YY:0:0" title=9>
                             <#text 2 " first "/>
                         </span>
@@ -912,10 +912,10 @@ describe('IV runtime', () => {
 
         view.refresh({v: 31});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
-                    <#group 3 bar ref="XX:0:2" data-body=IvNode data-value=31>
+                    <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=31>
                         <span 1 ref="YY:0:0" title=31>
                             <#text 2 " first "/>
                         </span>
@@ -972,10 +972,10 @@ describe('IV runtime', () => {
 
         let view = pkg.test.createView({list: list});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1" id="main">
                     <#group 2 js ref="XX:0:2">
-                        <#group 3 sub ref="XX:0:3" data-data=Object>
+                        <#group 3 sub ref="XX:0:3" att-data=Object>
                             <div 1 ref="YY:0:0" title="ta0">
                                 <#group 2 insert ref="YY:0:1">
                                     <#text -1 ref="YY:0:2" "ca0"/>
@@ -984,7 +984,7 @@ describe('IV runtime', () => {
                         </#group>
                     </#group>
                     <#group 2 js ref="XX:0:4">
-                        <#group 3 sub ref="XX:0:5" data-data=Object>
+                        <#group 3 sub ref="XX:0:5" att-data=Object>
                             <div 1 ref="YY:1:0" title="tb0">
                                 <#group 2 insert ref="YY:1:1">
                                     <#text -1 ref="YY:1:2" "cb0"/>
@@ -1002,10 +1002,10 @@ describe('IV runtime', () => {
         ];
         view.refresh({list: list});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1" id="main">
                     <#group 2 js ref="XX:0:2">
-                        <#group 3 sub ref="XX:0:3" data-data=Object>
+                        <#group 3 sub ref="XX:0:3" att-data=Object>
                             <div 1 ref="YY:0:0" title="ta1">
                                 <#group 2 insert ref="YY:0:1">
                                     <#text -1 ref="YY:0:2" "ca1"/>
@@ -1014,7 +1014,7 @@ describe('IV runtime', () => {
                         </#group>
                     </#group>
                     <#group 2 js ref="XX:0:4">
-                        <#group 3 sub ref="XX:0:5" data-data=Object>
+                        <#group 3 sub ref="XX:0:5" att-data=Object>
                             <div 1 ref="YY:1:0" title="tb1">
                                 <#group 2 insert ref="YY:1:1">
                                     <#text -1 ref="YY:1:2" "cb1"/>
@@ -1056,15 +1056,15 @@ describe('IV runtime', () => {
 
         pkg.test.uid = "XX";
         pkg.panel.uid = "YY";
-        let view = pkg.test.createView( {testCase: 1});
+        let view = pkg.test.createView({testCase: 1});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <#text 1 " Case #"/>
                 <#group 2 insert ref="XX:0:1">
                     <#text -1 ref="XX:0:2" "1"/>
                 </#group>
                 <#group 3 js ref="XX:0:3">
-                    <#group 4 panel ref="XX:0:4" data-$content=IvNode data-body=IvNode data-title=IvNode>
+                    <#group 4 panel ref="XX:0:4" att-body=IvNode att-title=IvNode>
                         <#group 1 js ref="YY:0:0">
                             <div 2 ref="YY:0:1" class="panel">
                                 <#group 3 js ref="YY:0:2">
@@ -1090,12 +1090,390 @@ describe('IV runtime', () => {
         )).toBe("equal");
     });
 
+    it('should support type definitions', () => {
+        let pkg = iv`
+            <type #Tab name:String body:IvContent misc:String/>
+
+            <function #tabbar tabList:Tab[]>
+                Number of tabs: {{tabList.length}}
+                % for (var i=0;tabList.length>i;i++) {
+                    % var tab = tabList[i];
+                    <div class="title">{{tab.name}}</div>
+                    <div class="content" title=tab.misc>{{tab.body}}</div>
+                % }
+            </function>
+
+            <function #test list>
+                <tabbar>
+                    % for (var i=0;list.length>i;i++) {
+                        % var item=list[i];
+                        <:tab [name]=item misc="foo">
+                            <b> Content {{item+"X"}} </b>
+                        </:tab>
+                    % }
+                </tabbar>
+            </function>
+        `;
+
+        pkg.test.uid = "XX";
+        pkg.tabbar.uid = "YY";
+        let view = pkg.test.createView({list: ["A", "B"]});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0">
+                <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
+                    <#text 1 " Number of tabs: "/>
+                    <#group 2 insert ref="YY:0:0">
+                        <#text -1 ref="YY:0:1" "2"/>
+                    </#group>
+                    <#group 3 js ref="YY:0:2">
+                        <div 4 ref="YY:0:3" class="title">
+                            <#group 5 insert ref="YY:0:4">
+                                <#text -1 ref="YY:0:5" "A"/>
+                            </#group>
+                        </div>
+                        <div 6 ref="YY:0:6" class="content" title="foo">
+                            <#group 7 insert ref="YY:0:7">
+                                <b 4 ref="XX:0:3">
+                                    <#text 5 " Content "/>
+                                    <#group 6 insert ref="XX:0:4">
+                                        <#text -1 ref="XX:0:5" "AX"/>
+                                    </#group>
+                                </b>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:8">
+                        <div 4 ref="YY:0:9" class="title">
+                            <#group 5 insert ref="YY:0:10">
+                                <#text -1 ref="YY:0:11" "B"/>
+                            </#group>
+                        </div>
+                        <div 6 ref="YY:0:12" class="content" title="foo">
+                            <#group 7 insert ref="YY:0:13">
+                                <b 4 ref="XX:0:7">
+                                    <#text 5 " Content "/>
+                                    <#group 6 insert ref="XX:0:8">
+                                        <#text -1 ref="XX:0:9" "BX"/>
+                                    </#group>
+                                </b>
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>`
+        )).toBe("equal");
+
+        view.refresh({list: ["A2", "B", "C"]});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0">
+                <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
+                    <#text 1 " Number of tabs: "/>
+                    <#group 2 insert ref="YY:0:0">
+                        <#text -1 ref="YY:0:1" "3"/>
+                    </#group>
+                    <#group 3 js ref="YY:0:2">
+                        <div 4 ref="YY:0:3" class="title">
+                            <#group 5 insert ref="YY:0:4">
+                                <#text -1 ref="YY:0:5" "A2"/>
+                            </#group>
+                        </div>
+                        <div 6 ref="YY:0:6" class="content" title="foo">
+                            <#group 7 insert ref="YY:0:7">
+                                <b 4 ref="XX:0:3">
+                                    <#text 5 " Content "/>
+                                    <#group 6 insert ref="XX:0:4">
+                                        <#text -1 ref="XX:0:5" "A2X"/>
+                                    </#group>
+                                </b>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:8">
+                        <div 4 ref="YY:0:9" class="title">
+                            <#group 5 insert ref="YY:0:10">
+                                <#text -1 ref="YY:0:11" "B"/>
+                            </#group>
+                        </div>
+                        <div 6 ref="YY:0:12" class="content" title="foo">
+                            <#group 7 insert ref="YY:0:13">
+                                <b 4 ref="XX:0:7">
+                                    <#text 5 " Content "/>
+                                    <#group 6 insert ref="XX:0:8">
+                                        <#text -1 ref="XX:0:9" "BX"/>
+                                    </#group>
+                                </b>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:14">
+                        <div 4 ref="YY:0:15" class="title">
+                            <#group 5 insert ref="YY:0:16">
+                                <#text -1 ref="YY:0:17" "C"/>
+                            </#group>
+                        </div>
+                        <div 6 ref="YY:0:18" class="content" title="foo">
+                            <#group 7 insert ref="YY:0:19">
+                                <b 4 ref="XX:0:11">
+                                    <#text 5 " Content "/>
+                                    <#group 6 insert ref="XX:0:12">
+                                        <#text -1 ref="XX:0:13" "CX"/>
+                                    </#group>
+                                </b>
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>`
+        )).toBe("equal");
+
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            UPDATE_TEXT: YY:0:1
+            UPDATE_TEXT: YY:0:5
+            UPDATE_TEXT: XX:0:5
+            CREATE_GROUP: YY:0:14 in XX:0:1`
+        )).toBe("equal");
+    });
+
+    it('should support multiple levels of node attributes', () => {
+        let pkg = iv`
+            <type #TabLabel showWarning:Boolean value:IvContent/>
+            <type #Tab name:String label:TabLabel body:IvContent/>
+
+            <function #tabbar tabList:Tab[] selection:String>
+                Number of tabs: {{tabList.length}}
+                % for (var i=0;tabList.length>i;i++) {
+                    % var tab = tabList[i];
+                    % if (tab.label.showWarning) {
+                        WARNING!
+                    % }
+                    <div class="title" [name]=tab.name>{{tab.label.value}}</div>
+                    <div class="content">{{tab.body}}</div>
+                % }
+            </function>
+
+            <function #test list>
+                <tabbar>
+                    <:tab name="1" >
+                        <:label showWarning=true>
+                            <b> First label </b>
+                        </:label>
+                        First content
+                    </:tab>
+                    % for (var i=0;list.length>i;i++) {
+                        % var item=list[i];
+                        <:tab [name]=item>
+                            <:label> Label {{i+2}}</:label>
+                            {{"content_"+item}}
+                        </:tab>
+                    % }
+                </tabbar>
+            </function>
+        `;
+
+        pkg.test.uid = "XX";
+        pkg.tabbar.uid = "YY";
+        let view = pkg.test.createView({list: ["A", "B"]});
+
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0">
+                <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
+                    <#text 1 " Number of tabs: "/>
+                    <#group 2 insert ref="YY:0:0">
+                        <#text -1 ref="YY:0:1" "3"/>
+                    </#group>
+                    <#group 3 js ref="YY:0:2">
+                        <#group 4 js ref="YY:0:3">
+                            <#text 5 " WARNING! "/>
+                        </#group>
+                        <div 6 ref="YY:0:4" class="title" name="1">
+                            <#group 7 insert ref="YY:0:5">
+                                <b 4 ref="XX:0:2">
+                                    <#text 5 " First label "/>
+                                </b>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:6" class="content">
+                            <#group 9 insert ref="YY:0:7">
+                                <#data 3 >
+                                    <b 4 ref="XX:0:2">
+                                        <#text 5 " First label "/>
+                                    </b>
+                                </#data>
+                                <#text 6 " First content "/>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:8">
+                        <div 6 ref="YY:0:9" class="title" name="A">
+                            <#group 7 insert ref="YY:0:10">
+                                <#text 10 " Label "/>
+                                <#group 11 insert ref="XX:0:5">
+                                    <#text -1 ref="XX:0:6" "2"/>
+                                </#group>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:11" class="content">
+                            <#group 9 insert ref="YY:0:12">
+                                <#data 9 >
+                                    <#text 10 " Label "/>
+                                    <#group 11 insert ref="XX:0:5">
+                                        <#text -1 ref="XX:0:6" "2"/>
+                                    </#group>
+                                </#data>
+                                <#group 12 insert ref="XX:0:8">
+                                    <#text -1 ref="XX:0:9" "content_A"/>
+                                </#group>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:13">
+                        <div 6 ref="YY:0:14" class="title" name="B">
+                            <#group 7 insert ref="YY:0:15">
+                                <#text 10 " Label "/>
+                                <#group 11 insert ref="XX:0:12">
+                                    <#text -1 ref="XX:0:13" "3"/>
+                                </#group>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:16" class="content">
+                            <#group 9 insert ref="YY:0:17">
+                                <#data 9 >
+                                    <#text 10 " Label "/>
+                                    <#group 11 insert ref="XX:0:12">
+                                        <#text -1 ref="XX:0:13" "3"/>
+                                    </#group>
+                                </#data>
+                                <#group 12 insert ref="XX:0:15">
+                                    <#text -1 ref="XX:0:16" "content_B"/>
+                                </#group>
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>`
+        )).toBe("equal");
+
+
+        view.refresh({list: ["A2", "B", "C"]});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0">
+                <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
+                    <#text 1 " Number of tabs: "/>
+                    <#group 2 insert ref="YY:0:0">
+                        <#text -1 ref="YY:0:1" "4"/>
+                    </#group>
+                    <#group 3 js ref="YY:0:2">
+                        <#group 4 js ref="YY:0:3">
+                            <#text 5 " WARNING! "/>
+                        </#group>
+                        <div 6 ref="YY:0:4" class="title" name="1">
+                            <#group 7 insert ref="YY:0:5">
+                                <b 4 ref="XX:0:2">
+                                    <#text 5 " First label "/>
+                                </b>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:6" class="content">
+                            <#group 9 insert ref="YY:0:7">
+                                <#data 3 >
+                                    <b 4 ref="XX:0:2">
+                                        <#text 5 " First label "/>
+                                    </b>
+                                </#data>
+                                <#text 6 " First content "/>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:8">
+                        <div 6 ref="YY:0:9" class="title" name="A2">
+                            <#group 7 insert ref="YY:0:10">
+                                <#text 10 " Label "/>
+                                <#group 11 insert ref="XX:0:5">
+                                    <#text -1 ref="XX:0:6" "2"/>
+                                </#group>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:11" class="content">
+                            <#group 9 insert ref="YY:0:12">
+                                <#data 9 >
+                                    <#text 10 " Label "/>
+                                    <#group 11 insert ref="XX:0:5">
+                                        <#text -1 ref="XX:0:6" "2"/>
+                                    </#group>
+                                </#data>
+                                <#group 12 insert ref="XX:0:8">
+                                    <#text -1 ref="XX:0:9" "content_A2"/>
+                                </#group>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:13">
+                        <div 6 ref="YY:0:14" class="title" name="B">
+                            <#group 7 insert ref="YY:0:15">
+                                <#text 10 " Label "/>
+                                <#group 11 insert ref="XX:0:12">
+                                    <#text -1 ref="XX:0:13" "3"/>
+                                </#group>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:16" class="content">
+                            <#group 9 insert ref="YY:0:17">
+                                <#data 9 >
+                                    <#text 10 " Label "/>
+                                    <#group 11 insert ref="XX:0:12">
+                                        <#text -1 ref="XX:0:13" "3"/>
+                                    </#group>
+                                </#data>
+                                <#group 12 insert ref="XX:0:15">
+                                    <#text -1 ref="XX:0:16" "content_B"/>
+                                </#group>
+                            </#group>
+                        </div>
+                    </#group>
+                    <#group 3 js ref="YY:0:18">
+                        <div 6 ref="YY:0:19" class="title" name="C">
+                            <#group 7 insert ref="YY:0:20">
+                                <#text 10 " Label "/>
+                                <#group 11 insert ref="XX:0:19">
+                                    <#text -1 ref="XX:0:20" "4"/>
+                                </#group>
+                            </#group>
+                        </div>
+                        <div 8 ref="YY:0:21" class="content">
+                            <#group 9 insert ref="YY:0:22">
+                                <#data 9 >
+                                    <#text 10 " Label "/>
+                                    <#group 11 insert ref="XX:0:19">
+                                        <#text -1 ref="XX:0:20" "4"/>
+                                    </#group>
+                                </#data>
+                                <#group 12 insert ref="XX:0:22">
+                                    <#text -1 ref="XX:0:23" "content_C"/>
+                                </#group>
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>`
+        )).toBe("equal");
+
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            UPDATE_TEXT: YY:0:1
+            UPDATE_ELEMENT: YY:0:9
+            UPDATE_TEXT: XX:0:9
+            CREATE_GROUP: YY:0:18 in XX:0:1`
+        )).toBe("equal");
+
+        // todo dynamic change
+
+    });
+
 
     // todo $v test
     // todo subtemplate in for loop
     // todo subtemplate with if at root level
-    // todo template with content list  content:IvNode[]
-    // todo dynamic content in template
+    // todo function with content list  content:IvNode[]
+    // todo dynamic content in function
     // todo support @name content
     // todo component call in another component's content
     // todo check support of import

@@ -13,7 +13,7 @@ import {diff} from './utils';
 describe('HTML renderer', () => {
     let OPTIONS2 = {indent: "            ", showRef: true};
 
-    it('should render CREATE_GROUP for root template', () => {
+    it('should render CREATE_GROUP for root function', () => {
         let pkg = iv `
             <function #test nbr msg>
                 <div class="hello">
@@ -31,14 +31,14 @@ describe('HTML renderer', () => {
 
         nd = df.firstChild;
         expect(nd.nodeType).toBe(Node.COMMENT_NODE);
-        expect(nd.nodeValue).toBe("start: template XX:0:0");
+        expect(nd.nodeValue).toBe("start: function XX:0:0");
 
         let divHello = nd = nd.nextSibling;
         expect(nd.nodeType).toBe(Node.ELEMENT_NODE);
 
         nd = nd.nextSibling;
         expect(nd.nodeType).toBe(Node.COMMENT_NODE);
-        expect(nd.nodeValue).toBe("end: template XX:0:0");
+        expect(nd.nodeValue).toBe("end: function XX:0:0");
 
         expect(divHello.tagName.toUpperCase()).toBe("DIV");
         expect(divHello.className).toBe("hello");
@@ -116,7 +116,7 @@ describe('HTML renderer', () => {
 
         view.refresh({nbr: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1" class="hello">
                     <#text 2 " first "/>
                     <#group 3 js ref="XX:0:2">
@@ -168,7 +168,7 @@ describe('HTML renderer', () => {
         pkg.test.uid = "XX";
         let view = render(pkg.test, df, {a: true, b: false, c: false}), nd;
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 template ref="XX:0:0">
+            <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1" class="hello">
                     <#text 2 " hello "/>
                     <#group 3 js ref="XX:0:2">

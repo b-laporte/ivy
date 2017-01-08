@@ -2,6 +2,8 @@
  * Created by blaporte on 18/06/16.
  */
 
+import {IvTypeMap} from './typedef';
+
 /**
  * IV Virtual Node - abstract base class
  * Sub-classed by Text, Element or Group node classes
@@ -55,7 +57,7 @@ export class IvFunctionNode extends IvNode {
     isFunctionNode;             // true - to easily identify text nodes
     templateData;
     uid;                        // unique identifier
-    contentName;
+    typeMap;                    // argument type definition
 
     constructor(index, func, statics) {
         super(index);
@@ -64,12 +66,13 @@ export class IvFunctionNode extends IvNode {
             templateFn: func,
             templateArgIdx: statics[0][4],
             templateStatics: statics,
-            templateArgTypes: statics[0][5],
-            //templateId: "foo",
             instanceCount: 0
         };
         this.uid = "T" + (IvFunctionNode.templateCount++);
-        this.contentName = statics[0][6];
+
+        this.typeMap = new IvTypeMap();
+        let fnStatics = statics[0];
+        this.typeMap.loadDefinition(fnStatics[2], fnStatics[5], fnStatics[6], fnStatics[7], fnStatics[8]);
     }
 
     createView(argMap, context) {
@@ -125,6 +128,7 @@ export class IvGroupNode extends IvNode {
     isGroupNode;        // true - to easily identify group nodes
     groupType;          // string identifying the type of group - e.g. "template", "insert" or "js"
     firstChild;         // first child node (linked list)
+    attributes;         // attributes associated to this node
     data;               // meta-data associated to this node
 
     constructor(index, groupType) {
@@ -132,6 +136,7 @@ export class IvGroupNode extends IvNode {
         this.isGroupNode = true;
         this.groupType = groupType;
         this.firstChild = null;
+        this.attributes = {};
         this.data = {};
     }
 
@@ -146,8 +151,8 @@ export class IvGroupNode extends IvNode {
             endSign = hasChildren ? ">" : "/>";
         options = checkOptions(options);
 
-        if (this.data && this.data.attributes) {
-            dataAtts = stringifyAttributes(this.data.attributes, "data-");
+        if (this.attributes) {
+            dataAtts = stringifyAttributes(this.attributes, "att-");
         }
 
         buffer.push([
@@ -166,14 +171,16 @@ export class IvGroupNode extends IvNode {
  * Attribute node - e.g. <:header important=true>Some Message</:header>
  */
 export class IvDataNode extends IvNode {
-    isDataNode;        // true - to easily identify data nodes
+    isDataNode;       // true - to easily identify data nodes
     firstChild;       // first child node (linked list)
+    attributes;       // attributes associated to this node
     data;             // meta-data associated to this node
 
     constructor(index) {
         super(index);
         this.isDataNode = true;
         this.firstChild = null;
+        this.attributes = {};
         this.data = {};
         this.propagateChanges = true;
     }
@@ -284,7 +291,11 @@ function stringifyAttributes(atts, namePrefix = "") {
     for (let k in atts) {
         if (atts.hasOwnProperty(k)) {
             val = atts[k];
-            if (typeof atts[k] === "string") {
+            if (val === undefined) {
+                val = "undefined";
+            } if (val === null) {
+                val = "null";
+            } else if (typeof val === "string") {
                 val = '"' + atts[k] + '"';
             } else if (val.isNode) {
                 val = "IvNode";

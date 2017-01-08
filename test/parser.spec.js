@@ -59,7 +59,7 @@ describe('IV parser', () => {
     it('should raise an error for an unexpected end of file', () => {
         expect(error`
           <Hello>
-        `).toBe("(3:9) Unexpected end of template");
+        `).toBe("(3:9) Unexpected end of package: < expected instead");
     });
 
     it('should parse a simple node', () => {
@@ -161,7 +161,7 @@ describe('IV parser', () => {
 
     it('should raise an error for an unexpected end of file in insert node', () => {
         expect(error`
-          <div> {{foo.bar`).toBe("(2:26) Unexpected end of template");
+          <div> {{foo.bar`).toBe("(2:26) Unexpected end of package: } expected instead");
     });
 
     it('should parse js expressions', () => {

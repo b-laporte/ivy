@@ -11,8 +11,7 @@ import {INSTRUCTIONS} from './instructions';
  * @returns a template view (wrapper to template instance)
  */
 export function render(template, domContainer, args) {
-    var hr = new HtmlRenderer(domContainer);
-    var view = template.createView(args);
+    let hr = new HtmlRenderer(domContainer), view = template.createView(args);
     hr.connect(view);
     return view;
 }
@@ -48,7 +47,7 @@ class HtmlRenderer {
             return;
         }
 
-        var ins = log.changes, type, node, domNd;
+         let ins = log.changes, type, node, domNd;
         while (ins) {
             type = ins.type;
             node = ins.node;
@@ -58,10 +57,10 @@ class HtmlRenderer {
                     domNd.textContent = node.value;
                 }
             } else if (type === INSTRUCTIONS.UPDATE_ELEMENT) {
-                var dynAtts = node.dynAttributes, domNd = this.nodeMap[node.ref], atts = node.attributes;
+                 let dynAtts = node.dynAttributes, domNd = this.nodeMap[node.ref], atts = node.attributes;
                 if (domNd) {
-                    var nm;
-                    for (var j = 0; dynAtts.length > j; j++) {
+                     let nm;
+                    for ( let j = 0; dynAtts.length > j; j++) {
                         nm = dynAtts[j];
                         // note: function attribute are not dynamic and cannot be found here
                         if (nm === "class" || nm === "className") {
@@ -74,19 +73,19 @@ class HtmlRenderer {
             } else if (type === INSTRUCTIONS.UPDATE_GROUP) {
                 // nothing to do in this case
             } else if (type === INSTRUCTIONS.CREATE_GROUP) {
-                var groupData;
+                 let groupData;
                 if (!ins.parent) {
                     // root node
-                    var df = new DocumentFragment();
+                     let df = new DocumentFragment();
                     groupData = this.createGroup(node, df);
                     this.domContainer.appendChild(df);
                     groupData.domParent = this.domContainer;
                 } else {
-                    var df = new DocumentFragment(), parent = ins.parent, found = false;
+                     let df = new DocumentFragment(), parent = ins.parent, found = false;
                     groupData = this.createGroup(node, df);
 
                     // calculate node index
-                    var ch = parent.firstChild, domParent = this.nodeMap[parent.ref], domCh;
+                     let ch = parent.firstChild, domParent = this.nodeMap[parent.ref], domCh;
                     if (domParent.domParent) {
                         // the object stored in nodeMap can be a group structure
                         domParent = domParent.domParent;
@@ -104,7 +103,7 @@ class HtmlRenderer {
                             ch = null;
                         } else {
                             if (ch.isGroupNode) {
-                                var comment2 = this.nodeMap[ch.ref].endComment;
+                                 let comment2 = this.nodeMap[ch.ref].endComment;
                                 domCh = comment2.nextSibling;
                             } else {
                                 domCh = domCh.nextSibling;
@@ -127,7 +126,7 @@ class HtmlRenderer {
                     }
                 }
             } else if (type === INSTRUCTIONS.DELETE_GROUP) {
-                var data = this.nodeMap[node.ref],
+                 let data = this.nodeMap[node.ref],
                     domComment1 = data.startComment,
                     domComment2 = data.endComment,
                     domParent = data.domParent;
@@ -136,13 +135,13 @@ class HtmlRenderer {
                     if (!domParent) {
                         domParent = this.domContainer;
                     }
-                    var ch = domComment1, ch2;
+                     let ch = domComment1, ch2;
                     while (ch) {
                         ch2 = (ch === domComment2) ? null : ch.nextSibling;
                         domParent.removeChild(ch);
                         ch = ch2;
                     }
-                    for (var j = 0; ins.deletedRefNodes.length > j; j++) {
+                    for ( let j = 0; ins.deletedRefNodes.length > j; j++) {
                         delete this.nodeMap[ins.deletedRefNodes[j].ref];
                     }
                 }
@@ -166,18 +165,18 @@ class HtmlRenderer {
     }
 
     createGroup(node, domParent) {
-        var ndref = node.ref,
+         let ndref = node.ref,
             startComment = document.createComment(["start: ", node.groupType, " ", ndref].join("")),
             endComment = document.createComment(["end: ", node.groupType, " ", ndref].join(""));
 
-        var nodeData = {
+         let nodeData = {
             startComment: startComment,
             endComment: endComment,
             domParent: domParent
         };
         domParent.appendChild(startComment);
 
-        var ch = node.firstChild;
+         let ch = node.firstChild;
         while (ch) {
             this.processNode(ch, domParent);
             ch = ch.nextSibling;
@@ -188,7 +187,7 @@ class HtmlRenderer {
     }
 
     createText(node, domParent) {
-        var domNd = document.createTextNode(node.value);
+         let domNd = document.createTextNode(node.value);
         if (node.ref) {
             this.nodeMap[node.ref] = domNd;
         }
@@ -196,9 +195,9 @@ class HtmlRenderer {
     }
 
     createElement(node, domParent) {
-        var domNd = document.createElement(node.name), atts = node.attributes, val;
+         let domNd = document.createElement(node.name), atts = node.attributes, val;
 
-        for (var k in atts) {
+        for ( let k in atts) {
             if (!atts.hasOwnProperty(k)) continue;
             // TODO support complex attributes such as class.foo
             val = atts[k];
@@ -216,7 +215,7 @@ class HtmlRenderer {
         }
         domParent.appendChild(domNd);
 
-        var ch = node.firstChild;
+         let ch = node.firstChild;
         while (ch) {
             this.processNode(ch, domNd);
             ch = ch.nextSibling;

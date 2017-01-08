@@ -18,6 +18,9 @@ const INDENT_SPACE = "    ", // 4 spaces
     REGEXP_JS_LITERAL = /(^".*"$)|(^'.*'$)|(^true$)|(^false$)|(^\d+$)|(^\d+\.\d+$)/,
     REGEXP_FIRST_SPACES = /^\s+/,
     REGEXP_FIRST_SPACES_AFTER_NEW_LINE = /\n\s*/g,
+    REGEXP_LIST_ATT = /.+List$/g,
+    REGEXP_LIST_TYPE = /.+\[]$/g,
+    REGEXP_IV_TYPE = /^Iv/,
     REGEXP_NEWLINES = /\n/g,
     REGEXP_DOUBLE_QUOTES = /"/g,
     REGEXP_QUOTED_STRING = /^"(.*)"$/;
@@ -70,11 +73,11 @@ class CompilerBase {
     /**
      * Recursively scan all entities in the node list passed as argument
      * (i.e. nodes with an id associated to the current function scope)
-     * @param ndlist {NacNode} the node list to scan
+     * @param ndList {NacNode} the node list to scan
      * @param scanContext a context object with 2 properties: foundEntities (Map) and entityList (array of ids)
      */
-    scanEntities(ndlist, scanContext) {
-        let nd = ndlist, m, id;
+    scanEntities(ndList, scanContext) {
+        let nd = ndList, m, id;
         while (nd) {
 
             // remove extra double-quote on id (
@@ -99,11 +102,12 @@ class CompilerBase {
     /**
      * Recursively compile the child nodes of a given node
      * @param ndList the first element of the list
+     * @param contextIdx the index of the parent element or data node
      */
-    compileNodeList(ndList) {
+    compileNodeList(ndList, contextIdx) {
         let nd = ndList;
         while (nd) {
-            if (!this.compileCommonNode(nd)) {
+            if (!this.compileCommonNode(nd, contextIdx)) {
                 let errMsg = "[IvCompilerBase] Invalid node type: " + nd.nodeType;
                 if (nd.nodeType === 1) {
                     errMsg = "[IvCompilerBase] Invalid node: " + nd.nodeName;
@@ -117,17 +121,25 @@ class CompilerBase {
     /**
      * Recursively compile the child nodes of a given node
      * @param nd the container node
+     * @param contextIdx the index of the parent element or data node
      * @return Boolean true if a child node has been found
      */
-    compileCommonNode(nd) {
+    compileCommonNode(nd, contextIdx) {
         let ndt = nd.nodeType;
 
-        if (ndt === NacNodeType.ELEMENT && nd.nodeName === "function") {
-            this.compileFunctionNode(nd);
+        if (ndt === NacNodeType.ELEMENT) {
+            let nm = nd.nodeName;
+            if (nm === "function") {
+                this.compileFunctionNode(nd);
+            } else if (nm === "type") {
+                this.compileTypeNode(nd);
+            } else {
+                return false;
+            }
         } else if (ndt === NacNodeType.JS_EXPRESSION) {
             this.compileJsExpression(nd);
         } else if (ndt === NacNodeType.JS_BLOCK) {
-            this.compileJsBlock(nd);
+            this.compileJsBlock(nd, contextIdx);
         } else if (ndt === NacNodeType.COMMENT) {
             this.compileComment(nd);
         } else if (ndt === NacNodeType.COMMENT_ML) {
@@ -146,16 +158,9 @@ class CompilerBase {
         let idx = this.nodeIdx;
         this.nodeIdx++;
 
-        let atts = sortEltNodeAttributes(nd.firstAttribute), ls = atts[ATT_STANDARD];
-
-        if (atts && (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null)) {
-            throw "Bound attributes cannot be used on function definitions"; // TODO check
-        }
-        if (atts && (atts[ATT_DEFERRED_EXPRESSION] !== null )) {
-            throw "Deferred expressions cannot be used on function definitions"; // TODO check
-        }
-
-        let fnName = "", argNames = [], argIndexes = {}, argTypes = [], argInitInstructions = [], nm, val, argIdx = 0;
+        let atts = sortEltNodeAttributes(nd.firstAttribute),
+            ls = atts[ATT_STANDARD],
+            fnName = "", argNames = [], argTypes = [], nm, argIdx = 0;
 
         if (ls) {
             for (let i = 0; ls.length > i; i++) {
@@ -163,18 +168,8 @@ class CompilerBase {
                 if (nm === "id") {
                     fnName = getIdValue(nd);
                     continue;
-                } else if (argIndexes[nm]) {
-                    // an argument with the same name already exists
-                    throw "Function definition cannot contain 2 arguments with the same name"; // TODO check
                 }
-
-                // define default argument value
-                val = ls[i].value || "{}"; // todo choose val according to type
-                argInitInstructions.push(nm);
-                argInitInstructions.push([nm, ' = (', nm, ' !== undefined)? ', nm, ' : ', val, ';'].join(''));
-
                 argNames[argIdx] = nm;
-                argIndexes[nm] = true;
                 argTypes[argIdx] = ls[i].typeRef;
                 argIdx++;
             }
@@ -182,7 +177,7 @@ class CompilerBase {
 
         // TODO support optional function id
         if (fnName === "") {
-            throw "Missing function id";
+            this.throwError(nd, "Missing function id"); // todo
         }
 
         let argListJs = "";
@@ -194,7 +189,7 @@ class CompilerBase {
         this.fnContent.push([this.indent, fnName, ' = $c.fn(', idx, ', function($c', argListJs, ') {'].join(''));
 
         let fc = new FunctionCompiler(this.parentScope);
-        fc.compile(nd, this.exposeInternals, this.indent + INDENT_SPACE, argNames, argTypes, argInitInstructions);
+        fc.compile(nd, this.exposeInternals, this.indent + INDENT_SPACE, argNames, argTypes);
 
         this.fnContent.push(fc.jsContent);
 
@@ -203,10 +198,135 @@ class CompilerBase {
     }
 
     /**
+     * Compile a type definition node
+     * @param nd
+     */
+    compileTypeNode(nd) {
+        let id = nd.id;
+        if (!id) {
+            this.throwError(nd, "Missing type id"); // todo
+        }
+
+        let typeArgs = this.scanAttributes(nd).typeArgs;
+
+        // e.g. Foo = $c.td(123, ["name", String], ["optionList", "option", String], "contentName", "contentList")
+        this.fnContent.push([this.indent, id, ' = $c.td(', nd.lineNbr, ', ', typeArgs, ');'].join(''));
+    }
+
+    /**
+     * Scan attributes and types and calculate the Js arguments corresponding to a type definition
+     * e.g. '["name", String], ["optionList", "option", String], "contentName", "contentList"'
+     * @param nd the node containing the type information (could be a type or a function node)
+     * @returns Object with 2 properties: typeArgs (the Js arguments to put in the generated code)
+     * and initInstructions (the initialization instructions)
+     */
+    scanAttributes(nd) {
+        let nodeName = nd.nodeName;
+
+        // scan attributes
+        let atts = sortEltNodeAttributes(nd.firstAttribute), ls = atts[ATT_STANDARD];
+        if (!atts) {
+            this.throwError(nd, "Empty definition"); // we should not get here as "id" should be in the list
+        }
+        if (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null) {
+            this.throwError(nd, "Bound attributes cannot be used on " + nodeName + " definitions"); // todo
+        }
+        if (atts && (atts[ATT_DEFERRED_EXPRESSION] !== null )) {
+            this.throwError(nd, "Deferred expressions cannot be used on " + nodeName + " definitions"); // TODO check
+        }
+
+        let simpleAtts = [], listAtts = [], contentName = 0, contentList = 0, attName, attIndexes = {}, argInitInstructions = [];
+
+        if (ls) {
+            let att, tr, value;
+            for (let i = 0; ls.length > i; i++) {
+                att = ls[i];
+                attName = att.name;
+                tr = att.typeRef;
+                value = att.value;
+                if (attName === "id") {
+                    continue;
+                } else if (attIndexes[attName]) {
+                    throw "Definition cannot contain multiple attributes with the same name"; // TODO check
+                }
+                if (value !== undefined && nodeName === "type") {
+                    this.throwError(nd, "Type definition cannot contain default values");
+                }
+                attIndexes[attName] = true;
+                if (attName.match(REGEXP_LIST_ATT)) {
+                    // this is a list attribute
+                    let itemName = attName.slice(0, -4);
+                    listAtts.push('"' + attName + '"');
+                    listAtts.push('"' + itemName + '"');
+
+                    if (attIndexes[itemName]) {
+                        this.throwError(nd, "Definition cannot contain list items and attributes with the same name"); // TODO check
+                    } else {
+                        attIndexes[itemName] = true;
+                    }
+
+                    // type must end with "[]"
+                    if (tr) {
+                        if (tr.match(REGEXP_LIST_TYPE)) {
+                            listAtts.push(getJsTypeRef(tr.slice(0, -2)));
+                        } else {
+                            this.throwError(nd, "List types must end with '[]'"); // todo
+                        }
+                    } else {
+                        listAtts.push("0");
+                    }
+                    if (value === undefined) {
+                        value = "[]";
+                    }
+                } else {
+                    if (!tr) {
+                        tr = "0";
+                    } else if (tr === "IvContent") {
+                        contentName = '"' + attName + '"';
+                        continue;
+                    } else if (tr === "IvContentList") {
+                        contentList = '"' + attName + '"';
+                        continue;
+                    } else {
+                        tr = getJsTypeRef(tr);
+                    }
+                    simpleAtts.push('"' + attName + '"');
+                    simpleAtts.push(tr);
+                }
+                if (tr !== "$iv.IvNode") {
+                    if (value === undefined) {
+                        value = "{}";
+                    }
+                    argInitInstructions.push(attName);
+                    argInitInstructions.push([attName, ' = (', attName, ' !== undefined)? ', attName, ' : ', value, ';'].join(''));
+                }
+            }
+        }
+
+        if (nodeName === "type" && !simpleAtts.length && !listAtts.length && !contentName && !contentList) {
+            this.throwError(nd, "Empty type definition"); // todo
+        }
+
+        let jsSimpleAtts = "0", jsListAtts = "0";
+        if (simpleAtts.length) {
+            jsSimpleAtts = "[" + simpleAtts.join(", ") + "]";
+        }
+        if (listAtts.length) {
+            jsListAtts = "[" + listAtts.join(", ") + "]";
+        }
+
+        return {
+            typeArgs: [jsSimpleAtts, ', ', jsListAtts, ', ', contentName, ', ', contentList].join(''),
+            initInstructions: argInitInstructions
+        };
+    }
+
+    /**
      * Compile a JS block (e.g. if / else if / else)
      * @param nd the js block node
+     * @param contextIdx the index of the parent element or data node
      */
-    compileJsBlock(nd) {
+    compileJsBlock(nd, contextIdx) {
         let idx = this.nodeIdx,
             bStart = nd.nodeValue.startBlockExpression.replace(REGEXP_FIRST_SPACES, ""),
             bEnd = nd.nodeValue.endBlockExpression.replace(REGEXP_FIRST_SPACES, "");
@@ -217,7 +337,7 @@ class CompilerBase {
         this.increaseIndentation();
         this.fnContent.push([this.indent, '$c.bs(', idx, ');'].join(''));
 
-        this.compileNodeList(nd.firstChild);
+        this.compileNodeList(nd.firstChild, contextIdx);
 
         this.fnContent.push([this.indent, '$c.be(', idx, ');'].join(''));
         this.decreaseIndentation();
@@ -275,6 +395,30 @@ class CompilerBase {
     getLineNbr(nd) {
         return this.lineNbrShift + nd.lineNbr;
     }
+
+    /**
+     * Throw a generic error with all context information
+     * @param nd the node where the error was detected
+     * @param msg the error message
+     */
+    throwError(nd, msg) {
+        // let err = new IvError(msg);
+        throw msg;
+    }
+}
+
+/**
+ * Transform iv types (such as IvNode) into a js reference (e.g. $iv.IvNode)
+ * Non iv types remain unchanged
+ * @param typeName {String}
+ * @returns {String}
+ */
+function getJsTypeRef(typeName) {
+    if (typeName.match(REGEXP_IV_TYPE)) {
+        return "$iv." + typeName;
+    } else {
+        return typeName;
+    }
 }
 
 class PkgCompiler extends CompilerBase {
@@ -294,7 +438,7 @@ class PkgCompiler extends CompilerBase {
             this.fnContent.push([this.indent, "var ", this.entities.join(", "), ";"].join(''));
         }
 
-        this.compileNodeList(nd);
+        this.compileNodeList(nd, 0);
 
         // return statement - e.g.
         // return {func1:func1, func2:func2};
@@ -336,76 +480,44 @@ class FunctionCompiler extends CompilerBase {
      * @param initIndent String indent to use in the generated function
      * @param argNames Array list of function argument names
      * @param argTypes Array list of function argument types
-     * @param argInitInstructions Array list of js instructions to include at function start
      * to initialize arguments with default values
      */
-    compile(nd, exposeInternals, initIndent, argNames, argTypes, argInitInstructions) {
+    compile(nd, exposeInternals, initIndent, argNames, argTypes) {
         this.rootNode = nd;
         this.init(nd.firstChild, exposeInternals, initIndent);
-
         let idx = this.nodeIdx;
         this.nodeIdx++;
 
-        let argNamesJs = "[]", argIdxJs = "{}", argTypesJs = "[]", contentName = "", typeMap = {};
+        let argNamesJs = "[]", argIdxJs = "{}", contentName = "";
         if (argNames.length) {
             argNamesJs = '["' + argNames.join('", "') + '"]';
-            let tmp = [], tmp2 = [], tp;
+            let tmp = [];
             for (let i = 0; argNames.length > i; i++) {
                 tmp.push('"' + argNames[i] + '":' + i);
-                tp = argTypes[i];
-                if (tp === null) {
-                    // type is not defined
-                    tmp2.push("0");
-                    typeMap[argNames[i]] = "0";
-                } else {
-                    // TODO check type!!!
-                    switch (tp) {
-                        case "Number":
-                        case "Boolean":
-                        case "Function":
-                        case "String":
-                            tmp2.push(tp);
-                            break;
-                        case "IvNode":
-                            tmp2.push("$iv." + tp);
-                            break;
-                        case "IvContent":
-                            if (contentName.length) {
-                                throw "Function can only support one content argument";
-                            }
-                            contentName = argNames[i];
-                            tmp2.push("$iv." + tp);
-                            break;
-                        default:
-                            throw "Invalid argument type: " + tp;
-                    }
-                    typeMap[argNames[i]] = tp;
-                }
             }
             argIdxJs = "{" + tmp.join(", ") + "}";
-            argTypesJs = "[" + tmp2.join(", ") + "]";
         }
 
+        // declare all entities at the function start (not really needed since hoisting
+        // will make variable visible in the full function scope - but better for readability)
         if (this.entities.length) {
             this.fnContent.push([this.indent, "var ", this.entities.join(", "), ";"].join(''));
         }
 
-        let argType;
-        for (let i = 0; argInitInstructions.length > i; i += 2) {
-            argType = typeMap[argInitInstructions[i]];
-            if (argType !== "IvContent" && argType !== "IvNode") {
-                // we don't create default value for IvContent and IvNode nodes
-                this.fnContent.push([this.indent, argInitInstructions[i + 1]].join(''));
-            }
+        let attData = this.scanAttributes(nd);
+
+        // inject default init instructions
+        for (let i = 0; attData.initInstructions.length > i; i += 2) {
+            this.fnContent.push([this.indent, attData.initInstructions[i + 1]].join(''));
         }
 
         this.fnContent.push([this.indent, '$c.fs(', idx, '); // function start'].join(''));
 
         this.statics.push([this.baseIndent, '[', idx, ', ', NacNodeType.FUNCTION, ', ', this.getLineNbr(nd), ', ',
-            argNamesJs, ', ', argIdxJs, ', ', argTypesJs, ', "', contentName, '"]'].join(''));
+            argNamesJs, ', ', argIdxJs, ', ', attData.typeArgs, ']'].join(''));
 
         // recursively compile content elements
-        this.compileNodeList(nd.firstChild);
+        this.compileNodeList(nd.firstChild, idx);
 
         // generate end node line
         this.fnContent.push([this.indent, '$c.fe(', idx, '); // function end'].join(''));
@@ -417,14 +529,15 @@ class FunctionCompiler extends CompilerBase {
     /**
      * Recursively compile the child nodes of a given node
      * @param ndList the first element of the list
+     * @param contextIdx the index of the parent element or data node
      */
-    compileNodeList(ndList) {
+    compileNodeList(ndList, contextIdx) {
         let nd = ndList, ndt;
         while (nd) {
-            if (!this.compileCommonNode(nd)) {
+            if (!this.compileCommonNode(nd, contextIdx)) {
                 ndt = nd.nodeType;
                 if (ndt === NacNodeType.ELEMENT) {
-                    this.compileEltNode(nd);
+                    this.compileEltNode(nd, contextIdx);
                 } else if (ndt === NacNodeType.INSERT) {
                     this.compileInsert(nd);
                 } else if (ndt === NacNodeType.TEXT) {
@@ -440,8 +553,9 @@ class FunctionCompiler extends CompilerBase {
     /**
      * Compile an element, a component node or an att node
      * @param nd the Nac node corresponding to the element
+     * @param contextIdx the index of the parent element or data node
      */
-    compileEltNode(nd) {
+    compileEltNode(nd, contextIdx) {
         let idx = this.nodeIdx;
         this.nodeIdx++;
         // determine if this is a component or a standard node
@@ -529,11 +643,11 @@ class FunctionCompiler extends CompilerBase {
             }
 
             this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', ', this.getLineNbr(nd), ', "',
-                argName, '", ', staticArgsJs, ']'].join(''));
+                argName, '", ', staticArgsJs, ', ',contextIdx, ']'].join(''));
 
         } else {
             this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', ', this.getLineNbr(nd), ', "',
-                argName, '", 0]'].join(''));
+                argName, '", 0, ', contextIdx,']'].join(''));
         }
 
         let fnRef = "", nm = (nd.nodeNameSpace !== undefined) ? nd.nodeNameSpace + ":" + nd.nodeName : nd.nodeName;
@@ -552,7 +666,7 @@ class FunctionCompiler extends CompilerBase {
             this.fnContent.push([this.indent, methodPrefix, 's(', idx, fnRef, ', true, ', dynArgs, ', ', staticFnArgs, '); // ', nm].join(''));
 
             // recursively compile content elements
-            this.compileNodeList(nd.firstChild);
+            this.compileNodeList(nd.firstChild, idx);
 
             // generate end node line
             this.fnContent.push([this.indent, methodPrefix, 'e(', idx, ');'].join(''));

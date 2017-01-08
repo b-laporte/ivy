@@ -9,6 +9,7 @@ import {parse} from './parser';
 import {compile} from './compiler';
 import {IvNode, IvContent, IvFunctionNode, IvGroupNode, IvDataNode, IvEltNode, IvTextNode} from './node';
 import {IvInstructionPool, INSTRUCTIONS, IvInstructionSet} from './instructions';
+import {IvTypeMap} from './typedef';
 
 const MAX_INDEX = Number.MAX_VALUE;
 let instructionPool = new IvInstructionPool();
@@ -18,7 +19,13 @@ const INSTRUCTION_CREATE_GROUP = INSTRUCTIONS.CREATE_GROUP,
     INSTRUCTION_REPLACE_GROUP = INSTRUCTIONS.REPLACE_GROUP,
     INSTRUCTION_UPDATE_GROUP = INSTRUCTIONS.UPDATE_GROUP,
     INSTRUCTION_UPDATE_ELEMENT = INSTRUCTIONS.UPDATE_ELEMENT,
-    INSTRUCTION_UPDATE_TEXT = INSTRUCTIONS.UPDATE_TEXT;
+    INSTRUCTION_UPDATE_TEXT = INSTRUCTIONS.UPDATE_TEXT,
+    ST_IDX_NODE_TYPE = 1,
+    ST_IDX_LINE_NBR = 2,
+    ST_IDX_NODE_NAME = 3,
+    ST_IDX_STATIC_ATTRIBUTES = 4,
+    ST_IDX_CONTEXT_IDX = 5,
+    ST_IDX_TYPE_REF = 6;
 
 /**
  * Compile an iv package
@@ -56,8 +63,17 @@ iv.log = function (error) {
  * Processor object passed to the package function
  */
 let ivPkgProcessor = {
+    // function node
     fn(idx, func, statics) {
         return new IvFunctionNode(idx, func, statics);
+    },
+
+    // type definition
+    // e.g. $c.td(123, ["name", String], ["optionList", "option", String], "contentName", "contentList")
+    td (lineNbr, simpleAtts, listAtts, contentName, contentListName) {
+        let def = new IvTypeMap();
+        def.loadDefinition(lineNbr, simpleAtts, listAtts, contentName, contentListName);
+        return def;
     }
 };
 
@@ -126,18 +142,18 @@ class IvError {
         let lineNbr = "", nm = "";
         if (this.statics && this.nodeIdx) {
             let statics = this.statics[this.nodeIdx];
-            let ndType = statics[1];
+            let ndType = statics[ST_IDX_NODE_TYPE];
             if (ndType === NacNodeType.ELEMENT || ndType === NacNodeType.COMPONENT) {
-                nm = statics[3];
+                nm = statics[ST_IDX_NODE_NAME];
             } else if (ndType === NacNodeType.ATT_NODE) {
-                nm = ":" + statics[3];
+                nm = ":" + statics[ST_IDX_NODE_NAME];
             } else {
                 nm = NacNodeType.getName(ndType);
             }
-            lineNbr = statics[2];
+            lineNbr = statics[ST_IDX_LINE_NBR];
         }
 
-        return ["[", nm , "@line:", lineNbr ,"] ", this.message].join("");
+        return ["[", nm, "@line:", lineNbr, "] ", this.message].join("");
     }
 }
 
@@ -152,6 +168,7 @@ class IvProcessor {
     currentParentNd;     // parent of the current node
     rootNd;              // rootNode - equivalent to ancestorNodes[0]
     ancestorNodes;       // array of the nodes in the current path
+    dataNodeParents;     // current stack of data node parents - can be null for invalid data node parents
     targetDepth;         // tells at which depth next node should be (0 = root)
     creationMode;        // fast track for node creation - activated when we create a new group
     creationModeTarget;  // force creation mode until a certain target is reached, then move creationMode back to false
@@ -176,6 +193,7 @@ class IvProcessor {
         this.currentNdDepth = -1;
         this.targetDepth = 0;
         this.ancestorNodes = [];
+        this.dataNodeParents = [];
 
         if (context.creationMode || !groupNode) {
             this.creationMode = true;
@@ -335,10 +353,10 @@ class IvProcessor {
         if (!this.ignoreTemplateNode) {
             if (this.creationMode) {
                 // creation fast track
-                this.createGroupNode(idx, "template");
+                this.createGroupNode(idx, "function");
             } else {
                 if (!this.advance(idx)) {
-                    this.createGroupNode(idx, "template");
+                    this.createGroupNode(idx, "function");
                 }
             }
         }
@@ -369,20 +387,21 @@ class IvProcessor {
      */
     ns(idx, hasChildren, dAttributes, sAttributes) {
         if (this.creationMode) {
-            // creation fast track
+            // creation fast track`
             this.createEltNode(idx, hasChildren, dAttributes, sAttributes);
         } else {
             if (this.advance(idx)) {
                 // update
                 updateEltNode(this.currentNd, dAttributes);
             } else {
-                this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
+                this.throwError(idx, "Invalid case 1"); // force creation should have been activated and we should not get here
             }
         }
 
         // tell how next nodes should be handled
         if (hasChildren) {
             this.targetDepth++;
+            this.dataNodeParents.push(null); // standard nodes cannot be data node parents
         }
     }
 
@@ -399,6 +418,7 @@ class IvProcessor {
             this.removeLastAncestor();
         }
         this.targetDepth--;
+        this.dataNodeParents.pop();
     }
 
     /**
@@ -416,15 +436,16 @@ class IvProcessor {
                 generateCptView(idx, this.currentNd);
             } else {
                 if (this.advance(idx)) {
-                    this.updateCptNode(this.currentNd, dAttributes);
+                    this.updateNodeAttributes(this.currentNd, dAttributes);
                 } else {
-                    this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
+                    this.throwError(idx, "Invalid case 2"); // force creation should have been activated and we should not get here
                 }
             }
         } else {
             // node has child nodes
             if (this.creationMode) {
                 this.createCptNode(idx, fnRef, dAttributes, sAttributes);
+                this.initTypeRefInStatics(idx, fnRef);
             } else {
                 if (this.advance(idx)) {
                     // swap content node / view node
@@ -443,10 +464,12 @@ class IvProcessor {
 
                     // then trigger update of the view node in ce()
                 } else {
-                    this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
+                    this.throwError(idx, "Invalid case 3"); // force creation should have been activated and we should not get here
                 }
             }
             this.targetDepth++;
+            this.dataNodeParents.push(this.currentNd);
+            this.resetListAttributes(idx);
         }
     }
 
@@ -458,26 +481,51 @@ class IvProcessor {
         // we are in the case where the component has children
         this.ne(idx);
 
-        let cptNd = this.currentNd, contentName = cptNd.data.template.contentName;
+        let nd = this.currentNd, contentName, contentFound = true;
+        if (nd.isDataNode) {
+            let typeRef = this.statics[idx][ST_IDX_TYPE_REF];
+            while (typeRef.$isListItem) {
+                typeRef = typeRef.itemType;
+            }
+            contentName = typeRef.$contentName;
+        } else {
+            contentName = nd.data.funcNode.typeMap.$contentName;
+        }
         if (!contentName) {
+            contentFound = false;
             contentName = "$content";
         }
         if (this.creationMode) {
-            let contentGroup = new IvGroupNode(idx, contentName);
-            contentGroup.firstChild = cptNd.firstChild;
-            cptNd.data.contentDom = contentGroup;
-            cptNd.firstChild = null;
+            if (!nd.isDataNode) {
+                // nd is a function call, we need to swap content group and view dom
+                let contentGroup = new IvGroupNode(idx, contentName);
+                contentGroup.firstChild = nd.firstChild;
+                nd.data.contentDom = contentGroup;
+                nd.firstChild = null;
 
-            // generate view nodes
-            cptNd.data.attributes[contentName] = contentGroup.firstChild;
-            generateCptView(idx, cptNd);
+                // generate view nodes
+                if (contentFound) {
+                    nd.attributes[contentName] = contentGroup.firstChild;
+                }
+                generateCptView(idx, nd);
+            } else if (contentFound) {
+                // nd is data node
+                nd.attributes[contentName] = nd.firstChild;
+            }
         } else {
-            let contentNd = cptNd.firstChild;
-            cptNd.firstChild = cptNd.data.viewDom;
-            cptNd.data.contentDom.firstChild = contentNd;
+            let contentNd = nd.firstChild;
+            if (!nd.isDataNode) {
+                nd.firstChild = nd.data.viewDom;
+                nd.data.contentDom.firstChild = contentNd;
+            }
 
             // update view nodes
-            this.updateCptNode(cptNd, cptNd.data.dAttributes, [contentName, contentNd]);
+            if (contentFound) {
+                this.updateNodeAttributes(nd, nd.data.dAttributes, contentName, contentNd);
+            } else {
+                this.updateNodeAttributes(nd, nd.data.dAttributes);
+            }
+
         }
     }
 
@@ -491,19 +539,37 @@ class IvProcessor {
     as(idx, hasChildren, dAttributes, sAttributes) {
         if (this.creationMode) {
             let nd = new IvDataNode(idx);
+            nd.propagateChanges = false;
             this.appendNode(nd);
-
-            // todo update attributes
+            setNodeAttributes(nd, this.statics[idx], dAttributes, sAttributes);
         } else {
             if (this.advance(idx)) {
-                // todo update dynamic attributes
+                if (!hasChildren) {
+                    this.updateNodeAttributes(this.currentNd, dAttributes);
+                } else {
+                    // swap content node / view node
+                    let nd = this.currentNd;
+                    nd.data.dAttributes = dAttributes;
+
+                    // remove unprocessed changes from previous refresh (e.g. changes associated
+                    // to a content node that wasn't inserted
+                    let ch = nd.firstChild;
+                    while (ch) {
+                        ch.firstChange = ch.lastChange = null;
+                        ch = ch.nextSibling;
+                    }
+                    // then trigger update of the view node in ce()
+                }
             } else {
-                this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
+                this.throwError(idx, "Invalid case 4"); // force creation should have been activated and we should not get here
             }
+
         }
 
         if (hasChildren) {
             this.targetDepth++;
+            this.dataNodeParents.push(this.currentNd);
+            this.resetListAttributes(idx);
         } else {
             this.setCurrentDataNodeAsParentAttribute(idx);
         }
@@ -514,7 +580,7 @@ class IvProcessor {
      * @param idx
      */
     ae(idx) {
-        this.ne(idx);
+        this.ce(idx);
         this.setCurrentDataNodeAsParentAttribute(idx);
     }
 
@@ -534,6 +600,8 @@ class IvProcessor {
             }
         }
         this.targetDepth++;
+        let dnp = this.dataNodeParents, last = dnp[dnp.length - 1];
+        dnp.push(last); // blocks don't change the data node parent
     }
 
     /**
@@ -578,7 +646,7 @@ class IvProcessor {
             if (this.advance(idx)) {
                 this.updateInsertNode(this.currentNd, content);
             } else {
-                this.throwError(idx, "Invalid case"); // force creation should have been activated and we should not get here
+                this.throwError(idx, "Invalid case 5"); // force creation should have been activated and we should not get here
             }
         }
     }
@@ -627,31 +695,50 @@ class IvProcessor {
 
     setCurrentDataNodeAsParentAttribute(idx) {
         // todo create attribute wrapper and add it to the parent's node
-        let dataNode = this.currentNd, parentNode = this.ancestorNodes[this.currentNdDepth - 1];
+        let dataNode = this.currentNd,
+            dnp = this.dataNodeParents,
+            parent = dnp[dnp.length - 1];
 
-        if (parentNode.data && parentNode.data.template) {
-            // parentNode is a component
-            let ivFunction = parentNode.data.template, // template factory
-                nodeName = this.statics[idx][3],
-                attIdx = ivFunction.templateData.templateArgIdx[nodeName],
-                attType = ivFunction.templateData.templateArgTypes[attIdx];
-
-            let attWrapper;
-            if (!attType) {
+        // parent is a component or another data node
+        if (parent.data) {
+            let dataNodeName = this.statics[idx][ST_IDX_NODE_NAME], dataNodeType;
+            if (parent.data.funcNode) {
+                // parent is a component
+                dataNodeType = parent.data.funcNode.typeMap[dataNodeName];
+            } else {
+                // parent is another data node
+                dataNodeType = this.statics[idx][ST_IDX_TYPE_REF];
+            }
+            if (!dataNodeType) {
                 this.throwError(idx, "Type description not found");
             }
-            if (attType === IvNode) {
-                attWrapper = dataNode.firstChild;
+            if (dataNodeType === IvNode) {
+                parent.attributes[dataNodeName] = dataNode.firstChild;
+            } else if (dataNodeType.$isListItem) {
+                parent.attributes[dataNodeType.listName].push(dataNode.attributes);
+            } else if (dataNodeType.$isTypeDef) {
+                parent.attributes[dataNodeName] = dataNode.attributes;
             } else {
                 this.throwError(idx, "Type mismatch");
             }
-
-            parentNode.data.attributes[nodeName] = attWrapper;
         } else {
-            throw "TODO invalid att node parent"; // todo support attnode as parent
+            this.throwError(idx, "Invalid data node parent"); // todo
         }
 
-        // parentNode should be a component or another att node
+    }
+
+    /**
+     * Reset all list attributes on the current node
+     * @param idx
+     */
+    resetListAttributes(idx) {
+        // reset list attributes
+        let typeRef = this.statics[idx][ST_IDX_TYPE_REF], nd = this.currentNd, atts = nd.attributes;
+        if (typeRef && typeRef.$listAttNames) {
+            for (let i = 0; typeRef.$listAttNames.length > i; i++) {
+                atts[typeRef.$listAttNames[i]] = [];
+            }
+        }
     }
 
     /**
@@ -659,7 +746,7 @@ class IvProcessor {
      * @param idx
      */
     createTextNode(idx) {
-        this.appendNode(new IvTextNode(idx, this.statics[idx][3]));
+        this.appendNode(new IvTextNode(idx, this.statics[idx][ST_IDX_NODE_NAME]));
     }
 
     /**
@@ -715,59 +802,60 @@ class IvProcessor {
     updateInsertNode(nd, content) {
         let ch = nd.firstChild;
         content = checkInsertContent(content);
-        if (ch.isTextNode) {
-            if (ch.index === -1) {
-                // update text
+        if (ch.isTextNode && ch.index === -1) {
+            // this node was created to host dynamic text
+            // update text
+            if (content !== ch.value) {
                 ch.value = content;
                 addInstruction(INSTRUCTION_UPDATE_TEXT, ch);
                 this.moveChanges(ch, nd);
-            } else {
-                throw "todo 2";
-                // addInstruction(INSTRUCTION_REPLACE_GROUP, nd);
             }
         } else {
             nd.firstChild = content;
-            this.moveChanges(content, nd);
+
+            // find last sibling and move changes to nd
+            let n = content;
+            while (n.nextSibling) {
+                n = n.nextSibling;
+            }
+            this.moveChanges(n, nd);
         }
     }
 
     /**
      * Create and initialize the group node associated to a component / sub-template
      * @param idx
-     * @param cptRef component reference
+     * @param funcRef component reference
      * @param dAttributes
      * @param sAttributes
      */
-    createCptNode(idx, cptRef, dAttributes, sAttributes) {
+    createCptNode(idx, funcRef, dAttributes, sAttributes) {
         // create a group node as container for the component
         let statics = this.statics[idx],
-            nd = this.createGroupNode(idx, statics[3], false);
-        if (!cptRef) {
+            nd = this.createGroupNode(idx, statics[ST_IDX_NODE_NAME], false);
+        if (!funcRef) {
             // we should not get there as template has already been identified earlier
             // unless dynamic injection is used to change the package reference
             this.throwError(idx, "Invalid component reference"); // todo test?
         }
         nd.data = {
-            template: cptRef,
-            attributes: {},      // attribute map
-            view: null,          // view object generated by the cpt template
-            contentDom: null,    // content vdom - generated by the current template
+            funcNode: funcRef,
+            view: null,          // view object generated by the funcNode
+            contentDom: null,    // content vdom - generated by the current funcNode
             viewDom: null        // view vdom firstChild
         };
         setNodeAttributes(nd, statics, dAttributes, sAttributes);
     }
 
     /**
-     * Update a component node - i.e. update its arguments and refresh its view
-     * @param cptNd
+     * Update an attribute node - i.e. update its arguments and refresh its view if it is not a data node
+     * @param nd
      * @param dAttributes
-     * @param nodeAttributes
+     * @param contentName (optional)
+     * @param contentNode (optional)
      */
-    updateCptNode(cptNd, dAttributes, nodeAttributes) {
-        if (!cptNd.data || !cptNd.data.view) {
-            throw "Invalid component node"; // todo provide more details + test
-        }
-        let atts = cptNd.data.attributes;
+    updateNodeAttributes(nd, dAttributes, contentName, contentNode) {
+        let atts = nd.attributes;
         if (dAttributes) {
             let nm, val, changed = false;
             for (let i = 0; dAttributes.length > i; i += 2) {
@@ -778,28 +866,21 @@ class IvProcessor {
                     changed = true;
                 }
             }
-            if (changed) {
-                addInstruction(INSTRUCTION_UPDATE_GROUP, cptNd);
-                this.moveChanges(cptNd);
+            if (changed && !nd.isDataNode) {
+                addInstruction(INSTRUCTION_UPDATE_GROUP, nd);
+                this.moveChanges(nd);
             }
         }
-        if (nodeAttributes) {
-            let attNm;
-            // node attributes are attribute of type IvNode - e.g. content
-            for (let j = 0; dAttributes.length > j; j += 2) {
-                attNm = nodeAttributes[j];
-                if (attNm) {
-                    atts[attNm] = nodeAttributes[j + 1];
-                }
-            }
+        if (contentName) {
+            atts[contentName] = contentNode;
         }
-        // todo check if template is pure function and skip refresh
-        let view = cptNd.data.view;
-        cptNd.propagateChanges = true;
-        view.refresh(atts, {creationMode: false, groupNode: cptNd});
-        cptNd.propagateChanges = false;
-
-        cptNd.data.viewDom = view.vdom.firstChild;
+        if (!nd.isDataNode) {
+            let view = nd.data.view;
+            nd.propagateChanges = true;
+            view.refresh(atts, {creationMode: false, groupNode: nd});
+            nd.propagateChanges = false;
+            nd.data.viewDom = view.vdom.firstChild;
+        }
     }
 
     /**
@@ -810,7 +891,7 @@ class IvProcessor {
      * @param sAttributes static attributes defined through a dynamic js expression
      */
     createEltNode(idx, hasChildren, dAttributes, sAttributes) {
-        let statics = this.statics[idx], nd = new IvEltNode(idx, statics[3]);
+        let statics = this.statics[idx], nd = new IvEltNode(idx, statics[ST_IDX_NODE_NAME]);
         setNodeAttributes(nd, statics, dAttributes, sAttributes);
         this.appendNode(nd);
         if (hasChildren || dAttributes) {
@@ -873,6 +954,41 @@ class IvProcessor {
         }
     }
 
+    /**
+     * Update the static structure to contain a direct reference to the type definition
+     * of a given function call and its child nodes
+     * @param idx
+     * @param ivType
+     */
+    initTypeRefInStatics(idx, fnRef) {
+        if (!this.statics[idx][ST_IDX_TYPE_REF]) {
+            let st = this.statics[idx];
+            st[ST_IDX_TYPE_REF] = fnRef.typeMap;
+
+            this.updateChildTypeRefInStatics(idx, fnRef.typeMap);
+        }
+    }
+
+    updateChildTypeRefInStatics(idx, ivType) {
+        let statics = this.statics, stItem;
+        for (let i = idx + 1; statics.length > i; i++) {
+            stItem = statics[i];
+            if (stItem[ST_IDX_NODE_TYPE] === NacNodeType.ATT_NODE && stItem[ST_IDX_CONTEXT_IDX] === idx) {
+                // i is the index of a data node referring to the current node
+                let tp = ivType[stItem[ST_IDX_NODE_NAME]];
+                stItem[ST_IDX_TYPE_REF] = tp;
+                if (tp && tp.$isTypeDef) {
+                    // recursive calls
+                    if (tp.$isListItem) {
+                        this.updateChildTypeRefInStatics(i, tp.itemType);
+                    } else if (tp.$isMap) {
+                        this.updateChildTypeRefInStatics(i, tp);
+                    }
+                }
+            }
+        }
+    }
+
     throwError(idx, msg) {
         let err = new IvError(msg);
         err.nodeIdx = idx;
@@ -917,23 +1033,24 @@ function getRefNodes(node, result) {
  * @param sAttributes
  */
 function setNodeAttributes(nd, statics, dAttributes, sAttributes) {
-    let i, atts = (nd.isGroupNode) ? nd.data.attributes : nd.attributes;
+    let i, atts = nd.attributes;
 
     // dynamic attributes first
     if (dAttributes) {
-        let initDynAtts = nd.isElementNode && nd.dynAttributes === null;
-        if (initDynAtts) {
+        let initDynAttributes = (nd.isElementNode && !nd.dynAttributes);
+        if (initDynAttributes) {
+            // store the name of dynamic attributes to ease renderer processing
             nd.dynAttributes = [];
         }
         for (i = 0; dAttributes.length > i; i += 2) {
             atts[dAttributes[i]] = dAttributes[i + 1];
-            if (initDynAtts) {
+            if (initDynAttributes) {
                 nd.dynAttributes.push(dAttributes[i]);
             }
         }
     }
     // static attributes from statics array
-    let sAtts = statics[4];
+    let sAtts = statics[ST_IDX_STATIC_ATTRIBUTES];
     if (sAtts) {
         for (i = 0; sAtts.length > i; i += 2) {
             atts[sAtts[i]] = sAtts[i + 1];
@@ -954,7 +1071,7 @@ function setNodeAttributes(nd, statics, dAttributes, sAttributes) {
  * @param cptNd
  */
 function generateCptView(idx, cptNd) {
-    let atts = cptNd.data.attributes, att = cptNd.firstAttribute, view;
+    let atts = cptNd.attributes, att = cptNd.firstAttribute, view;
     // update attributes
     while (att) {
         if (!atts[att.name]) {
@@ -962,11 +1079,11 @@ function generateCptView(idx, cptNd) {
         }
         att = att.nextSibling;
     }
+    cptNd.attributes = atts;
     cptNd.propagateChanges = true;
-    view = cptNd.data.template.createView(atts, {creationMode: true, groupNode: cptNd});
+    view = cptNd.data.funcNode.createView(atts, {creationMode: true, groupNode: cptNd});
     cptNd.propagateChanges = false;
     cptNd.data.view = view;
-    cptNd.data.attributes = atts;
     cptNd.data.viewDom = view.vdom.firstChild;
 }
 
@@ -1019,3 +1136,4 @@ function addInstruction(type, node, parentNode = null) {
  */
 iv.IvNode = IvNode;
 iv.IvContent = IvContent;
+iv.IvAny = 0; // to flag an attribute as any type

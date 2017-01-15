@@ -37,10 +37,25 @@ export function iv(strings, ...values) {
     // parse and compile
     let r = parse(strings, values);
     if (r.error) {
-        throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
-        //iv.log`(${r.error.line}:${r.error.column}) ${r.error.description}`); // todo match IvError
+        let err = new IvError(r.error.description);
+        err.lineNbr = r.error.lineNbr;
+        err.columnNbr = r.error.columnNbr;
+        err.fileName = r.error.fileName;
+        iv.log(err);
+        return null;
     }
-    let p = compile(r.nac, true);
+
+    let p;
+    try {
+        p = compile(r.nac, true, 1, r.lineNbrShift, r.fileName);
+    } catch (e) {
+        let err = new IvError(e.description);
+        err.contextInfo = e.contextInfo;
+        err.lineNbr = e.lineNbr;
+        err.fileName = e.fileName;
+        iv.log(err);
+        return null;
+    }
     // load the package
     return p.$fn(ivPkgProcessor, values, iv);
 }
@@ -119,41 +134,31 @@ IvFunctionNode.createViewFn = function (funcNode, argMap, context) {
 };
 
 class IvError {
-    message;    // error message
-    templateId;
-    line;
-    column;
-    nodeIdx;    // optional - node index where the error was found
-    statics;    // optional - reference to the statics structure associated to the template where the error was found
-    // fileName ? Could be added to package info with pre-compilation?
+    message;        // error message
+    lineNbr;        // line number
+    columnNbr;      // column number
+    contextInfo;    // short additional context information (e.g. node name)
+    fileName;       // file name / optional
 
     constructor(msg) {
         this.message = msg;
-        this.templateId = "";
-        this.line = null;
-        this.column = null;
-        this.nodeIdx = null;
+        this.contextInfo = ""; // e.g. "div" or ":title"
+        this.lineNbr = -1;
+        this.columnNbr = -1;
+        this.fileName = "";
     }
 
     /**
      * Merge all information in one description
      */
     description() {
-        let lineNbr = "", nm = "";
-        if (this.statics && this.nodeIdx) {
-            let statics = this.statics[this.nodeIdx];
-            let ndType = statics[ST_IDX_NODE_TYPE];
-            if (ndType === NacNodeType.ELEMENT || ndType === NacNodeType.COMPONENT) {
-                nm = statics[ST_IDX_NODE_NAME];
-            } else if (ndType === NacNodeType.ATT_NODE) {
-                nm = ":" + statics[ST_IDX_NODE_NAME];
-            } else {
-                nm = NacNodeType.getName(ndType);
-            }
-            lineNbr = statics[ST_IDX_LINE_NBR];
-        }
+        let fn = this.fileName ? this.fileName + "," : "",
+            sep = this.contextInfo ? "@" : "";
+        return ["[", this.contextInfo, sep, fn, "line:", this.lineNbr, "] ", this.message].join("");
+    }
 
-        return ["[", nm, "@line:", lineNbr, "] ", this.message].join("");
+    toString() {
+        return this.description();
     }
 }
 
@@ -174,14 +179,17 @@ class IvProcessor {
     creationModeTarget;  // force creation mode until a certain target is reached, then move creationMode back to false
     ignoreTemplateNode;  // true when the template is called from another template that has already created the template node
     nodeCount;           // internal counter used to create unique references
+    fileName;            // file name - for error reporting
 
     constructor(templateData, templateRef) {
+        let fnStatics = templateData.templateStatics;
         this.ref = templateRef;
         this.fn = templateData.templateFn;
-        this.statics = templateData.templateStatics;
+        this.statics = fnStatics;
         this.argIndexes = templateData.templateArgIdx;
         this.templateId = templateData.templateId;
         this.nodeCount = 0;
+        this.fileName = fnStatics[0][9] || "";
     }
 
     refresh(argMap, context) {
@@ -452,7 +460,7 @@ class IvProcessor {
                     let cptNd = this.currentNd;
                     cptNd.data.viewDom = cptNd.firstChild;
                     cptNd.data.dAttributes = dAttributes;
-                    cptNd.firstChild = cptNd.data.contentDom.firstChild; // todo is it necessary to keep the parent group?
+                    cptNd.firstChild = cptNd.data.contentDom.firstChild;
 
                     // remove unprocessed changes from previous refresh (e.g. changes associated
                     // to a content node that wasn't inserted
@@ -481,15 +489,17 @@ class IvProcessor {
         // we are in the case where the component has children
         this.ne(idx);
 
-        let nd = this.currentNd, contentName, contentFound = true;
+        let nd = this.currentNd, contentName, contentFound = true, data = nd.data;
         if (nd.isDataNode) {
             let typeRef = this.statics[idx][ST_IDX_TYPE_REF];
-            while (typeRef.$isListItem) {
-                typeRef = typeRef.itemType;
+            if (typeRef) {
+                while (typeRef.$isListItem) {
+                    typeRef = typeRef.itemType;
+                }
+                contentName = typeRef.$contentName;
             }
-            contentName = typeRef.$contentName;
         } else {
-            contentName = nd.data.funcNode.typeMap.$contentName;
+            contentName = data.funcNode.typeMap.$contentName;
         }
         if (!contentName) {
             contentFound = false;
@@ -693,14 +703,17 @@ class IvProcessor {
         }
     }
 
+    /**
+     * Project current node into data node parent attributes
+     * @param idx the index being processed
+     */
     setCurrentDataNodeAsParentAttribute(idx) {
-        // todo create attribute wrapper and add it to the parent's node
         let dataNode = this.currentNd,
             dnp = this.dataNodeParents,
             parent = dnp[dnp.length - 1];
 
         // parent is a component or another data node
-        if (parent.data) {
+        if (parent && parent.data) {
             let dataNodeName = this.statics[idx][ST_IDX_NODE_NAME], dataNodeType;
             if (parent.data.funcNode) {
                 // parent is a component
@@ -722,7 +735,7 @@ class IvProcessor {
                 this.throwError(idx, "Type mismatch");
             }
         } else {
-            this.throwError(idx, "Invalid data node parent"); // todo
+            this.throwError(idx, "Invalid data node context");
         }
 
     }
@@ -833,10 +846,10 @@ class IvProcessor {
         // create a group node as container for the component
         let statics = this.statics[idx],
             nd = this.createGroupNode(idx, statics[ST_IDX_NODE_NAME], false);
-        if (!funcRef) {
+        if (!funcRef || !funcRef.isFunctionNode) {
             // we should not get there as template has already been identified earlier
             // unless dynamic injection is used to change the package reference
-            this.throwError(idx, "Invalid component reference"); // todo test?
+            this.throwError(idx, "Invalid function reference");
         }
         nd.data = {
             funcNode: funcRef,
@@ -958,7 +971,7 @@ class IvProcessor {
      * Update the static structure to contain a direct reference to the type definition
      * of a given function call and its child nodes
      * @param idx
-     * @param ivType
+     * @param fnRef
      */
     initTypeRefInStatics(idx, fnRef) {
         if (!this.statics[idx][ST_IDX_TYPE_REF]) {
@@ -990,10 +1003,17 @@ class IvProcessor {
     }
 
     throwError(idx, msg) {
-        let err = new IvError(msg);
-        err.nodeIdx = idx;
-        err.statics = this.statics;
-        err.templateId = this.templateId;
+        let err = new IvError(msg), statics = this.statics[idx], ndType = statics[ST_IDX_NODE_TYPE], nm = "";
+        if (ndType === NacNodeType.ELEMENT || ndType === NacNodeType.COMPONENT) {
+            nm = statics[ST_IDX_NODE_NAME];
+        } else if (ndType === NacNodeType.ATT_NODE) {
+            nm = ":" + statics[ST_IDX_NODE_NAME];
+        } else {
+            nm = NacNodeType.getName(ndType);
+        }
+        err.contextInfo = nm;
+        err.lineNbr = statics[ST_IDX_LINE_NBR];
+        err.fileName = this.fileName;
         throw err;
     }
 }

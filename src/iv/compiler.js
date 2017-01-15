@@ -4,9 +4,10 @@
 
 import {NacAttributeNature, NacNodeType} from './nac';
 
-
-export function compile(nacNode, exposeInternals = false, initIndentLevel = 1) {
+export function compile(nacNode, exposeInternals = false, initIndentLevel = 1, lineNbrShift = 0, fileName = "") {
     let pkg = new PkgCompiler();
+    pkg.lineNbrShift = lineNbrShift;
+    pkg.fileName = fileName;
     return pkg.compile(nacNode, exposeInternals, initIndentLevel);
 }
 
@@ -40,6 +41,7 @@ class CompilerBase {
     entityScope;    // context object inheriting from parent context and containing properties for each entity in the current scope
     parentScope;    // parent entityScope
     lineNbrShift;   // shift to apply to all line numbers
+    fileName;       // file name, if provided
 
     /**
      * Initialize common properties at the beginning of the compilation
@@ -53,7 +55,8 @@ class CompilerBase {
         this.baseIndent = initIndent;
         this.indentArray = [initIndent];
         this.exposeInternals = exposeInternals;
-        this.lineNbrShift = 0;
+        this.lineNbrShift = this.lineNbrShift || 0;
+        this.fileName = this.fileName || "";
 
         let sc = {foundEntities: {}, entityList: []};
         this.scanEntities(nd, sc);
@@ -83,8 +86,8 @@ class CompilerBase {
             // remove extra double-quote on id (
             if (nd.id) {
                 nd.id = id = getIdValue(nd);
-                if (scanContext.foundEntities[id]) {
-                    throw "Same id cannot be used twice in the same function context";
+                if (scanContext.foundEntities.hasOwnProperty(id)) {
+                    this.throwError(nd, "Same id cannot be used twice in the same function context");
                 }
                 scanContext.foundEntities[id] = true;
                 scanContext.entityList.push(id);
@@ -108,11 +111,13 @@ class CompilerBase {
         let nd = ndList;
         while (nd) {
             if (!this.compileCommonNode(nd, contextIdx)) {
-                let errMsg = "[IvCompilerBase] Invalid node type: " + nd.nodeType;
-                if (nd.nodeType === 1) {
-                    errMsg = "[IvCompilerBase] Invalid node: " + nd.nodeName;
+                let errMsg = "Invalid node type: " + nd.nodeType;
+                if (nd.nodeType === NacNodeType.ELEMENT) {
+                    errMsg = "Invalid node: " + nd.nodeName;
+                } else if (nd.nodeType === NacNodeType.JS_BLOCK) {
+                    errMsg = "Unauthorized JavaScript block";
                 }
-                throw errMsg;
+                this.throwError(nd, errMsg);
             }
             nd = nd.nextSibling;
         }
@@ -126,7 +131,6 @@ class CompilerBase {
      */
     compileCommonNode(nd, contextIdx) {
         let ndt = nd.nodeType;
-
         if (ndt === NacNodeType.ELEMENT) {
             let nm = nd.nodeName;
             if (nm === "function") {
@@ -138,8 +142,6 @@ class CompilerBase {
             }
         } else if (ndt === NacNodeType.JS_EXPRESSION) {
             this.compileJsExpression(nd);
-        } else if (ndt === NacNodeType.JS_BLOCK) {
-            this.compileJsBlock(nd, contextIdx);
         } else if (ndt === NacNodeType.COMMENT) {
             this.compileComment(nd);
         } else if (ndt === NacNodeType.COMMENT_ML) {
@@ -175,9 +177,8 @@ class CompilerBase {
             }
         }
 
-        // TODO support optional function id
         if (fnName === "") {
-            this.throwError(nd, "Missing function id"); // todo
+            this.throwError(nd, "Missing function id");
         }
 
         let argListJs = "";
@@ -189,12 +190,13 @@ class CompilerBase {
         this.fnContent.push([this.indent, fnName, ' = $c.fn(', idx, ', function($c', argListJs, ') {'].join(''));
 
         let fc = new FunctionCompiler(this.parentScope);
+        fc.lineNbrShift = this.lineNbrShift;
+        fc.fileName = this.fileName;
         fc.compile(nd, this.exposeInternals, this.indent + INDENT_SPACE, argNames, argTypes);
 
         this.fnContent.push(fc.jsContent);
 
         this.fnContent.push([this.indent, '},[\n', fc.jsStatics, '\n', this.indent, ']);'].join(''));
-
     }
 
     /**
@@ -204,7 +206,7 @@ class CompilerBase {
     compileTypeNode(nd) {
         let id = nd.id;
         if (!id) {
-            this.throwError(nd, "Missing type id"); // todo
+            this.throwError(nd, "Missing type id");
         }
 
         let typeArgs = this.scanAttributes(nd).typeArgs;
@@ -229,10 +231,10 @@ class CompilerBase {
             this.throwError(nd, "Empty definition"); // we should not get here as "id" should be in the list
         }
         if (atts[ATT_BOUND1WAY] !== null || atts[ATT_BOUND2WAYS] !== null) {
-            this.throwError(nd, "Bound attributes cannot be used on " + nodeName + " definitions"); // todo
+            this.throwError(nd, "Bound attributes cannot be used on " + nodeName + " definitions");
         }
         if (atts && (atts[ATT_DEFERRED_EXPRESSION] !== null )) {
-            this.throwError(nd, "Deferred expressions cannot be used on " + nodeName + " definitions"); // TODO check
+            this.throwError(nd, "Deferred expressions cannot be used on " + nodeName + " definitions");
         }
 
         let simpleAtts = [], listAtts = [], contentName = 0, contentList = 0, attName, attIndexes = {}, argInitInstructions = [];
@@ -247,7 +249,7 @@ class CompilerBase {
                 if (attName === "id") {
                     continue;
                 } else if (attIndexes[attName]) {
-                    throw "Definition cannot contain multiple attributes with the same name"; // TODO check
+                    this.throwError(nd, "Duplicate attribute"); // cannot be reached as already caught by parser
                 }
                 if (value !== undefined && nodeName === "type") {
                     this.throwError(nd, "Type definition cannot contain default values");
@@ -260,7 +262,7 @@ class CompilerBase {
                     listAtts.push('"' + itemName + '"');
 
                     if (attIndexes[itemName]) {
-                        this.throwError(nd, "Definition cannot contain list items and attributes with the same name"); // TODO check
+                        this.throwError(nd, "Duplicate attribute and list item names: '" + itemName + "'");
                     } else {
                         attIndexes[itemName] = true;
                     }
@@ -270,7 +272,7 @@ class CompilerBase {
                         if (tr.match(REGEXP_LIST_TYPE)) {
                             listAtts.push(getJsTypeRef(tr.slice(0, -2)));
                         } else {
-                            this.throwError(nd, "List types must end with '[]'"); // todo
+                            this.throwError(nd, attName + " type must end with '[]'");
                         }
                     } else {
                         listAtts.push("0");
@@ -304,7 +306,7 @@ class CompilerBase {
         }
 
         if (nodeName === "type" && !simpleAtts.length && !listAtts.length && !contentName && !contentList) {
-            this.throwError(nd, "Empty type definition"); // todo
+            this.throwError(nd, "Empty type definition");
         }
 
         let jsSimpleAtts = "0", jsListAtts = "0";
@@ -402,8 +404,7 @@ class CompilerBase {
      * @param msg the error message
      */
     throwError(nd, msg) {
-        // let err = new IvError(msg);
-        throw msg;
+        throw {description: msg, contextInfo: nd.nodeName, lineNbr: this.getLineNbr(nd), fileName: this.fileName};
     }
 }
 
@@ -437,7 +438,7 @@ class PkgCompiler extends CompilerBase {
         if (this.entities.length) {
             this.fnContent.push([this.indent, "var ", this.entities.join(", "), ";"].join(''));
         }
-
+        let indent1 = this.indent;
         this.compileNodeList(nd, 0);
 
         // return statement - e.g.
@@ -514,7 +515,7 @@ class FunctionCompiler extends CompilerBase {
         this.fnContent.push([this.indent, '$c.fs(', idx, '); // function start'].join(''));
 
         this.statics.push([this.baseIndent, '[', idx, ', ', NacNodeType.FUNCTION, ', ', this.getLineNbr(nd), ', ',
-            argNamesJs, ', ', argIdxJs, ', ', attData.typeArgs, ']'].join(''));
+            argNamesJs, ', ', argIdxJs, ', ', attData.typeArgs, ', "', this.fileName, '"]'].join(''));
 
         // recursively compile content elements
         this.compileNodeList(nd.firstChild, idx);
@@ -538,12 +539,14 @@ class FunctionCompiler extends CompilerBase {
                 ndt = nd.nodeType;
                 if (ndt === NacNodeType.ELEMENT) {
                     this.compileEltNode(nd, contextIdx);
+                } else if (ndt === NacNodeType.JS_BLOCK) {
+                    this.compileJsBlock(nd, contextIdx);
                 } else if (ndt === NacNodeType.INSERT) {
                     this.compileInsert(nd);
                 } else if (ndt === NacNodeType.TEXT) {
                     this.compileTextNode(nd);
                 } else {
-                    throw "Invalid node type: " + ndt;
+                    this.throwError(ndList, "Invalid node type: " + ndt);
                 }
             }
             nd = nd.nextSibling;
@@ -643,11 +646,11 @@ class FunctionCompiler extends CompilerBase {
             }
 
             this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', ', this.getLineNbr(nd), ', "',
-                argName, '", ', staticArgsJs, ', ',contextIdx, ']'].join(''));
+                argName, '", ', staticArgsJs, ', ', contextIdx, ']'].join(''));
 
         } else {
             this.statics.push([this.baseIndent, '[', idx, ', ', ndType, ', ', this.getLineNbr(nd), ', "',
-                argName, '", 0, ', contextIdx,']'].join(''));
+                argName, '", 0, ', contextIdx, ']'].join(''));
         }
 
         let fnRef = "", nm = (nd.nodeNameSpace !== undefined) ? nd.nodeNameSpace + ":" + nd.nodeName : nd.nodeName;

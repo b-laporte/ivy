@@ -15,7 +15,7 @@ describe('Iv compiler', () => {
         if (r.error) {
             throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
         }
-        return compile(r.nac, true, 3);
+        return compile(r.nac, true, 3, r.lineNbrShift, r.fileName);
     }
 
     it('should compile an empty package', () => {
@@ -29,17 +29,19 @@ describe('Iv compiler', () => {
 
     it('should compile an empty function', () => {
         let pkg = cpl`
+            // @file:compiler.spec @line:32
             <function #foo>
             </function>
         `;
 
         expect(diff(pkg.$data.fnContent, `\
             var foo;
+            // @file:compiler.spec @line:32
             foo = $c.fn(0, function($c) {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, 0, 0, 0, 0]
+                [0, 2, 33, [], {}, 0, 0, 0, 0, "compiler.spec"]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -61,7 +63,7 @@ describe('Iv compiler', () => {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["arg1", "arg2", "arg3", "arg4"], {"arg1":0, "arg2":1, "arg3":2, "arg4":3}, ["arg1", String, "arg2", 0, "arg3", Number, "arg4", 0], 0, 0, 0]
+                [0, 2, 2, ["arg1", "arg2", "arg3", "arg4"], {"arg1":0, "arg2":1, "arg3":2, "arg4":3}, ["arg1", String, "arg2", 0, "arg3", Number, "arg4", 0], 0, 0, 0, ""]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -81,7 +83,7 @@ describe('Iv compiler', () => {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["nameList", "nbrList"], {"nameList":0, "nbrList":1}, 0, ["nameList", "name", String, "nbrList", "nbr", Number], 0, 0]
+                [0, 2, 2, ["nameList", "nbrList"], {"nameList":0, "nbrList":1}, 0, ["nameList", "name", String, "nbrList", "nbr", Number], 0, 0, ""]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -100,7 +102,7 @@ describe('Iv compiler', () => {
                 $c.fs(0); // function start
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["arg", "body"], {"arg":0, "body":1}, ["arg", String], 0, "body", 0]
+                [0, 2, 2, ["arg", "body"], {"arg":0, "body":1}, ["arg", String], 0, "body", 0, ""]
             ]);
             return {foo:foo};`
         )).toBe("equal");
@@ -177,7 +179,7 @@ describe('Iv compiler', () => {
                 $c.ns(4, false, 0, 0); // br
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0, ""],
                 [1, 1, 3, "div", ["class", "main"], 0],
                 [2, 1, 4, "span", ["ok", "true"], 1],
                 [3, 1, 5, "input", ["type", "text"], 1],
@@ -214,7 +216,7 @@ describe('Iv compiler', () => {
                 $c.t(6); // Done ! 
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, 0, 0, 0, 0],
+                [0, 2, 2, [], {}, 0, 0, 0, 0, ""],
                 [1, 3, 3, " Hello World "],
                 [2, 1, 4, "div", 0, 0],
                 [3, 3, 5, " Here\\n                    and \\"here\\" "],
@@ -249,7 +251,7 @@ describe('Iv compiler', () => {
                 $c.ne(2);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, 0, 0, 0, 0],
+                [0, 2, 2, [], {}, 0, 0, 0, 0, ""],
                 [1, 3, 3, " Hello World "],
                 [2, 1, 5, "div", 0, 0]
             ]);
@@ -283,7 +285,7 @@ describe('Iv compiler', () => {
                 $c.ne(2);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, [], {}, 0, 0, 0, 0],
+                [0, 2, 2, [], {}, 0, 0, 0, 0, ""],
                 [1, 3, 3, " Hello World "],
                 [2, 1, 5, "div", 0, 0]
             ]);
@@ -316,7 +318,7 @@ describe('Iv compiler', () => {
                 x = 3;
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0, ""],
                 [1, 1, 4, "div", ["class", "main"], 0],
                 [2, 1, 7, "br", 0, 0]
             ]);
@@ -357,7 +359,7 @@ describe('Iv compiler', () => {
                 }
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0, ""],
                  1,
                 [2, 1, 4, "div", ["class", "main"], 0],
                  3,
@@ -403,7 +405,7 @@ describe('Iv compiler', () => {
                 }
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [0, 2, 2, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0, ""],
                  1,
                 [2, 1, 4, "div", ["class", "main"], 0],
                  3,
@@ -449,7 +451,7 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["v"], {"v":0}, ["v", Number], 0, 0, 0],
+                [0, 2, 2, ["v"], {"v":0}, ["v", Number], 0, 0, 0, ""],
                 [1, 1, 3, "div", 0, 0],
                 [2, 1, 4, "span", 0, 1],
                 [3, 3, 4, "first"],
@@ -464,7 +466,7 @@ describe('Iv compiler', () => {
                 $c.ns(1, false, ["title", ("Value: "+value)], 0); // span
                 $c.fe(0); // function end
             },[
-                [0, 2, 11, ["value"], {"value":0}, ["value", 0], 0, 0, 0],
+                [0, 2, 11, ["value"], {"value":0}, ["value", 0], 0, 0, 0, ""],
                 [1, 1, 12, "span", 0, 0]
             ]);
             return {foo:foo, bar:bar};`
@@ -490,7 +492,7 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0],
+                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0, ""],
                 [1, 1, 3, "div", 0, 0],
                  2
             ]);
@@ -521,7 +523,7 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0],
+                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0, ""],
                 [1, 1, 3, "div", 0, 0],
                 [2, 1, 4, "span", 0, 1],
                 [3, 1, 5, "span", 0, 1],
@@ -552,7 +554,7 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0],
+                [0, 2, 2, ["msg"], {"msg":0}, ["msg", 0], 0, 0, 0, ""],
                 [1, 1, 3, "div", 0, 0],
                 [2, 1, 4, "span", 0, 1],
                 [3, 1, 5, "span", 0, 1]
@@ -606,7 +608,7 @@ describe('Iv compiler', () => {
                 }
                 $c.fe(0); // function end
             },[
-                [0, 2, 7, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0],
+                [0, 2, 7, ["bar"], {"bar":0}, ["bar", Number], 0, 0, 0, ""],
                  1,
                 [2, 1, 9, "div", ["class", "main"], 0],
                  3,
@@ -688,7 +690,7 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 3, ["v"], {"v":0}, ["v", Number], 0, 0, 0],
+                [0, 2, 3, ["v"], {"v":0}, ["v", Number], 0, 0, 0, ""],
                 [1, 1, 4, "div", 0, 0],
                 [2, 15, 5, "bar", 0, 1],
                 [3, 15, 6, "bar", 0, 1]
@@ -739,7 +741,7 @@ describe('Iv compiler', () => {
                 $c.ne(1);
                 $c.fe(0); // function end
             },[
-                [0, 2, 2, ["v"], {"v":0}, ["v", Number], 0, 0, 0],
+                [0, 2, 2, ["v"], {"v":0}, ["v", Number], 0, 0, 0, ""],
                 [1, 1, 3, "div", 0, 0],
                 [2, 15, 4, "bar", 0, 1],
                 [3, 16, 5, "head", 0, 2],
@@ -757,7 +759,7 @@ describe('Iv compiler', () => {
                 $c.ins(3, body);
                 $c.fe(0); // function end
             },[
-                [0, 2, 13, ["value", "head", "body"], {"value":0, "head":1, "body":2}, ["value", 0, "head", $iv.IvNode, "body", $iv.IvNode], 0, 0, 0],
+                [0, 2, 13, ["value", "head", "body"], {"value":0, "head":1, "body":2}, ["value", 0, "head", $iv.IvNode, "body", $iv.IvNode], 0, 0, 0, ""],
                 [1, 1, 14, "span", 0, 0],
                  2,
                  3

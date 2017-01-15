@@ -5,8 +5,10 @@
 
 import {NacNode, NacNodeType, NacAttributeNature} from './nac';
 
+const REGEXP_LINE = /@line:(\d+)/,
+    REGEXP_FILE_NAME = /@file:([^\s]+)/;
 
-let CHAR_GT = 62,               // >
+const CHAR_GT = 62,               // >
     CHAR_SLASH = 47,            // /
     CHAR_BACKSLASH = 92,        // \
     CHAR_STAR = 42,             // *
@@ -41,16 +43,17 @@ let CHAR_GT = 62,               // >
     CHAR_EOF = -1;              // pseudo char to mark end of file
 
 class Parser {
-    strings;    // array of the string parts from the template string
-    values;     // array of the values from the template string
-    blockIdx;   // index of the current string being parsed
-    charIdx;    // index of the next character to be parsed in the current block - can be equal to the block length
-    block;      // reference to the current string being parsed
-    blockLength;// length of the current block
-    lineNbr;    // current line number
-    colNbr;     // current column number
-    value;      // current value or null if last char retrieved through moveNext() was not a value
-    valueSymbol;// js reference to be used to get the value from a js expression (e.g. $v[42])
+    strings;            // array of the string parts from the template string
+    values;             // array of the values from the template string
+    blockIdx;           // index of the current string being parsed
+    charIdx;            // index of the next character to be parsed in the current block - can be equal to the block length
+    block;              // reference to the current string being parsed
+    blockLength;        // length of the current block
+    lineNbr;            // current line number
+    lineNbrShift;       // shift to apply to line numbers
+    colNbr;             // current column number
+    value;              // current value or null if last char retrieved through moveNext() was not a value
+    valueSymbol;        // js reference to be used to get the value from a js expression (e.g. $v[42])
     currentCharCode;    // current char code, corresponds to the last char retrieved through moveNext. Set to null once processed
     currentChar;        // current char (equivalent to String.fromCharCode(this.currentCharCode)
     rootNode;           // root node or null
@@ -58,11 +61,13 @@ class Parser {
     nodeStack;          // array of the last node for each level of the currentNode hierarchy
     targetNodeDepth;    // targeted depth
     jsBlockStack;       // current depth in js blocks
+    fileName;           // file name info
 
     constructor(strings, values) {
         this.strings = strings;
         this.values = values;
         this.lineNbr = 1;
+        this.lineNbrShift = 0;
         this.colNbr = 0;
         this.blockIdx = 0;
         this.block = strings[0];
@@ -77,6 +82,7 @@ class Parser {
         this.nodeStack = [];
         this.targetNodeDepth = 0;
         this.jsBlockStack = [];
+        this.fileName = "";
     }
 
     /**
@@ -336,11 +342,11 @@ export function parse(strings, values) {
         root = p.rootNode;
     } catch (e) {
         let d = e.description || e;
-        error = {description: d, line: p.lineNbr, column: p.colNbr};
+        error = {description: d, lineNbr: p.lineNbr + p.lineNbrShift, columnNbr: p.colNbr, fileName: p.fileName};
         root = null;
     }
 
-    return {nac: root, error: error};
+    return {nac: root, error: error, lineNbrShift: p.lineNbrShift, fileName: p.fileName};
 }
 
 /**
@@ -847,7 +853,7 @@ function jsNode(p) {
     if (d) {
         if (!d.isBlockStart && !d.isBlockEnd) {
             // simple instruction node
-            p.addNode(NacNodeType.JS_EXPRESSION, d.expression);
+            p.addNode(NacNodeType.JS_EXPRESSION, d.expression, line);
         } else {
             let nd;
             if (d.isBlockEnd) {
@@ -872,7 +878,7 @@ function jsNode(p) {
                 nd = p.addNode(NacNodeType.JS_BLOCK, {
                     startBlockExpression: d.expression,
                     endBlockExpression: "}"
-                });
+                }, line);
                 p.jsBlockStack.push(nd);
                 p.shiftNodeDepth(1);
             }
@@ -968,6 +974,15 @@ function jsComment(p) {
     let s = b.join("");
     if (!s.match(/^\s*$/)) {
         // empty comments are ignored
+
+        // check if comments content @line or @file meta data
+        if (p.lineNbrShift === 0 && s.match(REGEXP_LINE)) {
+            p.lineNbrShift = parseInt(RegExp.$1, 10) - p.lineNbr + 1;
+        }
+        if (!p.fileName && s.match(REGEXP_FILE_NAME)) {
+            p.fileName = RegExp.$1;
+        }
+
         p.addNode(isMultiLineComment ? NacNodeType.COMMENT_ML : NacNodeType.COMMENT, s);
 
     }

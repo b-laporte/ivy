@@ -15,14 +15,14 @@ describe('IV parser', () => {
     function nac(strings, ...values) {
         let r = parse(strings, values);
         if (r.error) {
-            throw `(${r.error.line}:${r.error.column}) ${r.error.description}`;
+            throw `(${r.error.lineNbr}:${r.error.columnNbr}) ${r.error.description}`;
         }
         return r.nac;
     }
 
     function error(strings, ...values) {
         let r = parse(strings, values);
-        return (r.error) ? `(${r.error.line}:${r.error.column}) ${r.error.description}` : "[expected error not found]";
+        return (r.error) ? `(${r.error.lineNbr}:${r.error.columnNbr}) ${r.error.description}` : "[expected error not found]";
     }
 
     it('should parse an empty string', () => {

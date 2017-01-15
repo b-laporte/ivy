@@ -70,8 +70,8 @@ export class IvFunctionNode extends IvNode {
         };
         this.uid = "T" + (IvFunctionNode.templateCount++);
 
-        this.typeMap = new IvTypeMap();
         let fnStatics = statics[0];
+        this.typeMap = new IvTypeMap();
         this.typeMap.loadDefinition(fnStatics[2], fnStatics[5], fnStatics[6], fnStatics[7], fnStatics[8]);
     }
 

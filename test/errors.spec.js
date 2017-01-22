@@ -272,4 +272,33 @@ describe('IV errors', () => {
         `;
         expect(lastError).toBe("[type@errors.spec,line:271] bazList type must end with '[]'");
     });
+
+    it('should raise errors for invalid controllers', () => {
+        class FooController {
+            $attributes;
+        }
+
+        let bar=123;
+
+        let pkg1 = iv`
+          // @file:errors.spec @line:284
+          <function #foo c:IvController(${bar})></function>
+        `;
+        pkg1.foo.createView();
+        expect(lastError).toBe("[#function@errors.spec,line:285] IvController type argument must be a class constructor");
+
+        let pkg2 = iv`
+          // @file:errors.spec @line:291
+          <function #foo x:IvController(${FooController}) d:IvController(${FooController})></function>
+        `;
+        pkg2.foo.createView();
+        expect(lastError).toBe("[#function@errors.spec,line:292] Controller can only be defined once");
+
+        let pkg3 = iv`
+          // @file:errors.spec @line:298
+          <function #foo c:IvController(${FooController},"abc")></function>
+        `;
+        pkg3.foo.createView();
+        expect(lastError).toBe("[#function@errors.spec,line:299] IvController should have only one argument");
+    });
 });

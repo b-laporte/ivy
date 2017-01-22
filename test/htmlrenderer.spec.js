@@ -116,7 +116,7 @@ describe('HTML renderer', () => {
 
         view.refresh({nbr: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-nbr=9>
                 <div 1 ref="XX:0:1" class="hello">
                     <#text 2 " first "/>
                     <#group 3 js ref="XX:0:2">
@@ -168,7 +168,7 @@ describe('HTML renderer', () => {
         pkg.test.uid = "XX";
         let view = render(pkg.test, df, {a: true, b: false, c: false}), nd;
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-a=true att-b=false att-c=false>
                 <div 1 ref="XX:0:1" class="hello">
                     <#text 2 " hello "/>
                     <#group 3 js ref="XX:0:2">

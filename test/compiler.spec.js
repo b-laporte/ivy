@@ -69,6 +69,46 @@ describe('Iv compiler', () => {
         )).toBe("equal");
     });
 
+    it('should properly generate type arguments in functions', () => {
+        let r = cpl`
+            <function #foo c:IvController(Blah) d:IvEvtHandler("value")>
+            </function>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var foo;
+            foo = $c.fn(0, function($c, c, d) {
+                d = (d !== undefined)? d : {};
+                $c.fs(0); // function start
+                $c.fe(0); // function end
+            },[
+                [0, 2, 2, ["c", "d"], {"c":0, "d":1}, ["c", [$iv.IvController, Blah], "d", [$iv.IvEvtHandler, "value"]], 0, 0, 0, ""]
+            ]);
+            return {foo:foo};`
+        )).toBe("equal");
+
+        // todo support types and list
+        r = cpl`
+            <type #Panel onexpand:IvEvtHandler("closed")/>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var Panel;
+            Panel = $c.td(2, ["onexpand", [$iv.IvEvtHandler, "closed"]], 0, 0, 0);
+            return {Panel:Panel};`
+        )).toBe("equal");
+
+        r = cpl`
+            <type #Foo barList:SomeType(SomeClass,"hello")[]/>
+        `;
+
+        expect(diff(r.$data.fnContent, `\
+            var Foo;
+            Foo = $c.td(2, 0, ["barList", "bar", [SomeType, SomeClass, "hello"]], 0, 0);
+            return {Foo:Foo};`
+        )).toBe("equal");
+    });
+
     it('should support list arguments', () => {
         let r = cpl`
             <function #foo nameList:String[] nbrList:Number[]=[1,2,3]>

@@ -58,6 +58,7 @@ export class IvFunctionNode extends IvNode {
     templateData;
     uid;                        // unique identifier
     typeMap;                    // argument type definition
+    controller;
 
     constructor(index, func, statics) {
         super(index);
@@ -73,6 +74,8 @@ export class IvFunctionNode extends IvNode {
         let fnStatics = statics[0];
         this.typeMap = new IvTypeMap();
         this.typeMap.loadDefinition(fnStatics[2], fnStatics[5], fnStatics[6], fnStatics[7], fnStatics[8]);
+
+        this.controller = null;
     }
 
     createView(argMap, context) {

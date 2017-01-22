@@ -9,7 +9,7 @@ import {parse} from './parser';
 import {compile} from './compiler';
 import {IvNode, IvContent, IvFunctionNode, IvGroupNode, IvDataNode, IvEltNode, IvTextNode} from './node';
 import {IvInstructionPool, INSTRUCTIONS, IvInstructionSet} from './instructions';
-import {IvTypeMap} from './typedef';
+import {IvTypeMap, IvController} from './typedef';
 
 const MAX_INDEX = Number.MAX_VALUE;
 let instructionPool = new IvInstructionPool();
@@ -49,11 +49,15 @@ export function iv(strings, ...values) {
     try {
         p = compile(r.nac, true, 1, r.lineNbrShift, r.fileName);
     } catch (e) {
-        let err = new IvError(e.description);
-        err.contextInfo = e.contextInfo;
-        err.lineNbr = e.lineNbr;
-        err.fileName = e.fileName;
-        iv.log(err);
+        if (e.description) {
+            let err = new IvError(e.description);
+            err.contextInfo = e.contextInfo;
+            err.lineNbr = e.lineNbr;
+            err.fileName = e.fileName;
+            iv.log(err);
+        } else {
+            iv.log(e);
+        }
         return null;
     }
     // load the package
@@ -100,7 +104,7 @@ let ivPkgProcessor = {
  * @returns {{vdom: null, refreshLog: null, renderer: null, refresh: view.refresh, log: (function(*=))}}
  */
 IvFunctionNode.createViewFn = function (funcNode, argMap, context) {
-    let p = new IvProcessor(funcNode.templateData, funcNode.uid + ":" + (funcNode.templateData.instanceCount++)),
+    let p = new IvProcessor(funcNode, funcNode.uid + ":" + (funcNode.templateData.instanceCount++)),
         view = {
             vdom: null,
             refreshLog: null,
@@ -164,7 +168,6 @@ class IvError {
 
 class IvProcessor {
     ref;                 // template instance unique identifier - generated
-    templateId;          // template id
     fn;                  // template function
     statics;             // template statics data
     argIndexes;          // template argument indexes - i.e. map of "argName":argIndex (e.g. "msg":0)
@@ -179,20 +182,29 @@ class IvProcessor {
     creationModeTarget;  // force creation mode until a certain target is reached, then move creationMode back to false
     ignoreTemplateNode;  // true when the template is called from another template that has already created the template node
     nodeCount;           // internal counter used to create unique references
+    controller;          // controller associated to the template function (optional)
+    controllerArgIx;     // argument name of the function controller (if any)
+    fnType;              // function type definition
     fileName;            // file name - for error reporting
+    rootAttributes;      // root node attributes
 
-    constructor(templateData, templateRef) {
-        let fnStatics = templateData.templateStatics;
-        this.ref = templateRef;
+    constructor(funcNode, uid) {
+        let templateData = funcNode.templateData, fnStatics = templateData.templateStatics;
+        this.ref = uid;
         this.fn = templateData.templateFn;
         this.statics = fnStatics;
         this.argIndexes = templateData.templateArgIdx;
-        this.templateId = templateData.templateId;
         this.nodeCount = 0;
         this.fileName = fnStatics[0][9] || "";
+        let tm = funcNode.typeMap;
+        this.fnType = tm;
+        if (tm.$controllerClass) {
+            this.controllerArgIx = this.argIndexes[tm.$controllerName] + 1;
+        }
     }
 
     refresh(argMap, context) {
+        argMap = argMap || {};
         let groupNode = context.groupNode, rootNd = this.rootNd;
 
         // fake a node to bootstrap the chain
@@ -228,6 +240,14 @@ class IvProcessor {
                 args[argsIdx[k] + 1] = argMap[k];
             }
         }
+
+        if (this.controllerArgIx) {
+            if (!this.controller) {
+                this.controller = new this.fnType.$controllerClass();
+            }
+            argMap[this.fnType.$controllerName] = args[this.controllerArgIx] = this.controller;
+        }
+        this.rootAttributes = argMap;
 
         // call the template function
         this.fn.apply(null, args); // this will call the marker methods ns(), ne(), t(), bs()...
@@ -292,14 +312,14 @@ class IvProcessor {
 
     deleteSiblingsUntil(targetIdx) {
         // return true if found
-        let nd = this.currentNd, nextNode = nd.nextSibling;
+        let nd = this.currentNd, nextNode = nd.nextSibling, ns;
         if (!nextNode) {
             return false;
         }
         while (nextNode && nextNode.index < targetIdx) {
-            this.deleteNextNode(targetIdx, nd);
-            nd = nextNode;
-            nextNode = nd.nextSibling;
+            ns = nextNode.nextSibling;
+            this.deleteNextNode(nd);
+            nextNode = ns;
         }
         if (nextNode && nextNode.index === targetIdx) {
             this.replaceLastAncestor(nextNode);
@@ -358,6 +378,10 @@ class IvProcessor {
      * @param idx
      */
     fs(idx) {
+        if (this.fnType.$error) {
+            this.throwError(idx, this.fnType.$error);
+        }
+
         if (!this.ignoreTemplateNode) {
             if (this.creationMode) {
                 // creation fast track
@@ -368,6 +392,10 @@ class IvProcessor {
                 }
             }
         }
+        this.currentNd.attributes = this.rootAttributes;
+        if (this.controller) {
+            this.controller.$attributes = this.currentNd.attributes;
+        }
         this.targetDepth++;
     }
 
@@ -376,6 +404,7 @@ class IvProcessor {
      * @param idx
      */
     fe(idx) {
+        this.ne(idx);
         if (this.creationMode) {
             if (idx === this.creationModeTarget) {
                 // reset forced creation flags
@@ -383,7 +412,6 @@ class IvProcessor {
                 this.creationModeTarget = -1;
             }
         }
-        this.ne(idx);
     }
 
     /**
@@ -422,7 +450,9 @@ class IvProcessor {
             // delete last nodes
             this.deleteSiblingsUntil(MAX_INDEX);
         }
-        if (this.currentNdDepth === this.targetDepth) {
+        if (this.currentNdDepth < this.targetDepth) {
+            this.deleteChildNodes(idx, this.currentNd);
+        } else if (this.currentNdDepth === this.targetDepth) {
             this.removeLastAncestor();
         }
         this.targetDepth--;
@@ -441,7 +471,7 @@ class IvProcessor {
         if (!hasChildren) {
             if (this.creationMode) {
                 this.createCptNode(idx, fnRef, dAttributes, sAttributes);
-                generateCptView(idx, this.currentNd);
+                generateSubView(idx, this.currentNd);
             } else {
                 if (this.advance(idx)) {
                     this.updateNodeAttributes(this.currentNd, dAttributes);
@@ -517,7 +547,7 @@ class IvProcessor {
                 if (contentFound) {
                     nd.attributes[contentName] = contentGroup.firstChild;
                 }
-                generateCptView(idx, nd);
+                generateSubView(idx, nd);
             } else if (contentFound) {
                 // nd is data node
                 nd.attributes[contentName] = nd.firstChild;
@@ -689,18 +719,34 @@ class IvProcessor {
 
     /**
      * Delete the next sibling of a node
-     * @param idx the node index
      * @param nd
      */
-    deleteNextNode(idx, nd) {
+    deleteNextNode(nd) {
         let nextNode = nd.nextSibling;
         if (nextNode) {
             nd.nextSibling = nextNode.nextSibling || null;
             if (nextNode.isGroupNode) {
                 addInstruction(INSTRUCTION_DELETE_GROUP, nextNode);
-                this.moveChanges(nextNode, this.currentNd);
+                this.moveChanges(nextNode, this.currentNd); // no need here  -> sub groups could be automatically deleted?
             }
         }
+    }
+
+    /**
+     * Delete all child nodes for a given node
+     * @param idx
+     * @param nd
+     */
+    deleteChildNodes(idx, nd) {
+        let ch = nd.firstChild;
+        while (ch) {
+            if (ch.isGroupNode) {
+                addInstruction(INSTRUCTION_DELETE_GROUP, ch);
+                this.moveChanges(ch, nd); // no need here -> sub groups could be automatically deleted?
+            }
+            ch = ch.nextSibling;
+        }
+        nd.firstChild = null;
     }
 
     /**
@@ -1088,10 +1134,10 @@ function setNodeAttributes(nd, statics, dAttributes, sAttributes) {
  * Generate the view instance associated to a sub-component / sub-template
  * This view with then be stored as meta-data of the component's group node
  * @param idx the node index
- * @param cptNd
+ * @param nd the function node
  */
-function generateCptView(idx, cptNd) {
-    let atts = cptNd.attributes, att = cptNd.firstAttribute, view;
+function generateSubView(idx, nd) {
+    let atts = nd.attributes, att = nd.firstAttribute, view;
     // update attributes
     while (att) {
         if (!atts[att.name]) {
@@ -1099,12 +1145,12 @@ function generateCptView(idx, cptNd) {
         }
         att = att.nextSibling;
     }
-    cptNd.attributes = atts;
-    cptNd.propagateChanges = true;
-    view = cptNd.data.funcNode.createView(atts, {creationMode: true, groupNode: cptNd});
-    cptNd.propagateChanges = false;
-    cptNd.data.view = view;
-    cptNd.data.viewDom = view.vdom.firstChild;
+    nd.attributes = atts;
+    nd.propagateChanges = true;
+    view = nd.data.funcNode.createView(atts, {creationMode: true, groupNode: nd});
+    nd.propagateChanges = false;
+    nd.data.view = view;
+    nd.data.viewDom = view.vdom.firstChild;
 }
 
 /**
@@ -1156,4 +1202,5 @@ function addInstruction(type, node, parentNode = null) {
  */
 iv.IvNode = IvNode;
 iv.IvContent = IvContent;
+iv.IvController = IvController;
 iv.IvAny = 0; // to flag an attribute as any type

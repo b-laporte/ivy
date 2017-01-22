@@ -7,7 +7,7 @@
 /* global describe, it, beforeEach, afterEach, expect */
 
 import {iv} from '../src/iv/iv';
-import {compare, diff} from './utils';
+import {diff} from './utils';
 
 describe('IV runtime', () => {
     let OPTIONS = {indent: "            "}, OPTIONS2 = {indent: OPTIONS.indent, showRef: true};
@@ -25,7 +25,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-nbr=42>
                 <div 1 class="hello">
                     <span 2 class="one" foo=46 title="blah">
                         <#text 3 " Hello "/>
@@ -46,7 +46,7 @@ describe('IV runtime', () => {
         view.refresh({nbr: 5});
         expect(view.vdom).toBe(vdom1);
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-nbr=5>
                 <div 1 ref="XX:0:1" class="hello">
                     <span 2 ref="XX:0:2" class="one" foo=46 title="blah">
                         <#text 3 " Hello "/>
@@ -75,7 +75,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 42, msg: "Hello!"}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-msg="Hello!" att-nbr=42>
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#group 3 insert ref="XX:0:3">
@@ -98,7 +98,7 @@ describe('IV runtime', () => {
 
         view.refresh({nbr: 9});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-nbr=9>
                 <div 1>
                     <span 2>
                         <#group 3 insert>
@@ -139,9 +139,9 @@ describe('IV runtime', () => {
         `;
         pkg.test.uid = "XX"; // for test only to get a reproducible id value
 
-        let view = pkg.test.createView({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 function ref="XX:0:0">
+        let view = pkg.test.createView({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-nbr=3>
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <span 8 ref="XX:0:2">
@@ -156,7 +156,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-nbr=42>
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <#group 3 js ref="XX:0:3">
@@ -179,7 +179,15 @@ describe('IV runtime', () => {
 
         // remove nodes
         view.refresh({nbr: 3, msg: "Hello!"});
-        expect(diff(view.vdom.toString(OPTIONS2), vdom1)).toBe("equal");
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-msg="Hello!" att-nbr=3>
+                <div 1 ref="XX:0:1">
+                    <#text 2 " ABC "/>
+                    <span 8 ref="XX:0:2">
+                        <#text 9 " DEF "/>
+                    </span>
+                </div>
+            </#group>`)).toBe("equal");
         expect(diff(view.refreshLog.toString(OPTIONS), `\
             DELETE_GROUP: XX:0:3`
         )).toBe("equal");
@@ -187,7 +195,7 @@ describe('IV runtime', () => {
         // create again
         view.refresh({nbr: 42, msg: "Hello!"});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-msg="Hello!" att-nbr=42>
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <#group 3 js ref="XX:0:6">
@@ -211,7 +219,7 @@ describe('IV runtime', () => {
         // test that function instance ref is increasing for view count (2nd part)
         let view2 = pkg.test.createView({nbr: 9});
         expect(diff(view2.vdom.toString({indent: OPTIONS.indent, showRef: true}), `\
-            <#group 0 function ref="XX:1:0">
+            <#group 0 function ref="XX:1:0" att-nbr=9>
                 <div 1 ref="XX:1:1">
                     <#text 2 " ABC "/>
                     <span 8 ref="XX:1:2">
@@ -237,11 +245,11 @@ describe('IV runtime', () => {
         `;
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 function>
-                <div 4>
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-nbr=3>
+                <div 4 ref="XX:0:1">
                     <#text 5 " ABC "/>
-                    <span 6>
+                    <span 6 ref="XX:0:2">
                         <#text 7 " DEF "/>
                     </span>
                 </div>
@@ -251,7 +259,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-nbr=42>
                 <#group 1 js ref="XX:0:3">
                     <span 2 ref="XX:0:4">
                         <#text 3 " Hello World "/>
@@ -271,7 +279,15 @@ describe('IV runtime', () => {
 
         // remove nodes
         view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-nbr=9>
+                <div 4 ref="XX:0:1">
+                    <#text 5 " ABC "/>
+                    <span 6 ref="XX:0:2">
+                        <#text 7 " DEF "/>
+                    </span>
+                </div>
+            </#group>`)).toBe('equal');
         expect(diff(view.refreshLog.toString(OPTIONS), `\
             DELETE_GROUP: XX:0:3`
         )).toBe("equal");
@@ -292,7 +308,7 @@ describe('IV runtime', () => {
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 function>
+            <#group 0 function att-nbr=3>
                 <div 1>
                     <#text 2 " ABC "/>
                     <span 3>
@@ -304,7 +320,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-nbr=42>
                 <div 1 ref="XX:0:1">
                     <#text 2 " ABC "/>
                     <span 3 ref="XX:0:2">
@@ -323,7 +339,7 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         // remove nodes
-        view.refresh({nbr: 9});
+        view.refresh({nbr: 3});
         expect(diff(view.vdom.toString(OPTIONS), vdom1)).toBe('equal');
         expect(diff(view.refreshLog.toString(OPTIONS), `\
             DELETE_GROUP: XX:0:3`
@@ -339,15 +355,15 @@ describe('IV runtime', () => {
                 % }
             </function>
         `;
-        let view = pkg.test.createView({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 function/>`
+        let view = pkg.test.createView({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS), `\
+            <#group 0 function att-nbr=3/>`
         )).toBe("equal");
 
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-nbr=42>
                 <#group 1 js>
                     <span 2>
                         <#text 3 " Hello "/>
@@ -360,8 +376,10 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         // remove nodes
-        view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        view.refresh({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS), `\
+            <#group 0 function att-nbr=3/>`
+        )).toBe('equal');
     });
 
 
@@ -380,7 +398,7 @@ describe('IV runtime', () => {
         `;
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 function>
+            <#group 0 function att-nbr=3>
                 <#text 1 " foo "/>
                 <div 2/>
                 <#text 8 " bar "/>
@@ -390,7 +408,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-nbr=42>
                 <#text 1 " foo "/>
                 <div 2>
                     <#group 3 js>
@@ -407,8 +425,8 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         // remove nodes
-        view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        view.refresh({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS), vdom1)).toBe('equal');
     });
 
     it('should support if blocks at node start', () => {
@@ -425,9 +443,9 @@ describe('IV runtime', () => {
                 </div>
             </function>
         `;
-        let view = pkg.test.createView({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 function>
+        let view = pkg.test.createView({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS), `\
+            <#group 0 function att-nbr=3>
                 <div 1>
                     <div 5>
                         <#text 6 " ABC "/>
@@ -442,7 +460,7 @@ describe('IV runtime', () => {
         // create new nodes
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-nbr=42>
                 <div 1>
                     <#group 2 js>
                         <span 3>
@@ -460,8 +478,19 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         // remove nodes
-        view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        view.refresh({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS), `\
+            <#group 0 function att-nbr=3>
+                <div 1>
+                    <div 5>
+                        <#text 6 " ABC "/>
+                        <span 7>
+                            <#text 8 " DEF "/>
+                        </span>
+                    </div>
+                </div>
+            </#group>`
+        )).toBe("equal");
     });
 
     it('should support if+else blocks', () => {
@@ -480,8 +509,8 @@ describe('IV runtime', () => {
         `;
         pkg.test.uid = "XX";
         let view = pkg.test.createView({nbr: 3}), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 function ref="XX:0:0">
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-nbr=3>
                 <div 1 ref="XX:0:1">
                     <#text 2 " foo "/>
                     <#group 6 js ref="XX:0:2">
@@ -496,7 +525,7 @@ describe('IV runtime', () => {
 
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-nbr=42>
                 <div 1 ref="XX:0:1">
                     <#text 2 " foo "/>
                     <#group 3 js ref="XX:0:4">
@@ -514,7 +543,20 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-nbr=9>
+                <div 1 ref="XX:0:1">
+                    <#text 2 " foo "/>
+                    <#group 6 js ref="XX:0:6">
+                        <span 7 ref="XX:0:7">
+                            <#text 8 " Case != 42 "/>
+                        </span>
+                    </#group>
+                    <#text 9 " bar "/>
+                </div>
+            </#group>`
+        )).toBe("equal");
+
         expect(diff(view.refreshLog.toString(OPTIONS), `\
             DELETE_GROUP: XX:0:4
             CREATE_GROUP: XX:0:6 in XX:0:1`
@@ -533,7 +575,7 @@ describe('IV runtime', () => {
         `;
         let view = pkg.test.createView({nbr: 3}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS), vdom1 = `\
-            <#group 0 function>
+            <#group 0 function att-nbr=3>
                 <#group 4 js>
                     <span 5>
                         <#text 6 " Case != 42 "/>
@@ -544,7 +586,7 @@ describe('IV runtime', () => {
 
         view.refresh({nbr: 42});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-nbr=42>
                 <#group 1 js>
                     <span 2>
                         <#text 3 " Case 42 "/>
@@ -553,15 +595,14 @@ describe('IV runtime', () => {
             </#group>`
         )).toBe("equal");
 
-        view.refresh({nbr: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        view.refresh({nbr: 3});
+        expect(diff(view.vdom.toString(OPTIONS), vdom1)).toBe("equal");
     });
 
     it('should support for loops', () => {
         let pkg = iv `
             <function #test list=[]>
                 <div>
-                    // % debugger
                     <div title="first"/>
                     % for (let i=0;list.length>i;i++) {
                         <div [title]=("Hello " + list[i].name)/>
@@ -571,8 +612,8 @@ describe('IV runtime', () => {
             </function>
         `;
         pkg.test.uid = "XX";
-        let view = pkg.test.createView(), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
+        let view = pkg.test.createView();
+        expect(diff(view.vdom.toString(OPTIONS2), `\
             <#group 0 function ref="XX:0:0">
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
@@ -588,7 +629,7 @@ describe('IV runtime', () => {
             ]
         });
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <#group 3 js ref="XX:0:2">
@@ -614,7 +655,7 @@ describe('IV runtime', () => {
             ]
         });
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <#group 3 js ref="XX:0:2">
@@ -636,7 +677,15 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         view.refresh({list: []});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-list=Object>
+                <div 1 ref="XX:0:1">
+                    <div 2 title="first"/>
+                    <div 5 title="last"/>
+                </div>
+            </#group>`
+        )).toBe("equal");
+
         expect(diff(view.refreshLog.toString(OPTIONS), `\
             DELETE_GROUP: XX:0:2
             DELETE_GROUP: XX:0:4
@@ -660,9 +709,9 @@ describe('IV runtime', () => {
             </function>
         `;
         pkg.test.uid = "XX";
-        let view = pkg.test.createView({list: ["Omer", "Marge"], condition: true}), vdom1;
-        expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 function ref="XX:0:0">
+        let view = pkg.test.createView({list: ["Omer", "Marge"], condition: true});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-condition=true att-list=Object>
                 <div 1 ref="XX:0:1">
                     <div 2 title="first"/>
                     <#group 3 js ref="XX:0:2">
@@ -688,7 +737,7 @@ describe('IV runtime', () => {
 
         view.refresh({list: ["Omer", "Marge"], condition: false});
         expect(diff(view.vdom.toString(OPTIONS), `\
-            <#group 0 function>
+            <#group 0 function att-condition=false att-list=Object>
                 <div 1>
                     <div 2 title="first"/>
                     <#group 3 js>
@@ -707,7 +756,29 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         view.refresh({list: ["Omer", "Marge"], condition: true});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-condition=true att-list=Object>
+                <div 1 ref="XX:0:1">
+                    <div 2 title="first"/>
+                    <#group 3 js ref="XX:0:2">
+                        <div 4 ref="XX:0:3" title="item 0: Omer"/>
+                        <#group 5 js ref="XX:0:10">
+                            <div 6 ref="XX:0:11">
+                                <#text 7 " OK "/>
+                            </div>
+                        </#group>
+                    </#group>
+                    <#group 3 js ref="XX:0:6">
+                        <div 4 ref="XX:0:7" title="item 1: Marge"/>
+                        <#group 5 js ref="XX:0:12">
+                            <div 6 ref="XX:0:13">
+                                <#text 7 " OK "/>
+                            </div>
+                        </#group>
+                    </#group>
+                    <div 8 title="last"/>
+                </div>
+            </#group>`)).toBe('equal');
     });
 
 
@@ -734,7 +805,7 @@ describe('IV runtime', () => {
         pkg.bar.uid = "YY";
         let view = pkg.foo.createView({v: 9}), vdom1;
         expect(diff(view.vdom.toString(OPTIONS2), vdom1 = `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-v=9>
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#text 3 "first"/>
@@ -754,7 +825,7 @@ describe('IV runtime', () => {
 
         view.refresh({v: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-v=42>
                 <div 1 ref="XX:0:1">
                     <span 2 ref="XX:0:2">
                         <#text 3 "first"/>
@@ -785,7 +856,8 @@ describe('IV runtime', () => {
         )).toBe("equal");
 
         view.refresh({v: 9});
-        expect(compare(view.vdom, vdom1)).toEqual('');
+        expect(diff(view.vdom.toString(OPTIONS2), vdom1)).toBe("equal");
+
         expect(diff(view.refreshLog.toString(OPTIONS), `\
             UPDATE_GROUP: XX:0:3
             UPDATE_ELEMENT: YY:0:0
@@ -820,7 +892,7 @@ describe('IV runtime', () => {
         pkg.bar.uid = "YY";
         let view = pkg.foo.createView({v: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-v=9>
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
                     <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=9>
@@ -852,7 +924,7 @@ describe('IV runtime', () => {
 
         view.refresh({v: 42});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-v=42>
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
                     <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=42>
@@ -875,7 +947,7 @@ describe('IV runtime', () => {
 
         view.refresh({v: 9});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-v=9>
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
                     <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=9>
@@ -912,7 +984,7 @@ describe('IV runtime', () => {
 
         view.refresh({v: 31});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-v=31>
                 <div 1 ref="XX:0:1">
                     <#text 2 " AAA "/>
                     <#group 3 bar ref="XX:0:2" att-body=IvNode att-value=31>
@@ -972,7 +1044,7 @@ describe('IV runtime', () => {
 
         let view = pkg.test.createView({list: list});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <div 1 ref="XX:0:1" id="main">
                     <#group 2 js ref="XX:0:2">
                         <#group 3 sub ref="XX:0:3" att-data=Object>
@@ -1002,7 +1074,7 @@ describe('IV runtime', () => {
         ];
         view.refresh({list: list});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <div 1 ref="XX:0:1" id="main">
                     <#group 2 js ref="XX:0:2">
                         <#group 3 sub ref="XX:0:3" att-data=Object>
@@ -1058,7 +1130,7 @@ describe('IV runtime', () => {
         pkg.panel.uid = "YY";
         let view = pkg.test.createView({testCase: 1});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-testCase=1>
                 <#text 1 " Case #"/>
                 <#group 2 insert ref="XX:0:1">
                     <#text -1 ref="XX:0:2" "1"/>
@@ -1119,7 +1191,7 @@ describe('IV runtime', () => {
         pkg.tabbar.uid = "YY";
         let view = pkg.test.createView({list: ["A", "B"]});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
                     <#text 1 " Number of tabs: "/>
                     <#group 2 insert ref="YY:0:0">
@@ -1165,7 +1237,7 @@ describe('IV runtime', () => {
 
         view.refresh({list: ["A2", "B", "C"]});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
                     <#text 1 " Number of tabs: "/>
                     <#group 2 insert ref="YY:0:0">
@@ -1275,7 +1347,7 @@ describe('IV runtime', () => {
         let view = pkg.test.createView({list: ["A", "B"]});
 
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
                     <#text 1 " Number of tabs: "/>
                     <#group 2 insert ref="YY:0:0">
@@ -1356,7 +1428,7 @@ describe('IV runtime', () => {
 
         view.refresh({list: ["A2", "B", "C"]});
         expect(diff(view.vdom.toString(OPTIONS2), `\
-            <#group 0 function ref="XX:0:0">
+            <#group 0 function ref="XX:0:0" att-list=Object>
                 <#group 1 tabbar ref="XX:0:1" att-tabList=Object>
                     <#text 1 " Number of tabs: "/>
                     <#group 2 insert ref="YY:0:0">
@@ -1463,11 +1535,152 @@ describe('IV runtime', () => {
             UPDATE_TEXT: XX:0:9
             CREATE_GROUP: YY:0:18 in XX:0:1`
         )).toBe("equal");
-
-        // todo dynamic change
-
     });
 
+    it('should support IvController on root functions', () => {
+        class FooController {
+            $attributes;
+
+            showValue() {
+                return (this.$attributes["value"] !== "HIDE");
+            }
+        }
+
+        let pkg = iv`
+            <function #test value:String c:IvController(${FooController})>
+                % if (c.showValue()) {
+                    Value: {{value}}
+                % }
+            </function>
+        `;
+
+        pkg.test.uid = "XX";
+        let view = pkg.test.createView({value: "VALUE1"});
+
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-c=Object att-value="VALUE1">
+                <#group 1 js ref="XX:0:1">
+                    <#text 2 " Value: "/>
+                    <#group 3 insert ref="XX:0:2">
+                        <#text -1 ref="XX:0:3" "VALUE1"/>
+                    </#group>
+                </#group>
+            </#group>`)).toBe("equal");
+
+        view.refresh({value: "VALUE2"});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-c=Object att-value="VALUE2">
+                <#group 1 js ref="XX:0:1">
+                    <#text 2 " Value: "/>
+                    <#group 3 insert ref="XX:0:2">
+                        <#text -1 ref="XX:0:3" "VALUE2"/>
+                    </#group>
+                </#group>
+            </#group>`)).toBe("equal");
+
+        view.refresh({value: "HIDE"});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-c=Object att-value="HIDE"/>`
+        )).toBe("equal");
+    });
+
+
+    it('should support IvController on sub functions', () => {
+        class FooController {
+            $attributes;
+
+            showValue() {
+                return (this.$attributes["value"] !== 42);
+            }
+        }
+
+        let pkg = iv`
+            <function #test v=12>
+                <div class="blah">
+                    <foo [value]=v+9/>
+                </div>
+            </function>
+            
+            <function #foo value:Number c:IvController(${FooController})>
+                % if (c.showValue()) {
+                    Value: {{value}}
+                % }
+            </function>
+        `;
+
+        pkg.test.uid = "XX";
+        pkg.foo.uid = "YY";
+        let view = pkg.test.createView(); // v=12
+
+        expect(diff(view.vdom.toString(OPTIONS), `\
+            <#group 0 function>
+                <div 1 class="blah">
+                    <#group 2 foo att-c=Object att-value=21>
+                        <#group 1 js>
+                            <#text 2 " Value: "/>
+                            <#group 3 insert>
+                                <#text -1 "21"/>
+                            </#group>
+                        </#group>
+                    </#group>
+                </div>
+            </#group>`)).toBe("equal");
+
+        view.refresh({v: 30});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-v=30>
+                <div 1 ref="XX:0:1" class="blah">
+                    <#group 2 foo ref="XX:0:2" att-c=Object att-value=39>
+                        <#group 1 js ref="YY:0:0">
+                            <#text 2 " Value: "/>
+                            <#group 3 insert ref="YY:0:1">
+                                <#text -1 ref="YY:0:2" "39"/>
+                            </#group>
+                        </#group>
+                    </#group>
+                </div>
+            </#group>`
+        )).toBe("equal");
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            UPDATE_GROUP: XX:0:2
+            UPDATE_TEXT: YY:0:2`
+        )).toBe("equal");
+
+        view.refresh({v: 33});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-v=33>
+                <div 1 ref="XX:0:1" class="blah">
+                    <#group 2 foo ref="XX:0:2" att-c=Object att-value=42/>
+                </div>
+            </#group>`
+        )).toBe("equal");
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            UPDATE_GROUP: XX:0:2
+            DELETE_GROUP: YY:0:0`
+        )).toBe("equal");
+
+        view.refresh({v: 17});
+        expect(diff(view.vdom.toString(OPTIONS2), `\
+            <#group 0 function ref="XX:0:0" att-v=17>
+                <div 1 ref="XX:0:1" class="blah">
+                    <#group 2 foo ref="XX:0:2" att-c=Object att-value=26>
+                        <#group 1 js ref="YY:0:3">
+                            <#text 2 " Value: "/>
+                            <#group 3 insert ref="YY:0:4">
+                                <#text -1 ref="YY:0:5" "26"/>
+                            </#group>
+                        </#group>
+                    </#group>
+                </div>
+            </#group>`
+        )).toBe("equal");
+        expect(diff(view.refreshLog.toString(OPTIONS), `\
+            UPDATE_GROUP: XX:0:2
+            CREATE_GROUP: YY:0:3 in XX:0:2`
+        )).toBe("equal");
+    });
+
+    // todo error if IvController, no default values
 
     // todo functions in functions
     // todo $v test

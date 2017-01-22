@@ -630,9 +630,78 @@ describe('IV parser', () => {
         )).toEqual('');
     });
 
+    it('should support type arguments', () => {
+        let obj = Object;
 
-    // TODO script at root level
+        expect(compare(nac`
+            <function #foo ctrl:IvController("someValue")> blah </function>
+        `, n("function")
+            .addAttribute("id", '"foo"')
+            .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"'])
+            .c(
+                n("#text", " blah ")
+            )
+        )).toEqual('');
+
+        expect(compare(nac`
+            <function #foo ctrl:IvController("someValue",'2')> blah </function>
+        `, n("function")
+            .addAttribute("id", '"foo"')
+            .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"', "'2'"])
+            .c(
+                n("#text", " blah ")
+            )
+        )).toEqual('');
+
+        expect(compare(nac`
+            <function #foo ctrl:IvController(SomeClass)> blah </function>
+        `, n("function")
+            .addAttribute("id", '"foo"')
+            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass"])
+            .c(
+                n("#text", " blah ")
+            )
+        )).toEqual('');
+
+        expect(compare(nac`
+            <function #foo ctrl:IvController(SomeClass,"abc")> blah </function>
+        `, n("function")
+            .addAttribute("id", '"foo"')
+            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", '"abc"'])
+            .c(
+                n("#text", " blah ")
+            )
+        )).toEqual('');
+
+        expect(compare(nac`
+            <function #foo ctrl:IvController(SomeClass,'a"bc')> blah </function>
+        `, n("function")
+            .addAttribute("id", '"foo"')
+            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", "'a\"bc'"])
+            .c(
+                n("#text", " blah ")
+            )
+        )).toEqual('');
+
+        let Foo = {};
+        expect(compare(nac`
+            <function #foo ctrl:IvController(${Foo},"abc")> blah </function>
+        `, n("function")
+            .addAttribute("id", '"foo"')
+            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["$v[0]", '"abc"'])
+            .c(
+                n("#text", " blah ")
+            )
+        )).toEqual('');
+    });
+
+    it('should raise an error for invalid type attributes', () => {
+        expect(error`
+          <function #foo ctrl:IvController("aa",123)></function>
+        `).toBe("(2:49) Type attributes must be valid identifiers, strings or external references");
+    });
+
     // todo accept spaces for JSON or Array attribute values - e.g. {a:"a", b:"b"} or [123, 456]
     // todo support '.' in attribute names - e.g. [style.color] = myvar -> support JSON attributes?
-    // todo check that id and @name cannot be bound
+    // todo check that id cannot be bound
 });

@@ -123,14 +123,8 @@ function compareNodes(n1, n2) {
         checkProperty("value", att1, att2);
         checkProperty("nature", att1, att2);
         checkProperty("typeRef", att1, att2);
-
-        if (att1.parameters || att2.parameters) {
-            let p1 = att1.parameters ? att1.parameters.join(",") : "",
-                p2 = att2.parameters ? att2.parameters.join(",") : "";
-            if (p1 !== p2) {
-                throw "Different attribute parameters found: [" + p1 + "] vs [" + p2 + "]";
-            }
-        }
+        checkArrayProperty("typeParameters", att1, att2);
+        checkArrayProperty("parameters", att1, att2);
 
         att1 = att1.nextSibling;
         att2 = att2.nextSibling;
@@ -140,5 +134,15 @@ function compareNodes(n1, n2) {
 function checkProperty(name, att1, att2) {
     if (att1[name] !== att2[name]) {
         throw "Different attribute " + name + ": " + att1[name] + " vs " + att2[name];
+    }
+}
+
+function checkArrayProperty(name, att1, att2) {
+    if (att1[name] || att2[name]) {
+        let p1 = att1[name] ? att1[name].join(",") : "",
+            p2 = att2[name] ? att2[name].join(",") : "";
+        if (p1 !== p2) {
+            throw "Different attribute " + name + " found: [" + p1 + "] vs [" + p2 + "]";
+        }
     }
 }

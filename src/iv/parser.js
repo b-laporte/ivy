@@ -524,7 +524,7 @@ function nodeAttributes(p, nd) {
             }
 
             // add attribute to current node
-            nd.addAttribute(att.name, att.value, att.nature, att.typeRef, att.parameters);
+            nd.addAttribute(att.name, att.value, att.nature, att.typeRef, att.parameters, att.typeArgs);
         }
     }
 
@@ -539,7 +539,8 @@ function nodeAttributes(p, nd) {
 function nodeAttributeName(p, attMap) {
     let att = {
         name: "",            // name without # or @ prefix
-        typeRef: "",        // type name specified after the : separator
+        typeRef: "",         // type name specified after the : separator
+        typeArgs: null,      // Array of type arguments or null
         value: undefined,    // the attribute value if defined
         nature: NacAttributeNature.STANDARD // attribute nature - cf. NacAttributeNature
     }, isId = false, isAttNode = false, endChar1 = null, endChar2 = null;
@@ -593,6 +594,31 @@ function nodeAttributeName(p, attMap) {
                     throw "Attribute type cannot be empty";
                 }
             } else {
+                // check if type contains parameters
+                if (p.advanceChar(CHAR_PARENSTART, false)) {
+                    let keepGoing = true, s, args = [];
+                    while (keepGoing) {
+                        if (s = jsString(p)) {
+                            args.push(s);
+                        } else if (s = jsIdentifier(p)) {
+                            args.push(s);
+                        } else if (p.advanceChar(CHAR_VALUE,false)) {
+                            // this is a value
+                            args.push(p.valueSymbol);
+                        } else {
+                            throw "Type attributes must be valid identifiers, strings or external references";
+                        }
+
+                        if (!p.advanceChar(CHAR_COMMA, false)) {
+                            keepGoing = false;
+                        }
+                    }
+
+                    p.advanceChar(CHAR_PARENEND, true);
+
+                    att.typeArgs = args.length ? args : null;
+                }
+
                 att.typeRef = b.join("");
             }
             // parse [] for arrays
@@ -688,47 +714,11 @@ function nodeAttributeParameters(p, att) {
  * @returns {boolean} true if an attribute value has been found
  */
 function attValueWithQuotes(p, att) {
-    let boundaryCharCode = null, boundaryChar = "";
-    if (p.advanceChar(CHAR_DOUBLEQUOTE, false)) {
-        boundaryCharCode = CHAR_DOUBLEQUOTE;
-        boundaryChar = '"';
-    } else if (p.advanceChar(CHAR_SINGLEQUOTE, false)) {
-        boundaryCharCode = CHAR_SINGLEQUOTE;
-        boundaryChar = "'";
-    } else {
+    let str = jsString(p);
+    if (str === null) {
         return false;
     }
-
-    let b = [], keepGoing = true;
-    b.push(boundaryChar);
-    while (keepGoing) {
-        p.advanceMany(b, (c) => (c !== boundaryCharCode && c !== CHAR_BACKSLASH && c !== CHAR_NEWLINE && c !== CHAR_VALUE));
-        if (p.currentCharCode === CHAR_BACKSLASH) {
-            // eat next 2 chars and keep going
-            p.currentCharCode = null;
-            p.moveNext();
-            if (p.currentCharCode !== CHAR_EOF) {
-                if (p.currentCharCode === CHAR_VALUE) {
-                    b.push(p.valueSymbol);
-                } else {
-                    b.push(p.currentChar);
-                }
-                p.currentCharCode = null;
-            } else {
-                keepGoing = false;
-            }
-        } else if (p.currentCharCode === CHAR_VALUE) {
-            b.push([boundaryChar, "+", p.valueSymbol, "+", boundaryChar].join(""));
-            p.currentCharCode = null;
-        } else {
-            keepGoing = false;
-        }
-    }
-
-    p.advanceChar(boundaryCharCode, true);
-    b.push(boundaryChar);
-    att.value = b.join("");
-
+    att.value = str;
     return true;
 }
 
@@ -918,6 +908,67 @@ function jsLine(p) {
     // eat next new line
     p.advanceChar(CHAR_NEWLINE, false);
     return null;
+}
+
+/**
+ * Parse a JS identifier
+ * @param p
+ * @returns {String} the js identifier or null if not found
+ */
+function jsIdentifier(p) {
+    let b = [];
+    if (!p.advanceMany(b, isJsIdentifierChar)) {
+        return null;
+    }
+    return b.join("");
+}
+
+/**
+ * Parse a JS string surrounded by simple or double quotes
+ * @param p
+ * @returns {String} a the JS String or null if not found
+ */
+function jsString(p) {
+    let boundaryCharCode = null, boundaryChar = "";
+    if (p.advanceChar(CHAR_DOUBLEQUOTE, false)) {
+        boundaryCharCode = CHAR_DOUBLEQUOTE;
+        boundaryChar = '"';
+    } else if (p.advanceChar(CHAR_SINGLEQUOTE, false)) {
+        boundaryCharCode = CHAR_SINGLEQUOTE;
+        boundaryChar = "'";
+    } else {
+        return null;
+    }
+
+    let b = [], keepGoing = true;
+    b.push(boundaryChar);
+    while (keepGoing) {
+        p.advanceMany(b, (c) => (c !== boundaryCharCode && c !== CHAR_BACKSLASH && c !== CHAR_NEWLINE && c !== CHAR_VALUE));
+        if (p.currentCharCode === CHAR_BACKSLASH) {
+            // eat next 2 chars and keep going
+            p.currentCharCode = null;
+            p.moveNext();
+            if (p.currentCharCode !== CHAR_EOF) {
+                if (p.currentCharCode === CHAR_VALUE) {
+                    b.push(p.valueSymbol);
+                } else {
+                    b.push(p.currentChar);
+                }
+                p.currentCharCode = null;
+            } else {
+                keepGoing = false;
+            }
+        } else if (p.currentCharCode === CHAR_VALUE) {
+            b.push([boundaryChar, "+", p.valueSymbol, "+", boundaryChar].join(""));
+            p.currentCharCode = null;
+        } else {
+            keepGoing = false;
+        }
+    }
+
+    p.advanceChar(boundaryCharCode, true);
+    b.push(boundaryChar);
+    return b.join("");
 }
 
 /**

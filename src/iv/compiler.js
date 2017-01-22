@@ -24,7 +24,8 @@ const INDENT_SPACE = "    ", // 4 spaces
     REGEXP_IV_TYPE = /^Iv/,
     REGEXP_NEWLINES = /\n/g,
     REGEXP_DOUBLE_QUOTES = /"/g,
-    REGEXP_QUOTED_STRING = /^"(.*)"$/;
+    REGEXP_QUOTED_STRING = /^"(.*)"$/,
+    REGEXP_IV_CONTROLLER = /^\[\$iv.IvController/;
 
 /**
  * Common base to the Package and Function compilers
@@ -270,11 +271,12 @@ class CompilerBase {
                     // type must end with "[]"
                     if (tr) {
                         if (tr.match(REGEXP_LIST_TYPE)) {
-                            listAtts.push(getJsTypeRef(tr.slice(0, -2)));
+                            listAtts.push(getJsTypeRef(tr.slice(0, -2), att.typeParameters));
                         } else {
                             this.throwError(nd, attName + " type must end with '[]'");
                         }
                     } else {
+                        tr = "0";
                         listAtts.push("0");
                     }
                     if (value === undefined) {
@@ -290,12 +292,12 @@ class CompilerBase {
                         contentList = '"' + attName + '"';
                         continue;
                     } else {
-                        tr = getJsTypeRef(tr);
+                        tr = getJsTypeRef(tr, att.typeParameters);
                     }
                     simpleAtts.push('"' + attName + '"');
                     simpleAtts.push(tr);
                 }
-                if (tr !== "$iv.IvNode") {
+                if (!tr.match(REGEXP_IV_CONTROLLER) && tr !== "$iv.IvNode") {
                     if (value === undefined) {
                         value = "{}";
                     }
@@ -412,14 +414,15 @@ class CompilerBase {
  * Transform iv types (such as IvNode) into a js reference (e.g. $iv.IvNode)
  * Non iv types remain unchanged
  * @param typeName {String}
+ * @param typeParameters {Array} list of type parameters (if any)
  * @returns {String}
  */
-function getJsTypeRef(typeName) {
-    if (typeName.match(REGEXP_IV_TYPE)) {
-        return "$iv." + typeName;
-    } else {
-        return typeName;
+function getJsTypeRef(typeName, typeParameters) {
+    let s = typeName.match(REGEXP_IV_TYPE) ? "$iv." + typeName : typeName;
+    if (typeParameters && typeParameters.length) {
+        return ['[', s, ', ', typeParameters.join(", "), ']'].join("");
     }
+    return s;
 }
 
 class PkgCompiler extends CompilerBase {

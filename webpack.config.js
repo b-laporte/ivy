@@ -42,5 +42,20 @@ module.exports = {
         plugins: plugins,
         debug: !prod,
         devtool: prod ? "source-map" : null
+    },
+    flex: {
+        entry: path.join(__dirname, "samples/flex/app.js"),
+        output: {
+            path: path.join(__dirname, "dist/flex"),
+            filename: "app.js"
+        },
+        module: {
+            loaders: [
+                {test: /\.js$/, exclude: /node_modules/, loader: "babel-loader"}
+            ]
+        },
+        plugins: plugins,
+        debug: !prod,
+        devtool: prod ? "source-map" : null
     }
 };

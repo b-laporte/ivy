@@ -185,6 +185,7 @@ describe('Iv compiler', () => {
     });
 
     it('should compile type nodes with IvContentList', () => {
+        // IvContentList is used when the caller needs to retrive all attribute nodes as a list
         let r = cpl`
             <type #Basic simpleList:String[] content:IvContentList/>
         `;

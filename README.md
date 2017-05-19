@@ -4,6 +4,11 @@ IV ("ivy") is a lightweight template engine mixing concepts from ReactJS and Ang
 To install the source code and run the unit tests, first install gulp and then simply run:
 
 ```sh
+    npm install -g http-server
+
     npm install
-    gulp play
+    gulp build
+    http-server
+
+    >> go to http://localhost:8080/dist/
 ```

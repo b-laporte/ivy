@@ -11,7 +11,10 @@ var pkg = iv `
     
         // -------------------------------------
         // simple attribute
-        <function #foo bar:Number/>
+        <function #foo bar:number=123/>
+        <foo bar baz >
+            <arc/>
+        </foo>
         
         // usage
         // node.attributes={bar:2}

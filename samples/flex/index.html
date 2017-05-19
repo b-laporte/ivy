@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title> Flex sample </title>
+  <link href="styles.css" rel="stylesheet"/>
+  <script type="text/javascript" src="http://localhost:3000/data"></script>
+</head>
+
+<body>
+    <div id="app" class="container availability"> </div>
+</body>
+    <script type="text/javascript" src="app.js"></script>
+    <script type="text/javascript">
+        window.modelPromise.then(function onData(data) {
+            //alert("ready");
+            startRendering(data);
+        });
+    </script>
+</body>
+</html>

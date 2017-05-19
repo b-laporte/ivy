@@ -148,8 +148,10 @@ class HtmlRenderer {
             } else {
                 console.error("[iv html renderer] Invalid instruction type: " + type);
             }
+            delete ins.node;
             ins = ins.next;
         }
+        type = node = domNd = null;
     }
 
     processNode(node, domParent) {

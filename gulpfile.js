@@ -48,3 +48,7 @@ gulp.task("default", ["build"]);
 gulp.task("buildDbmon", function (done) {
     webpack(webpackConfig.dbmon).run(processWebpackErrors(done));
 });
+
+gulp.task("buildFlex", function (done) {
+    webpack(webpackConfig.flex).run(processWebpackErrors(done));
+});

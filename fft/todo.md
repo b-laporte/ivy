@@ -1,10 +1,12 @@
 
 ## TODO
+- move types to typescript syntax: number, IvController<Blah>
+- introduce function annotations @template @animation @type @node
+- introduce #ref[] for collections
+- change #ref behavior and generate collections
 
 ### General
-- consider attributes of sub-template nodes as always dynamic
 - att nodes
-    - change att node to empty namespace
     - support @nodes for any kind of node/attribute (not only components)
     - support constructors instead of IvObject (or Object?)
     - support of templates as @node attributes

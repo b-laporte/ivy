@@ -41,7 +41,7 @@ var ipk = iv`
                 <process action()={c.step=2}/>
             </track>
             <track>
-                <wait until()={return c.step===2;}/>
+                <wait until()={return c.step===2}/>
                 // teeth entry and rotation
                 <group>
                     % var teeth = dom.select(".gearTooth"); 

@@ -42,6 +42,11 @@ gulp.task("clean", function (done) {
     rimraf(webpackConfig.tests.output.path, done);
 });
 
+gulp.task("static", function (done) {
+    gulp.src("test/index.html").pipe(gulp.dest('dist'));
+    return gulp.src("node_modules/jasmine-core/lib/jasmine-core/*").pipe(gulp.dest('dist/jasmine'));
+});
+
 gulp.task("default", ["build"]);
 
 // dbmon build task

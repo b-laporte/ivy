@@ -4,10 +4,10 @@ import { render } from '../../src/iv/htmlrenderer';
 /* global document, ENV, Monitoring */
 
 var pkg = iv`
-    <function #avail data>
+    <function #avail data selectedItinerary=null selectedFare=-1>
         % var availability=data.availability
         <div class="container availability">
-
+        % debugger
         % for (bound of availability.bounds) {
             <div>
                 % if (bound.searchData) {
@@ -19,13 +19,13 @@ var pkg = iv`
                 </div>
 
                 % for (let itinerary of bound.itineraries) {
-                    <itineraryLine [showFareDetails]=false  
+                    <itineraryLine [showFareDetails]=(selectedItinerary===itinerary)  
                         [itinerary]=itinerary 
+                        [selectedFare]=selectedFare 
                         [fareFamiliesList]=availability.fareFamilies 
                         [jqFareFamilies]=availability.jqFareFamilies 
                         [fareFamiliesCaveats]=availability.fareFamiliesCaveats />
 
-                        // [showFareDetails]=(selectedItinerary===itinerary) 
                         // todo: (onSelect)="selectedItinerary = $event"
                 % }
             </div>
@@ -47,8 +47,7 @@ var pkg = iv`
         </div>
     </function>
 
-    <function #itineraryLine itinerary showFareDetails:Boolean fareFamiliesList jqFareFamilies fareFamiliesCaveats>
-
+    <function #itineraryLine itinerary selectedFare showFareDetails:Boolean fareFamiliesList jqFareFamilies fareFamiliesCaveats>
         <div class="itinerary">
             <div class="itinerary-header">
                 <div class="itinerary-info right-delimiter">
@@ -67,13 +66,11 @@ var pkg = iv`
                 </div>
 
                 % for (let index=0;fareFamiliesList.length>index;index++) {
-                    % let fare = fareFamiliesList[index];
-                    <div class="fare"  
-                        onclick()=toggleFareDetails(index) style=("border-color:"+fare.color) > 
-                        // todo: use $index instead (when available)
-                        // todo: support classs list class=("fare"+fare.isMarginal?" fare-inactive":""+(showFareDetails && activeSelectedFare == i)?" fare-selected":"")
-                        // todo: [style.border-color]="fare.color">
+                    % let fare = fareFamiliesList[index], clsList=["fare"];
+                    % if (fare.isMarginal) clsList.push("fare-inactive");
+                    % if (showFareDetails && selectedFare === index) clsList.push("fare-selected");
 
+                    <div [class]=clsList.join(" ") onclick()=${toggleFareDetails}(index,itinerary) style=("border-color:"+fare.color) > 
                         % if (${hasRecommendation}(itinerary,fare)) {
                             % if (itinerary.isJQOnlyFlight && !fare.isMarginal) {
                                 <span>
@@ -106,7 +103,7 @@ var pkg = iv`
             % if (showFareDetails) {
                 <fareDetailGroup
                     [flight]=itinerary.flight 
-                    [selectedFare]=activeSelectedFare 
+                    [selectedFare]=selectedFare 
                     [fareFamilies]=fareFamiliesList 
                     [jqFareFamilies]=jqFareFamilies 
                     [fareFamiliesCaveats]=fareFamiliesCaveats />
@@ -151,25 +148,49 @@ var pkg = iv`
 
                 % for (let rule of fareFamilies[0].teaserRules) {
                     <div class="action-desc">
-                        //todo <img class="icon" src="https://book.qantas.com.au/go/2017.3-8/fare-conditions-icons/teaser-{{rule.ruleId.toLowerCase()}}.svg" />
+                        <img class="icon" src=("https://book.qantas.com.au/go/2017.3-8/fare-conditions-icons/teaser-"+rule.ruleId.toLowerCase()+".svg") />
                         {{rule.label}}
-                        //todo <sup *ngIf="fareFamiliesCaveats[rule.ruleId]">{{fareFamiliesCaveats[rule.ruleId][0]}}</sup>
+                        % if (fareFamiliesCaveats[rule.ruleId]) {
+                            <sup>{{fareFamiliesCaveats[rule.ruleId][0]}}</sup>
+                        % }
                     </div>
                 % }
             </div>
 
-            // <app-fare-details
-            //     *ngFor="let fare of fareFamilies; let i = index"
+            % for (let i=0;fareFamilies.length>i;i++) {
+                % let fare=fareFamilies[i];
+                <fareDetails [fare]=fare [recommendation]=flight.listRecommendation[fare.code] [isSelected]=(selectedFare == i) />
+            % }
+        </div>
+    </function>
 
-            //     class="fare-flex fare-details"
-            //     [class.fare-selected]="selectedFare == i"
-            //     [class.fare-marginal]="fare.isMarginal"
-            //     [style.border-color]="fare.color"
-            //         [fare]="fare"
-            //     [recommendation]="flight.listRecommendation[fare.code]"
-            // >
-            // </app-fare-details>
+    <function #fareDetails fare recommendation isSelected=false>
+        % let clsList=["fare-flex", "fare-details"];
+        % if (isSelected) clsList.push("fare-selected");
+        % if (fare.isMarginal) clsList.push("fare-marginal");
 
+        <div [class]=clsList.join(" ") style=("border-color:"+fare.color)>
+            <div>{{${getNoOfPoints}(fare, recommendation)}}</div>
+            <div>{{${getStatusCredit}(fare, recommendation)}}</div>
+
+            % for (let rule of fare.teaserRules) {
+                <div>
+                    % if (!!rule.formattedValue) {
+                        {{rule.formattedValue}}
+                    % } else {
+                        % if (!!rule.booleanValue) {
+                            <div class="rule-yes"> v </div> // &#x2714;
+                        % } else {
+                            % if (rule.booleanValue == null) {
+                                -
+                            % } else {
+                                <div class="rule-no"> x </div> // &#x2718;
+                            % }
+                        % }
+                    % }
+                </div>
+            % }
+            <button class="btn-link full-fare">Full fare conditions</button>
         </div>
     </function>
 `;
@@ -188,7 +209,7 @@ function hasRecommendation(itinerary, fare) {
 
 function amountForFare(itinerary, fare) {
     const recommendation = getRecommendation(itinerary, fare.code);
-    return (recommendation && recommendation.priceForAll) ? `$${Math.ceil(recommendation.priceForAll.totalAmount)}` : '';
+    return (recommendation) ? `$ ${Math.ceil(recommendation.amountForAll)}` : '';
 }
 
 function isFlightOperated(segments) {
@@ -204,7 +225,43 @@ function lastSeatsAvailable(itinerary, fare) {
     return !fare.isMarginal && recommendation && recommendation.showLSA;
 }
 
+function getNoOfPoints(fare, reco) {
+    return getValueFromList(fare, reco, 'earnPointsAmountList');
+}
+
+function getStatusCredit(fare, reco) {
+    return getValueFromList(fare, reco, 'statusCreditAmountList');
+}
+
+function getValueFromList(fare, reco, listName) {
+    if (!fare.isMarginal && reco) {
+        const value = reco[listName][0];
+        return (value === 0 || value == null) ? '-' : `${value}`;
+    }
+
+    return '-';
+}
+
+let selectedItinerary = null, selectedFare = -1;
+function toggleFareDetails(idx, itinerary) {
+    if (selectedItinerary === itinerary && selectedFare ===idx) {
+        // hide
+        selectedItinerary = null;
+        selectedFare = -1;
+    } else {
+        // show
+        selectedItinerary = itinerary;
+        selectedFare = idx;
+    }
+    refresh();
+}
+
+let mainView, mainData;
 window.startRendering = function (data) {
-    var view = render(pkg.avail, document.getElementById("app"), { data: data });
+    mainData = data;
+    mainView = render(pkg.avail, document.getElementById("app"), { data: data });
+}
+function refresh() {
+    mainView.refresh({ data: mainData, selectedItinerary: selectedItinerary, selectedFare:selectedFare });
 }
 

@@ -5,6 +5,16 @@
 - introduce #ref[] for collections
 - change #ref behavior and generate collections
 
+## Optimizations
+- avoid recalculating unbound expressions: group level creation mode flag
+- collection reordering by key
+- better ancestor/parent management
+- skip static blocks
+- skip pure functions when no bound argument changed
+- simplified VDom
+- handle data nodes (and parent nodes?) through generated code
+
+
 ### General
 - att nodes
     - support @nodes for any kind of node/attribute (not only components)

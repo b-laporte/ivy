@@ -447,11 +447,15 @@ class IvProcessor {
      */
     ne(idx) {
         if (!this.creationMode) {
-            // delete last nodes
+            // delete last nodes that may be removed through a control block
             this.deleteSiblingsUntil(MAX_INDEX);
         }
         if (this.currentNdDepth < this.targetDepth) {
-            this.deleteChildNodes(idx, this.currentNd);
+            // current node is still at parent level and must be closed
+            // this happens when a control block removes all child nodes of an element
+            if (!this.creationMode) {
+                this.deleteChildNodes(idx, this.currentNd);
+            }
         } else if (this.currentNdDepth === this.targetDepth) {
             this.removeLastAncestor();
         }

@@ -6,6 +6,10 @@
     "type": "git"
   },
   "author": "Bertrand Laporte",
+  "scripts": {
+    "build": "gulp clean && gulp static && gulp build",
+    "watch": "gulp clean && gulp static && gulp watch"
+  },
   "license": "UNLICENSED",
   "private":true,
   "bugs": {},
@@ -18,6 +22,7 @@
     "babel-preset-es2016": "^6.16.0",
     "babel-preset-es2017": "^6.16.0",
     "gulp": "^3.9.1",
+    "jasmine-core": "2.6.0",
     "rimraf": "^2.5.4",
     "webpack": "^1.13.2"
   }

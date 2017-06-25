@@ -9,7 +9,7 @@
  * @param nodeValue the value of the text / comment or js insruction (ignored for element nodes)
  * @param value2 an optional value to describe the end block expression for js blocks
  */
-export function n(nodeName, nodeValue = null, value2 = null)/*:NacNode*/ {
+export function n(nodeName, nodeValue: any = null, value2: any = null)/*:NacNode*/ {
     let nd = new NacNode(NacNodeType.ELEMENT, nodeValue);
 
     nd.nodeName = nodeName;
@@ -132,7 +132,7 @@ export class NacNode {
      * @param nodeValue the value of the text / comment or js insruction (ignored for element nodes)
      * @param value2 an optional value to describe the end block expression for js blocks
      */
-    n(nodeName, nodeValue = null, value2 = null)/*:NacNode*/ {
+    n(nodeName, nodeValue: any = null, value2 = null): NacNode {
         return this.addSibling(n(nodeName, nodeValue, value2));
     };
 
@@ -150,7 +150,7 @@ export class NacNode {
     /**
      * Add attributes to the current node
      */
-    a(attributeMap)/*:NacNode*/ {
+    a(attributeMap): NacNode {
         for (let k in attributeMap) {
             if (!attributeMap.hasOwnProperty(k)) continue;
             this.addAttribute(k, attributeMap[k]);
@@ -167,7 +167,7 @@ export class NacNode {
      * @param params array of parameter names associated to this attribute (for function attributes)
      * @param typeParams array of parameters associated to the attribute type
      */
-    addAttribute(name, value, nature, typeRef = null, params = null, typeParams = null) {
+    addAttribute(name, value, nature = NacAttributeNature.STANDARD, typeRef: string|null = null, params:string[]|null = null, typeParams:string[]|null = null) {
         if (!this.lastAttribute) {
             this.firstAttribute = this.lastAttribute = new NacAttribute(name, value, nature);
         } else {
@@ -195,11 +195,10 @@ export class NacNode {
      * Append a node list to the current node's childNodes linked list
      * @params list of NacNode elements passed as argument list
      */
-    c(/*...nodeList: NacNode[]*/)/*: NacNode*/ {
+    c(...nodeList: NacNode[]): NacNode {
         if (this.nodeType !== NacNodeType.ELEMENT && this.nodeType !== NacNodeType.JS_BLOCK) {
             return NacNode.logger.error("Child nodes are not authorized in nodes of type " + this.nodeType);
         }
-        let nodeList = arguments;
         for (let i = 0; nodeList.length > i; i++) {
             let ndl = nodeList[i];
             if (!ndl) {
@@ -246,7 +245,7 @@ export class NacNode {
      * @param indent
      */
     toString(indent = "    ") {
-        let result = [];
+        let result: string[] = [];
         let hasChildren = (this.firstChild !== undefined),
             nm = this.nodeName || NacNodeType.getName(this.nodeType);
 
@@ -264,7 +263,7 @@ export class NacNode {
             }
         }
         if (this.firstAttribute) {
-            let att = this.firstAttribute, buffer = [];
+            let att = this.firstAttribute, buffer: string[] = [];
             while (att) {
                 buffer.push(" " + att.name);
                 if (att.value) {

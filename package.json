@@ -1,29 +1,38 @@
 {
   "name": "iv",
-  "version": "0.0.1-SNAPSHOT",
-  "description": "Simple template engine mixing JS and NG2 concepts",
+  "version": "0.0.3-SNAPSHOT",
+  "description": "JS template engine mixing JS and NG2 concepts",
   "repository": {
     "type": "git"
   },
   "author": "Bertrand Laporte",
   "scripts": {
-    "build": "gulp clean && gulp static && gulp build",
-    "watch": "gulp clean && gulp static && gulp watch"
+    "build-compiler": "rollup --config rollup.compiler.config.js",
+    "build": "rollup -c rollup.compiler.config.js && rollup -c rollup.test.config.js",
+    "test": "rollup -c rollup.compiler.config.js && rollup -c rollup.test.config.js && mocha dist/test.js",
+    "mocha": "mocha dist/test.js",
+    "dev": "rollup -c -w"
   },
   "license": "UNLICENSED",
-  "private":true,
+  "private": true,
   "bugs": {},
   "homepage": "",
   "devDependencies": {
-    "babel-core": "^6.13.2",
-    "babel-loader": "^6.2.5",
-    "babel-plugin-transform-class-properties":"^6.18.0 ",
-    "babel-preset-es2015": "^6.18.0",
-    "babel-preset-es2016": "^6.16.0",
-    "babel-preset-es2017": "^6.16.0",
-    "gulp": "^3.9.1",
-    "jasmine-core": "2.6.0",
-    "rimraf": "^2.5.4",
-    "webpack": "^1.13.2"
+    "rollup": "^0.42.0",
+    "rollup-watch": "^4.0.0",
+    "rollup-plugin-typescript2": "^0.4.3",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "tslib": "^1.7.1",
+    "typescript": ">=2.3.4",
+    "mocha": "^3.4.2",
+    "@types/node": "^7.0.31",
+    "@types/mocha": "^2.2.41"
+  },
+  "dependencies": {
+    "typescript":">=2.3.4"
+  },
+  "engines": {
+    "node": ">=7.0.31"
   }
 }

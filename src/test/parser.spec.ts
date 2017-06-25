@@ -1,23 +1,22 @@
 /**
  * IV Parser library test file
- * Created by b-laporte on 02/04/16.
- * Copyright Bertrand Laporte 2016
+ * Created by b-laporte on 02/04/16
  */
 
-/* global describe, it, beforeEach, afterEach, expect */
+import { n, NacAttributeNature } from '../compiler/nac';
+import { parse } from '../compiler/parser';
+import { expect, compare } from './common';
 
-import {n, NacAttributeNature} from '../src/iv/nac';
-import {parse} from '../src/iv/parser';
-import {compare} from './utils';
+// todo review #atts @atts @default and type arguments
 
-describe('IV parser', () => {
-
+describe('Iv parser', () => {
+    const NO_NAC = {nodeNameSpace:"EMPTY"};
     function nac(strings, ...values) {
         let r = parse(strings, values);
         if (r.error) {
             throw `(${r.error.lineNbr}:${r.error.columnNbr}) ${r.error.description}`;
         }
-        return r.nac;
+        return r.nac || NO_NAC;
     }
 
     function error(strings, ...values) {
@@ -26,13 +25,13 @@ describe('IV parser', () => {
     }
 
     it('should parse an empty string', () => {
-        expect(nac``).toBe(null);
+        expect(nac``).toBe(NO_NAC);
     });
 
     it('should parse a blank string', () => {
         expect(nac`
            \n\t
-        `).toBe(null);
+        `).toBe(NO_NAC);
     });
 
     it('should raise an error for unexpected char in start or end nodes', () => {
@@ -104,17 +103,9 @@ describe('IV parser', () => {
             </div>
             <foo/>
         `, n("div").c(
-            n("span").n("section")
+                n("span").n("section")
             ).n("foo")
         )).toEqual('');
-    });
-
-    it('should raise an error for non-node entities at root level', () => {
-        expect(error`
-          <Hello/>
-          bar
-          <div/>
-        `).toBe("(3:11) Invalid root-level character: 'b'");
     });
 
     it('should parse text nodes', () => {
@@ -125,9 +116,9 @@ describe('IV parser', () => {
                 baz
             </div>
         `, n("div").c(
-            n("#text", " foo "),
-            n("span").c(n("#text", "bar")),
-            n("#text", " baz ")
+                n("#text", " foo "),
+                n("span").c(n("#text", "bar")),
+                n("#text", " baz ")
             )
         )).toEqual('');
     });
@@ -138,7 +129,7 @@ describe('IV parser', () => {
                 foo \\{{ and \\% and \\// and \\<\\/ and \\\\ bar 
             </div>
         `, n("div").c(
-            n("#text", " foo {{ and % and // and </ and \\ bar ")
+                n("#text", " foo {{ and % and // and </ and \\ bar ")
             )
         )).toEqual('');
     });
@@ -151,10 +142,10 @@ describe('IV parser', () => {
                 {{baz}}
             </div>
         `, n("div").c(
-            n("#text", " foo "),
-            n("#insert", "foo.bar + f( x=> { return x+42 })"),
-            n("span"),
-            n("#insert", "baz")
+                n("#text", " foo "),
+                n("#insert", "foo.bar + f( x=> { return x+42 })"),
+                n("span"),
+                n("#insert", "baz")
             )
         )).toEqual('');
     });
@@ -174,10 +165,10 @@ describe('IV parser', () => {
                 </span>
             </div>
         `, n("div").c(
-            n("#js", " var x = 2;"),
-            n("span").c(
-                n("#js", " x = 3;")
-            ))
+                n("#js", " var x = 2;"),
+                n("span").c(
+                    n("#js", " x = 3;")
+                ))
         )).toEqual('');
     });
 
@@ -194,14 +185,14 @@ describe('IV parser', () => {
                 % }
             </div>
         `, n("div").c(
-            n("#jsblock", " if (foo) {  ", " }").c(
-                n("span").c(
-                    n("#text", " blah "),
-                    n("#jsblock", " if (bar) { ", " }").c(
-                        n("#text", " baz "),
+                n("#jsblock", " if (foo) {  ", " }").c(
+                    n("span").c(
+                        n("#text", " blah "),
+                        n("#jsblock", " if (bar) { ", " }").c(
+                            n("#text", " baz "),
+                        )
                     )
-                )
-            ))
+                ))
         )).toEqual('');
     });
 
@@ -246,15 +237,15 @@ describe('IV parser', () => {
                 % } 
             </div>
         `, n("div").c(
-            n("#jsblock", " if (foo) {", " }").c(
-                n("#text", " content1 ")
-            ),
-            n("#jsblock", " else if (bar) {", " x=2;}").c(
-                n("#text", " content2 ")
-            ),
-            n("#jsblock", " else {", " } ").c(
-                n("#text", " content3 ")
-            )
+                n("#jsblock", " if (foo) {", " }").c(
+                    n("#text", " content1 ")
+                ),
+                n("#jsblock", " else if (bar) {", " x=2;}").c(
+                    n("#text", " content2 ")
+                ),
+                n("#jsblock", " else {", " } ").c(
+                    n("#text", " content3 ")
+                )
             )
         )).toEqual('');
     });
@@ -272,12 +263,12 @@ describe('IV parser', () => {
             
             // comment 3 
         `, n("#comment", " comment 0 ").n("div").c(
-            n("#comment", " comment 1 "),
-            n("span").c(
-                n("#text", " blah "),
-                n("#comment", " comment 2"),
-                n("#text", " baz ")
-            )).n("#comment", " comment 3 ")
+                n("#comment", " comment 1 "),
+                n("span").c(
+                    n("#text", " blah "),
+                    n("#comment", " comment 2"),
+                    n("#text", " baz ")
+                )).n("#comment", " comment 3 ")
         )).toEqual('');
     });
 
@@ -299,16 +290,16 @@ describe('IV parser', () => {
             /*
              comment 2 */
         `, n("#commentML", " comment 0 ").n("div").c(
-            n("#commentML", `*
+                n("#commentML", `*
                  *  comment 1 
                  *`),
-            n("span").c(
-                n("#text", ` blah 
+                n("span").c(
+                    n("#text", ` blah 
                     /*
                       not a comment
                     */
                     baz `)
-            )).n("#commentML", `
+                )).n("#commentML", `
              comment 2 `)
         )).toEqual('');
     });
@@ -326,36 +317,36 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div #foo bar  baz> blah </div>
         `, n("div").a({
-            "id": '"foo"',
-            "bar": undefined,
-            "baz": undefined
-        }).c(
-            n("#text", " blah ")
-        ))).toEqual('');
+                "id": '"foo"',
+                "bar": undefined,
+                "baz": undefined
+            }).c(
+                n("#text", " blah ")
+                ))).toEqual('');
 
         expect(compare(nac`
             <div @foo      
             bar     > blah </div>
         `, n("div").a({
-            "@name": '"foo"',
-            "bar": undefined
-        }).c(
-            n("#text", " blah ")
-        ))).toEqual('');
+                "@name": '"foo"',
+                "bar": undefined
+            }).c(
+                n("#text", " blah ")
+                ))).toEqual('');
     });
 
     it('should parse attributes with values', () => {
         expect(compare(nac`
             <div foo="b a r" bar = 123+4 baz =   ( 1 + (2 + 3)) boo = 'b l  a   h' bah = c.getSomething(3 + x)> blah </div>
         `, n("div").a({
-            "foo": '"b a r"',
-            "bar": "123+4",
-            "baz": "( 1 + (2 + 3))",
-            "boo": "'b l  a   h'",
-            "bah": "c.getSomething(3 + x)"
-        }).c(
-            n("#text", " blah ")
-        ))).toEqual('');
+                "foo": '"b a r"',
+                "bar": "123+4",
+                "baz": "( 1 + (2 + 3))",
+                "boo": "'b l  a   h'",
+                "bah": "c.getSomething(3 + x)"
+            }).c(
+                n("#text", " blah ")
+                ))).toEqual('');
     });
 
     it('should raise an error for invalid attribute values', () => {
@@ -383,12 +374,12 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div [foo]=c.getValue() [[bar]]=c.attName onclick()=c.doSomething($event,123) > blah </div>
         `, n("div")
-            .addAttribute("foo", "c.getValue()", NacAttributeNature.BOUND1WAY)
-            .addAttribute("bar", "c.attName", NacAttributeNature.BOUND2WAYS)
-            .addAttribute("onclick", "c.doSomething($event,123)", NacAttributeNature.DEFERRED_EXPRESSION)
-            .c(
+                .addAttribute("foo", "c.getValue()", NacAttributeNature.BOUND1WAY)
+                .addAttribute("bar", "c.attName", NacAttributeNature.BOUND2WAYS)
+                .addAttribute("onclick", "c.doSomething($event,123)", NacAttributeNature.DEFERRED_EXPRESSION)
+                .c(
                 n("#text", " blah ")
-            ))).toEqual('');
+                ))).toEqual('');
     });
 
     it('should parse function attributes with parameters', () => {
@@ -398,22 +389,22 @@ describe('IV parser', () => {
                  onclick3( p1, p2,p3)=c.doSomething(p1+p2+p3)
             > blah </div>
         `, n("div") // todo test param1
-            .addAttribute("onclick1", "c.doSomething(param1)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["param1"])
-            .addAttribute("onclick2", "c.doSomething($param2)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["$param2"])
-            .addAttribute("onclick3", "c.doSomething(p1+p2+p3)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["p1", "p2", "p3"])
-            .c(
+                .addAttribute("onclick1", "c.doSomething(param1)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["param1"])
+                .addAttribute("onclick2", "c.doSomething($param2)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["$param2"])
+                .addAttribute("onclick3", "c.doSomething(p1+p2+p3)", NacAttributeNature.DEFERRED_EXPRESSION, null, ["p1", "p2", "p3"])
+                .c(
                 n("#text", " blah ")
-            ))).toEqual('');
+                ))).toEqual('');
     });
 
     it('should parse function attributes with surrounding parens and spaces', () => {
         expect(compare(nac`
             <div onclick()={ doThis(); return 123 } > blah </div>
         `, n("div")
-            .addAttribute("onclick", "doThis(); return 123", NacAttributeNature.DEFERRED_EXPRESSION)
-            .c(
+                .addAttribute("onclick", "doThis(); return 123", NacAttributeNature.DEFERRED_EXPRESSION)
+                .c(
                 n("#text", " blah ")
-            ))).toEqual('');
+                ))).toEqual('');
     });
 
     it('should raise an error for invalid binding on function attributes', () => {
@@ -426,22 +417,22 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div foo = doThis({a:123, b : 444}) baz = { aa:1, bb:(2) }> blah </div>
         `, n("div")
-            .addAttribute("foo", "doThis({a:123, b : 444})", NacAttributeNature.STANDARD)
-            .addAttribute("baz", "{ aa:1, bb:(2) }", NacAttributeNature.STANDARD)
-            .c(
+                .addAttribute("foo", "doThis({a:123, b : 444})", NacAttributeNature.STANDARD)
+                .addAttribute("baz", "{ aa:1, bb:(2) }", NacAttributeNature.STANDARD)
+                .c(
                 n("#text", " blah ")
-            ))).toEqual('');
+                ))).toEqual('');
     });
 
     it('should parse attribute types', () => {
         expect(compare(nac`
             <div foo:number=123 bar:string> blah </div>
         `, n("div")
-            .addAttribute("foo", "123", null, "number")
-            .addAttribute("bar", undefined, null, "string")
-            .c(
+                .addAttribute("foo", "123", undefined, "number")
+                .addAttribute("bar", undefined, undefined, "string")
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
     });
 
@@ -515,14 +506,14 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div foo=${123} bar=c.attName baz="text ${text2}" blah=c.getSomething(1,${text2}) foo2='${text2}'> blah </div>
         `, n("div")
-            .addAttribute("foo", "$v[0]")
-            .addAttribute("bar", "c.attName")
-            .addAttribute("baz", '"text "+$v[1]+""')
-            .addAttribute("blah", "c.getSomething(1,$v[2])")
-            .addAttribute("foo2", "''+$v[3]+''")
-            .c(
+                .addAttribute("foo", "$v[0]")
+                .addAttribute("bar", "c.attName")
+                .addAttribute("baz", '"text "+$v[1]+""')
+                .addAttribute("blah", "c.getSomething(1,$v[2])")
+                .addAttribute("foo2", "''+$v[3]+''")
+                .c(
                 n("#text", " blah ")
-            ))).toEqual('');
+                ))).toEqual('');
     });
 
     it('should support ${expression} in text nodes', () => {
@@ -530,8 +521,8 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div> foo ${bar} baz </div>
         `, n("div").c(
-            n("#text", " foo BAR baz ")
-        ))).toEqual('');
+                n("#text", " foo BAR baz ")
+            ))).toEqual('');
     });
 
     it('should support ${expression} in js expressions', () => {
@@ -545,10 +536,10 @@ describe('IV parser', () => {
                 </span>
             </div>
         `, n("div").c(
-            n("#js", " var x = $v[0];"),
-            n("span").c(
-                n("#js", " x += 'BAZ';")
-            ))
+                n("#js", " var x = $v[0];"),
+                n("span").c(
+                    n("#js", " x += 'BAZ';")
+                ))
         )).toEqual('');
     });
 
@@ -565,15 +556,15 @@ describe('IV parser', () => {
                 % } 
             </div>
         `, n("div").c(
-            n("#jsblock", " if ($v[0]) {", " }").c(
-                n("#text", " content1 ")
-            ),
-            n("#jsblock", " else if ($v[1]) {", " x=$v[2];}").c(
-                n("#text", " content2 ")
-            ),
-            n("#jsblock", " else {", " } ").c(
-                n("#text", " content3 ")
-            )
+                n("#jsblock", " if ($v[0]) {", " }").c(
+                    n("#text", " content1 ")
+                ),
+                n("#jsblock", " else if ($v[1]) {", " x=$v[2];}").c(
+                    n("#text", " content2 ")
+                ),
+                n("#jsblock", " else {", " } ").c(
+                    n("#text", " content3 ")
+                )
             )
         )).toEqual('');
     });
@@ -585,8 +576,8 @@ describe('IV parser', () => {
                 foo {{foo[${bar}] + f( x=> { return x+${foo} })}}
             </div>
         `, n("div").c(
-            n("#text", " foo "),
-            n("#insert", "foo[$v[0]] + f( x=> { return x+$v[1] })")
+                n("#text", " foo "),
+                n("#insert", "foo[$v[0]] + f( x=> { return x+$v[1] })")
             )
         )).toEqual('');
     });
@@ -598,8 +589,8 @@ describe('IV parser', () => {
             <div> // comment ${bar} 
             </div>
         `, n("#comment", " comment 42").n("div").c(
-            n("#comment", " comment hello ")
-        ))).toEqual('');
+                n("#comment", " comment hello ")
+            ))).toEqual('');
     });
 
     it('should support ${expression} as single attribute', () => {
@@ -608,13 +599,13 @@ describe('IV parser', () => {
             <div foo=123 ${bar}> blah </div>
             <div ${bar}/>
         `, n("div")
-            .addAttribute("foo", "123")
-            .addAttribute("@default", "$v[0]")
-            .c(
+                .addAttribute("foo", "123")
+                .addAttribute("@default", "$v[0]")
+                .c(
                 n("#text", " blah ")
-            )
-            .n("div")
-            .addAttribute("@default", "$v[1]")
+                )
+                .n("div")
+                .addAttribute("@default", "$v[1]")
         )).toEqual('');
     });
 
@@ -623,10 +614,10 @@ describe('IV parser', () => {
         expect(compare(nac`
             <div foo:${obj}={foo:"bar"} > blah </div>
         `, n("div")
-            .addAttribute("foo", '{foo:"bar"}', 0, "$v[0]")
-            .c(
+                .addAttribute("foo", '{foo:"bar"}', 0, "$v[0]")
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
     });
 
@@ -636,62 +627,62 @@ describe('IV parser', () => {
         expect(compare(nac`
             <function #foo ctrl:IvController("someValue")> blah </function>
         `, n("function")
-            .addAttribute("id", '"foo"')
-            .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"'])
-            .c(
+                .addAttribute("id", '"foo"')
+                .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"'])
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
 
         expect(compare(nac`
             <function #foo ctrl:IvController("someValue",'2')> blah </function>
         `, n("function")
-            .addAttribute("id", '"foo"')
-            .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"', "'2'"])
-            .c(
+                .addAttribute("id", '"foo"')
+                .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"', "'2'"])
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
 
         expect(compare(nac`
             <function #foo ctrl:IvController(SomeClass)> blah </function>
         `, n("function")
-            .addAttribute("id", '"foo"')
-            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass"])
-            .c(
+                .addAttribute("id", '"foo"')
+                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass"])
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
 
         expect(compare(nac`
             <function #foo ctrl:IvController(SomeClass,"abc")> blah </function>
         `, n("function")
-            .addAttribute("id", '"foo"')
-            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", '"abc"'])
-            .c(
+                .addAttribute("id", '"foo"')
+                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", '"abc"'])
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
 
         expect(compare(nac`
             <function #foo ctrl:IvController(SomeClass,'a"bc')> blah </function>
         `, n("function")
-            .addAttribute("id", '"foo"')
-            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", "'a\"bc'"])
-            .c(
+                .addAttribute("id", '"foo"')
+                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", "'a\"bc'"])
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
 
         let Foo = {};
         expect(compare(nac`
             <function #foo ctrl:IvController(${Foo},"abc")> blah </function>
         `, n("function")
-            .addAttribute("id", '"foo"')
-            .addAttribute("ctrl", undefined, 0, 'IvController', null, ["$v[0]", '"abc"'])
-            .c(
+                .addAttribute("id", '"foo"')
+                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["$v[0]", '"abc"'])
+                .c(
                 n("#text", " blah ")
-            )
+                )
         )).toEqual('');
     });
 

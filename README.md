@@ -1,14 +1,12 @@
 
-IV ("ivy") is a lightweight template engine mixing concepts from ReactJS and Angular2.
+IV ("ivy") is a lightweight JS template engine mixing concepts from ReactJS, Angular2 and Incremental DOM.
 
-To install the source code and run the unit tests, first install gulp and then simply run:
+To install the source code and run the unit tests, first install yarn and then simply run:
 
 ```sh
-    npm install -g http-server
+    yarn install
 
-    npm install
-    gulp build
-    http-server
-
-    >> go to http://localhost:8080/dist/
+    yarn run test
 ```
+
+PS: once compiled, tests can also be run and debugged in visual studio code.

@@ -1,11 +1,9 @@
 /**
  * NAC library test file
- * Copyright Bertrand Laporte 2016
  */
 
-/* global describe, it, beforeEach, afterEach, expect */
-
-import {n, NacNode, NacNodeType} from '../src/iv/nac';
+import { expect } from "./common";
+import { n, NacNode, NacNodeType } from '../compiler/nac';
 
 describe('Nac nodes', () => {
     var consoleOutput = "";
@@ -256,6 +254,5 @@ describe('Nac nodes', () => {
                </div>
            </div>`
         );
-    })
-    ;
+    });
 });

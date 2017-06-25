@@ -3,7 +3,7 @@
  * Copyright Bertrand Laporte 2016
  */
 
-import {NacNode, NacNodeType, NacAttributeNature} from './nac';
+import { NacNode, NacNodeType, NacAttributeNature } from './nac';
 
 const REGEXP_LINE = /@line:(\d+)/,
     REGEXP_FILE_NAME = /@file:([^\s]+)/;
@@ -39,7 +39,7 @@ const CHAR_GT = 62,               // >
     CHAR_z = 122,
     CHAR_CURLYSTART = 123,      // {
     CHAR_CURLYEND = 125,        // }
-    CHAR_VALUE = Math.MAX_VALUE,// pseudo character code to identify value elements passed in the template string
+    CHAR_VALUE = Number.MAX_VALUE,// pseudo character code to identify value elements passed in the template string
     CHAR_EOF = -1;              // pseudo char to mark end of file
 
 class Parser {
@@ -50,7 +50,6 @@ class Parser {
     block;              // reference to the current string being parsed
     blockLength;        // length of the current block
     lineNbr;            // current line number
-    lineNbrShift;       // shift to apply to line numbers
     colNbr;             // current column number
     value;              // current value or null if last char retrieved through moveNext() was not a value
     valueSymbol;        // js reference to be used to get the value from a js expression (e.g. $v[42])
@@ -61,13 +60,11 @@ class Parser {
     nodeStack;          // array of the last node for each level of the currentNode hierarchy
     targetNodeDepth;    // targeted depth
     jsBlockStack;       // current depth in js blocks
-    fileName;           // file name info
 
     constructor(strings, values) {
         this.strings = strings;
         this.values = values;
         this.lineNbr = 1;
-        this.lineNbrShift = 0;
         this.colNbr = 0;
         this.blockIdx = 0;
         this.block = strings[0];
@@ -82,7 +79,6 @@ class Parser {
         this.nodeStack = [];
         this.targetNodeDepth = 0;
         this.jsBlockStack = [];
-        this.fileName = "";
     }
 
     /**
@@ -94,7 +90,7 @@ class Parser {
         return [
             "lineNbr", this.lineNbr,
             "colNbr", this.colNbr,
-            "blockIdx", this.colIdx,
+            "blockIdx", this.blockIdx,
             "block", this.block,
             "charIdx", this.charIdx,
             "currentCharCode", this.currentCharCode,
@@ -272,7 +268,7 @@ class Parser {
      * @param nodeValue the node value - e.g. "some text" for nodeName="#text"
      * @param lineNbr the line number to use - will be the current line number by default
      */
-    addNode(nodeType, nodeValue = null, lineNbr = -1) {
+    addNode(nodeType, nodeValue = null, lineNbr = -1): NacNode {
         let nd = new NacNode(nodeType, nodeValue);
         nd.lineNbr = (lineNbr > -1) ? lineNbr : this.lineNbr;
         if (!this.currentNode) {
@@ -325,16 +321,11 @@ class Parser {
  * (can be null as well)
  */
 export function parse(strings, values) {
-    let p = new Parser(strings, values), root = null, error = null;
+    let p = new Parser(strings, values), root = null, error: { description: string, lineNbr: number, columnNbr: number } | null = null;
 
     try {
-        let keepGoing = true;
-        while (keepGoing) {
-            if (!node(p) && !jsComment(p) && !jsNode(p) && (spaces(p).length === 0)) {
-                // nothing more can be found
-                keepGoing = false;
-            }
-        }
+        nodeContent(p);
+
         if (p.currentCharCode !== CHAR_EOF) {
             //noinspection ExceptionCaughtLocallyJS
             throw "Invalid root-level character: '" + p.currentChar + "'";
@@ -342,11 +333,11 @@ export function parse(strings, values) {
         root = p.rootNode;
     } catch (e) {
         let d = e.description || e;
-        error = {description: d, lineNbr: p.lineNbr + p.lineNbrShift, columnNbr: p.colNbr, fileName: p.fileName};
+        error = { description: d, lineNbr: p.lineNbr, columnNbr: p.colNbr };
         root = null;
     }
 
-    return {nac: root, error: error, lineNbrShift: p.lineNbrShift, fileName: p.fileName};
+    return { nac: root, error: error };
 }
 
 /**
@@ -369,7 +360,7 @@ function spaces(p) {
  * @return {boolean} true if a text node has been found
  */
 function textNode(p) {
-    let b = [], keepGoing = true, ccc = null, ln = p.lineNbr;
+    let b: string[] = [], keepGoing = true, ccc = null, ln = p.lineNbr;
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== CHAR_LT && c !== CHAR_CURLYSTART && c !== CHAR_BACKSLASH && c !== CHAR_PERCENT && c !== CHAR_SLASH && c !== CHAR_VALUE));
         ccc = p.currentCharCode;
@@ -482,13 +473,15 @@ function nodeContent(p) {
 /**
  * Parse a node start element - e.g. <foo id="bar">
  * @param p the current parser
- * @returns Object an object with a name and closed property
+ * @returns Object an object with a node, a prefix and a closed property
  */
 function nodeStart(p) {
-    let ns = {node: null, closed: false};
     p.advanceChar(CHAR_LT, true);
     spaces(p);
-    let nd = p.addNode(NacNodeType.ELEMENT), nm = nodeName(p);
+    let nd = p.addNode(NacNodeType.ELEMENT),
+        nm = nodeName(p),
+        ns: { node: NacNode, closed: boolean, prefix: string | undefined } = { node: nd, closed: false, prefix: undefined };
+
     nd.nodeName = nm.name;
     if (nm.prefix !== undefined) {
         nd.nodeNameSpace = nm.prefix;
@@ -537,14 +530,14 @@ function nodeAttributes(p, nd) {
  * @returns {Object} an object representing the attribute - or null if no attribute name was found
  */
 function nodeAttributeName(p, attMap) {
-    let att = {
+    let att: { name: string, typeRef: string, typeArgs: string[] | null, value: string | undefined, nature: number } = {
         name: "",            // name without # or @ prefix
         typeRef: "",         // type name specified after the : separator
         typeArgs: null,      // Array of type arguments or null
         value: undefined,    // the attribute value if defined
         nature: NacAttributeNature.STANDARD // attribute nature - cf. NacAttributeNature
-    }, isId = false, isAttNode = false, endChar1 = null, endChar2 = null;
-    let b = [], colNbr0 = p.colNbr;
+    }, isId = false, isAttNode = false, endChar1: number | null = null, endChar2: number | null = null;
+    let b: string[] = [], colNbr0 = p.colNbr;
 
     if (p.advanceChar(CHAR_HASH, false)) {
         isId = true;
@@ -596,13 +589,13 @@ function nodeAttributeName(p, attMap) {
             } else {
                 // check if type contains parameters
                 if (p.advanceChar(CHAR_PARENSTART, false)) {
-                    let keepGoing = true, s, args = [];
+                    let keepGoing = true, s, args: string[] = [];
                     while (keepGoing) {
                         if (s = jsString(p)) {
                             args.push(s);
                         } else if (s = jsIdentifier(p)) {
                             args.push(s);
-                        } else if (p.advanceChar(CHAR_VALUE,false)) {
+                        } else if (p.advanceChar(CHAR_VALUE, false)) {
                             // this is a value
                             args.push(p.valueSymbol);
                         } else {
@@ -730,7 +723,7 @@ function attValueWithQuotes(p, att) {
  * @returns {boolean} true if an attribute value has been found
  */
 function attValueAsBlock(p, att, useCurlyBrackets = false) {
-    let b = [], keepGoing = true, parenCount = 0, col = p.colNbr, line = p.lineNbr,
+    let b: string[] = [], keepGoing = true, parenCount = 0, col = p.colNbr, line = p.lineNbr,
         START = CHAR_PARENSTART, END = CHAR_PARENEND;
 
     if (useCurlyBrackets) {
@@ -822,9 +815,9 @@ function nodeName(p) {
         if (!p.advanceMany(b2, isJsIdentifierChar)) {
             throw "Invalid character in node name: '" + p.currentChar + "'";
         }
-        return {prefix: b.join(""), name: b2.join("")};
+        return { prefix: b.join(""), name: b2.join("") };
     } else {
-        return {name: b.join("")};
+        return { prefix: undefined, name: b.join("") };
     }
 }
 
@@ -858,10 +851,12 @@ function jsNode(p) {
                 if (!d.isBlockStart) {
                     nd.nodeValue.endBlockExpression = d.expression;
                 } else {
-                    let endBlockRxp = /^[^}]*};?/i;
-                    nd.nodeValue.endBlockExpression = d.expression.match(endBlockRxp)[0];
-                    // remove the current end block part and keep last part for the next block node
-                    d.expression = d.expression.replace(endBlockRxp, "");
+                    let endBlockRxp = /^[^}]*};?/i, match = d.expression.match(endBlockRxp);
+                    if (match && match.length) {
+                        nd.nodeValue.endBlockExpression = match[0];
+                        // remove the current end block part and keep last part for the next block node
+                        d.expression = d.expression.replace(endBlockRxp, "");
+                    }
                 }
             }
             if (d.isBlockStart) {
@@ -885,7 +880,7 @@ function jsNode(p) {
 function jsLine(p) {
     p.advanceChar(CHAR_PERCENT, true);
 
-    let b = [], s, keepGoing = true;
+    let b: string[] = [], s, keepGoing = true;
     while (keepGoing) {
         p.advanceMany(b, (c) => c !== CHAR_NEWLINE && c !== CHAR_VALUE);
         if (p.currentCharCode === CHAR_VALUE) {
@@ -897,7 +892,7 @@ function jsLine(p) {
     }
     s = b.join("");
     if (!s.match(/^\s*$/)) {
-        let data = {isBlockStart: false, isBlockEnd: false, expression: ""};
+        let data = { isBlockStart: false, isBlockEnd: false, expression: "" };
         // todo refactor parsing here
         data.isBlockStart = (s.match(/\{\s*$/) !== null);
         data.isBlockEnd = (s.match(/^[^}]*}/) !== null);
@@ -929,7 +924,7 @@ function jsIdentifier(p) {
  * @returns {String} a the JS String or null if not found
  */
 function jsString(p) {
-    let boundaryCharCode = null, boundaryChar = "";
+    let boundaryCharCode: number | null = null, boundaryChar = "";
     if (p.advanceChar(CHAR_DOUBLEQUOTE, false)) {
         boundaryCharCode = CHAR_DOUBLEQUOTE;
         boundaryChar = '"';
@@ -940,7 +935,7 @@ function jsString(p) {
         return null;
     }
 
-    let b = [], keepGoing = true;
+    let b: string[] = [], keepGoing = true;
     b.push(boundaryChar);
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== boundaryCharCode && c !== CHAR_BACKSLASH && c !== CHAR_NEWLINE && c !== CHAR_VALUE));
@@ -989,7 +984,7 @@ function jsComment(p) {
     p.advanceChar(CHAR_SLASH, true);
     p.advanceChar(isMultiLineComment ? CHAR_STAR : CHAR_SLASH, true);
 
-    let b = [], keepGoing = true;
+    let b: string[] = [], keepGoing = true;
     if (isMultiLineComment) {
         while (keepGoing) {
             p.advanceMany(b, (c) => (c !== CHAR_STAR && c !== CHAR_VALUE));
@@ -1025,15 +1020,6 @@ function jsComment(p) {
     let s = b.join("");
     if (!s.match(/^\s*$/)) {
         // empty comments are ignored
-
-        // check if comments content @line or @file meta data
-        if (p.lineNbrShift === 0 && s.match(REGEXP_LINE)) {
-            p.lineNbrShift = parseInt(RegExp.$1, 10) - p.lineNbr + 1;
-        }
-        if (!p.fileName && s.match(REGEXP_FILE_NAME)) {
-            p.fileName = RegExp.$1;
-        }
-
         p.addNode(isMultiLineComment ? NacNodeType.COMMENT_ML : NacNodeType.COMMENT, s);
 
     }
@@ -1054,7 +1040,7 @@ function insertNode(p) {
     p.advanceChar(CHAR_CURLYSTART, true);
     p.advanceChar(CHAR_CURLYSTART, true);
 
-    let keepGoing = true, b = [];
+    let keepGoing = true, b: string[] = [];
     while (keepGoing) {
         p.advanceMany(b, (c) => (c !== CHAR_CURLYEND && c !== CHAR_VALUE));
 

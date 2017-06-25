@@ -1,5 +1,8 @@
 node_modules/
 dist/
+old/
 .idea/
 .DS_STORE
 ._.DS_STORE
+.yarnclean
+.rpt2_cache

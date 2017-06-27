@@ -244,7 +244,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, nbr) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $i2 = 0;
+            let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroupNode, $dg = $.deleteGroups;
 
             if ($a0.cm) {
@@ -252,18 +252,18 @@ describe('IV runtime', () => {
             } else {
                 $a1 = $a0.children[0];
             }
-            $i2 = 0;
+            $i1 = 0;
             if (nbr === 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i2, $a1, $a0, $a0, 2);
-                $i2++;
+                $a2 = $cg($i1, $a1, $a0, $a0, 2);
+                $i1++;
                 if ($a2.cm) {
                     $tx($a2, 3, " Case 42 ");
                     $a2.cm = 0;
                 }
             } else if (nbr === 142) { // parent elt: $a1, parent group: $a0
-                $dg($i2, $a1, $a0, 4);
-                $a2 = $cg($i2, $a1, $a0, $a0, 4);
-                $i2++;
+                $dg($i1, $a1, $a0, 4);
+                $a2 = $cg($i1, $a1, $a0, $a0, 4);
+                $i1++;
                 if ($a2.cm) {
                     $tx($a2, 5, " Case 142 ");
                     $a2.cm = 0;
@@ -272,7 +272,7 @@ describe('IV runtime', () => {
             if ($a0.cm) {
                 $a0.cm = 0;
             } else {
-                $dg($i2, $a1, $a0, 6);
+                $dg($i1, $a1, $a0, 6);
             }
         }
 
@@ -368,7 +368,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, nbr) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $i2 = 0;
+            let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
 
             if ($a0.cm) {
@@ -377,10 +377,10 @@ describe('IV runtime', () => {
             } else {
                 $a1 = $a0.children[0];
             }
-            $i2 = 1;
+            $i1 = 1;
             if (nbr > 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i2, $a1, $a0, $a0, 3);
-                $i2++;
+                $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                $i1++;
                 if ($a2.cm) {
                     $tx($a2, 4, " ++ ");
                     $a2.cm = 0;
@@ -390,13 +390,13 @@ describe('IV runtime', () => {
                 $a2 = $el($a1, 5, "span", 1);
                 $a2.props = { "title": nbr };
             } else {
-                $dg($i2, $a1, $a0, 5);
-                $a2 = $a1.children[$i2]; $up("title", nbr, $a2, $a0);
+                $dg($i1, $a1, $a0, 5);
+                $a2 = $a1.children[$i1]; $up("title", nbr, $a2, $a0);
             }
-            $i2 += 1; // because we created one element in the previous section
+            $i1 += 1; // because we created one element in the previous section
             if (nbr > 142) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i2, $a1, $a0, $a0, 6);
-                $i2++;
+                $a2 = $cg($i1, $a1, $a0, $a0, 6);
+                $i1++;
                 if ($a2.cm) {
                     $tx($a2, 7, " ++++ ");
                     $a2.cm = 0;
@@ -406,7 +406,7 @@ describe('IV runtime', () => {
                 $tx($a1, 8, " DEF ");
                 $a0.cm = 0;
             } else {
-                $dg($i2, $a1, $a0, 8);
+                $dg($i1, $a1, $a0, 8);
             }
         }
 

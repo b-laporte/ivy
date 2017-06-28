@@ -7,10 +7,11 @@ export interface VdRuntime {
     createEltNode: (parent: VdContainer, index: number, name: string, needRef?: 0 | 1) => VdElementNode;
 
     /**
-     * Create a VdGroupNode and append it to the parent children list 
+     * Create a VdGroupNode associated to component, append it to the parent children list 
+     * and call the component function
      * Use in creation mode only
      */
-    createGroupNode: (parent: VdContainer, index: number, props: {}, needRef?: 0 | 1) => VdGroupNode;
+    createCpt: (parent: VdContainer, index: number, props: {}, needRef: 0 | 1, r:VdRenderer, f:VdFunction) => VdGroupNode;
 
     /**
      * Create a VdTextNode node and append it to the parent children list
@@ -45,9 +46,14 @@ export interface VdRuntime {
     updateCptProp: (name:string, value:any, element: VdElementWithProps) => void;
 
     /**
-     * Remove changes from group1 and append them to group2 changes list
+     * Refresh a sub-component
+     * Used in update mode only
      */
-    moveChanges: (group1: VdGroupNode, group2: VdGroupNode) => void;
+    refreshCpt: (r:VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode) => void;
+}
+
+export interface VdFunction {
+    (r:VdRenderer, $d?:{}): void;
 }
 
 export interface VdRenderer {
@@ -77,6 +83,10 @@ export interface VdGroupNode extends VdContainer {
     kind: VdNodeKind.Group;
     cm: 0 | 1;                               // creation mode
     changes: VdChangeInstruction[] | null;   // list of change instructions
+}
+
+export interface VdCptNode extends VdGroupNode {
+    vdFunction: VdFunction;
 }
 
 export interface VdTextNode extends VdNode {

@@ -184,11 +184,13 @@ function checkArrayProperty(name, att1, att2) {
 
 interface TestRenderer extends VdRenderer {
     root: VdGroupNode;
+    func: (r: VdRenderer, ...any) => void;
     vdom: () => string;
     changes: () => string;
+    refresh: (data?: {}) => void;
 }
 
-export function createTestRenderer(options?: { baseIndent: string }): TestRenderer {
+export function createTestRenderer(func: (r: VdRenderer, ...any) => void, options?: { baseIndent: string }): TestRenderer {
     // override ivRuntime to always start ref at 0
     ivRuntime.refCount = 0;
 
@@ -202,11 +204,16 @@ export function createTestRenderer(options?: { baseIndent: string }): TestRender
     }
 
     let r: TestRenderer = {
-        rt:ivRuntime,
+        func: func,
+        rt: ivRuntime,
         parent: rootGroup,
         root: rootGroup,
         vdom: () => serializeGroup(rootGroup, options ? options.baseIndent : "    "),
-        changes: () => serializeChanges(rootGroup, options ? options.baseIndent : "    ")
+        changes: () => serializeChanges(rootGroup, options ? options.baseIndent : "    "),
+        refresh: function ($d) {
+            this.parent = this.root;
+            this.func(this, $d);
+        }
     }
 
     let cg: VdCreateGroup = {
@@ -305,15 +312,15 @@ function serializeChanges(nd: VdGroupNode, indent: string) {
         for (let chge of nd.changes) {
             switch (chge.kind) {
                 case VdChangeKind.CreateGroup:
-                    let cg = chge as VdCreateGroup, 
+                    let cg = chge as VdCreateGroup,
                         parent = cg.parent ? " in " + cg.parent.ref : "",
-                        position = cg.position>-1? " at position "+cg.position : "";
+                        position = cg.position > -1 ? " at position " + cg.position : "";
                     lines.push(`${indent}    CreateGroup ${cg.node.ref}${parent}${position}`);
                     break;
                 case VdChangeKind.DeleteGroup:
-                    let dg = chge as VdDeleteGroup, 
+                    let dg = chge as VdDeleteGroup,
                         parent2 = dg.parent ? " in " + dg.parent.ref : "",
-                        position2 = dg.position>-1? " at position "+dg.position : "";
+                        position2 = dg.position > -1 ? " at position " + dg.position : "";
                     lines.push(`${indent}    DeleteGroup ${dg.node.ref}${parent2}${position2}`);
                     break;
                 case VdChangeKind.UpdateProp:

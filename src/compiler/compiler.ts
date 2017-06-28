@@ -2,7 +2,7 @@ import * as ts from "typescript";
 import { parse } from "./parser";
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
 
-const CR = "\n";
+const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
 
 export function compile(source: string, id: string): CompilationCtxt {
     let srcFile = ts.createSourceFile(id, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true),
@@ -31,7 +31,7 @@ function checkNode(node: ts.Node, cc: CompilationCtxt) {
         let fnd = <ts.FunctionDeclaration>node, p0;
         if (fnd.parameters.length > 0 && fnd.parameters[0]) {
             p0 = fnd.parameters[0];
-            if (p0.type && p0.type.getText() === "VdRenderer" && fnd.body) {
+            if (p0.type && p0.type.getText() === VD_RENDERER_TYPE && fnd.body) {
                 if (fnd.body.statements.length > 0 && fnd.body.statements[0].kind === ts.SyntaxKind.ExpressionStatement) {
                     let expr = fnd.body.statements[0], ch = expr.getChildren();
                     if (ch && ch.length > 0 && ch[0].kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
@@ -49,9 +49,20 @@ function checkNode(node: ts.Node, cc: CompilationCtxt) {
                         if (im) {
                             tfn.rootIndent = im[2];
                         }
+                        // extract function declaration start before the parameter parens
+                        let fndText = fnd.getFullText(), ds = fndText.match(/^[^\(]*/);
+                        if (ds && ds.length) {
+                            tfn.declarationStart = ds[0]
+                        }
+                        // extract function declaratin end after the last `
+                        let de = fndText.match(/[^\`]*$/);
+                        if (de && de.length) {
+                            tfn.declarationEnd = de[0]
+                        }
+
                         tfn.tplString = str.slice(1, - 1);
-                        tfn.pos = ch[0].pos;
-                        tfn.end = ch[0].end;
+                        tfn.pos = fnd.pos; // ch[0].pos;
+                        tfn.end = fnd.end; // ch[0].end;
                         tfn.rendererNm = p0.name.getText();
                         for (let i = 1; fnd.parameters.length > i; i++) {
                             let pi = fnd.parameters[i];
@@ -72,6 +83,8 @@ const CARRIAGE_RETURN = "\n";
 interface TplFunction {
     tplString: string;   // template string content
     rootIndent: string;  // main indentation = string of empty spaces to use at the beginning of each line
+    declarationStart: string; // beginning of the function declaration up to the first parameter parens
+    declarationEnd: string;   // end of the function declaration (i.e. everything after the last `)
     pos: number;         // original position in the TS file
     end: number;         // original end position in the TS file
     fnHead: string;      // function code to put at the beginning of the function body (usually local variable declaration)
@@ -94,9 +107,12 @@ class CompilationCtxt {
     constructor(public src: string, public fileName: string) { }
 
     getOutput(): string {
-        let res = this.src, pos = 0, chunks: string[] = [];
+        let res = this.src, pos = 0, chunks: string[] = [], param: string;
         for (let fn of this.tplFunctions) {
             chunks.push(this.src.substring(pos, fn.pos));
+            chunks.push(fn.declarationStart);
+            param = (fn.params && fn.params.length) ? ", $d: any" : "";
+            chunks.push(`(${fn.rendererNm}: ${VD_RENDERER_TYPE}${param}) {`);
             chunks.push(CARRIAGE_RETURN);
             if (fn.fnHead) {
                 chunks.push(fn.fnHead);
@@ -107,6 +123,7 @@ class CompilationCtxt {
             if (fn.fnBody) {
                 chunks.push(fn.fnBody);
             }
+            chunks.push(fn.declarationEnd);
             pos = fn.end;
         }
         if (chunks.length) {
@@ -126,6 +143,8 @@ function addTemplateFunction(cc: CompilationCtxt): TplFunction {
         fnHead: "",
         fnBody: "",
         rendererNm: "",
+        declarationStart: "",
+        declarationEnd: "",
         params: []
     }
     cc.tplFunctions.push(tf);
@@ -158,6 +177,7 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
         let fc: any = {
             kind: CodeBlockKind.FunctionBlock,
             headDeclarations: {
+                params: tf.params,
                 constAliases: {},
                 maxShiftIdx: -1
             },
@@ -172,6 +192,7 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
             nextNodeIdx: () => ++nodeCount,
             lastNodeIdx: () => nodeCount,
             functionCtxt: null,
+            rendererNm: tf.rendererNm,
             maxLevel: 0
         }
         fc.functionCtxt = fc;
@@ -185,10 +206,12 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
 
 function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
     let constBuf: string[] = [],
+        params = fc.headDeclarations.params,
         aliases = fc.headDeclarations.constAliases,
         maxShiftIdx = fc.headDeclarations.maxShiftIdx,
         elRefs: string[] = [],
         idxRefs: string[] = [];
+
     if (fc.maxLevel > 0) {
         for (let i = 0; fc.maxLevel > i; i++) {
             elRefs.push(", $a" + (i + 1));
@@ -197,8 +220,7 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
     for (let i = 0; maxShiftIdx >= i; i++) {
         idxRefs.push(", $i" + i);
     }
-
-    let fh = `${tf.rootIndent}let $a0: any = ${tf.rendererNm}.parent${elRefs.join("")}${idxRefs.join("")};`;
+    let fh: string[] = [`${tf.rootIndent}let $a0: any = ${tf.rendererNm}.parent${elRefs.join("")}${idxRefs.join("")};`];
 
     for (let k in aliases) {
         if (aliases.hasOwnProperty(k)) {
@@ -206,9 +228,16 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
         }
     }
     if (constBuf.length) {
-        fh += CR + tf.rootIndent + "const $ = r.rt, " + constBuf.join(", ") + ";";
+        fh.push(tf.rootIndent + "const $ = r.rt, " + constBuf.join(", ") + ";");
     }
-    tf.fnHead = fh;
+    if (params && params.length) {
+        let pbuf: string[] = [];
+        for (let p of params) {
+            pbuf.push(p.name + " = $d[\"" + p.name + "\"]");
+        }
+        fh.push(`${tf.rootIndent}let ${pbuf.join(", ")};`);
+    }
+    tf.fnHead = fh.join(CR);
 }
 
 /**
@@ -219,15 +248,29 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
     let nd = nac,
         nacPath: NacNode[] = [], // list of ancestor nodes in the nac tree
         nodeBlock: NodeBlock,
+        jsExprBuffer: CodeLine[] = [],
         currentBlock: CodeBlock | null = null; // current block being processed
     if (nd) {
         shifts.push({ nbrOfCreations: 0, relative: false, generated: false });
     }
     while (nd) {
         if (nd.nodeType === NacNodeType.JS_EXPRESSION) {
-            // todo
+            let isBetweenBlocks = false, jse: ClJsExpression;
+            if (!currentBlock || currentBlock.kind === CodeBlockKind.JsBlock) {
+                // we are at the beginning of a block list or after a jsblock
+                isBetweenBlocks = true;
+                jse = {
+                    kind: CodeLineKind.JsExpression,
+                    expr: ("" + nd.nodeValue).trim()
+                }
+                jsExprBuffer.push(jse);
+            }
+            if (!isBetweenBlocks) {
+                // not supported yet
+                console.error("Js expressions are only supported at the beginning of a node block: " + nd.nodeValue);
+            }
+
             nd = nextNode(nd, true);
-            console.log("todo: js expressions")
         } else if (nd.nodeType === NacNodeType.JS_BLOCK) {
             if (currentBlock && currentBlock.kind === CodeBlockKind.NodeBlock) {
                 let nb = <NodeBlock>currentBlock, sh = nb.shifts;
@@ -261,7 +304,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
                 initLines: []
             }
             if (currentBlock && currentBlock.kind === CodeBlockKind.JsBlock) {
-                checkGroup(jsb.initLines, currentLevel());
+                deleteGroups(jsb.initLines, currentLevel());
             }
             b.blocks.push(jsb);
             currentBlock = jsb;
@@ -274,6 +317,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
                 parentGroupLevel: b.parentGroupIdx
             }
             shifts[cg.parentLevel].nbrOfCreations += 1;
+            shifts[cg.parentLevel].generated = true;
             jsb.initLines.push(cg);
             let ii: ClIncrementIdx = {
                 kind: CodeLineKind.IncrementIdx,
@@ -286,7 +330,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
                 scanBlocks(nd.firstChild, jsb, shifts);
             }
             nd = nextNode(nd, true);
-        } else {
+        } else if (nd.nodeType === NacNodeType.ELEMENT || nd.nodeType === NacNodeType.TEXT) {
             // normal node
             // check that current block is a NodeBlock or create a new block
             if (!currentBlock || currentBlock.kind !== CodeBlockKind.NodeBlock) {
@@ -297,10 +341,19 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
             }
             nodeBlock = currentBlock as NodeBlock;
 
+            if (jsExprBuffer.length) {
+                // some single lines expression have been found before the block
+                nodeBlock.initLines = nodeBlock.initLines.concat(jsExprBuffer);
+                jsExprBuffer = [];
+            }
+
             // create instructions for this node
             generateNodeBlockCodeLines(currentBlock as NodeBlock, nd, currentLevel(), shifts);
 
             // move next node
+            nd = nextNode(nd);
+        } else {
+            console.error("Unsupported node type: " + nd.nodeType);
             nd = nextNode(nd);
         }
     }
@@ -310,9 +363,6 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
         // create a last block
         appendNodeBlock();
     }
-
-    // ensure first and last block are NodeBlock
-    // todo
 
     function appendNodeBlock() {
         // create new block
@@ -331,10 +381,11 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
             changeGroupIdx: b.changeGroupIdx,
             shifts: [],
             cmLines: [],
-            umLines: []
+            umLines: [],
+            initLines: []
         }
         // if not first block, generate a delete groups instruction
-        checkGroup(nodeBlock.umLines, startLevel);
+        deleteGroups(nodeBlock.umLines, startLevel);
 
         b.blocks.push(nodeBlock);
         currentBlock = nodeBlock;
@@ -376,7 +427,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
         }
     }
 
-    function checkGroup(lines: CodeLine[], level: number) {
+    function deleteGroups(lines: CodeLine[], level: number) {
         if (b.blocks.length > 0) {
             let dg: ClDeleteGroups = {
                 kind: CodeLineKind.DeleteGroups,
@@ -392,17 +443,35 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
 function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, shifts: CodeShift[]) {
     if (nd.nodeType === NacNodeType.ELEMENT) {
         // creation mode
+        let cl: ClCreateNode, cc: ClCreateComponent | null = null, el: ClCreateElement | null = null;
 
-        // create element
-        // e.g. $a1 = $el($a0, 1, "div", 1);
-        let cl: ClCreateElement = {
-            kind: CodeLineKind.CreateElement,
-            eltName: nd.nodeName,
-            nodeIdx: nb.functionCtxt.nextNodeIdx(),
-            parentLevel: level,
-            needRef: false
-        };
-        nb.cmLines.push(cl);
+        if (nd.nodeNameSpace === "c") {
+            // create component
+            cc = {
+                kind: CodeLineKind.CreateComponent,
+                eltName: nd.nodeName,
+                nodeIdx: nb.functionCtxt.nextNodeIdx(),
+                parentLevel: level,
+                needRef: false,
+                rendererNm: nb.functionCtxt.rendererNm,
+                props: []
+            };
+            nb.cmLines.push(cc);
+            cl = cc;
+        } else {
+            // create element
+            // e.g. $a1 = $el($a0, 1, "div", 1);
+            el = {
+                kind: CodeLineKind.CreateElement,
+                eltName: nd.nodeName,
+                nodeIdx: nb.functionCtxt.nextNodeIdx(),
+                parentLevel: level,
+                needRef: false
+            };
+            nb.cmLines.push(el);
+            cl = el;
+        }
+
         shifts[level].nbrOfCreations += 1;
         shifts[level].generated = false;
 
@@ -419,12 +488,16 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
             att = att.nextSibling;
         }
         if (propsBuf.length) {
-            let sp: ClSetProps = {
-                kind: CodeLineKind.SetProps,
-                eltLevel: cl.parentLevel + 1,
-                props: propsBuf
+            if (cc) {
+                cc.props = propsBuf;
+            } else {
+                let sp: ClSetProps = {
+                    kind: CodeLineKind.SetProps,
+                    eltLevel: cl.parentLevel + 1,
+                    props: propsBuf
+                }
+                nb.cmLines.push(sp);
             }
-            nb.cmLines.push(sp);
         }
 
         // update mode
@@ -432,17 +505,33 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
             // set node refs
             generateNodeBlockRefsLine(nb, shifts);
             for (att of upBuf) {
-                let up: ClUpdateProp = {
-                    kind: CodeLineKind.UpdateProp,
-                    eltLevel: cl.parentLevel + 1,
-                    propName: att.name,
-                    expr: att.value,
-                    changeGroupLevel: nb.changeGroupIdx
+                if (cc) {
+                    nb.umLines.push(<ClUpdateCptProp>{
+                        kind: CodeLineKind.UpdateCptProp,
+                        eltLevel: cc.parentLevel + 1,
+                        propName: att.name,
+                        expr: att.value
+                    });
+                } else {
+                    nb.umLines.push(<ClUpdateProp>{
+                        kind: CodeLineKind.UpdateProp,
+                        eltLevel: cl.parentLevel + 1,
+                        propName: att.name,
+                        expr: att.value,
+                        changeGroupLevel: nb.changeGroupIdx
+                    });
                 }
-                nb.umLines.push(up);
+            }
+            if (cc) {
+                // generate refresh cpt instruction
+                nb.umLines.push(<ClRefreshCpt>{
+                    kind: CodeLineKind.RefreshCpt,
+                    rendererNm: nb.functionCtxt.rendererNm,
+                    cptLevel: cc.parentLevel + 1,
+                    changeGroupLevel: nb.changeGroupIdx
+                });
             }
         }
-
 
     } else if (nd.nodeType === NacNodeType.TEXT) {
         let cl: ClCreateTextNode = {
@@ -508,6 +597,11 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
             // $i1 = 1;
 
             let b = block as NodeBlock, isLast = (blockIdx === parentBlock.blocks.length - 1);
+            if (b.initLines.length) {
+                for (let ln of b.initLines) {
+                    lines.push(stringifyCodeLine(ln, b.baseIndent, fc));
+                }
+            }
             if (b.cmLines.length || isLast) {
                 lines.push(`${b.baseIndent}if ($a${b.parentGroupIdx}.cm) {`);
                 for (let cln of b.cmLines) {
@@ -527,7 +621,6 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
 
                 // push shifts - e.g. $i1 = 1;
                 let shiftExprs: string[] = [], sh;
-                debugger
                 for (let i = 0; b.shifts.length > i; i++) {
                     sh = b.shifts[i];
                     if (i >= b.startLevel && (!sh.relative || sh.nbrOfCreations > 0)) {
@@ -539,14 +632,12 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                     }
                 }
                 if (fc.headDeclarations.maxShiftIdx < b.shifts.length - 1) {
+                    // to ensure shift variables (e.g. $i1) to be declared
                     fc.headDeclarations.maxShiftIdx = b.shifts.length - 1;
                 }
                 if (shiftExprs.length) {
                     lines.push(b.baseIndent + shiftExprs.join(" "));
                 }
-            } else {
-                // this case is only possible in the last block of the list
-                // todo create delete node 
             }
         } else if (block.kind === CodeBlockKind.JsBlock) {
             let jsb = block as JsBlock;
@@ -593,6 +684,7 @@ interface NodeBlock extends CodeBlock {
     shifts: CodeShift[];       // index shift for each level, if level has been created in this block relative=false
     cmLines: CodeLine[];       // code lines corresponding to the creation mode
     umLines: CodeLine[];       // code lines correponding to the update mode
+    initLines: CodeLine[];     // code lines corresponding to the block initialization (e.g. js expressions)
 }
 
 interface JsBlock extends CodeBlock {
@@ -605,8 +697,9 @@ interface JsBlock extends CodeBlock {
 
 interface FunctionBlock extends JsBlock {
     kind: CodeBlockKind.FunctionBlock;
-    headDeclarations: { constAliases: {}; maxShiftIdx: number; };
+    headDeclarations: { constAliases: {}; maxShiftIdx: number; params: { name: string; type: string }[]; };
     maxLevel: number;
+    rendererNm: string;         // renderer identifier (e.g. "r")
     nextNodeIdx: () => number;  // create a new incremental node index
     lastNodeIdx: () => number;  // return the last index that was given
 }
@@ -623,22 +716,37 @@ interface CodeLine {
 
 const enum CodeLineKind {
     CreateElement = 0,
-    SetProps = 1,
-    UpdateProp = 2,
-    CreateTextNode = 3,
-    SetNodeRef = 4,
-    CheckGroup = 5,
-    DeleteGroups = 6,
-    IncrementIdx = 7
+    CreateComponent = 1,
+    SetProps = 2,
+    UpdateProp = 3,
+    UpdateCptProp = 4,
+    CreateTextNode = 5,
+    SetNodeRef = 6,
+    CheckGroup = 7,
+    DeleteGroups = 8,
+    IncrementIdx = 9,
+    JsExpression = 10,
+    RefreshCpt = 11
 }
 
-interface ClCreateElement extends CodeLine {
-    // e.g. $a1 = $el($a0, 3, "div", 1);
-    kind: CodeLineKind.CreateElement;
+interface ClCreateNode extends CodeLine {
+    // e.g. $a1 = $el($a0, 3, "div", 1); -> for a create element
     eltName: string;            // "div" in this example
     nodeIdx: number;            // 3 in this example
     parentLevel: number;        // 0 in this example ($a1 is deduced from $a0)
     needRef: boolean;           // true in this example (last 1)
+}
+
+interface ClCreateElement extends ClCreateNode {
+    // e.g. $a1 = $el($a0, 3, "div", 1);
+    kind: CodeLineKind.CreateElement;
+}
+
+interface ClCreateComponent extends ClCreateNode {
+    // e.g. $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, 1, r, bar);
+    kind: CodeLineKind.CreateComponent;
+    props: string[];            // ["value", "v + 1", "msg", '("m1:" + v)']
+    rendererNm: string;         // "r" in this example
 }
 
 interface ClSetProps extends CodeLine {
@@ -655,6 +763,14 @@ interface ClUpdateProp extends CodeLine {
     expr: string;               // "nbr + 3" in this example
     eltLevel: number;           // 2 in this example
     changeGroupLevel: number;   // 0 in this example
+}
+
+interface ClUpdateCptProp extends CodeLine {
+    // e.g. $uc("baz", nbr + 3, $a2)
+    kind: CodeLineKind.UpdateCptProp;
+    propName: string;           // "baz" in this example
+    expr: string;               // "nbr + 3" in this example
+    eltLevel: number;           // 2 in this example
 }
 
 interface ClSetNodeRef extends CodeLine {
@@ -695,6 +811,20 @@ interface ClIncrementIdx extends CodeLine {
     idxLevel: number;           // 1 in this example
 }
 
+interface ClJsExpression extends CodeLine {
+    // e.g. let x = 123;
+    kind: CodeLineKind.JsExpression;
+    expr: string;               // "let x = 123;" in this example
+}
+
+interface ClRefreshCpt extends CodeLine {
+    // e.g. $rc(r, $a2, $a0);
+    kind: CodeLineKind.RefreshCpt;
+    rendererNm: string;         // "r" in this example
+    cptLevel: number;           // 2 in this example
+    changeGroupLevel: number;   // 0 in this example
+}
+
 function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): string {
     switch (cl.kind) {
         case CodeLineKind.CreateElement:
@@ -705,6 +835,17 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
                 fc.maxLevel = el.parentLevel + 1;
             }
             return `${indent}$a${el.parentLevel + 1} = $el($a${el.parentLevel}, ${el.nodeIdx}, "${el.eltName}", ${el.needRef ? 1 : 0});`;
+        case CodeLineKind.CreateComponent:
+            let cc = cl as ClCreateComponent, pbuf: string[] = [];
+            // e.g. $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, 1, r, bar);
+            fc.headDeclarations.constAliases["$cc"] = "$.createCpt";
+            if (fc.maxLevel < cc.parentLevel + 1) {
+                fc.maxLevel = cc.parentLevel + 1;
+            }
+            for (let i = 0; cc.props.length > i; i += 2) {
+                pbuf.push(`"${cc.props[i]}": ${cc.props[i + 1]}`);
+            }
+            return `${indent}$a${cc.parentLevel + 1} = $cc($a${cc.parentLevel}, ${cc.nodeIdx}, { ${pbuf.join(", ")} }, ${cc.needRef ? 1 : 0}, ${cc.rendererNm}, ${cc.eltName});`;
         case CodeLineKind.CreateTextNode:
             let tx = cl as ClCreateTextNode;
             // e.g. $tx($a2, 3, " Hello ");
@@ -722,6 +863,16 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             // e.g. $up("baz", nbr + 3, $a2, $a0)
             fc.headDeclarations.constAliases["$up"] = "$.updateProp";
             return `${indent}$up("${up.propName}", ${up.expr}, $a${up.eltLevel}, $a${up.changeGroupLevel});`;
+        case CodeLineKind.UpdateCptProp:
+            let uc = cl as ClUpdateCptProp;
+            // e.g. $uc("baz", nbr + 3, $a2)
+            fc.headDeclarations.constAliases["$uc"] = "$.updateCptProp";
+            return `${indent}$uc("${uc.propName}", ${uc.expr}, $a${uc.eltLevel});`;
+        case CodeLineKind.RefreshCpt:
+            let rc = cl as ClRefreshCpt;
+            // e.g. $rc(r, $a2, $a0);
+            fc.headDeclarations.constAliases["$rc"] = "$.refreshCpt";
+            return `${indent}$rc(${rc.rendererNm}, $a${rc.cptLevel}, $a${rc.changeGroupLevel});`;
         case CodeLineKind.SetNodeRef:
             let sr = cl as ClSetNodeRef;
             // e.g. $a2 = $a1.children[0];
@@ -741,6 +892,10 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
                 fc.headDeclarations.maxShiftIdx = ii.idxLevel
             }
             return `${indent}$i${ii.idxLevel}++;`;
+        case CodeLineKind.JsExpression:
+            let jse = cl as ClJsExpression;
+            // e.g. let x = 123;
+            return `${indent}${jse.expr}`;
     }
     return "// invalid code kind: " + cl.kind;
 }

@@ -1,6 +1,6 @@
 
 import {
-    VdNodeKind, VdRenderer, VdRuntime, VdNode, VdContainer, VdElementNode, VdTextNode,
+    VdNodeKind, VdRenderer, VdRuntime, VdFunction, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
     VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup
 } from "./vdom";
 
@@ -27,17 +27,22 @@ export const ivRuntime: IvRuntime = {
         return nd;
     },
 
-    createGroupNode(parent: VdContainer, index: number, props: {}, needRef?: 0 | 1): VdGroupNode {
-        let g: VdGroupNode = {
+    createCpt(parent: VdContainer, index: number, props: {}, needRef: 0 | 1, r: VdRenderer, vdFunction: VdFunction): VdGroupNode {
+        let g: VdCptNode = {
             kind: VdNodeKind.Group,
             index: index,
             cm: 1,
+            vdFunction: vdFunction,
             props: props,
             changes: null,
             ref: needRef ? "G" + (++ivRuntime.refCount) : undefined,
             children: []
-        };
+        }, p = r.parent;
         parent.children.push(g);
+        r.parent = g;
+        // call the sub-function with the supplied parameters
+        vdFunction(r, props);
+        r.parent = p;
         return g;
     },
 
@@ -109,18 +114,23 @@ export const ivRuntime: IvRuntime = {
         }
     },
 
-    updateCptProp(name:string, value:any, element: VdElementWithProps): void {
+    updateCptProp(name: string, value: any, element: VdElementWithProps): void {
         element.props[name] = value;
     },
 
-    moveChanges(group1: VdGroupNode, group2: VdGroupNode): void {
-        if (group1.changes) {
-            if (group2.changes) {
-                group2.changes = group2.changes.concat(group1.changes);
+    refreshCpt(r: VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode): void {
+        let p = r.parent, c = cptGroup as VdCptNode;
+        r.parent = c;
+        c.vdFunction(r, c.props);
+        r.parent = p;
+        // move changes from cptGroup to changeGroup
+        if (c.changes) {
+            if (changeGroup.changes) {
+                changeGroup.changes = changeGroup.changes.concat(c.changes);
             } else {
-                group2.changes = group1.changes;
+                changeGroup.changes = c.changes;
             }
-            group1.changes = null;
+            c.changes = null;
         }
     }
 }

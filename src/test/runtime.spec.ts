@@ -16,9 +16,10 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, nbr) {
+        function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+            let nbr = $d["nbr"];
 
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div");
@@ -37,10 +38,10 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(test, OPTIONS);
 
         // initial display
-        test(r, 42);
+        r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 class="hello">
@@ -59,7 +60,7 @@ describe('IV runtime', () => {
 
         // update
         r.root.changes = null;
-        test(r, 5);
+        r.refresh({ nbr: 5 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 class="hello">
@@ -93,10 +94,10 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, nbr) {
+        function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
-
+            let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
                 $tx($a1, 2, " ABC ");
@@ -126,9 +127,9 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(test, OPTIONS);
         // initial display
-        test(r, 3);
+        r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -145,7 +146,7 @@ describe('IV runtime', () => {
 
         // update 1
         r.root.changes = null;
-        test(r, 42);
+        r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -171,7 +172,7 @@ describe('IV runtime', () => {
 
         // update 2
         r.root.changes = null;
-        test(r, 123);
+        r.refresh({ nbr: 123 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -189,7 +190,7 @@ describe('IV runtime', () => {
 
         // update 3
         r.root.changes = null;
-        test(r, 12);
+        r.refresh({ nbr: 12 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -206,7 +207,7 @@ describe('IV runtime', () => {
 
         // update back to 42
         r.root.changes = null;
-        test(r, 42);
+        r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -243,10 +244,10 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, nbr) {
+        function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroupNode, $dg = $.deleteGroups;
-
+            let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
             } else {
@@ -276,9 +277,9 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(test, OPTIONS);
         // initial display
-        test(r, 3);
+        r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1"/>
@@ -290,7 +291,7 @@ describe('IV runtime', () => {
 
         // update 1
         r.root.changes = null;
-        test(r, 42);
+        r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -306,7 +307,7 @@ describe('IV runtime', () => {
 
         // update 2
         r.root.changes = null;
-        test(r, 142);
+        r.refresh({ nbr: 142 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -323,7 +324,7 @@ describe('IV runtime', () => {
 
         // update 3
         r.root.changes = null;
-        test(r, 42);
+        r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -340,7 +341,7 @@ describe('IV runtime', () => {
 
         // update 4
         r.root.changes = null;
-        test(r, 9);
+        r.refresh({ nbr: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1"/>
@@ -367,10 +368,10 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, nbr) {
+        function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
-
+            let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
                 $tx($a1, 2, " ABC ");
@@ -410,9 +411,9 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(test, OPTIONS);
         // initial display
-        test(r, 3);
+        r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -428,7 +429,7 @@ describe('IV runtime', () => {
 
         // update 1
         r.root.changes = null;
-        test(r, 50);
+        r.refresh({ nbr: 50 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -448,7 +449,7 @@ describe('IV runtime', () => {
 
         // update 2
         r.root.changes = null;
-        test(r, 150);
+        r.refresh({ nbr: 150 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -471,7 +472,7 @@ describe('IV runtime', () => {
 
         // update 3
         r.root.changes = null;
-        test(r, 9);
+        r.refresh({ nbr: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -504,30 +505,30 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, nbr) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i2 = 0, $i3 = 0;
+        function test(r: VdRenderer, $d: any) {
+            let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i1 = 0, $i2 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
-
+            let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
                 $tx($a1, 2, " ABC ");
             } else {
                 $a1 = $a0.children[0];
             }
-            $i2 = 1;   // shift for the ABC node
+            $i1 = 1;   // shift for the ABC node
             if (nbr > 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i2, $a1, $a0, $a0, 3);
-                $i2++;
+                $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                $i1++;
                 if ($a2.cm) {
                     $a3 = $el($a2, 4, "span", 1);
                     $a3.props = { "title": nbr };
                 } else {
                     $a3 = $a2.children[0]; $up("title", nbr, $a3, $a0);
                 }
-                $i3 = 1;
+                $i2 = 1;
                 if (nbr > 142) {
-                    $a3 = $cg($i3, $a2, $a0, $a2, 5);
-                    $i3++;
+                    $a3 = $cg($i2, $a2, $a0, $a2, 5);
+                    $i2++;
                     if ($a3.cm) {
                         $a4 = $el($a3, 6, "span", 1);
                         $a4.props = { "title": nbr + 10 };
@@ -541,21 +542,21 @@ describe('IV runtime', () => {
                     $a3.props = { "title": nbr + 20 };
                     $a2.cm = 0;
                 } else {
-                    $dg($i3, $a2, $a0, 7);
-                    $a3 = $a2.children[$i3]; $up("title", nbr + 20, $a3, $a0);
+                    $dg($i2, $a2, $a0, 7);
+                    $a3 = $a2.children[$i2]; $up("title", nbr + 20, $a3, $a0);
                 }
             }
             if ($a0.cm) {
                 $tx($a1, 8, " DEF ");
                 $a0.cm = 0;
             } else {
-                $dg($i2, $a1, $a0, 7);
+                $dg($i1, $a1, $a0, 8);
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(test, OPTIONS);
         // initial display
-        test(r, 3);
+        r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -570,7 +571,7 @@ describe('IV runtime', () => {
 
         // update 1
         r.root.changes = null;
-        test(r, 45);
+        r.refresh({ nbr: 45 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -589,7 +590,7 @@ describe('IV runtime', () => {
 
         // update 2
         r.root.changes = null;
-        test(r, 145);
+        r.refresh({ nbr: 145 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -613,7 +614,7 @@ describe('IV runtime', () => {
 
         // update 2
         r.root.changes = null;
-        test(r, 200);
+        r.refresh({ nbr: 200 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -637,7 +638,7 @@ describe('IV runtime', () => {
 
         // update 3
         r.root.changes = null;
-        test(r, 50);
+        r.refresh({ nbr: 50 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -656,9 +657,9 @@ describe('IV runtime', () => {
             UpdateProp "title"=70 in E4
         `, "update changes 50");
 
-        // initial display with 150
-        r = createTestRenderer(OPTIONS);
-        test(r, 145);
+        // initial display with 145
+        r = createTestRenderer(test, OPTIONS);
+        r.refresh({ nbr: 145 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1 ref="E1">
@@ -679,7 +680,7 @@ describe('IV runtime', () => {
         `, "update changes 150");
     });
 
-    it('should support sub-templates', () => {
+    it('should support sub-function calls', () => {
         // function foo (r: VdRenderer, v:number=123) {
         //     <div>
         //         <span> first </span>
@@ -696,21 +697,17 @@ describe('IV runtime', () => {
         //     % }
         // }
 
-        function foo(r: VdRenderer, v: number = 123) {
+        function foo(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $uc = $.updateCptProp,
-                $gp = $.createGroupNode, $mc = $.moveChanges;
-
+                $cc = $.createCpt, $rc = $.refreshCpt;
+            let v = $d["v"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div");
                 $a2 = $el($a1, 2, "span");
                 $tx($a2, 3, " first ");
-                $a2 = $gp($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, 1);
-                r.parent = $a2;
-                bar(r, $a2.props);
-                $a2 = $gp($a1, 5, { "value": v + 3, "msg": ("m2:" + v) }, 1);
-                r.parent = $a2;
-                bar(r, $a2.props);
+                $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, 1, r, bar);
+                $a2 = $cc($a1, 5, { "value": v + 3, "msg": ("m2:" + v) }, 1, r, bar);
                 $a2 = $el($a1, 6, "span");
                 $tx($a2, 7, " last ");
                 $a0.cm = 0;
@@ -718,21 +715,15 @@ describe('IV runtime', () => {
                 $a1 = $a0.children[0]
                 $a2 = $a1.children[1];
                 $uc("value", v + 1, $a2);
-                r.parent = $a2;
-                bar(r, $a2.props);
-                $mc($a2, $a0);
+                $rc(r, $a2, $a0);
                 $a2 = $a1.children[2];
-                r.parent = $a2;
                 $uc("value", v + 3, $a2);
-                bar(r, $a2.props);
-                $mc($a2, $a0);
+                $rc(r, $a2, $a0);
             }
-
-            r.parent = $a0;
         }
 
-        function bar(r: VdRenderer, $a: { value?: any, msg?: any }) {
-            let value = $a.value || "", msg = $a.msg || "", $a0: any = r.parent, $a1, $a2, $i1;
+        function bar(r: VdRenderer, $d: { value?: any, msg?: any }) {
+            let value = $d.value || "", msg = $d.msg || "", $a0: any = r.parent, $a1, $a2, $i1;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
 
             if ($a0.cm) {
@@ -758,9 +749,9 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(foo, OPTIONS);
         // initial display
-        foo(r, 9);
+        r.refresh({ v: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1>
@@ -785,7 +776,7 @@ describe('IV runtime', () => {
 
         // update 1
         r.root.changes = null;
-        foo(r, 42);
+        r.refresh({ v: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1>
@@ -817,7 +808,7 @@ describe('IV runtime', () => {
 
         // update 1
         r.root.changes = null;
-        foo(r, 9);
+        r.refresh({ v: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
                 <div 1>
@@ -843,7 +834,7 @@ describe('IV runtime', () => {
         `, "update changes 9");
     });
 
-    it('should support for loops with no keys', () => {
+    it('should support loops with no keys', () => {
         // function test(r:VdRenderer, list=[]) {
         //     <div title="first"/>
         //     % for (let i=0;list.length>i;i++) {
@@ -852,18 +843,18 @@ describe('IV runtime', () => {
         //     <div [title]=list.length/>
         // }
 
-        function test(r: VdRenderer, list: any[] = []) {
-            let $a0: any = r.parent, $a1, $a2, $i1;
+        function test(r: VdRenderer, $d: any) {
+            let $a0: any = r.parent, $a1, $a2, $i0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
-
+            let list = $d["list"];
             if ($a0.cm) {
-                $a1 = $el($a0, 1, "div", 1);
+                $a1 = $el($a0, 1, "div", 0);
                 $a1.props = { "title": "first" };
             }
-            $i1 = 1;
+            $i0 = 1;
             for (let i = 0; list.length > i; i++) {
-                $a1 = $cg($i1, $a0, $a0, $a0, 2);
-                $i1++;
+                $a1 = $cg($i0, $a0, $a0, $a0, 2);
+                $i0++;
                 if ($a1.cm) {
                     $a2 = $el($a1, 3, "div", 1);
                     $a2.props = { "title": ("Hello " + list[i].name) };
@@ -878,25 +869,25 @@ describe('IV runtime', () => {
                 $a1.props = { "title": list.length };
                 $a0.cm = 0;
             } else {
-                $dg($i1, $a0, $a0, 4);
-                $a1 = $a0.children[$i1];
+                $dg($i0, $a0, $a0, 4);
+                $a1 = $a0.children[$i0];
                 $up("title", list.length, $a1, $a0);
             }
         }
 
-        let r = createTestRenderer(OPTIONS);
+        let r = createTestRenderer(test, OPTIONS);
         // initial display
-        test(r, [{ name: "Arthur" }, { name: "Douglas" }]);
+        r.refresh({ list: [{ name: "Arthur" }, { name: "Douglas" }] });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
-                <div 1 ref="E1" title="first"/>
-                <#group 2 ref="G2">
-                    <div 3 ref="E3" title="Hello Arthur"/>
+                <div 1 title="first"/>
+                <#group 2 ref="G1">
+                    <div 3 ref="E2" title="Hello Arthur"/>
                 </#group>
-                <#group 2 ref="G4">
-                    <div 3 ref="E5" title="Hello Douglas"/>
+                <#group 2 ref="G3">
+                    <div 3 ref="E4" title="Hello Douglas"/>
                 </#group>
-                <div 4 ref="E6" title=2/>
+                <div 4 ref="E5" title=2/>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
@@ -905,43 +896,42 @@ describe('IV runtime', () => {
 
         // update 1 
         r.root.changes = null;
-        test(r, [{ name: "Arthur" }, { name: "Slartibartfast" }, { name: "Douglas" }]);
+        r.refresh({ list: [{ name: "Arthur" }, { name: "Slartibartfast" }, { name: "Douglas" }] });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
-                <div 1 ref="E1" title="first"/>
-                <#group 2 ref="G2">
-                    <div 3 ref="E3" title="Hello Arthur"/>
+                <div 1 title="first"/>
+                <#group 2 ref="G1">
+                    <div 3 ref="E2" title="Hello Arthur"/>
                 </#group>
-                <#group 2 ref="G4">
-                    <div 3 ref="E5" title="Hello Slartibartfast"/>
+                <#group 2 ref="G3">
+                    <div 3 ref="E4" title="Hello Slartibartfast"/>
                 </#group>
-                <#group 2 ref="G7">
-                    <div 3 ref="E8" title="Hello Douglas"/>
+                <#group 2 ref="G6">
+                    <div 3 ref="E7" title="Hello Douglas"/>
                 </#group>
-                <div 4 ref="E6" title=3/>
+                <div 4 ref="E5" title=3/>
             </#group>
         `, "update 3 items");
         assert.equal(r.changes(), `
-            UpdateProp "title"="Hello Slartibartfast" in E5
-            CreateGroup G7 in ROOT at position 3
-            UpdateProp "title"=3 in E6
+            UpdateProp "title"="Hello Slartibartfast" in E4
+            CreateGroup G6 in ROOT at position 3
+            UpdateProp "title"=3 in E5
         `, "update changes 3 items");
 
         // update 2
         r.root.changes = null;
-        test(r, []);
+        r.refresh({ list: [] });
         assert.equal(r.vdom(), `
             <#group 0 ref="ROOT">
-                <div 1 ref="E1" title="first"/>
-                <div 4 ref="E6" title=0/>
+                <div 1 title="first"/>
+                <div 4 ref="E5" title=0/>
             </#group>
         `, "empty list");
         assert.equal(r.changes(), `
-            DeleteGroup G2 in ROOT at position 1
-            DeleteGroup G4 in ROOT at position 1
-            DeleteGroup G7 in ROOT at position 1
-            UpdateProp "title"=0 in E6
+            DeleteGroup G1 in ROOT at position 1
+            DeleteGroup G3 in ROOT at position 1
+            DeleteGroup G6 in ROOT at position 1
+            UpdateProp "title"=0 in E5
         `, "update changes empty list");
     });
-
 });

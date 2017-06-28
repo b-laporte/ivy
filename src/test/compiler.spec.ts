@@ -17,8 +17,8 @@ describe('Iv compiler', () => {
         assert.equal(cc.fileName, "test1", "fileName");
         assert.equal(cc.tplFunctions.length, 1, "one function found");
         let tf = cc.tplFunctions[0];
-        assert.equal(tf.pos, 92, "original pos");
-        assert.equal(tf.end, 124, "original end");
+        assert.equal(tf.pos, 50, "original pos");
+        assert.equal(tf.end, 138, "original end");
         assert.equal(tf.params.length, 0, "no params");
         assert.equal(tf.rendererNm, "r", "VdRenderer name");
         assert.equal(tf.rootIndent, "                ", "root indentation");
@@ -30,7 +30,7 @@ describe('Iv compiler', () => {
         assert.equal(cc.getOutput(), `
             import { VdomRenderer } from "../iv";
 
-            function foo(r:VdRenderer) {
+            function foo(r: VdRenderer) {
                 HEAD
                 BODY
             }
@@ -69,12 +69,12 @@ describe('Iv compiler', () => {
         assert.equal(cc.getOutput(), `
             import { VdomRenderer } from "../iv";
 
-            function hello(r:VdRenderer, foo:string, bar) {
+            function hello(r: VdRenderer, $d: any) {
                 FUNC 0
             }
 
             class Blah {
-                render(r:VdRenderer) {
+                render(r: VdRenderer) {
                     FUNC 1
                 }
             }
@@ -93,9 +93,10 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test3");
 
         assert.equal(cc.getOutput(), `
-            function hello(x:VdRenderer, foo:string, bar) {
+            function hello(x: VdRenderer, $d: any) {
                 let $a0: any = x.parent, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode;
+                let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
                     $a1.props = { "class": "hello" };
@@ -123,9 +124,10 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test4");
 
         assert.equal(cc.getOutput(), `
-            function hello(r:VdRenderer, foo:string, bar) {
+            function hello(r: VdRenderer, $d: any) {
                 let $a0: any = r.parent, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
                     $a1.props = { "class": "hello" };
@@ -164,9 +166,10 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test5");
 
         assert.equal(cc.getOutput(), `
-            function hello(r:VdRenderer, nbr) {
+            function hello(r: VdRenderer, $d: any) {
                 let $a0: any = r.parent, $a1, $a2, $a3, $i0, $i1;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
                     $tx($a1, 2, " ABC ");
@@ -214,9 +217,10 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test6");
 
         assert.equal(cc.getOutput(), `
-            function hello(r:VdRenderer, nbr) {
+            function hello(r: VdRenderer, $d: any) {
                 let $a0: any = r.parent, $a1, $i0, $i1;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode;
+                let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
                 } else {
@@ -269,9 +273,10 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test7");
 
         assert.equal(cc.getOutput(), `
-            function hello(r:VdRenderer, nbr) {
+            function hello(r: VdRenderer, $d: any) {
                 let $a0: any = r.parent, $a1, $a2, $i0, $i1;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
                     $tx($a1, 2, " ABC ");
@@ -313,6 +318,218 @@ describe('Iv compiler', () => {
             }
         `, "output generation");
 
+    });
+
+    it('should compile loops with no keys', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \`<div title="first"/>
+                  % for (let i=0;list.length>i;i++) {
+                      <div [title]=("Hello " + list[i].name)/>
+                  % }
+                  <div [title]=list.length/> \`
+            }
+        `;
+        let cc = compile(src, "test7");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $i0;
+                const $ = r.rt, $el = $.createEltNode, $up = $.updateProp;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a1.props = { "title": "first" };
+                }
+                $i0 = 1;
+                for (let i=0;list.length>i;i++) {
+                    $a1 = $cg($i0, $a0, $a0, $a0, 2);
+                    $i0++;
+                    if ($a1.cm) {
+                        $a2 = $el($a1, 3, "div", 1);
+                        $a2.props = { "title": ("Hello " + list[i].name) };
+                        $a1.cm = 0;
+                    } else {
+                        $a2 = $a1.children[0];
+                        $up("title", ("Hello " + list[i].name), $a2, $a0);
+                    }
+                }
+                if ($a0.cm) {
+                    $a1 = $el($a0, 4, "div", 1);
+                    $a1.props = { "title": list.length };
+                    $a0.cm = 0;
+                } else {
+                    $dg($i0, $a0, $a0, 4);
+                    $a1 = $a0.children[$i0];
+                    $up("title", list.length, $a1, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile nested blocks', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \`<div>
+                    ABC
+                    % if (nbr>42) {
+                        <span [title]=nbr/>
+                        % if (nbr>142) {
+                            <span [title]=nbr+10/>
+                        % }
+                        <span [title]=nbr+20/>
+                    % } 
+                    DEF
+                  </div> \`
+            }
+        `;
+        let cc = compile(src, "test8");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0, $i1, $i2;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 1);
+                    $tx($a1, 2, " ABC ");
+                } else {
+                    $a1 = $a0.children[0];
+                }
+                $i0 = 1; $i1 = 1;
+                if (nbr>42) {
+                    $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                    $i1++;
+                    if ($a2.cm) {
+                        $a3 = $el($a2, 4, "span", 1);
+                        $a3.props = { "title": nbr };
+                    } else {
+                        $a3 = $a2.children[0];
+                        $up("title", nbr, $a3, $a0);
+                    }
+                    $i2 = 1;
+                    if (nbr>142) {
+                        $a3 = $cg($i2, $a2, $a0, $a2, 5);
+                        $i2++;
+                        if ($a3.cm) {
+                            $a4 = $el($a3, 6, "span", 1);
+                            $a4.props = { "title": nbr+10 };
+                            $a3.cm = 0;
+                        } else {
+                            $a4 = $a3.children[0];
+                            $up("title", nbr+10, $a4, $a0);
+                        }
+                    }
+                    if ($a2.cm) {
+                        $a3 = $el($a2, 7, "span", 1);
+                        $a3.props = { "title": nbr+20 };
+                        $a2.cm = 0;
+                    } else {
+                        $dg($i2, $a2, $a0, 7);
+                        $a3 = $a2.children[$i2];
+                        $up("title", nbr+20, $a3, $a0);
+                    }
+                }
+                if ($a0.cm) {
+                    $tx($a1, 8, " DEF ");
+                    $a0.cm = 0;
+                } else {
+                    $dg($i1, $a1, $a0, 8);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile js expressions at the beginning of a block', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \`  % let x=123;
+                    % let y="abc";
+                    ABC
+                    % if (nbr===42) {
+                        % nbr += 3;
+                        <span> Hello </span>
+                    % }
+                    % let w=9;
+                    <span [title]=nbr> DEF </span> \`
+            }
+        `;
+        let cc = compile(src, "test9");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $i0;
+                const $ = r.rt, $tx = $.createTxtNode, $el = $.createEltNode, $up = $.updateProp;
+                let nbr = $d["nbr"];
+                let x=123;
+                let y="abc";
+                if ($a0.cm) {
+                    $tx($a0, 1, " ABC ");
+                }
+                $i0 = 1;
+                if (nbr===42) {
+                    $a1 = $cg($i0, $a0, $a0, $a0, 2);
+                    $i0++;
+                    nbr += 3;
+                    if ($a1.cm) {
+                        $a2 = $el($a1, 3, "span", 0);
+                        $tx($a2, 4, " Hello ");
+                        $a1.cm = 0;
+                    }
+                }
+                let w=9;
+                if ($a0.cm) {
+                    $a1 = $el($a0, 5, "span", 1);
+                    $a1.props = { "title": nbr };
+                    $tx($a1, 6, " DEF ");
+                    $a0.cm = 0;
+                } else {
+                    $dg($i0, $a0, $a0, 5);
+                    $a1 = $a0.children[$i0];
+                    $up("title", nbr, $a1, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile sub-function calls', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \` <div>
+                        <span> first </span>
+                        <c:bar [value]=v+1 msg=("m1:"+v)/>
+                        <c:bar [value]=v+3 msg=("m2:"+v)/>
+                        <span> last </span>
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cc = $.createCpt, $uc = $.updateCptProp, $rc = $.refreshCpt;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $el($a1, 2, "span", 0);
+                    $tx($a2, 3, " first ");
+                    $a2 = $cc($a1, 4, { "value": v+1, "msg": ("m1:"+v) }, 1, r, bar);
+                    $a2 = $cc($a1, 5, { "value": v+3, "msg": ("m2:"+v) }, 1, r, bar);
+                    $a2 = $el($a1, 6, "span", 0);
+                    $tx($a2, 7, " last ");
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[1];
+                    $uc("value", v+1, $a2);
+                    $rc(r, $a2, $a0);
+                    $a2 = $a1.children[2];
+                    $uc("value", v+3, $a2);
+                    $rc(r, $a2, $a0);
+                }
+            }
+        `, "output generation");
     });
 
 });

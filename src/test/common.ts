@@ -2,7 +2,7 @@
 import { NacNodeType } from '../compiler/nac';
 import {
     VdRenderer, VdRuntime, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
-    VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup
+    VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText
 } from '../vdom';
 import { ivRuntime } from '../iv';
 
@@ -183,7 +183,7 @@ function checkArrayProperty(name, att1, att2) {
 }
 
 interface TestRenderer extends VdRenderer {
-    root: VdGroupNode;
+    root?: VdGroupNode;
     func: (r: VdRenderer, ...any) => void;
     vdom: () => string;
     changes: () => string;
@@ -197,20 +197,27 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
     let rootGroup: VdGroupNode = {
         kind: VdNodeKind.Group,
         index: 0,
-        ref: "ROOT",
+        ref: -1,
         cm: 1,
         changes: null,
-        children: []
+        children: [],
+        domNode: null,
+        parent: null
     }
 
     let r: TestRenderer = {
         func: func,
         rt: ivRuntime,
         parent: rootGroup,
-        root: rootGroup,
+        root: undefined,
         vdom: () => serializeGroup(rootGroup, options ? options.baseIndent : "    "),
         changes: () => serializeChanges(rootGroup, options ? options.baseIndent : "    "),
         refresh: function ($d) {
+            if (!this.root) {
+                this.root = rootGroup;
+            } else {
+                this.root.changes = null;
+            }
             this.parent = this.root;
             this.func(this, $d);
         }
@@ -220,7 +227,8 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
         kind: VdChangeKind.CreateGroup,
         node: rootGroup,
         parent: null,
-        position: -1
+        position: -1,
+        nextSibling: null
     }
     rootGroup.changes = [cg];
 
@@ -307,28 +315,146 @@ function stringifyIdxAndRef(nd: VdNode) {
 function serializeChanges(nd: VdGroupNode, indent: string) {
     let lines: string[] = [];
     if (!nd.changes || nd.changes.length === 0) {
-        return CR + indent + CR;;
+        return CR + indent;;
     } else {
         for (let chge of nd.changes) {
             switch (chge.kind) {
                 case VdChangeKind.CreateGroup:
                     let cg = chge as VdCreateGroup,
-                        parent = cg.parent ? " in " + cg.parent.ref : "",
+                        parent = cg.parent ? " in #" + cg.parent.ref : "",
                         position = cg.position > -1 ? " at position " + cg.position : "";
-                    lines.push(`${indent}    CreateGroup ${cg.node.ref}${parent}${position}`);
+                    lines.push(`${indent}    CreateGroup #${cg.node.ref}${parent}${position}`);
                     break;
                 case VdChangeKind.DeleteGroup:
                     let dg = chge as VdDeleteGroup,
-                        parent2 = dg.parent ? " in " + dg.parent.ref : "",
+                        parent2 = dg.parent ? " in #" + dg.parent.ref : "",
                         position2 = dg.position > -1 ? " at position " + dg.position : "";
-                    lines.push(`${indent}    DeleteGroup ${dg.node.ref}${parent2}${position2}`);
+                    lines.push(`${indent}    DeleteGroup #${dg.node.ref}${parent2}${position2}`);
                     break;
                 case VdChangeKind.UpdateProp:
                     let up = chge as VdUpdateProp, buf: string[] = [];
-                    lines.push(`${indent}    UpdateProp "${up.name}"=${stringifyValue(up.value)} in ${up.node.ref}`);
+                    lines.push(`${indent}    UpdateProp "${up.name}"=${stringifyValue(up.value)} in #${up.node.ref}`);
+                    break;
+                case VdChangeKind.UpdateText:
+                    let ut = chge as VdUpdateText;
+                    lines.push(`${indent}    UpdateText "${ut.value}" in #${ut.node.ref}`);
                     break;
             }
         }
         return CR + lines.join("\n") + CR + indent;
+    }
+}
+
+export const doc = {
+    createDocFragment: function () {
+        return new DocFragment();
+    },
+    createTextNode: function (data: string) {
+        return new TextNode(data);
+    },
+    createElement: function (name: string) {
+        return new ElementNode(name);
+    }
+}
+
+class TextNode {
+    constructor(public textContent: string) { }
+
+    stringify(indent = ""): string {
+        return `${indent}<#text>${this.textContent}</#text>`;
+    }
+}
+
+class ElementNode {
+    childNodes: any[] = [];
+
+    constructor(public nodeName: string) { }
+
+    setAttribute(key: string, value: string) {
+        this[key] = value;
+    }
+
+    appendChild(node) {
+        if (node.nodeName && node.nodeName === "#doc-fragment") {
+            this.childNodes = this.childNodes.concat(node.childNodes);
+            node.childNodes = [];
+        } else {
+            this.childNodes.push(node);
+        }
+    }
+
+    removeChild(node) {
+        // brute force... but simple and safe
+        let ch2: any[] = [];
+        for (let nd of this.childNodes) {
+            if (nd !== node) {
+                ch2.push(nd);
+            }
+        }
+        this.childNodes = ch2;
+    }
+
+    insertBefore(node, nodeRef) {
+        // find nodeRef index
+        let idx = -1;
+        for (let i = 0; this.childNodes.length > i; i++) {
+            if (nodeRef === this.childNodes[i]) {
+                idx = i;
+                break;
+            }
+        }
+        if (idx < 0 || !node) {
+            return;
+        }
+        if (node.nodeName && node.nodeName === "#doc-fragment") {
+            let nch = node.childNodes;
+            for (let i = nch.length - 1; i > -1; i--) {
+                this.childNodes.splice(idx, 0, nch[i]);
+            }
+            node.childNodes = [];
+        } else {
+            this.childNodes.splice(idx, 0, node);
+        }
+    }
+
+    stringify(indent = "", isRoot = false): string {
+        let lines: string[] = [], indent2 = isRoot ? indent + "    " : indent, atts: string[] = [], att = "";
+
+        for (let k in this) {
+            if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes") {
+                if (k === "className") {
+                    if (this["className"]) {
+                        atts.push(`class="${this[k]}"`);
+                    }
+                } else {
+                    atts.push(`${k}="${this[k]}"`);
+                }
+            }
+        }
+        if (atts.length) {
+            att = " " + atts.join(" ");
+        }
+
+        if (this.childNodes.length) {
+            lines.push(`${indent2}<${this.nodeName}${att}>`);
+            for (let ch of this.childNodes) {
+                lines.push(ch.stringify(indent2 + "    "));
+            }
+            lines.push(`${indent2}</${this.nodeName}>`);
+        } else {
+            lines.push(`${indent2}<${this.nodeName}${att}/>`);
+        }
+
+        if (isRoot) {
+            return CR + lines.join(CR) + CR + indent;
+        } else {
+            return lines.join(CR);
+        }
+    }
+}
+
+class DocFragment extends ElementNode {
+    constructor() {
+        super("#doc-fragment");
     }
 }

@@ -5,13 +5,16 @@
   "repository": {
     "type": "git"
   },
+  "main": "dist/rollup-plugin-iv.cjs.js",
+  "module": "dist/rollup-plugin-iv.es.js",
   "author": "Bertrand Laporte",
   "scripts": {
     "build-compiler": "rollup --config rollup.compiler.config.js",
     "build": "rollup -c rollup.compiler.config.js && rollup -c rollup.test.config.js",
     "test": "rollup -c rollup.compiler.config.js && rollup -c rollup.test.config.js && mocha dist/test.js",
     "mocha": "mocha dist/test.js",
-    "dev": "rollup -c -w"
+    "dev": "rollup -c -w",
+    "build-flex": "cpx 'src/samples/flex/**/*.{html,js,css,svg}' dist/flex && rollup --config rollup.flex.config.js"
   },
   "license": "UNLICENSED",
   "private": true,
@@ -23,14 +26,17 @@
     "rollup-plugin-typescript2": "^0.4.3",
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-uglify": "^2.0.1",
+    "rollup-plugin-gzip": "^1.2.0",
     "tslib": "^1.7.1",
     "typescript": ">=2.3.4",
     "mocha": "^3.4.2",
+    "cpx": "1.5.0",
     "@types/node": "^7.0.31",
     "@types/mocha": "^2.2.41"
   },
   "dependencies": {
-    "typescript":">=2.3.4"
+    "typescript": ">=2.3.4"
   },
   "engines": {
     "node": ">=7.0.31"

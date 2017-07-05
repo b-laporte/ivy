@@ -43,31 +43,30 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1 class="hello">
                     <span 2 class="one" foo=46 title="blah">
                         <#text 3 " Hello ">
                     </span>
-                    <span 4 ref="E1" bar=84 baz=45 class="two">
+                    <span 4 ref="1" bar=84 baz=45 class="two">
                         <#text 5 " World ">
                     </span>
                 </div>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update
-        r.root.changes = null;
         r.refresh({ nbr: 5 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1 class="hello">
                     <span 2 class="one" foo=46 title="blah">
                         <#text 3 " Hello ">
                     </span>
-                    <span 4 ref="E1" bar=10 baz=8 class="two">
+                    <span 4 ref="1" bar=10 baz=8 class="two">
                         <#text 5 " World ">
                     </span>
                 </div>
@@ -75,8 +74,8 @@ describe('IV runtime', () => {
         `, "update with nbr=5");
 
         assert.equal(r.changes(), `
-            UpdateProp "baz"=8 in E1
-            UpdateProp "bar"=10 in E1
+            UpdateProp "baz"=8 in #1
+            UpdateProp "bar"=10 in #1
         `, "update changes");
 
     });
@@ -96,7 +95,7 @@ describe('IV runtime', () => {
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
-            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
+            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -131,27 +130,26 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <span 8 ref="E2" title=3>
+                    <span 8 ref="2" title=3>
                         <#text 9 " DEF ">
                     </span>
                 </div>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update 1
-        r.root.changes = null;
         r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G3">
+                    <#group 3 ref="3">
                         <span 4>
                             <#text 5 " Hello ">
                         </span>
@@ -159,60 +157,57 @@ describe('IV runtime', () => {
                             <#text 7 " World ">
                         </span>
                     </#group>
-                    <span 8 ref="E2" title=42>
+                    <span 8 ref="2" title=42>
                         <#text 9 " DEF ">
                     </span>
                 </div>
             </#group>
         `, "update with nbr=42");
         assert.equal(r.changes(), `
-            CreateGroup G3 in E1 at position 1
-            UpdateProp "title"=42 in E2
+            CreateGroup #3 in #1 at position 1
+            UpdateProp "title"=42 in #2
         `, "update changes 42");
 
         // update 2
-        r.root.changes = null;
         r.refresh({ nbr: 123 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <span 8 ref="E2" title=123>
+                    <span 8 ref="2" title=123>
                         <#text 9 " DEF ">
                     </span>
                 </div>
             </#group>
         `, "update with nbr=123");
         assert.equal(r.changes(), `
-            DeleteGroup G3 in E1 at position 1
-            UpdateProp "title"=123 in E2
+            DeleteGroup #3 in #1 at position 1
+            UpdateProp "title"=123 in #2
         `, "update changes 123");
 
         // update 3
-        r.root.changes = null;
         r.refresh({ nbr: 12 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <span 8 ref="E2" title=12>
+                    <span 8 ref="2" title=12>
                         <#text 9 " DEF ">
                     </span>
                 </div>
             </#group>
         `, "update with nbr=12");
         assert.equal(r.changes(), `
-            UpdateProp "title"=12 in E2
+            UpdateProp "title"=12 in #2
         `, "update changes 12");
 
         // update back to 42
-        r.root.changes = null;
         r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G4">
+                    <#group 3 ref="4">
                         <span 4>
                             <#text 5 " Hello ">
                         </span>
@@ -220,15 +215,15 @@ describe('IV runtime', () => {
                             <#text 7 " World ">
                         </span>
                     </#group>
-                    <span 8 ref="E2" title=42>
+                    <span 8 ref="2" title=42>
                         <#text 9 " DEF ">
                     </span>
                 </div>
             </#group>
         `, "update with nbr=42");
         assert.equal(r.changes(), `
-            CreateGroup G4 in E1 at position 1
-            UpdateProp "title"=42 in E2
+            CreateGroup #4 in #1 at position 1
+            UpdateProp "title"=42 in #2
         `, "update changes 2x");
     });
 
@@ -246,7 +241,7 @@ describe('IV runtime', () => {
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
-            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroupNode, $dg = $.deleteGroups;
+            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -281,74 +276,83 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1"/>
+            <#group 0 ref="-1">
+                <div 1 ref="1"/>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update 1
-        r.root.changes = null;
         r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
-                    <#group 2 ref="G2">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
+                    <#group 2 ref="2">
                         <#text 3 " Case 42 ">
                     </#group>
                 </div>
             </#group>
         `, "update with nbr=42");
         assert.equal(r.changes(), `
-            CreateGroup G2 in E1 at position 0
+            CreateGroup #2 in #1 at position 0
         `, "update changes 42");
 
         // update 2
-        r.root.changes = null;
         r.refresh({ nbr: 142 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
-                    <#group 4 ref="G3">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
+                    <#group 4 ref="3">
                         <#text 5 " Case 142 ">
                     </#group>
                 </div>
             </#group>
         `, "update with nbr=142");
         assert.equal(r.changes(), `
-            DeleteGroup G2 in E1 at position 0
-            CreateGroup G3 in E1 at position 0
+            DeleteGroup #2 in #1 at position 0
+            CreateGroup #3 in #1 at position 0
         `, "update changes 142");
 
-        // update 3
-        r.root.changes = null;
+        // update 3.1
         r.refresh({ nbr: 42 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
-                    <#group 2 ref="G4">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
+                    <#group 2 ref="4">
                         <#text 3 " Case 42 ">
                     </#group>
                 </div>
             </#group>
         `, "update with nbr=42 x2");
         assert.equal(r.changes(), `
-            CreateGroup G4 in E1 at position 0
-            DeleteGroup G3 in E1 at position 1
-        `, "update changes 42 x2");
+            CreateGroup #4 in #1 at position 0
+            DeleteGroup #3 in #1 at position 1
+        `, "update without changes");
+
+        r.refresh({ nbr: 42 });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <div 1 ref="1">
+                    <#group 2 ref="4">
+                        <#text 3 " Case 42 ">
+                    </#group>
+                </div>
+            </#group>
+        `, "update with nbr=42 x2");
+        assert.equal(r.changes(), `
+        `, "update without changes");
 
         // update 4
-        r.root.changes = null;
         r.refresh({ nbr: 9 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1"/>
+            <#group 0 ref="-1">
+                <div 1 ref="1"/>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            DeleteGroup G4 in E1 at position 0
+            DeleteGroup #4 in #1 at position 0
         `, "update changes");
     });
 
@@ -370,7 +374,7 @@ describe('IV runtime', () => {
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
-            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
+            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -415,50 +419,48 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <span 5 ref="E2" title=3/>
+                    <span 5 ref="2" title=3/>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update 1
-        r.root.changes = null;
         r.refresh({ nbr: 50 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G3">
+                    <#group 3 ref="3">
                         <#text 4 " ++ ">
                     </#group>
-                    <span 5 ref="E2" title=50/>
+                    <span 5 ref="2" title=50/>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "update 50");
         assert.equal(r.changes(), `
-            CreateGroup G3 in E1 at position 1
-            UpdateProp "title"=50 in E2
+            CreateGroup #3 in #1 at position 1
+            UpdateProp "title"=50 in #2
         `, "update changes 50");
 
         // update 2
-        r.root.changes = null;
         r.refresh({ nbr: 150 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G3">
+                    <#group 3 ref="3">
                         <#text 4 " ++ ">
                     </#group>
-                    <span 5 ref="E2" title=150/>
-                    <#group 6 ref="G4">
+                    <span 5 ref="2" title=150/>
+                    <#group 6 ref="4">
                         <#text 7 " ++++ ">
                     </#group>
                     <#text 8 " DEF ">
@@ -466,26 +468,25 @@ describe('IV runtime', () => {
             </#group>
         `, "update 150");
         assert.equal(r.changes(), `
-            UpdateProp "title"=150 in E2
-            CreateGroup G4 in E1 at position 3
+            UpdateProp "title"=150 in #2
+            CreateGroup #4 in #1 at position 3
         `, "update changes 150");
 
         // update 3
-        r.root.changes = null;
         r.refresh({ nbr: 9 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <span 5 ref="E2" title=9/>
+                    <span 5 ref="2" title=9/>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "update 9");
         assert.equal(r.changes(), `
-            DeleteGroup G3 in E1 at position 1
-            UpdateProp "title"=9 in E2
-            DeleteGroup G4 in E1 at position 2
+            DeleteGroup #3 in #1 at position 1
+            UpdateProp "title"=9 in #2
+            DeleteGroup #4 in #1 at position 2
         `, "update changes 9");
     });
 
@@ -507,7 +508,7 @@ describe('IV runtime', () => {
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i1 = 0, $i2 = 0;
-            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
+            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -558,125 +559,121 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ nbr: 3 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update 1
-        r.root.changes = null;
         r.refresh({ nbr: 45 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G2">
-                        <span 4 ref="E3" title=45/>
-                        <span 7 ref="E4" title=65/>
+                    <#group 3 ref="2">
+                        <span 4 ref="3" title=45/>
+                        <span 7 ref="4" title=65/>
                     </#group>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "update with nbr=45");
         assert.equal(r.changes(), `
-            CreateGroup G2 in E1 at position 1
+            CreateGroup #2 in #1 at position 1
         `, "update changes 45");
 
         // update 2
-        r.root.changes = null;
         r.refresh({ nbr: 145 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G2">
-                        <span 4 ref="E3" title=145/>
-                        <#group 5 ref="G5">
-                            <span 6 ref="E6" title=155/>
+                    <#group 3 ref="2">
+                        <span 4 ref="3" title=145/>
+                        <#group 5 ref="5">
+                            <span 6 ref="6" title=155/>
                         </#group>
-                        <span 7 ref="E4" title=165/>
+                        <span 7 ref="4" title=165/>
                     </#group>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "update 145");
         assert.equal(r.changes(), `
-            UpdateProp "title"=145 in E3
-            CreateGroup G5 in G2 at position 1
-            UpdateProp "title"=165 in E4
+            UpdateProp "title"=145 in #3
+            CreateGroup #5 in #2 at position 1
+            UpdateProp "title"=165 in #4
         `, "update changes 145");
 
         // update 2
-        r.root.changes = null;
         r.refresh({ nbr: 200 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G2">
-                        <span 4 ref="E3" title=200/>
-                        <#group 5 ref="G5">
-                            <span 6 ref="E6" title=210/>
+                    <#group 3 ref="2">
+                        <span 4 ref="3" title=200/>
+                        <#group 5 ref="5">
+                            <span 6 ref="6" title=210/>
                         </#group>
-                        <span 7 ref="E4" title=220/>
+                        <span 7 ref="4" title=220/>
                     </#group>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "update 200");
         assert.equal(r.changes(), `
-            UpdateProp "title"=200 in E3
-            UpdateProp "title"=210 in E6
-            UpdateProp "title"=220 in E4
+            UpdateProp "title"=200 in #3
+            UpdateProp "title"=210 in #6
+            UpdateProp "title"=220 in #4
         `, "update changes 200");
 
         // update 3
-        r.root.changes = null;
         r.refresh({ nbr: 50 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G2">
-                        <span 4 ref="E3" title=50/>
-                        <span 7 ref="E4" title=70/>
+                    <#group 3 ref="2">
+                        <span 4 ref="3" title=50/>
+                        <span 7 ref="4" title=70/>
                     </#group>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "update 50");
         assert.equal(r.changes(), `
-            UpdateProp "title"=50 in E3
-            DeleteGroup G5 in G2 at position 1
-            UpdateProp "title"=70 in E4
+            UpdateProp "title"=50 in #3
+            DeleteGroup #5 in #2 at position 1
+            UpdateProp "title"=70 in #4
         `, "update changes 50");
 
         // initial display with 145
         r = createTestRenderer(test, OPTIONS);
         r.refresh({ nbr: 145 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
-                <div 1 ref="E1">
+            <#group 0 ref="-1">
+                <div 1 ref="1">
                     <#text 2 " ABC ">
-                    <#group 3 ref="G2">
-                        <span 4 ref="E3" title=145/>
-                        <#group 5 ref="G4">
-                            <span 6 ref="E5" title=155/>
+                    <#group 3 ref="2">
+                        <span 4 ref="3" title=145/>
+                        <#group 5 ref="4">
+                            <span 6 ref="5" title=155/>
                         </#group>
-                        <span 7 ref="E6" title=165/>
+                        <span 7 ref="6" title=165/>
                     </#group>
                     <#text 8 " DEF ">
                 </div>
             </#group>
         `, "initial dom 150");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes 150");
     });
 
@@ -724,7 +721,7 @@ describe('IV runtime', () => {
 
         function bar(r: VdRenderer, $d: { value?: any, msg?: any }) {
             let value = $d.value || "", msg = $d.msg || "", $a0: any = r.parent, $a1, $a2, $i1;
-            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
+            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
 
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "span", 1);
@@ -753,16 +750,16 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ v: 9 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1>
                     <span 2>
                         <#text 3 " first ">
                     </span>
-                    <#group 4 ref="G1" msg="m1:9" value=10>
-                        <span 1 ref="E2" title="10 m1:9"/>
+                    <#group 4 ref="1" msg="m1:9" value=10>
+                        <span 1 ref="2" title="10 m1:9"/>
                     </#group>
-                    <#group 5 ref="G3" msg="m2:9" value=12>
-                        <span 1 ref="E4" title="12 m2:9"/>
+                    <#group 5 ref="3" msg="m2:9" value=12>
+                        <span 1 ref="4" title="12 m2:9"/>
                     </#group>
                     <span 6>
                         <#text 7 " last ">
@@ -771,24 +768,23 @@ describe('IV runtime', () => {
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update 1
-        r.root.changes = null;
         r.refresh({ v: 42 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1>
                     <span 2>
                         <#text 3 " first ">
                     </span>
-                    <#group 4 ref="G1" msg="m1:9" value=43>
-                        <span 1 ref="E2" title="43 m1:9"/>
+                    <#group 4 ref="1" msg="m1:9" value=43>
+                        <span 1 ref="2" title="43 m1:9"/>
                     </#group>
-                    <#group 5 ref="G3" msg="m2:9" value=45>
-                        <span 1 ref="E4" title="45 m2:9"/>
-                        <#group 2 ref="G5">
+                    <#group 5 ref="3" msg="m2:9" value=45>
+                        <span 1 ref="4" title="45 m2:9"/>
+                        <#group 2 ref="5">
                             <span 3>
                                 <#text 4 " Hello 45! ">
                             </span>
@@ -801,25 +797,24 @@ describe('IV runtime', () => {
             </#group>
         `, "update 42");
         assert.equal(r.changes(), `
-            UpdateProp "title"="43 m1:9" in E2
-            UpdateProp "title"="45 m2:9" in E4
-            CreateGroup G5 in G3 at position 1
+            UpdateProp "title"="43 m1:9" in #2
+            UpdateProp "title"="45 m2:9" in #4
+            CreateGroup #5 in #3 at position 1
         `, "update changes 42");
 
         // update 1
-        r.root.changes = null;
         r.refresh({ v: 9 });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1>
                     <span 2>
                         <#text 3 " first ">
                     </span>
-                    <#group 4 ref="G1" msg="m1:9" value=10>
-                        <span 1 ref="E2" title="10 m1:9"/>
+                    <#group 4 ref="1" msg="m1:9" value=10>
+                        <span 1 ref="2" title="10 m1:9"/>
                     </#group>
-                    <#group 5 ref="G3" msg="m2:9" value=12>
-                        <span 1 ref="E4" title="12 m2:9"/>
+                    <#group 5 ref="3" msg="m2:9" value=12>
+                        <span 1 ref="4" title="12 m2:9"/>
                     </#group>
                     <span 6>
                         <#text 7 " last ">
@@ -828,9 +823,9 @@ describe('IV runtime', () => {
             </#group>
         `, "update 9");
         assert.equal(r.changes(), `
-            UpdateProp "title"="10 m1:9" in E2
-            UpdateProp "title"="12 m2:9" in E4
-            DeleteGroup G5 in G3 at position 1
+            UpdateProp "title"="10 m1:9" in #2
+            UpdateProp "title"="12 m2:9" in #4
+            DeleteGroup #5 in #3 at position 1
         `, "update changes 9");
     });
 
@@ -845,7 +840,7 @@ describe('IV runtime', () => {
 
         function test(r: VdRenderer, $d: any) {
             let $a0: any = r.parent, $a1, $a2, $i0;
-            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroupNode, $dg = $.deleteGroups;
+            const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let list = $d["list"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 0);
@@ -879,59 +874,57 @@ describe('IV runtime', () => {
         // initial display
         r.refresh({ list: [{ name: "Arthur" }, { name: "Douglas" }] });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1 title="first"/>
-                <#group 2 ref="G1">
-                    <div 3 ref="E2" title="Hello Arthur"/>
+                <#group 2 ref="1">
+                    <div 3 ref="2" title="Hello Arthur"/>
                 </#group>
-                <#group 2 ref="G3">
-                    <div 3 ref="E4" title="Hello Douglas"/>
+                <#group 2 ref="3">
+                    <div 3 ref="4" title="Hello Douglas"/>
                 </#group>
-                <div 4 ref="E5" title=2/>
+                <div 4 ref="5" title=2/>
             </#group>
         `, "initial dom");
         assert.equal(r.changes(), `
-            CreateGroup ROOT
+            CreateGroup #-1
         `, "update changes");
 
         // update 1 
-        r.root.changes = null;
         r.refresh({ list: [{ name: "Arthur" }, { name: "Slartibartfast" }, { name: "Douglas" }] });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1 title="first"/>
-                <#group 2 ref="G1">
-                    <div 3 ref="E2" title="Hello Arthur"/>
+                <#group 2 ref="1">
+                    <div 3 ref="2" title="Hello Arthur"/>
                 </#group>
-                <#group 2 ref="G3">
-                    <div 3 ref="E4" title="Hello Slartibartfast"/>
+                <#group 2 ref="3">
+                    <div 3 ref="4" title="Hello Slartibartfast"/>
                 </#group>
-                <#group 2 ref="G6">
-                    <div 3 ref="E7" title="Hello Douglas"/>
+                <#group 2 ref="6">
+                    <div 3 ref="7" title="Hello Douglas"/>
                 </#group>
-                <div 4 ref="E5" title=3/>
+                <div 4 ref="5" title=3/>
             </#group>
         `, "update 3 items");
         assert.equal(r.changes(), `
-            UpdateProp "title"="Hello Slartibartfast" in E4
-            CreateGroup G6 in ROOT at position 3
-            UpdateProp "title"=3 in E5
+            UpdateProp "title"="Hello Slartibartfast" in #4
+            CreateGroup #6 in #-1 at position 3
+            UpdateProp "title"=3 in #5
         `, "update changes 3 items");
 
         // update 2
-        r.root.changes = null;
         r.refresh({ list: [] });
         assert.equal(r.vdom(), `
-            <#group 0 ref="ROOT">
+            <#group 0 ref="-1">
                 <div 1 title="first"/>
-                <div 4 ref="E5" title=0/>
+                <div 4 ref="5" title=0/>
             </#group>
         `, "empty list");
         assert.equal(r.changes(), `
-            DeleteGroup G1 in ROOT at position 1
-            DeleteGroup G3 in ROOT at position 1
-            DeleteGroup G6 in ROOT at position 1
-            UpdateProp "title"=0 in E5
+            DeleteGroup #1 in #-1 at position 1
+            DeleteGroup #3 in #-1 at position 1
+            DeleteGroup #6 in #-1 at position 1
+            UpdateProp "title"=0 in #5
         `, "update changes empty list");
     });
 });

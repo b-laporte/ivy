@@ -17,14 +17,19 @@ export interface VdRuntime {
      * Create a VdTextNode node and append it to the parent children list
      * Used in creation mode only
      */
-    createTxtNode: (parent: VdContainer, index: number, value: string) => VdTextNode;
+    createTxtNode: (parent: VdContainer, index: number, value: string) => void;
+
+    /**
+     * Create a dynamic text node and append it to the parent children list
+     */
+    dynTxtNode: (parent: VdContainer, index: number, value: string) => void;
 
     /**
      * Check that a group with the right index exists in the parent children at childPosition and create it if not
      * Used in creation and update mode
      * @return the group note
      */
-    checkGroupNode: (childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number) => VdGroupNode;
+    checkGroup: (childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number) => VdGroupNode;
 
     /**
      * Delete group nodes in the parent children list at childPosition until group index becomes greater or equal to the targetIndex
@@ -38,6 +43,12 @@ export interface VdRuntime {
      * Used in update mode only
      */
     updateProp: (name:string, value:any, element: VdElementWithProps, changeGroup: VdGroupNode) => void;
+
+    /**
+     * Update a text node with a new value
+     * Used in update mode only
+     */
+    updateText: (value:string, textNode: VdTextNode, changeGroup: VdGroupNode) => void;
 
     /**
      * Update a component argument property
@@ -71,7 +82,8 @@ export const enum VdNodeKind {
 export interface VdNode {
     kind: VdNodeKind;
     index: number;              // integer identifying the node type in the node template
-    ref?: string;               // non-static nodes may have a unique ref to be easily updated by their renderer   
+    ref: number;               // non-static nodes may have a unique ref to be easily updated by their renderer   
+    domNode: any;
 }
 
 export interface VdContainer extends VdNode {
@@ -83,6 +95,7 @@ export interface VdGroupNode extends VdContainer {
     kind: VdNodeKind.Group;
     cm: 0 | 1;                               // creation mode
     changes: VdChangeInstruction[] | null;   // list of change instructions
+    parent: VdContainer | null;
 }
 
 export interface VdCptNode extends VdGroupNode {
@@ -106,9 +119,8 @@ export const enum VdChangeKind {
     Unknown = 0,
     CreateGroup = 1,
     DeleteGroup = 2,
-    ReplaceGroup = 3,
-    UpdateProp = 4,
-    UpdateText = 5
+    UpdateProp = 3,
+    UpdateText = 4
 };
 
 export interface VdChangeInstruction {
@@ -122,11 +134,18 @@ export interface VdUpdateProp extends VdChangeInstruction {
     node: VdElementNode;
 }
 
+export interface VdUpdateText extends VdChangeInstruction {
+    kind: VdChangeKind.UpdateText;
+    value: string;
+    node: VdTextNode;
+}
+
 export interface VdCreateGroup extends VdChangeInstruction {
     kind: VdChangeKind.CreateGroup;
     node: VdGroupNode;
     parent: VdContainer | null;
-    position: number
+    position: number;
+    nextSibling: VdTextNode | VdElementNode | null;
 }
 
 export interface VdDeleteGroup extends VdChangeInstruction {

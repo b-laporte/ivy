@@ -167,8 +167,8 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $i0, $i1;
-                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1, $i2;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $dg = $.deleteGroups, $up = $.updateProp;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -180,6 +180,7 @@ describe('Iv compiler', () => {
                 if (nbr===42) {
                     $a2 = $cg($i1, $a1, $a0, $a0, 3);
                     $i1++;
+                    $i2 = 0;
                     if ($a2.cm) {
                         $a3 = $el($a2, 4, "span", 0);
                         $tx($a3, 5, " Hello ");
@@ -218,8 +219,8 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $i0, $i1;
-                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode;
+                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1, $i2;
+                const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $tx = $.createTxtNode, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -230,6 +231,7 @@ describe('Iv compiler', () => {
                 if (nbr===42) {
                     $a2 = $cg($i1, $a1, $a0, $a0, 2);
                     $i1++;
+                    $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 3, " Case 42 ");
                         $a2.cm = 0;
@@ -239,6 +241,7 @@ describe('Iv compiler', () => {
                     $dg($i1, $a1, $a0, 4);
                     $a2 = $cg($i1, $a1, $a0, $a0, 4);
                     $i1++;
+                    $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 5, " Case 142 ");
                         $a2.cm = 0;
@@ -274,8 +277,8 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0, $i1;
-                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1, $i2;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $dg = $.deleteGroups, $up = $.updateProp;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -287,6 +290,7 @@ describe('Iv compiler', () => {
                 if (nbr>42) {
                     $a2 = $cg($i1, $a1, $a0, $a0, 3);
                     $i1++;
+                    $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 4, " ++ ");
                         $a2.cm = 0;
@@ -304,6 +308,7 @@ describe('Iv compiler', () => {
                 if (nbr>142) {
                     $a2 = $cg($i1, $a1, $a0, $a0, 6);
                     $i1++;
+                    $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 7, " ++++ ");
                         $a2.cm = 0;
@@ -334,8 +339,8 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0;
-                const $ = r.rt, $el = $.createEltNode, $up = $.updateProp;
+                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1;
+                const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $up = $.updateProp, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
@@ -345,6 +350,7 @@ describe('Iv compiler', () => {
                 for (let i=0;list.length>i;i++) {
                     $a1 = $cg($i0, $a0, $a0, $a0, 2);
                     $i0++;
+                    $i1 = 0;
                     if ($a1.cm) {
                         $a2 = $el($a1, 3, "div", 1);
                         $a2.props = { "title": ("Hello " + list[i].name) };
@@ -387,8 +393,8 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0, $i1, $i2;
-                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $up = $.updateProp, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -400,6 +406,7 @@ describe('Iv compiler', () => {
                 if (nbr>42) {
                     $a2 = $cg($i1, $a1, $a0, $a0, 3);
                     $i1++;
+                    $i2 = 0;
                     if ($a2.cm) {
                         $a3 = $el($a2, 4, "span", 1);
                         $a3.props = { "title": nbr };
@@ -411,6 +418,7 @@ describe('Iv compiler', () => {
                     if (nbr>142) {
                         $a3 = $cg($i2, $a2, $a0, $a2, 5);
                         $i2++;
+                        $i3 = 0;
                         if ($a3.cm) {
                             $a4 = $el($a3, 6, "span", 1);
                             $a4.props = { "title": nbr+10 };
@@ -458,8 +466,8 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0;
-                const $ = r.rt, $tx = $.createTxtNode, $el = $.createEltNode, $up = $.updateProp;
+                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1;
+                const $ = r.rt, $tx = $.createTxtNode, $cg = $.checkGroup, $el = $.createEltNode, $dg = $.deleteGroups, $up = $.updateProp;
                 let nbr = $d["nbr"];
                 let x=123;
                 let y="abc";
@@ -470,6 +478,7 @@ describe('Iv compiler', () => {
                 if (nbr===42) {
                     $a1 = $cg($i0, $a0, $a0, $a0, 2);
                     $i0++;
+                    $i1 = 0;
                     nbr += 3;
                     if ($a1.cm) {
                         $a2 = $el($a1, 3, "span", 0);
@@ -492,13 +501,17 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
-    it('should compile sub-function calls', () => {
+    it('should compile sub-function calls and comments', () => {
         let src = `
             function hello(r:VdRenderer, nbr) {
                 \` <div>
                         <span> first </span>
+                        // first call
                         <c:bar [value]=v+1 msg=("m1:"+v)/>
                         <c:bar [value]=v+3 msg=("m2:"+v)/>
+                        /*
+                         * Multi-line comment
+                         */
                         <span> last </span>
                    </div> \`
             }
@@ -530,6 +543,155 @@ describe('Iv compiler', () => {
                 }
             }
         `, "output generation");
+    });
+
+    it('should compile dynamic text nodes', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \` <div>
+                        "nbr {{nbr+1}}!"
+                        !!!
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        // todo dynamic part + concatenation of tx and dt instructions
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2;
+                const $ = r.rt, $t0 = " \\"nbr ", $t1 = "!\\"\\n                        !!! ", $el = $.createEltNode, $dt = $.dynTxtNode, $ut = $.updateText;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $dt($a1, 2, $t0 + (nbr+1) + $t1);
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $ut($t0 + (nbr+1) + $t1, $a2, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile functions with main js blocks', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        // function foo (r: VdRenderer, visible, nbr:number) {
+        //     `% visibile = visible || true;
+        //      % if (visible) {
+        //         <span>{{nbr}}</span>
+        //      % }`
+        // }
+
+        let src = `
+            function hello(r:VdRenderer, visible, nbr) {
+                \` % visibile = visible || true;
+                   % if (visible) {
+                      <span>{{nbr}}</span>
+                   % } \`
+            }
+        `;
+        let cc = compile(src, "test11");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1;
+                const $ = r.rt, $cg = $.checkGroup, $el = $.createEltNode, $dt = $.dynTxtNode, $ut = $.updateText, $dg = $.deleteGroups;
+                let visible = $d["visible"], nbr = $d["nbr"];
+                visibile = visible || true;
+                if (visible) {
+                    $a1 = $cg($i0, $a0, $a0, $a0, 1);
+                    $i0++;
+                    $i1 = 0;
+                    if ($a1.cm) {
+                        $a2 = $el($a1, 2, "span", 0);
+                        $dt($a2, 3, "" + (nbr));
+                        $a1.cm = 0;
+                    } else {
+                        $a2 = $a1.children[0];
+                        $a3 = $a2.children[0];
+                        $ut("" + (nbr), $a3, $a0);
+                    }
+                }
+                if ($a0.cm) {
+                    $a0.cm = 0;
+                } else {
+                    $dg($i0, $a0, $a0, 4);
+                }
+            }
+        `, "output generation");
+
+    });
+
+    it('should compile functions with 2 nested full js blocks', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        // function foo (r: VdRenderer, visible, nbr:number) {
+        //     `% visibile = visible || true;
+        //      % if (visible) {
+        //         <span>{{nbr}}</span>
+        //      % }`
+        // }
+
+        let src = `
+            function hello(r:VdRenderer, visible, nbr) {
+                \` <div>
+                   % if (visible) {
+                       % if (nbr === 42) {
+                           <span>{{nbr}}</span>
+                       % }
+                   % } 
+                   </div>\`
+            }
+        `;
+        let cc = compile(src, "test11");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $a5, $i0 = 0, $i1, $i2, $i3;
+                const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $dt = $.dynTxtNode, $ut = $.updateText, $dg = $.deleteGroups;
+                let visible = $d["visible"], nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 1);
+                } else {
+                    $a1 = $a0.children[0];
+                }
+                $i0 = 1; $i1 = 0;
+                if (visible) {
+                    $a2 = $cg($i1, $a1, $a0, $a0, 2);
+                    $i1++;
+                    $i2 = 0;
+                    if (nbr === 42) {
+                        $a3 = $cg($i2, $a2, $a0, $a2, 3);
+                        $i2++;
+                        $i3 = 0;
+                        if ($a3.cm) {
+                            $a4 = $el($a3, 4, "span", 0);
+                            $dt($a4, 5, "" + (nbr));
+                            $a3.cm = 0;
+                        } else {
+                            $a4 = $a3.children[0];
+                            $a5 = $a4.children[0];
+                            $ut("" + (nbr), $a5, $a0);
+                        }
+                    }
+                    if ($a2.cm) {
+                        $a2.cm = 0;
+                    } else {
+                        $dg($i2, $a2, $a0, 6);
+                    }
+                }
+                if ($a0.cm) {
+                    $a0.cm = 0;
+                } else {
+                    $dg($i1, $a1, $a0, 6);
+                }
+            }
+        `, "output generation");
+
     });
 
 });

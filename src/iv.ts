@@ -1,7 +1,7 @@
 
 import {
     VdNodeKind, VdRenderer, VdRuntime, VdFunction, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
@@ -18,12 +18,11 @@ export const ivRuntime: IvRuntime = {
             kind: VdNodeKind.Element,
             index: index,
             name: name,
-            children: []
+            ref: needRef ? ++ivRuntime.refCount : 0,
+            children: [],
+            domNode: null
         };
-        if (needRef) {
-            nd.ref = "E" + (++ivRuntime.refCount);
-        }
-        parent.children.push(nd);
+        parent.children[parent.children.length] = nd;
         return nd;
     },
 
@@ -35,10 +34,12 @@ export const ivRuntime: IvRuntime = {
             vdFunction: vdFunction,
             props: props,
             changes: null,
-            ref: needRef ? "G" + (++ivRuntime.refCount) : undefined,
-            children: []
+            ref: needRef ? ++ivRuntime.refCount : 0,
+            children: [],
+            domNode: null,
+            parent: parent
         }, p = r.parent;
-        parent.children.push(g);
+        parent.children[parent.children.length] = g;
         r.parent = g;
         // call the sub-function with the supplied parameters
         vdFunction(r, props);
@@ -46,7 +47,7 @@ export const ivRuntime: IvRuntime = {
         return g;
     },
 
-    checkGroupNode(childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number): VdGroupNode {
+    checkGroup(childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number): VdGroupNode {
         let nd: VdNode | undefined = parent.children[childPosition];
         if (nd && nd.index === index) {
             return <VdGroupNode>nd;
@@ -58,16 +59,21 @@ export const ivRuntime: IvRuntime = {
                 cm: 1,
                 props: {},
                 changes: null,
-                ref: "G" + (++ivRuntime.refCount),
-                children: []
+                ref: ++ivRuntime.refCount,
+                children: [],
+                domNode: null,
+                parent: parent
             };
-            parent.children.splice(childPosition, 0, g);
-            if (!parentGroup.cm) {
+            if (parentGroup.cm) {
+                parent.children[parent.children.length] = g;
+            } else {
+                parent.children.splice(childPosition, 0, g);
                 let chge: VdCreateGroup = {
                     kind: VdChangeKind.CreateGroup,
                     node: g,
                     parent: parent,
-                    position: childPosition
+                    position: childPosition,
+                    nextSibling: findNextSibling(parent, childPosition)
                 }
                 addChangeInstruction(changeGroup, chge);
             }
@@ -91,14 +97,26 @@ export const ivRuntime: IvRuntime = {
         }
     },
 
-    createTxtNode(parent: VdContainer, index: number, value: string): VdTextNode {
+    createTxtNode(parent: VdContainer, index: number, value: string): void {
         let nd: VdTextNode = {
             kind: VdNodeKind.Text,
             index: index,
-            value: value
+            value: value,
+            ref: 0,
+            domNode: null
         };
-        parent.children.push(nd);
-        return nd;
+        parent.children[parent.children.length] = nd;
+    },
+
+    dynTxtNode(parent: VdContainer, index: number, value: string): void {
+        let nd: VdTextNode = {
+            kind: VdNodeKind.Text,
+            index: index,
+            value: value,
+            ref: ++ivRuntime.refCount,
+            domNode: null
+        };
+        parent.children[parent.children.length] = nd;
     },
 
     updateProp(name: string, value: any, element: VdElementWithProps, changeGroup: VdGroupNode): void {
@@ -110,6 +128,17 @@ export const ivRuntime: IvRuntime = {
                 name: name,
                 value: value,
                 node: element
+            });
+        }
+    },
+
+    updateText(value: string, textNode: VdTextNode, changeGroup: VdGroupNode): void {
+        if (textNode.value !== value) {
+            textNode.value = value;
+            addChangeInstruction(changeGroup, <VdUpdateText>{
+                kind: VdChangeKind.UpdateText,
+                value: value,
+                node: textNode
             });
         }
     },
@@ -140,5 +169,40 @@ function addChangeInstruction(changeGroup: VdGroupNode, instruction: VdChangeIns
         changeGroup.changes.splice(changeGroup.changes.length, 0, instruction);
     } else {
         changeGroup.changes = [instruction];
+    }
+}
+
+function findNextSibling(parent: VdContainer, nodePosition: number, childrenOnly = false): VdTextNode | VdElementNode | null {
+    let ch = parent.children, nd;
+    if (nodePosition + 1 < ch.length) {
+        // there is a next element in the children list
+        nd = ch[nodePosition + 1];
+        if (nd.kind === VdNodeKind.Element) {
+            return <VdElementNode>nd;
+        } else if (nd.kind === VdNodeKind.Text) {
+            return <VdTextNode>nd;
+        } else if (nd.kind === VdNodeKind.Group) {
+            return findNextSibling(nd, -1, true);
+        } else {
+            // data node
+            return findNextSibling(parent, nodePosition + 1);
+        }
+    } else {
+        // there is no more element in this list
+        if (parent.kind === VdNodeKind.Element) {
+            return null;
+        } else if (parent.kind === VdNodeKind.Group) {
+            // parent is a group, let's look in the grand parent
+            let p = (<VdGroupNode>parent).parent;
+            if (p && p !== parent) {
+                // find parent position
+                for (let i = 0; p.children.length > i; i++) {
+                    if (p.children[i] === parent) {
+                        return findNextSibling(p, i);
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

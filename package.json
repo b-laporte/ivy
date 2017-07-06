@@ -9,19 +9,22 @@
   "module": "dist/rollup-plugin-iv.es.js",
   "author": "Bertrand Laporte",
   "scripts": {
+    "clean": "rm -rf dist/",
     "build-compiler": "rollup --config rollup.compiler.config.js",
-    "build": "rollup -c rollup.compiler.config.js && rollup -c rollup.test.config.js",
-    "test": "rollup -c rollup.compiler.config.js && rollup -c rollup.test.config.js && mocha dist/test.js",
-    "mocha": "mocha dist/test.js",
-    "dev": "rollup -c -w",
-    "build-flex": "cpx 'src/samples/flex/**/*.{html,js,css,svg}' dist/flex && rollup --config rollup.flex.config.js"
+    "build-test": "rollup -c rollup.test.config.js",
+    "build": "yarn run clean && yarn run build-compiler && yarn run build-test",
+    "mocha": "mocha dist/test.js --reporter dot",
+    "test": "yarn run build && yarn run mocha",
+    "dev": "yarn run clean && concurrently -r \"rollup -w -c rollup.compiler.config.js\" \"chokidar --silent 'src/test/*' 'dist/rollup-plugin-iv.es.js' -c 'echo Building and running tests... && yarn run build-test'\" \"chokidar --silent 'dist/test.js' -c 'yarn run mocha'\"",
+    "build-flex": "yarn run clean && yarn run build-compiler && cpx 'src/samples/flex/**/*.{html,js,css,svg}' dist/flex && rollup --config rollup.flex.config.js",
+    "start": "serve dist/flex"
   },
   "license": "UNLICENSED",
   "private": true,
   "bugs": {},
   "homepage": "",
   "devDependencies": {
-    "rollup": "^0.42.0",
+    "rollup": "^0.43.0",
     "rollup-watch": "^4.0.0",
     "rollup-plugin-typescript2": "^0.4.3",
     "rollup-plugin-node-resolve": "^3.0.0",
@@ -32,8 +35,11 @@
     "typescript": ">=2.3.4",
     "mocha": "^3.4.2",
     "cpx": "1.5.0",
-    "@types/node": "^7.0.31",
-    "@types/mocha": "^2.2.41"
+    "@types/node": "^8.0.7",
+    "@types/mocha": "^2.2.41",
+    "chokidar-cli": "^1.2.0",
+    "concurrently": "^3.5.0",
+    "serve": "^6.0.1"
   },
   "dependencies": {
     "typescript": ">=2.3.4"

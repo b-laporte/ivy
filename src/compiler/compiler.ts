@@ -45,10 +45,23 @@ function checkNode(node: ts.Node, cc: CompilationCtxt) {
 
                         let tfn = addTemplateFunction(cc);
                         // extract indent and template string
-                        let str = ch[0].getText(), im = expr.getFullText().match(/(\s*\n)*(\s*)\`/);
-                        if (im) {
-                            tfn.rootIndent = im[2];
+                        let str = ch[0].getText(), sm = str.match(/`\s*\n(\s+)/);
+
+                        if (sm) {
+                            // the template string starts with a CR and we use the indent that follows
+                            tfn.rootIndent = sm[1];
+                            let em = str.match(/(\s*)\`\s*$/);
+                            if (em) {
+                                tfn.lastIndent = em[1];
+                            }
+                        } else {
+                            // use the indent of template string
+                            let im = expr.getFullText().match(/(\s*\n)*(\s*)\`/);
+                            if (im) {
+                                tfn.rootIndent = im[2];
+                            }
                         }
+
                         // extract function declaration start before the parameter parens
                         let fndText = fnd.getFullText(), ds = fndText.match(/^[^\(]*/);
                         if (ds && ds.length) {
@@ -60,7 +73,7 @@ function checkNode(node: ts.Node, cc: CompilationCtxt) {
                             tfn.declarationEnd = de[0]
                         }
 
-                        tfn.tplString = str.slice(1, - 1);
+                        tfn.tplString = str.slice(1, - 1).replace(/(^---)|(---$)/g, "");
                         tfn.pos = fnd.pos; // ch[0].pos;
                         tfn.end = fnd.end; // ch[0].end;
                         tfn.rendererNm = p0.name.getText();
@@ -83,6 +96,7 @@ const CARRIAGE_RETURN = "\n";
 interface TplFunction {
     tplString: string;   // template string content
     rootIndent: string;  // main indentation = string of empty spaces to use at the beginning of each line
+    lastIndent: string;  // indent to use for the function end
     declarationStart: string; // beginning of the function declaration up to the first parameter parens
     declarationEnd: string;   // end of the function declaration (i.e. everything after the last `)
     pos: number;         // original position in the TS file
@@ -112,7 +126,7 @@ class CompilationCtxt {
             chunks.push(this.src.substring(pos, fn.pos));
             chunks.push(fn.declarationStart);
             param = (fn.params && fn.params.length) ? ", $d: any" : "";
-            chunks.push(`(${fn.rendererNm}: ${VD_RENDERER_TYPE}${param}) {`);
+            chunks.push(`(${fn.rendererNm}: ${VD_RENDERER_TYPE}${param}) \{`);
             chunks.push(CARRIAGE_RETURN);
             if (fn.fnHead) {
                 chunks.push(fn.fnHead);
@@ -123,6 +137,7 @@ class CompilationCtxt {
             if (fn.fnBody) {
                 chunks.push(fn.fnBody);
             }
+            chunks.push(fn.lastIndent);
             chunks.push(fn.declarationEnd);
             pos = fn.end;
         }
@@ -138,6 +153,7 @@ function addTemplateFunction(cc: CompilationCtxt): TplFunction {
     let tf = {
         tplString: "",
         rootIndent: "",
+        lastIndent: "",
         pos: -1,
         end: -1,
         fnHead: "",
@@ -180,7 +196,8 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
                 params: tf.params,
                 constAliases: {},
                 maxShiftIdx: -1,
-                maxTextIdx: -1
+                maxTextIdx: -1,
+                maxFuncIdx: -1
             },
             baseIndent: tf.rootIndent,
             startStatement: "",
@@ -210,6 +227,7 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
         params = fc.headDeclarations.params,
         aliases = fc.headDeclarations.constAliases,
         maxShiftIdx = fc.headDeclarations.maxShiftIdx,
+        maxFuncIdx = fc.headDeclarations.maxFuncIdx,
         elRefs: string[] = [],
         idxRefs: string[] = [];
 
@@ -224,6 +242,9 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
         } else {
             idxRefs.push(", $i" + i);
         }
+    }
+    for (let i = 0; maxFuncIdx >= i; i++) {
+        idxRefs.push(", $f" + i);
     }
     let fh: string[] = [`${tf.rootIndent}let $a0: any = ${tf.rendererNm}.parent${elRefs.join("")}${idxRefs.join("")};`];
 
@@ -525,12 +546,28 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
         // e.g. $a2.props = { "class": "one", "title": "blah", "foo": nbr+4 };
         let att = nd.firstAttribute, propsBuf: string[] = [], upBuf: string[] = [];
         while (att) {
+            if (att.nature === NacAttributeNature.DEFERRED_EXPRESSION) {
+                let params = att.parameters ? att.parameters.join(",") : "",
+                    hd = nb.functionCtxt.headDeclarations,
+                    idx = ++hd.maxFuncIdx,
+                    identifier = "$f" + idx;
+
+                nb.initLines.push(<ClFuncDef>{
+                    kind: CodeLineKind.FuncDef,
+                    index: idx,
+                    expr: ["function(", params, ") {", att.value, "}"].join("")
+                });
+
+                att.value = identifier;
+                upBuf.push(att);
+            }
             propsBuf.push(att.name);
             propsBuf.push(att.value);
             if (att.nature === NacAttributeNature.BOUND1WAY || att.nature === NacAttributeNature.BOUND2WAYS) {
                 upBuf.push(att);
                 cl.needRef = true;
             }
+
             att = att.nextSibling;
         }
         if (propsBuf.length) {
@@ -698,7 +735,7 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                 }
             }
             if (b.cmLines.length || isLast) {
-                lines.push(`${b.baseIndent}if ($a${b.parentGroupIdx}.cm) {`);
+                lines.push(`${b.baseIndent}if ($a${b.parentGroupIdx}.cm) \{`);
                 for (let cln of b.cmLines) {
                     lines.push(stringifyCodeLine(cln, b.baseIndent + "    ", fc));
                 }
@@ -707,7 +744,7 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                     lines.push(`${b.baseIndent}    $a${b.parentGroupIdx}.cm = 0;`);
                 }
                 if (b.umLines.length) {
-                    lines.push(`${b.baseIndent}} else {`);
+                    lines.push(`${b.baseIndent}} else \{`);
                     for (let uln of b.umLines) {
                         lines.push(stringifyCodeLine(uln, b.baseIndent + "    ", fc));
                     }
@@ -732,8 +769,6 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                     if (idxNext <= fc.headDeclarations.maxShiftIdx) {
                         checkMaxShiftIndex(fc, idxNext);
                     }
-                    // shiftExprs.push(`$i${b.shifts.length} = 0;`); // can be optimised, may not be necessary in certain cases
-                    // checkMaxShiftIndex(fc, b.shifts.length);
                 } else {
                     checkMaxShiftIndex(fc, b.shifts.length - 1);
                 }
@@ -812,7 +847,7 @@ interface JsBlock extends CodeBlock {
 
 interface FunctionBlock extends JsBlock {
     kind: CodeBlockKind.FunctionBlock;
-    headDeclarations: { constAliases: {}; maxShiftIdx: number; maxTextIdx: number; params: { name: string; type: string }[]; };
+    headDeclarations: { constAliases: {}; maxShiftIdx: number; maxTextIdx: number; maxFuncIdx: number; params: { name: string; type: string }[]; };
     maxLevel: number;
     rendererNm: string;         // renderer identifier (e.g. "r")
     nextNodeIdx: () => number;  // create a new incremental node index
@@ -844,7 +879,8 @@ const enum CodeLineKind {
     DeleteGroups = 11,
     IncrementIdx = 12,
     ResetIdx = 13,
-    JsExpression = 14
+    JsExpression = 14,
+    FuncDef = 15
 }
 
 interface ClCreateNode extends CodeLine {
@@ -965,6 +1001,13 @@ interface ClRefreshCpt extends CodeLine {
     changeGroupLevel: number;   // 0 in this example
 }
 
+interface ClFuncDef extends CodeLine {
+    // e.g. $f2=function() {doSomething()};
+    kind: CodeLineKind.FuncDef;
+    index: number;              // 2 in this example
+    expr: string;                // function() {doSomething()} in this example
+}
+
 function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): string {
     switch (cl.kind) {
         case CodeLineKind.CreateElement:
@@ -1061,6 +1104,10 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let jse = cl as ClJsExpression;
             // e.g. let x = 123;
             return `${indent}${jse.expr}`;
+        case CodeLineKind.FuncDef:
+            let fd = cl as ClFuncDef;
+            // e.g. $f2=function() {doSomething()};
+            return `${indent}$f${fd.index}=${fd.expr};`;
     }
     return "// invalid code kind: " + cl.kind;
 }

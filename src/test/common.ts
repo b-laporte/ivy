@@ -11,20 +11,19 @@ const CR = "\n";
 export const assert = {
     equal(actual: any, expected: any, message?: string): void {
         if (actual !== expected) {
-            let line = 1, col = 1, char: string = "";
+            let line = 1, col = 1, char1: string = "", char2: string = "";
 
             if (typeof actual === "string" && typeof expected === "string") {
                 let keepGoing = true, idx = 0, ln1 = actual.length, ln2 = expected.length;
                 while (keepGoing) {
                     if (idx < ln1 && idx < ln2) {
-                        char = actual.charAt(idx);
-                        if (char !== expected.charAt(idx)) {
+                        char1 = actual.charAt(idx);
+                        if (char1 !== expected.charAt(idx)) {
                             keepGoing = false;
-                            if (char === CR) {
-                                char = "\\n";
-                            }
+                            char1 = encodeChar(char1);
+                            char2 = encodeChar(expected.charAt(idx));
                             break;
-                        } else if (char === CR) {
+                        } else if (char1 === CR) {
                             line++;
                             col = 0;
                         }
@@ -32,14 +31,23 @@ export const assert = {
                         col++;
                     } else {
                         keepGoing = false;
-                        char = "EOF";
+                        if (idx === ln1) {
+                            char1 = "EOF";
+                        } else {
+                            char1 = encodeChar(actual.charAt(idx));
+                        }
+                        if (idx === ln2) {
+                            char2 = "EOF";
+                        } else {
+                            char2 = encodeChar(expected.charAt(idx));
+                        }
                     }
                 }
             }
 
             let m = message || "no description";
 
-            console.log(`Assertion failed [${message}]: different character [${char}] at line ${line} / col ${col}:`);
+            console.log(`\nAssertion failed [${message}] - Different characters at line ${line} / col ${col}: [${char1}] vs [${char2}]`);
             console.log("Actual:");
             console.log(actual);
             console.log("Expected:");
@@ -49,6 +57,10 @@ export const assert = {
             throw new Error(`Assertion failed ${message}`);
         }
     }
+}
+
+function encodeChar(ch) {
+    return (ch === CR) ? "\\n" : ch;
 }
 
 export function expect(actual: any): ExpectContext {
@@ -422,7 +434,9 @@ class ElementNode {
 
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes") {
-                if (k === "className") {
+                if (typeof this[k] === "function") {
+                    atts.push(`on${k}=[function]`);
+                } else if (k === "className") {
                     if (this["className"]) {
                         atts.push(`class="${this[k]}"`);
                     }
@@ -451,7 +465,11 @@ class ElementNode {
             return lines.join(CR);
         }
     }
-}
+
+    addEventListener(evtName, func) {
+        this[evtName] = func;
+    }
+} 
 
 class DocFragment extends ElementNode {
     constructor() {

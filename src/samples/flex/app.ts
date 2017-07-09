@@ -1,19 +1,26 @@
 import { VdRenderer } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
-let renderer;
+let renderer, selectedItinerary = null, selectedFare = -1, showAvail = true, availData = {};
 
 window["renderFlexResults"] = function (elt, data, visible) {
     if (!renderer) {
         renderer = htmlRenderer(elt, avail);
     }
-    renderer.refresh({ data: data, visible:visible });
+    showAvail = visible;
+    availData = data;
+    refresh();
+}
+
+function refresh() {
+    renderer.refresh({ data: availData, visible: showAvail, selectedItinerary: selectedItinerary, selectedFare: selectedFare });
 }
 
 // <function #avail data selectedItinerary=null selectedFare=-1>
 function avail(r: VdRenderer, data, selectedItinerary, selectedFare, visible) {
-    `% var availability=data.availability
-     % if (visible) {
+    `---
+    % var availability=data.availability
+    % if (visible) {
         <div class="container availability">
         % for (let bound of availability.bounds) {
             <div>
@@ -38,11 +45,13 @@ function avail(r: VdRenderer, data, selectedItinerary, selectedFare, visible) {
             </div>
         % }
         </div>
-     % }`
+    % }
+     ---`
 }
 
 function fareFamilyHeaders(r: VdRenderer, fareFamilies) {
-    `<div class="fare-family-names">
+    `---
+    <div class="fare-family-names">
         % for (let fareFamily of fareFamilies) {
             <h4> {{fareFamily.name}} </h4>
         % }
@@ -52,11 +61,13 @@ function fareFamilyHeaders(r: VdRenderer, fareFamilies) {
         % for (let fareFamily of fareFamilies) {
             <div> {{fareFamily.shortDescription}} </div>
         % }
-     </div>`
+    </div>
+     ---`
 }
 
 function itineraryLine(r: VdRenderer, itinerary, selectedFare, showFareDetails: boolean, fareFamiliesList, jqFareFamilies, fareFamiliesCaveats) {
-    `<div class="itinerary">
+    `---
+    <div class="itinerary">
         <div class="itinerary-header">
             <div class="itinerary-info right-delimiter">
                 % for (let segment of itinerary.segments) {
@@ -78,8 +89,7 @@ function itineraryLine(r: VdRenderer, itinerary, selectedFare, showFareDetails: 
                 % if (fare.isMarginal) clsList += " fare-inactive";
                 % if (showFareDetails && selectedFare === index) clsList += " fare-selected";
 
-                // onclick()=toggleFareDetails(index,itinerary)
-                <div [class]=clsList style=("border-color:"+fare.color) > 
+                <div [class]=clsList style=("border-color:"+fare.color) onclick()=toggleFareDetails(index,itinerary)> 
                     % if (hasRecommendation(itinerary,fare)) {
                         % if (itinerary.isJQOnlyFlight && !fare.isMarginal) {
                             <span>
@@ -117,11 +127,13 @@ function itineraryLine(r: VdRenderer, itinerary, selectedFare, showFareDetails: 
                 [jqFareFamilies]=jqFareFamilies 
                 [fareFamiliesCaveats]=fareFamiliesCaveats />
         % }
-     </div>`
+    </div>
+     ---`
 }
 
-function flightSummary(r:VdRenderer, departureAirport, departureTime, arrivalAirport, arrivalTime, airline, flightNumber, flightDuration, nbrOfStops) {
-    `<div class="flight-summary">
+function flightSummary(r: VdRenderer, departureAirport, departureTime, arrivalAirport, arrivalTime, airline, flightNumber, flightDuration, nbrOfStops) {
+    `---
+    <div class="flight-summary">
         <header>
             <h3 class="flight-departure">
                 <span>{{departureAirport}}</span> {{departureTime}}
@@ -131,19 +143,20 @@ function flightSummary(r:VdRenderer, departureAirport, departureTime, arrivalAir
             </h3>
         </header>
         <footer>
-            // onclick()=flightDetails()
-            <div class="flight-number as-link with-icon">
+            <div class="flight-number as-link with-icon" onclick()=flightDetails()>
                 <img class="icon" src=("https://book.qantas.com.au/go/2017.3-8/airlinesicons/"+airline.code.toLowerCase()+".png") width="14" height="14"/>
                 {{airline.code.toUpperCase()}}{{flightNumber}}
             </div>
             <div class="flight-stops as-link">{{nbrOfStops}} stop(s)</div>
             <div class="flight-duration">{{flightDuration}}</div>
         </footer>
-    </div>`
+    </div>
+     ---`
 }
 
-function fareDetailGroup(r:VdRenderer, flight, selectedFare, fareFamilies, jqFareFamilies, fareFamiliesCaveats) {
-    `<div class="itinerary-details">
+function fareDetailGroup(r: VdRenderer, flight, selectedFare, fareFamilies, jqFareFamilies, fareFamiliesCaveats) {
+    `---
+    <div class="itinerary-details">
         <div class="avail-actions">
 
             <div class="action-desc">
@@ -170,16 +183,18 @@ function fareDetailGroup(r:VdRenderer, flight, selectedFare, fareFamilies, jqFar
             % let fare=fareFamilies[i];
             <c:fareDetails [fare]=fare [recommendation]=flight.listRecommendation[fare.code] [isSelected]=(selectedFare == i) />
         % }
-    </div>`
+    </div>
+     ---`
 }
 
-function fareDetails(r:VdRenderer, fare, recommendation, isSelected) {
-    `% isSelected = isSelected || false;
-     % let clsList="fare-flex fare-details";
-     % if (isSelected) clsList += " fare-selected";
-     % if (fare.isMarginal) clsList += " fare-marginal";
+function fareDetails(r: VdRenderer, fare, recommendation, isSelected) {
+    `---
+    % isSelected = isSelected || false;
+    % let clsList="fare-flex fare-details";
+    % if (isSelected) clsList += " fare-selected";
+    % if (fare.isMarginal) clsList += " fare-marginal";
 
-     <div [class]=clsList style=("border-color:"+fare.color)>
+    <div [class]=clsList style=("border-color:"+fare.color)>
         <div>{{getNoOfPoints(fare, recommendation)}}</div>
         <div>{{getStatusCredit(fare, recommendation)}}</div>
 
@@ -201,7 +216,8 @@ function fareDetails(r:VdRenderer, fare, recommendation, isSelected) {
             </div>
         % }
         <button class="btn-link full-fare"> Full fare conditions </button>
-    </div>`
+    </div>
+     ---`
 }
 
 function flightDetails() {
@@ -250,9 +266,8 @@ function getValueFromList(fare, reco, listName) {
     return '-';
 }
 
-let selectedItinerary = null, selectedFare = -1;
 function toggleFareDetails(idx, itinerary) {
-    if (selectedItinerary === itinerary && selectedFare ===idx) {
+    if (selectedItinerary === itinerary && selectedFare === idx) {
         // hide
         selectedItinerary = null;
         selectedFare = -1;
@@ -261,5 +276,5 @@ function toggleFareDetails(idx, itinerary) {
         selectedItinerary = itinerary;
         selectedFare = idx;
     }
-    //refresh();
+    refresh();
 }

@@ -46,11 +46,11 @@ describe('Iv compiler', () => {
             }
 
             class Blah {
-                render(r:VdRenderer) {
-                    \` hello 
+                render(r:VdRenderer) {\`
+                    hello 
                     brave 
-                    new world \`
-                }
+                    new world
+                \`}
             }
         `;
         let cc = compile(src, "test2"); // return the new source
@@ -692,6 +692,69 @@ describe('Iv compiler', () => {
             }
         `, "output generation");
 
+    });
+
+    it('should compile functions with function props', () => {
+        let src = `
+            function hello(r:VdRenderer, foo:string, bar) {\`
+                <div class="hello">
+                    <span class="one" title="blah" onclick()=doSomething(foo,bar+2)> Hello </span>
+                    % if (bar === 42) {
+                        <span onmouseover(evt)=console.log(evt.srcElement)> hello </span>
+                    % }
+                    <span class="two" [baz]=nbr+3 feez()=blah(123)> World </span>
+                </div> 
+            \`}
+        `;
+        let cc = compile(src, "test15");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $f0, $f1, $f2;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
+                let foo = $d["foo"], bar = $d["bar"];
+                $f0=function() {doSomething(foo,bar+2)};
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 1);
+                    $a1.props = { "class": "hello" };
+                    $a2 = $el($a1, 2, "span", 0);
+                    $a2.props = { "class": "one", "title": "blah", "onclick": $f0 };
+                    $tx($a2, 3, " Hello ");
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $up("onclick", $f0, $a2, $a0);
+                }
+                $i0 = 1; $i1 = 1;
+                if (bar === 42) {
+                    $a2 = $cg($i1, $a1, $a0, $a0, 4);
+                    $i1++;
+                    $i2 = 0;
+                    $f1=function(evt) {console.log(evt.srcElement)};
+                    if ($a2.cm) {
+                        $a3 = $el($a2, 5, "span", 0);
+                        $a3.props = { "onmouseover": $f1 };
+                        $tx($a3, 6, " hello ");
+                        $a2.cm = 0;
+                    } else {
+                        $a3 = $a2.children[0];
+                        $up("onmouseover", $f1, $a3, $a0);
+                    }
+                }
+                $f2=function() {blah(123)};
+                if ($a0.cm) {
+                    $a2 = $el($a1, 7, "span", 1);
+                    $a2.props = { "class": "two", "baz": nbr+3, "feez": $f2 };
+                    $tx($a2, 8, " World ");
+                    $a0.cm = 0;
+                } else {
+                    $dg($i1, $a1, $a0, 7);
+                    $a2 = $a1.children[$i1];
+                    $up("baz", nbr+3, $a2, $a0);
+                    $up("feez", $f2, $a2, $a0);
+                } 
+            }
+        `, "output generation");
     });
 
 });

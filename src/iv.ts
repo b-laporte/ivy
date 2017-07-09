@@ -123,12 +123,16 @@ export const ivRuntime: IvRuntime = {
         if (element.props[name] !== value) {
             // value has changed
             element.props[name] = value;
-            addChangeInstruction(changeGroup, <VdUpdateProp>{
-                kind: VdChangeKind.UpdateProp,
-                name: name,
-                value: value,
-                node: element
-            });
+            if (!value.call) {
+                // we don't create change instructions for function values as the event handler will use
+                // the function stored in the node property at the time of the event - so no new handler needs to be create
+                addChangeInstruction(changeGroup, <VdUpdateProp>{
+                    kind: VdChangeKind.UpdateProp,
+                    name: name,
+                    value: value,
+                    node: element
+                });
+            }
         }
     },
 

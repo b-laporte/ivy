@@ -16,6 +16,7 @@ interface HtmlDoc {
     createElement(name: string): any;
 }
 
+const RX_EVT_HANDLER = /^on/;
 
 class Renderer implements HtmlRenderer {
     rt = ivRuntime;
@@ -118,7 +119,7 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
                 if (prop === "class" || prop === "className") {
                     nd.domNode.className = up.value;
                 } else {
-                    nd.domNode.setAttribute(prop, up.value);
+                    nd.domNode[prop] = up.value;
                 }
             }
         } else if (chge.kind === VdChangeKind.DeleteGroup) {
@@ -170,15 +171,24 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc) {
                 domNd.className = val;
             } else if (k === "style") {
                 domNd.setAttribute(k, val);
+            } else if (val.call) {
+                if (k.match(RX_EVT_HANDLER)) {
+                    addEvtListener(domNd, nd, k);
+                }
             } else {
                 domNd[k] = val;
-                // or domNd.setAttribute(k, val); 
             }
         }
     }
     nd.domNode = domNd;
     domParent.appendChild(domNd);
     processChildNodes(nd, domNd, doc);
+}
+
+function addEvtListener(domNd, nd, propName) {
+    domNd.addEventListener(propName.substring(2), function (evt) {
+        nd.props[propName].call(nd, evt);
+    });
 }
 
 function removeGroupFromDom(group: VdGroupNode) {

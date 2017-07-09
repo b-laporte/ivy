@@ -6,9 +6,9 @@ import { VdRenderer } from "../vdom";
 describe('HTML renderer', () => {
 
     it('should render a simple function', () => {
-
         function test(r: VdRenderer, nbr) {
-            `<div [foo]=nbr>
+            `---
+            <div [foo]=nbr>
                 ABC
                 % if (nbr>42) {
                     <span [title]=nbr/>
@@ -18,12 +18,13 @@ describe('HTML renderer', () => {
                     <span [title]=nbr+20/>
                 % } 
                 DEF
-             </div>`
+            </div> 
+             ---`
         }
 
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
-        r.refresh({nbr: 9});
+        r.refresh({ nbr: 9 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <div foo="9">
@@ -33,7 +34,7 @@ describe('HTML renderer', () => {
             </div>
         `, "initial refresh");
 
-        r.refresh({nbr: 145});
+        r.refresh({ nbr: 145 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <div foo="145">
@@ -46,7 +47,7 @@ describe('HTML renderer', () => {
             </div>
         `, "refresh 145");
 
-        r.refresh({nbr: 45});
+        r.refresh({ nbr: 45 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <div foo="45">
@@ -58,7 +59,7 @@ describe('HTML renderer', () => {
             </div>
         `, "refresh 145");
 
-        r.refresh({nbr: 245});
+        r.refresh({ nbr: 245 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <div foo="245">
@@ -71,7 +72,7 @@ describe('HTML renderer', () => {
             </div>
         `, "refresh 245");
 
-        r.refresh({nbr: 12});
+        r.refresh({ nbr: 12 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <div foo="12">
@@ -81,7 +82,7 @@ describe('HTML renderer', () => {
             </div>
         `, "refresh 12");
 
-        r.refresh({nbr: 50});
+        r.refresh({ nbr: 50 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <div foo="50">
@@ -93,6 +94,28 @@ describe('HTML renderer', () => {
             </div>
         `, "refresh 50");
 
+    });
+
+    it('should support event handlers', () => {
+        let count = 0;
+        function incrementCount(nbr) {
+            count += nbr;
+        }
+
+        function test(r: VdRenderer, nbr) {
+            `--- 
+            <div [foo]=nbr>
+                <span onclick()=incrementCount(nbr)> x </span>
+            </div> 
+             ---`
+        }
+
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        r.refresh({ nbr: 9 });
+        assert.equal(count, 0, "value 0");
+        div.childNodes[0].childNodes[0].click();
+        assert.equal(count, 9, "value 9");
     });
 
 });

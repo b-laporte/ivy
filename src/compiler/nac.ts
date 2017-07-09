@@ -51,7 +51,7 @@ export const NacNodeType = {
     COMMENT_ML: 9,      // multi-line comment
     INSERT: 12,         // e.g. {{foo.bar}}
     JS_EXPRESSION: 13,  // e.g. % let foo = 3;
-    JS_BLOCK: 14,       // e.g. % let foo = 3;
+    JS_BLOCK: 14,       // e.g. % if (foo) {  .... % }
     COMPONENT: 15,
     ATT_NODE: 16,       // attribute node e.g. <div @foo/>
 

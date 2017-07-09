@@ -10,7 +10,8 @@ describe('Rollup plugin', () => {
         // same test as in compiler.spec and runtime.spec
 
         function test(r: VdRenderer, nbr) {
-            `<div>
+            `---
+            <div>
                 ABC
                 % if (nbr>42) {
                     <span [title]=nbr/>
@@ -20,7 +21,8 @@ describe('Rollup plugin', () => {
                     <span [title]=nbr+20/>
                 % } 
                 DEF
-             </div>`
+            </div>
+             ---`
         }
 
         let r = createTestRenderer(test, OPTIONS);
@@ -148,21 +150,24 @@ describe('Rollup plugin', () => {
     it('should generate functions with sub-function calls', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo (r: VdRenderer, v:number=123) {
-            `<div>
+        function foo(r: VdRenderer, v: number = 123) {
+            `---
+            <div>
                 <span> first </span>
                 <c:bar [value]=v+1 msg=("m1:"+v)/>
                 <c:bar [value]=v+3 msg=("m2:"+v)/>
                 <span> last </span>
-             </div>`
+            </div>
+             ---`
         }
 
-        function bar (r: VdRenderer, value, msg="") {
-            `<span [title]=(value+' '+msg)/>
+        function bar(r: VdRenderer, value, msg = "") {
+            `
+            <span [title]=(value+' '+msg)/>
              % if (value === 45) {
                 <span> Hello 45! </span>
-             % }`
-        }
+             % }
+        `}
 
         let r = createTestRenderer(foo, OPTIONS);
         // initial display
@@ -250,12 +255,14 @@ describe('Rollup plugin', () => {
     it('should generate functions with dynamic text nodes', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo (r: VdRenderer, nbr:number) {
-            `<div>
+        function foo(r: VdRenderer, nbr: number) {
+            `---
+            <div>
                 <span>{{nbr+1}}</span>
                 ABC {{nbr}}{{nbr}} DEF
                 <span>{{nbr+"a"}} Z </span>
-             </div>`
+            </div>
+             ---`
         }
 
         let r = createTestRenderer(foo, OPTIONS);
@@ -303,16 +310,18 @@ describe('Rollup plugin', () => {
     it('should generate functions with main js blocks', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo (r: VdRenderer, visible, nbr:number) {
-            `% nbr+=3;
-             % if (visible) {
+        function foo(r: VdRenderer, visible, nbr: number) {
+            `---
+            % nbr+=3;
+            % if (visible) {
                 <span>{{nbr}}</span>
-             % }`
+            % }
+             ---`
         }
 
         let r = createTestRenderer(foo, OPTIONS);
         // initial display
-        r.refresh({ visible:true, nbr: 9 });
+        r.refresh({ visible: true, nbr: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 1 ref="1">
@@ -327,7 +336,7 @@ describe('Rollup plugin', () => {
         `, "init");
 
         // refresh with no changes
-        r.refresh({ visible:true, nbr: 9 });
+        r.refresh({ visible: true, nbr: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 1 ref="1">
@@ -341,7 +350,7 @@ describe('Rollup plugin', () => {
         `, "no changes");
 
         // refresh with no changes
-        r.refresh({ visible:false, nbr: 42 });
+        r.refresh({ visible: false, nbr: 42 });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1"/>
         `, "invisible");

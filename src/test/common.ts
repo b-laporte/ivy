@@ -2,7 +2,7 @@
 import { NacNodeType } from '../compiler/nac';
 import {
     VdRenderer, VdRuntime, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
-    VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText
+    VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText, VdUpdateAtt
 } from '../vdom';
 import { ivRuntime } from '../iv';
 
@@ -350,6 +350,10 @@ function serializeChanges(nd: VdGroupNode, indent: string) {
                 case VdChangeKind.UpdateText:
                     let ut = chge as VdUpdateText;
                     lines.push(`${indent}    UpdateText "${ut.value}" in #${ut.node.ref}`);
+                    break;
+                case VdChangeKind.UpdateAtt:
+                    let ua = chge as VdUpdateAtt;
+                    lines.push(`${indent}    UpdateAtt "${ua.name}"=${stringifyValue(ua.value)} in #${ua.node.ref}`);
                     break;
             }
         }

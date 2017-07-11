@@ -150,6 +150,39 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
+    it('should compile functions with attribute properties', () => {
+        let src = `
+            function hello(r:VdRenderer, foo:string, bar) {
+                \`---
+                <div class="hello" [attr:aria-disabled]=foo>
+                     <span attr:aria-expanded=false > Hello </span>
+                </div> 
+                 ---\`
+            }
+        `;
+        let cc = compile(src, "att test");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2;
+                const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $ua = $.updateAtt;
+                let foo = $d["foo"], bar = $d["bar"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 1);
+                    $a1.props = { "class": "hello" };
+                    $a1.atts = { "aria-disabled": foo };
+                    $a2 = $el($a1, 2, "span", 0);
+                    $a2.atts = { "aria-expanded": false };
+                    $tx($a2, 3, " Hello ");
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $ua("aria-disabled", foo, $a1, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
     it('should compile simple if blocks', () => {
         let src = `
             function hello(r:VdRenderer, nbr) {

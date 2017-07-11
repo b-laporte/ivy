@@ -45,6 +45,12 @@ export interface VdRuntime {
     updateProp: (name:string, value:any, element: VdElementWithProps, changeGroup: VdGroupNode) => void;
 
     /**
+     * Update the given attribute on the element passed as argument
+     * An Update attribute instruction will be created and stored on changeGroup if the att value has changed
+     */
+    updateAtt: (name:string, value:any, element: VdElementWithAtts, changeGroup: VdGroupNode) => void;
+
+    /**
      * Update a text node with a new value
      * Used in update mode only
      */
@@ -88,6 +94,7 @@ export interface VdNode {
 
 export interface VdContainer extends VdNode {
     props?: {};                 // key-value map of node properties
+    atts?: {};                  // key-value map of node attributes
     children: VdNode[];         // list of child nodes
 }
 
@@ -115,12 +122,17 @@ export interface VdElementWithProps extends VdElementNode {
     props: {};
 }
 
+export interface VdElementWithAtts extends VdElementNode {
+    atts: {};
+}
+
 export const enum VdChangeKind {
     Unknown = 0,
     CreateGroup = 1,
     DeleteGroup = 2,
     UpdateProp = 3,
-    UpdateText = 4
+    UpdateAtt = 4,
+    UpdateText = 5
 };
 
 export interface VdChangeInstruction {
@@ -129,6 +141,13 @@ export interface VdChangeInstruction {
 
 export interface VdUpdateProp extends VdChangeInstruction {
     kind: VdChangeKind.UpdateProp;
+    name: string;
+    value: any;
+    node: VdElementNode;
+}
+
+export interface VdUpdateAtt extends VdChangeInstruction {
+    kind: VdChangeKind.UpdateAtt;
     name: string;
     value: any;
     node: VdElementNode;

@@ -349,6 +349,16 @@ describe('Iv parser', () => {
                 ))).toEqual('');
     });
 
+    it('should parse attributes with namespace', () => {
+        let res = nac`
+            <div attr:aria-disabled="false" [ns:foo]="bar"/>
+        `;
+        expect(compare(res, n("div")
+            .addAttribute("aria-disabled","\"false\"",NacAttributeNature.STANDARD,"attr",null)
+            .addAttribute("foo","\"bar\"",NacAttributeNature.BOUND1WAY,"ns",null)
+        )).toEqual('');
+    });
+
     it('should raise an error for invalid attribute values', () => {
         expect(error`
           <div foo = " rewr wrew> Hello </div>
@@ -424,22 +434,10 @@ describe('Iv parser', () => {
                 ))).toEqual('');
     });
 
-    it('should parse attribute types', () => {
-        expect(compare(nac`
-            <div foo:number=123 bar:string> blah </div>
-        `, n("div")
-                .addAttribute("foo", "123", undefined, "number")
-                .addAttribute("bar", undefined, undefined, "string")
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-    });
-
-    it('should raise an error for empty attribute types', () => {
+    it('should raise an error for empty attribute name', () => {
         expect(error`
           <div foo:string="" bar:="2"> Hello </div>
-        `).toBe("(2:34) Attribute type cannot be empty");
+        `).toBe("(2:34) Attribute name cannot be empty");
     });
 
     it('should raise an error for empty attribute names that use special modifiers', () => {
@@ -607,89 +605,6 @@ describe('Iv parser', () => {
                 .n("div")
                 .addAttribute("@default", "$v[1]")
         )).toEqual('');
-    });
-
-    it('should support ${expression} in attribute types', () => {
-        let obj = Object;
-        expect(compare(nac`
-            <div foo:${obj}={foo:"bar"} > blah </div>
-        `, n("div")
-                .addAttribute("foo", '{foo:"bar"}', 0, "$v[0]")
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-    });
-
-    it('should support type arguments', () => {
-        let obj = Object;
-
-        expect(compare(nac`
-            <function #foo ctrl:IvController("someValue")> blah </function>
-        `, n("function")
-                .addAttribute("id", '"foo"')
-                .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"'])
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-
-        expect(compare(nac`
-            <function #foo ctrl:IvController("someValue",'2')> blah </function>
-        `, n("function")
-                .addAttribute("id", '"foo"')
-                .addAttribute("ctrl", undefined, 0, 'IvController', null, ['"someValue"', "'2'"])
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-
-        expect(compare(nac`
-            <function #foo ctrl:IvController(SomeClass)> blah </function>
-        `, n("function")
-                .addAttribute("id", '"foo"')
-                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass"])
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-
-        expect(compare(nac`
-            <function #foo ctrl:IvController(SomeClass,"abc")> blah </function>
-        `, n("function")
-                .addAttribute("id", '"foo"')
-                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", '"abc"'])
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-
-        expect(compare(nac`
-            <function #foo ctrl:IvController(SomeClass,'a"bc')> blah </function>
-        `, n("function")
-                .addAttribute("id", '"foo"')
-                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["SomeClass", "'a\"bc'"])
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-
-        let Foo = {};
-        expect(compare(nac`
-            <function #foo ctrl:IvController(${Foo},"abc")> blah </function>
-        `, n("function")
-                .addAttribute("id", '"foo"')
-                .addAttribute("ctrl", undefined, 0, 'IvController', null, ["$v[0]", '"abc"'])
-                .c(
-                n("#text", " blah ")
-                )
-        )).toEqual('');
-    });
-
-    it('should raise an error for invalid type attributes', () => {
-        expect(error`
-          <function #foo ctrl:IvController("aa",123)></function>
-        `).toBe("(2:49) Type attributes must be valid identifiers, strings or external references");
     });
 
     // todo accept spaces for JSON or Array attribute values - e.g. {a:"a", b:"b"} or [123, 456]

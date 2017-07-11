@@ -265,6 +265,8 @@ describe('Rollup plugin', () => {
              ---`
         }
 
+        debugger
+
         let r = createTestRenderer(foo, OPTIONS);
         // initial display
         r.refresh({ nbr: 9 });

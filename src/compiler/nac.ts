@@ -163,24 +163,21 @@ export class NacNode {
      * @param name the attribute name
      * @param value the attribute value
      * @param nature the attribute nature (cf. NacAttributeNature)
-     * @param typeRef the type associated to this attribute (e.g. "string" in foo:string)
+     * @param ns the namespace asssociated to this attribute
      * @param params array of parameter names associated to this attribute (for function attributes)
      * @param typeParams array of parameters associated to the attribute type
      */
-    addAttribute(name, value, nature = NacAttributeNature.STANDARD, typeRef: string|null = null, params:string[]|null = null, typeParams:string[]|null = null) {
+    addAttribute(name, value, nature = NacAttributeNature.STANDARD, ns: string | null = null, params: string[] | null = null) {
         if (!this.lastAttribute) {
             this.firstAttribute = this.lastAttribute = new NacAttribute(name, value, nature);
         } else {
             this.lastAttribute = this.lastAttribute.addSibling(name, value, nature);
         }
-        if (typeRef) {
-            this.lastAttribute.typeRef = typeRef;
+        if (ns) {
+            this.lastAttribute.ns = ns;
         }
         if (params) {
             this.lastAttribute.parameters = params;
-        }
-        if (typeParams) {
-            this.lastAttribute.typeParameters = typeParams;
         }
         // id and attName shortcuts used to simplify and accelerate the template compilation
         if (name === "id") {
@@ -301,8 +298,7 @@ class NacAttribute {
     name/*:string*/;
     value/*:any*/;
     nature/*:NacAttributeNature*/;
-    typeRef/*:string*/;
-    typeParameters/*string[]*/;
+    ns: string | null = null;
     parameters; // array of parameter names - for function attributes
 
     constructor(name, value, nature) {
@@ -310,8 +306,6 @@ class NacAttribute {
         this.value = value;
         this.nature = nature || NacAttributeNature.STANDARD;
         this.firstSibling = this;
-        this.typeRef = null;
-        this.typeParameters = null;
         this.parameters = null;
     };
 

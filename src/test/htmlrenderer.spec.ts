@@ -118,4 +118,22 @@ describe('HTML renderer', () => {
         assert.equal(count, 9, "value 9");
     });
 
+    it('should support nodes with attributes', () => {
+        function hello(r: VdRenderer, nbr: number) {
+            `---
+            <div class="hello" [attr:aria-disabled]=nbr>
+                    <span attr:aria-expanded="false" > Hello </span>
+            </div> 
+             ---`
+        }
+        let div = doc.createElement("div"), r = htmlRenderer(div, hello, doc);
+
+        r.refresh({ nbr: 9 });
+        assert.equal(div.childNodes[0]["aria-disabled"], 9, "aria-disabled");
+        assert.equal(div.childNodes[0].childNodes[0]["aria-expanded"], "false", "aria-disabled");
+
+        r.refresh({ nbr: 42 });
+        assert.equal(div.childNodes[0]["aria-disabled"], 42, "aria-disabled");
+        assert.equal(div.childNodes[0].childNodes[0]["aria-expanded"], "false", "aria-disabled");
+    })
 });

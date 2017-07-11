@@ -2,7 +2,7 @@ import * as ts from "typescript";
 import { parse } from "./parser";
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
 
-const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
+const CR = "\n", VD_RENDERER_TYPE = "VdRenderer", ATT_NS = "attr";
 
 export function compile(source: string, id: string): CompilationCtxt {
     let srcFile = ts.createSourceFile(id, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true),
@@ -544,7 +544,7 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
 
         // then set properties
         // e.g. $a2.props = { "class": "one", "title": "blah", "foo": nbr+4 };
-        let att = nd.firstAttribute, propsBuf: string[] = [], upBuf: string[] = [];
+        let att = nd.firstAttribute, propsBuf: string[] = [], attsBuf: string[] = [], upBuf: string[] = [];
         while (att) {
             if (att.nature === NacAttributeNature.DEFERRED_EXPRESSION) {
                 let params = att.parameters ? att.parameters.join(",") : "",
@@ -561,13 +561,19 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
                 att.value = identifier;
                 upBuf.push(att);
             }
-            propsBuf.push(att.name);
-            propsBuf.push(att.value);
+            if (att.ns === ATT_NS) {
+                // this is an att
+                attsBuf.push(att.name);
+                attsBuf.push(att.value);
+            } else {
+                // this is a prop
+                propsBuf.push(att.name);
+                propsBuf.push(att.value);
+            }
             if (att.nature === NacAttributeNature.BOUND1WAY || att.nature === NacAttributeNature.BOUND2WAYS) {
                 upBuf.push(att);
                 cl.needRef = true;
             }
-
             att = att.nextSibling;
         }
         if (propsBuf.length) {
@@ -582,6 +588,14 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
                 nb.cmLines.push(sp);
             }
         }
+        if (attsBuf.length) {
+            let sp: ClSetAtts = {
+                kind: CodeLineKind.SetAtts,
+                eltLevel: cl.parentLevel + 1,
+                atts: attsBuf
+            }
+            nb.cmLines.push(sp);
+        }
 
         // update mode
         if (upBuf.length) {
@@ -595,14 +609,25 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
                         propName: att.name,
                         expr: att.value
                     });
+                    // todo raise error if attribute is used on component
                 } else {
-                    nb.umLines.push(<ClUpdateProp>{
-                        kind: CodeLineKind.UpdateProp,
-                        eltLevel: cl.parentLevel + 1,
-                        propName: att.name,
-                        expr: att.value,
-                        changeGroupLevel: nb.changeGroupIdx
-                    });
+                    if (att.ns === ATT_NS) {
+                        nb.umLines.push(<ClUpdateAtt>{
+                            kind: CodeLineKind.UpdateAtt,
+                            eltLevel: cl.parentLevel + 1,
+                            attName: att.name,
+                            expr: att.value,
+                            changeGroupLevel: nb.changeGroupIdx
+                        });
+                    } else {
+                        nb.umLines.push(<ClUpdateProp>{
+                            kind: CodeLineKind.UpdateProp,
+                            eltLevel: cl.parentLevel + 1,
+                            propName: att.name,
+                            expr: att.value,
+                            changeGroupLevel: nb.changeGroupIdx
+                        });
+                    }
                 }
             }
             if (cc) {
@@ -871,16 +896,18 @@ const enum CodeLineKind {
     CreateDynText = 3,
     CheckGroup = 4,
     SetProps = 5,
-    SetNodeRef = 6,
-    UpdateProp = 7,
-    UpdateCptProp = 8,
-    UpdateText = 9,
-    RefreshCpt = 10,
-    DeleteGroups = 11,
-    IncrementIdx = 12,
-    ResetIdx = 13,
-    JsExpression = 14,
-    FuncDef = 15
+    SetAtts =6,
+    SetNodeRef = 7,
+    UpdateProp = 8,
+    UpdateCptProp = 9,
+    UpdateText = 10,
+    UpdateAtt = 11,
+    RefreshCpt = 12,
+    DeleteGroups = 13,
+    IncrementIdx = 14,
+    ResetIdx = 15,
+    JsExpression = 16,
+    FuncDef = 17
 }
 
 interface ClCreateNode extends CodeLine {
@@ -910,10 +937,26 @@ interface ClSetProps extends CodeLine {
     props: string[];            // ["class",'"hello"',"foo","123"] in this example
 }
 
+interface ClSetAtts extends CodeLine {
+    // e.g. $a1.atts = { "aria-disabled": "false" };
+    kind: CodeLineKind.SetAtts;
+    eltLevel: number;           // 1 in this example
+    atts: string[];             // ["aria-disabled", "false"] in this example
+}
+
 interface ClUpdateProp extends CodeLine {
     // e.g. $up("baz", nbr + 3, $a2, $a0)
     kind: CodeLineKind.UpdateProp;
     propName: string;           // "baz" in this example
+    expr: string;               // "nbr + 3" in this example
+    eltLevel: number;           // 2 in this example
+    changeGroupLevel: number;   // 0 in this example
+}
+
+interface ClUpdateAtt extends CodeLine {
+    // e.g. $ua("aria-disabled", nbr + 3, $a2, $a0)
+    kind: CodeLineKind.UpdateAtt;
+    attName: string;            // "aria-disabled" in this example
     expr: string;               // "nbr + 3" in this example
     eltLevel: number;           // 2 in this example
     changeGroupLevel: number;   // 0 in this example
@@ -1049,11 +1092,23 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
                 propsBuf.push(`"${sp.props[i]}": ${sp.props[i + 1]}`);
             }
             return `${indent}$a${sp.eltLevel}.props = { ${propsBuf.join(", ")} };`;
+        case CodeLineKind.SetAtts:
+            let sa = cl as ClSetAtts, attsBuf: string[] = [];
+            // $a1.props = { "class": "hello", "foo": 123 };
+            for (let i = 0; sa.atts.length > i; i += 2) {
+                attsBuf.push(`"${sa.atts[i]}": ${sa.atts[i + 1]}`);
+            }
+            return `${indent}$a${sa.eltLevel}.atts = { ${attsBuf.join(", ")} };`;            
         case CodeLineKind.UpdateProp:
             let up = cl as ClUpdateProp;
             // e.g. $up("baz", nbr + 3, $a2, $a0)
             fc.headDeclarations.constAliases["$up"] = "$.updateProp";
             return `${indent}$up("${up.propName}", ${up.expr}, $a${up.eltLevel}, $a${up.changeGroupLevel});`;
+        case CodeLineKind.UpdateAtt:
+            let ua = cl as ClUpdateAtt;
+            // e.g. $up("baz", nbr + 3, $a2, $a0)
+            fc.headDeclarations.constAliases["$ua"] = "$.updateAtt";
+            return `${indent}$ua("${ua.attName}", ${ua.expr}, $a${ua.eltLevel}, $a${ua.changeGroupLevel});`;
         case CodeLineKind.UpdateText:
             let ut = cl as ClUpdateText;
             // e.g. $ut($t0 + (nbr+1) + $t1, $a2, $a0);

@@ -1,5 +1,5 @@
 
-import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup } from "./vdom";
+import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt } from "./vdom";
 import { ivRuntime } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
@@ -124,6 +124,9 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             }
         } else if (chge.kind === VdChangeKind.DeleteGroup) {
             removeGroupFromDom((<VdDeleteGroup>chge).node);
+        } else if (chge.kind === VdChangeKind.UpdateAtt) {
+            let ua = chge as VdUpdateAtt;
+            ua.node.domNode.setAttribute(ua.name, ua.value);
         } else {
             console.error("[iv html renderer] Unsupported change kind: " + chge.kind);
         }
@@ -178,6 +181,13 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc) {
             } else {
                 domNd[k] = val;
             }
+        }
+    }
+    if (nd.atts) {
+        let atts = nd.atts;
+        for (let k in atts) {
+            if (!atts.hasOwnProperty(k)) continue;
+            domNd.setAttribute(k, atts[k]);
         }
     }
     nd.domNode = domNd;

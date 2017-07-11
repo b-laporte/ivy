@@ -8,7 +8,7 @@ import { NacNode, NacNodeType, NacAttributeNature } from './nac';
 const REGEXP_LINE = /@line:(\d+)/,
     REGEXP_FILE_NAME = /@file:([^\s]+)/;
 
-const CHAR_GT = 62,               // >
+const CHAR_GT = 62,             // >
     CHAR_SLASH = 47,            // /
     CHAR_BACKSLASH = 92,        // \
     CHAR_STAR = 42,             // *
@@ -22,6 +22,7 @@ const CHAR_GT = 62,               // >
     CHAR_AT = 64,               // @
     CHAR_HASH = 35,             // #
     CHAR_DOLLAR = 36,           // $
+    CHAR_HYPHEN = 45,           // -
     CHAR_COLON = 58,            // :
     CHAR_COMMA = 44,            // ,
     CHAR_EQUAL = 61,            // =
@@ -517,7 +518,7 @@ function nodeAttributes(p, nd) {
             }
 
             // add attribute to current node
-            nd.addAttribute(att.name, att.value, att.nature, att.typeRef, att.parameters, att.typeArgs);
+            nd.addAttribute(att.name, att.value, att.nature, att.ns, att.parameters);
         }
     }
 
@@ -530,10 +531,9 @@ function nodeAttributes(p, nd) {
  * @returns {Object} an object representing the attribute - or null if no attribute name was found
  */
 function nodeAttributeName(p, attMap) {
-    let att: { name: string, typeRef: string, typeArgs: string[] | null, value: string | undefined, nature: number } = {
+    let att: { name: string, ns: string | null, value: string | undefined, nature: number } = {
         name: "",            // name without # or @ prefix
-        typeRef: "",         // type name specified after the : separator
-        typeArgs: null,      // Array of type arguments or null
+        ns: null,            // namespace
         value: undefined,    // the attribute value if defined
         nature: NacAttributeNature.STANDARD // attribute nature - cf. NacAttributeNature
     }, isId = false, isAttNode = false, endChar1: number | null = null, endChar2: number | null = null;
@@ -553,9 +553,6 @@ function nodeAttributeName(p, attMap) {
         p.currentCharCode = null;
         registerAttribute("@default", attMap);
         return att;
-        // } else if (p.advanceChar(CHAR_PARENSTART, false)) {
-        //     endChar1 = CHAR_PARENEND;
-        //     att.nature = NacAttributeNature.DEFERRED_EXPRESSION;
     } else if (p.advanceChar(CHAR_BRACKETSTART, false)) {
         endChar1 = CHAR_BRACKETEND;
         if (p.advanceChar(CHAR_BRACKETSTART, false)) {
@@ -567,59 +564,27 @@ function nodeAttributeName(p, attMap) {
     }
 
     if (p.advanceMany(b, isJsIdentifierChar)) {
+        // look for namespace
+        if (p.advanceChar(CHAR_COLON, false)) {
+            // a namespace has been found
+            att.ns = b.join("");
+            b = [];
+            p.advanceMany(b, isHyphenatedNameChar);
+        }
+
         if (isId || isAttNode) {
             b.push('"');
             att.value = b.join("");
         } else {
             att.name = b.join("");
+            if (att.name === "") {
+                throw "Attribute name cannot be empty";
+            }
         }
         registerAttribute(att.name, attMap);
 
-        // look for type information
-        if (p.advanceChar(CHAR_COLON, false)) {
-            // parse the type name
-            b = [];
-            if (!p.advanceMany(b, isJsIdentifierChar)) {
-                if (p.currentCharCode === CHAR_VALUE) {
-                    att.typeRef = p.valueSymbol;
-                    p.currentCharCode = null;
-                } else {
-                    throw "Attribute type cannot be empty";
-                }
-            } else {
-                // check if type contains parameters
-                if (p.advanceChar(CHAR_PARENSTART, false)) {
-                    let keepGoing = true, s, args: string[] = [];
-                    while (keepGoing) {
-                        if (s = jsString(p)) {
-                            args.push(s);
-                        } else if (s = jsIdentifier(p)) {
-                            args.push(s);
-                        } else if (p.advanceChar(CHAR_VALUE, false)) {
-                            // this is a value
-                            args.push(p.valueSymbol);
-                        } else {
-                            throw "Type attributes must be valid identifiers, strings or external references";
-                        }
-
-                        if (!p.advanceChar(CHAR_COMMA, false)) {
-                            keepGoing = false;
-                        }
-                    }
-
-                    p.advanceChar(CHAR_PARENEND, true);
-
-                    att.typeArgs = args.length ? args : null;
-                }
-
-                att.typeRef = b.join("");
-            }
-            // parse [] for arrays
-            if (p.advanceChar(CHAR_BRACKETSTART, false)) {
-                p.advanceChar(CHAR_BRACKETEND, true);
-                att.typeRef += "[]";
-            }
-        } else if (p.advanceChar(CHAR_PARENSTART, false)) {
+        // look for event handler params
+        if (p.advanceChar(CHAR_PARENSTART, false)) {
             // function attribute e.g. foo(event)=bar(event.value)
             spaces(p);
             nodeAttributeParameters(p, att);
@@ -1098,5 +1063,13 @@ function isJsIdentifierChar(c, idx) {
         return c === CHAR_DOLLAR || isAlpha(c);
     } else {
         return isAlpha(c) || isDigit(c);
+    }
+}
+
+function isHyphenatedNameChar(c, idx) {
+    if (idx === 0) {
+        return c === CHAR_DOLLAR || c === CHAR_HYPHEN || isAlpha(c);
+    } else {
+        return c === CHAR_HYPHEN || isAlpha(c) || isDigit(c);
     }
 }

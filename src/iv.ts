@@ -1,7 +1,7 @@
 
 import {
     VdNodeKind, VdRenderer, VdRuntime, VdFunction, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
@@ -128,6 +128,23 @@ export const ivRuntime: IvRuntime = {
                 // the function stored in the node property at the time of the event - so no new handler needs to be create
                 addChangeInstruction(changeGroup, <VdUpdateProp>{
                     kind: VdChangeKind.UpdateProp,
+                    name: name,
+                    value: value,
+                    node: element
+                });
+            }
+        }
+    },
+
+    updateAtt(name: string, value: any, element: VdElementWithAtts, changeGroup: VdGroupNode): void {
+        if (element.atts[name] !== value) {
+            // value has changed
+            element.atts[name] = value;
+            if (!value.call) {
+                // we don't create change instructions for function values as the event handler will use
+                // the function stored in the node property at the time of the event - so no new handler needs to be create
+                addChangeInstruction(changeGroup, <VdUpdateAtt>{
+                    kind: VdChangeKind.UpdateAtt,
                     name: name,
                     value: value,
                     node: element

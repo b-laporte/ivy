@@ -9,23 +9,26 @@
   "module": "dist/rollup-plugin-iv.es.js",
   "author": "Bertrand Laporte",
   "scripts": {
+    "postinstall": "webdriver-manager update",
     "clean": "rm -rf dist/",
-    "build-compiler": "rollup --config rollup.compiler.config.js",
+    "build-compiler": "yarn run clean && rollup --config rollup.compiler.config.js",
     "build-test": "rollup -c rollup.test.config.js",
-    "build": "yarn run clean && yarn run build-compiler && yarn run build-test",
+    "build": "yarn run build-compiler && yarn run build-test",
     "mocha": "mocha dist/test.js --reporter dot",
     "test": "yarn run build && yarn run mocha",
     "dev": "yarn run clean && concurrently -r \"rollup -w -c rollup.compiler.config.js\" \"chokidar --silent 'src/test/*' 'dist/rollup-plugin-iv.es.js' -c 'echo Building and running tests... && yarn run build-test'\" \"chokidar --silent 'dist/test.js' -c 'yarn run mocha'\"",
-    "build-flex": "cpx 'src/samples/flex/**/*.{html,js,css,svg}' dist/flex && rollup --config rollup.flex.config.js",
-    "build-svg": "cpx 'src/samples/svg/**/*.{html,js,css,svg}' dist/svg && rollup --config rollup.svg.config.js",
-    "start": "serve dist/flex"
+    "build-samples": "yarn run build-compiler && cpx 'src/samples/**/*.{html,js,css,svg}' dist && rollup -c rollup.samples.config.js",
+    "watch-samples": "yarn run build-compiler && concurrently -r \"yarn start\" \"cpx -w 'src/samples/**/*.{html,js,css,svg}' dist\" \"rollup -w -c rollup.samples.config.js\"",
+    "start": "serve dist",
+    "e2e": "yarn build-samples && concurrently -r -k -s first \"yarn start\" \"./node_modules/.bin/protractor protractor.conf.js\"",
+    "benchmarks": "yarn build-samples && concurrently -r -k -s first \"yarn start\" \"./node_modules/.bin/protractor protractor.conf.js --perf\""
   },
   "license": "UNLICENSED",
   "private": true,
   "bugs": {},
   "homepage": "",
   "devDependencies": {
-    "rollup": "^0.43.0",
+    "rollup": "^0.45.1",
     "rollup-watch": "^4.0.0",
     "rollup-plugin-typescript2": "^0.4.3",
     "rollup-plugin-node-resolve": "^3.0.0",
@@ -40,7 +43,9 @@
     "@types/mocha": "^2.2.41",
     "chokidar-cli": "^1.2.0",
     "concurrently": "^3.5.0",
-    "serve": "^6.0.1"
+    "serve": "^6.0.1",
+    "@angular/benchpress": "0.1.0",
+    "protractor": "5.1.2"
   },
   "dependencies": {
     "typescript": ">=2.3.4"

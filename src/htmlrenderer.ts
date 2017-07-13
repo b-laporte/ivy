@@ -14,9 +14,10 @@ interface HtmlDoc {
     createTextNode(data: string): any;
     createDocFragment(): any;
     createElement(name: string): any;
+    createElementNS(ns: string, name: string): any;
 }
 
-const RX_EVT_HANDLER = /^on/;
+const RX_EVT_HANDLER = /^on/, RX_HTML = /html/i;
 
 class Renderer implements HtmlRenderer {
     rt = ivRuntime;
@@ -54,6 +55,9 @@ class Renderer implements HtmlRenderer {
             },
             createElement: function (name: string): any {
                 return document.createElement(name);
+            },
+            createElementNS: function (ns: string, name: string): any {
+                return document.createElementNS(ns, name);
             }
         }
     }
@@ -82,16 +86,21 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             if (!cg.parent) {
                 // root node
                 let df = doc.createDocFragment();
-                processNode(cg.node, df, doc);
+                processNode(cg.node, df, doc, null);
                 rootDomContainer.appendChild(df);
                 replaceDomNode(df, rootDomContainer, cg.node);
             } else {
                 // create elements
-                let df = doc.createDocFragment();
-                processNode(cg.node, df, doc);
+                let df = doc.createDocFragment(), ns: string | null = null, pvnd = cg.parent;
+                if (pvnd && pvnd.domNode) {
+                    ns = pvnd.domNode.namespaceURI;
+                    if (ns && ns.match(RX_HTML)) {
+                        ns = null;
+                    }
+                }
+                processNode(cg.node, df, doc, ns);
 
                 // look for the previous sibling
-                let pvnd = cg.parent;
                 if (pvnd && pvnd.domNode) {
                     let done = false;
                     if (cg.nextSibling) {
@@ -114,12 +123,19 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
                 nd.domNode.textContent = nd.value;
             }
         } else if (chge.kind === VdChangeKind.UpdateProp) {
-            let up = chge as VdUpdateProp, nd = up.node, prop = up.name;
+            let up = chge as VdUpdateProp, nd = up.node, prop = up.name, ns;
             if (nd && nd.domNode) {
-                if (prop === "class" || prop === "className") {
-                    nd.domNode.className = up.value;
+                ns = nd.domNode.namespaceURI;
+                // when <:xmlns .../> is supported there will be no need for the following check:
+                // as the compiler already transformed prop to atts if the node namespace is not HTML
+                if (!ns.match(RX_HTML)) {
+                    nd.domNode.setAttribute(prop, up.value);
                 } else {
-                    nd.domNode[prop] = up.value;
+                    if (prop === "class" || prop === "className") {
+                        nd.domNode.className = up.value;
+                    } else {
+                        nd.domNode[prop] = up.value;
+                    }
                 }
             }
         } else if (chge.kind === VdChangeKind.DeleteGroup) {
@@ -134,15 +150,14 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
     vdom.changes = null;
 }
 
-function processNode(nd: VdNode, domParent, doc: HtmlDoc) {
+function processNode(nd: VdNode, domParent, doc: HtmlDoc, ns: string | null) {
     switch (nd.kind) {
         case VdNodeKind.Element:
-            createElementDomNode(nd as VdElementNode, domParent, doc);
+            createElementDomNode(nd as VdElementNode, domParent, doc, ns);
             break;
         case VdNodeKind.Group:
             nd.domNode = domParent;
-            processChildNodes(<VdGroupNode>nd, domParent, doc);
-            //createGroupDomNodes(nd as VdGroupNode, domParent);
+            processChildNodes(<VdGroupNode>nd, domParent, doc, ns);
             break;
         case VdNodeKind.Text:
             let domNd = doc.createTextNode((<VdTextNode>nd).value);
@@ -154,37 +169,52 @@ function processNode(nd: VdNode, domParent, doc: HtmlDoc) {
     }
 }
 
-function processChildNodes(nd: VdContainer, domParent, doc: HtmlDoc) {
+function processChildNodes(nd: VdContainer, domParent, doc: HtmlDoc, ns: string | null) {
     let ch = nd.children, len = ch.length;
     for (let i = 0; len > i; i++) {
-        processNode(ch[i], domParent, doc);
+        processNode(ch[i], domParent, doc, ns);
     }
 }
 
-function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc) {
-    let domNd = doc.createElement(nd.name), props = nd.props, val;
+function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: string | null) {
+    let props = nd.props, atts = nd.atts, val, domNd;
+    if (atts && atts["xmlns"]) {
+        ns = atts["xmlns"];
+    }
+    if (ns) {
+        domNd = doc.createElementNS(ns, nd.name);
+    } else {
+        domNd = doc.createElement(nd.name)
+    }
 
     if (props) {
-        for (let k in props) {
-            if (!props.hasOwnProperty(k)) continue;
-            // TODO support complex attributes such as class.foo
-            // TODO support event handlers
-            val = props[k];
-            if (k === "class" || k === "className") {
-                domNd.className = val;
-            } else if (k === "style") {
-                domNd.setAttribute(k, val);
-            } else if (val.call) {
-                if (k.match(RX_EVT_HANDLER)) {
-                    addEvtListener(domNd, nd, k);
+        if (ns && !ns.match(RX_HTML)) {
+            // remove this block when <:xmlns .../> is supported
+            for (let k in props) {
+                if (!props.hasOwnProperty(k)) continue;
+                domNd.setAttribute(k, props[k]);
+            }
+        } else {
+            for (let k in props) {
+                if (!props.hasOwnProperty(k)) continue;
+                // TODO support complex attributes such as class.foo
+                // TODO support event handlers
+                val = props[k];
+                if (k === "class" || k === "className") {
+                    domNd.className = val;
+                } else if (k === "style") {
+                    domNd.setAttribute(k, val);
+                } else if (val.call) {
+                    if (k.match(RX_EVT_HANDLER)) {
+                        addEvtListener(domNd, nd, k);
+                    }
+                } else {
+                    domNd[k] = val;
                 }
-            } else {
-                domNd[k] = val;
             }
         }
     }
-    if (nd.atts) {
-        let atts = nd.atts;
+    if (atts) {
         for (let k in atts) {
             if (!atts.hasOwnProperty(k)) continue;
             domNd.setAttribute(k, atts[k]);
@@ -192,7 +222,7 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc) {
     }
     nd.domNode = domNd;
     domParent.appendChild(domNd);
-    processChildNodes(nd, domNd, doc);
+    processChildNodes(nd, domNd, doc, ns);
 }
 
 function addEvtListener(domNd, nd, propName) {

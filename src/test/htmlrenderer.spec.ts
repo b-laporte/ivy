@@ -129,11 +129,36 @@ describe('HTML renderer', () => {
         let div = doc.createElement("div"), r = htmlRenderer(div, hello, doc);
 
         r.refresh({ nbr: 9 });
-        assert.equal(div.childNodes[0]["aria-disabled"], 9, "aria-disabled");
-        assert.equal(div.childNodes[0].childNodes[0]["aria-expanded"], "false", "aria-disabled");
+        assert.equal(div.childNodes[0]["ARIA-DISABLED"], 9, "aria-disabled 1");
+        assert.equal(div.childNodes[0].childNodes[0]["ARIA-EXPANDED"], "false", "aria-expanded 2");
 
         r.refresh({ nbr: 42 });
-        assert.equal(div.childNodes[0]["aria-disabled"], 42, "aria-disabled");
-        assert.equal(div.childNodes[0].childNodes[0]["aria-expanded"], "false", "aria-disabled");
+        assert.equal(div.childNodes[0]["ARIA-DISABLED"], 42, "aria-disabled 3");
+        assert.equal(div.childNodes[0].childNodes[0]["ARIA-EXPANDED"], "false", "aria-expanded 4");
+    })
+
+    it('should support svg nodes', () => {
+        function hello(r: VdRenderer, radius) {
+            `---
+            <div>
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(50,50)">
+                        <circle class="clock-face" [r]=radius/>
+                    </g>
+                </svg>
+            </div> 
+             ---`
+        }
+        let div = doc.createElement("div"), r = htmlRenderer(div, hello, doc);
+
+        r.refresh({ radius: 9 });
+        let svg=div.childNodes[0].childNodes[0], circle=svg.childNodes[0].childNodes[0];
+        assert.equal(svg["VIEWBOX"], "0 0 100 100", "viewbox");
+        assert.equal(svg["namespaceURI"], "http://www.w3.org/2000/svg", "ns");
+        assert.equal(circle["namespaceURI"], "http://www.w3.org/2000/svg", "ns");
+        assert.equal(circle["R"], 9, "radius 9");
+
+        r.refresh({ radius: 42 });
+        assert.equal(circle["R"], 42, "radius 42");
     })
 });

@@ -2,7 +2,7 @@ import * as ts from "typescript";
 import { parse } from "./parser";
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
 
-const CR = "\n", VD_RENDERER_TYPE = "VdRenderer", ATT_NS = "attr";
+const CR = "\n", VD_RENDERER_TYPE = "VdRenderer", ATT_NS = "attr", XMLNS = "xmlns", RX_HTML = /html/i;
 
 export function compile(source: string, id: string): CompilationCtxt {
     let srcFile = ts.createSourceFile(id, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true),
@@ -278,7 +278,8 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
         nextSiblingOnly: boolean,
         currentBlock: CodeBlock | null = null; // current block being processed
     if (nd) {
-        shifts.push({ nbrOfCreations: 0, relative: false, generated: false });
+        let lastShift = shifts[shifts.length - 1];
+        shifts.push({ nbrOfCreations: 0, relative: false, generated: false, isHtmlNS: lastShift ? lastShift.isHtmlNS : true });
     }
     // always start with a node block
     appendNodeBlock();
@@ -462,7 +463,8 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
     // helper function to find next node
     function nextNode(nd, noChild = false) {
         if (!noChild && nd.firstChild) {
-            shifts.push({ nbrOfCreations: 0, relative: false, generated: false });
+            let lastShift = shifts[shifts.length - 1];
+            shifts.push({ nbrOfCreations: 0, relative: false, generated: false, isHtmlNS: lastShift ? lastShift.isHtmlNS : true });
             updateShifts();
             nacPath.push(nd);
             return nd.firstChild;
@@ -490,7 +492,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
         let sh;
         for (let i = 0; shifts.length > i; i++) {
             sh = shifts[i];
-            shifts[i] = { nbrOfCreations: 0, relative: true, generated: sh.generated === true }; // create new objects to avoid impact on previous copies
+            shifts[i] = { nbrOfCreations: 0, relative: true, generated: sh.generated === true, isHtmlNS: sh.isHtmlNS }; // create new objects to avoid impact on previous copies
         }
     }
 
@@ -510,7 +512,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
 function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, shifts: CodeShift[]) {
     if (nd.nodeType === NacNodeType.ELEMENT) {
         // creation mode
-        let cl: ClCreateNode, cc: ClCreateComponent | null = null, el: ClCreateElement | null = null;
+        let cl: ClCreateNode, cc: ClCreateComponent | null = null, el: ClCreateElement | null = null, isHtmlNS = shifts[shifts.length - 1].isHtmlNS;
 
         if (nd.nodeNameSpace === "c") {
             // create component
@@ -545,6 +547,17 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
         // then set properties
         // e.g. $a2.props = { "class": "one", "title": "blah", "foo": nbr+4 };
         let att = nd.firstAttribute, propsBuf: string[] = [], attsBuf: string[] = [], upBuf: string[] = [];
+        // check first if there is an xmlns
+        while (att) {
+            if (att.name === XMLNS) {
+                if (!att.value.match(RX_HTML)) {
+                    shifts[shifts.length - 1].isHtmlNS = isHtmlNS = false;
+                    break;
+                }
+            }
+            att = att.nextSibling;
+        }
+        att = nd.firstAttribute;
         while (att) {
             if (att.nature === NacAttributeNature.DEFERRED_EXPRESSION) {
                 let params = att.parameters ? att.parameters.join(",") : "",
@@ -561,12 +574,12 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
                 att.value = identifier;
                 upBuf.push(att);
             }
-            if (att.ns === ATT_NS) {
+            if (!cc && (!isHtmlNS || att.ns === ATT_NS)) {
                 // this is an att
                 attsBuf.push(att.name);
                 attsBuf.push(att.value);
             } else {
-                // this is a prop
+                // this is a prop or a cpt call
                 propsBuf.push(att.name);
                 propsBuf.push(att.value);
             }
@@ -611,7 +624,7 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
                     });
                     // todo raise error if attribute is used on component
                 } else {
-                    if (att.ns === ATT_NS) {
+                    if (!isHtmlNS || att.ns === ATT_NS) {
                         nb.umLines.push(<ClUpdateAtt>{
                             kind: CodeLineKind.UpdateAtt,
                             eltLevel: cl.parentLevel + 1,
@@ -849,9 +862,10 @@ interface CodeBlock {
 
 interface CodeShift {
     // structure to store index shift information when new nodes are created
-    nbrOfCreations: number,    // nbr of nodes created at this level
-    relative: boolean,         // tells if the shift is absolute (e.g. as long as no js block is met) or relative
-    generated: boolean         // tells is the node reference has already been generated in the code (in which case it must not be regenarated)
+    nbrOfCreations: number;    // nbr of nodes created at this level
+    relative: boolean;         // tells if the shift is absolute (e.g. as long as no js block is met) or relative
+    generated: boolean;        // tells is the node reference has already been generated in the code (in which case it must not be regenarated)
+    isHtmlNS: boolean;         // true if level is associated to HTML namespace
 }
 
 interface NodeBlock extends CodeBlock {
@@ -896,7 +910,7 @@ const enum CodeLineKind {
     CreateDynText = 3,
     CheckGroup = 4,
     SetProps = 5,
-    SetAtts =6,
+    SetAtts = 6,
     SetNodeRef = 7,
     UpdateProp = 8,
     UpdateCptProp = 9,
@@ -1098,7 +1112,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             for (let i = 0; sa.atts.length > i; i += 2) {
                 attsBuf.push(`"${sa.atts[i]}": ${sa.atts[i + 1]}`);
             }
-            return `${indent}$a${sa.eltLevel}.atts = { ${attsBuf.join(", ")} };`;            
+            return `${indent}$a${sa.eltLevel}.atts = { ${attsBuf.join(", ")} };`;
         case CodeLineKind.UpdateProp:
             let up = cl as ClUpdateProp;
             // e.g. $up("baz", nbr + 3, $a2, $a0)

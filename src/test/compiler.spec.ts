@@ -790,4 +790,44 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
+
+    it('should compile functions with svg nodes', () => {
+        let src = `
+            function hello(r:VdRenderer, radius) {
+                \`<div>
+                     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(50,50)">
+                            <circle class="clock-face" [r]=radius/>
+                        </g>
+                     </svg>
+                 </div> \`
+            }
+        `;
+        let cc = compile(src, "test svg");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4;
+                const $ = r.rt, $el = $.createEltNode, $ua = $.updateAtt;
+                let radius = $d["radius"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $el($a1, 2, "svg", 0);
+                    $a2.atts = { "viewBox": "0 0 100 100", "xmlns": "http://www.w3.org/2000/svg" };
+                    $a3 = $el($a2, 3, "g", 0);
+                    $a3.atts = { "transform": "translate(50,50)" };
+                    $a4 = $el($a3, 4, "circle", 1);
+                    $a4.atts = { "class": "clock-face", "r": radius };
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $a3 = $a2.children[0];
+                    $a4 = $a3.children[0];
+                    $ua("r", radius, $a4, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
 });

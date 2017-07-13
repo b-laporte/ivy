@@ -16,7 +16,8 @@
     "mocha": "mocha dist/test.js --reporter dot",
     "test": "yarn run build && yarn run mocha",
     "dev": "yarn run clean && concurrently -r \"rollup -w -c rollup.compiler.config.js\" \"chokidar --silent 'src/test/*' 'dist/rollup-plugin-iv.es.js' -c 'echo Building and running tests... && yarn run build-test'\" \"chokidar --silent 'dist/test.js' -c 'yarn run mocha'\"",
-    "build-flex": "yarn run clean && yarn run build-compiler && cpx 'src/samples/flex/**/*.{html,js,css,svg}' dist/flex && rollup --config rollup.flex.config.js",
+    "build-flex": "cpx 'src/samples/flex/**/*.{html,js,css,svg}' dist/flex && rollup --config rollup.flex.config.js",
+    "build-svg": "cpx 'src/samples/svg/**/*.{html,js,css,svg}' dist/svg && rollup --config rollup.svg.config.js",
     "start": "serve dist/flex"
   },
   "license": "UNLICENSED",

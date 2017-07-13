@@ -370,6 +370,9 @@ export const doc = {
     },
     createElement: function (name: string) {
         return new ElementNode(name);
+    },
+    createElementNS: function (ns: string, name: string): any {
+        return new ElementNode(name, ns);
     }
 }
 
@@ -383,11 +386,16 @@ class TextNode {
 
 class ElementNode {
     childNodes: any[] = [];
+    namespaceURI: string = "http://www.w3.org/1999/xhtml";
 
-    constructor(public nodeName: string) { }
+    constructor(public nodeName: string, namespace?: string) {
+        if (namespace) {
+            this.namespaceURI = namespace;
+        }
+    }
 
     setAttribute(key: string, value: string) {
-        this[key] = value;
+        this[key.toUpperCase()] = value; // toUpperCase: to test that value has been set through setAttribute
     }
 
     appendChild(node) {
@@ -437,7 +445,7 @@ class ElementNode {
         let lines: string[] = [], indent2 = isRoot ? indent + "    " : indent, atts: string[] = [], att = "";
 
         for (let k in this) {
-            if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes") {
+            if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes" && k !== "namespaceURI") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);
                 } else if (k === "className") {
@@ -473,7 +481,7 @@ class ElementNode {
     addEventListener(evtName, func) {
         this[evtName] = func;
     }
-} 
+}
 
 class DocFragment extends ElementNode {
     constructor() {

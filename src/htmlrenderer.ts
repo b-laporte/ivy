@@ -48,7 +48,7 @@ class Renderer implements HtmlRenderer {
 
         this.doc = doc || {
             createDocFragment: function () {
-                return new DocumentFragment();
+                return document.createDocumentFragment();
             },
             createTextNode: function (data: string): any {
                 return document.createTextNode(data);

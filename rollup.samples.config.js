@@ -5,8 +5,10 @@ import hnpwaConfig from './src/samples/hnpwa/rollup.config.js';
 import jfbConfig from './src/samples/js-framework-benchmark/rollup.config';
 import svgConfig from './src/samples/svg/rollup.config.js';
 import todoMVCConfig from './src/samples/todomvc/rollup.config';
+import hwConfig from './src/samples/helloworld/rollup.config';
 
 export default [
+  hwConfig,
   largeTableConfig,
   treeConfig,
   flexConfig,

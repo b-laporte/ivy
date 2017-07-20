@@ -265,8 +265,6 @@ describe('Rollup plugin', () => {
              ---`
         }
 
-        debugger
-
         let r = createTestRenderer(foo, OPTIONS);
         // initial display
         r.refresh({ nbr: 9 });
@@ -359,5 +357,125 @@ describe('Rollup plugin', () => {
         assert.equal(r.changes(), `
             DeleteGroup #1 in #-1 at position 0
         `, "invisible");
+    });
+
+    it('should generate functions with insert blocks', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        function main(r: VdRenderer, useText: boolean, msg) {
+            `---
+            % if (useText) {
+                <c:section title="hello" [content]=msg/>
+            % } else {
+                <c:section title="hello2">
+                    Hello
+                    <span class="mycontent"> {{msg}} ! </span>
+                </c:section>
+            % }
+             ---`
+        }
+
+        function section(r: VdRenderer, title, content) {
+            `---
+            <div class="section">
+                <span class="title"> {{title}} </span>
+                <ins:content/>
+            </div>
+             ---`
+        }
+
+        let r = createTestRenderer(main, OPTIONS);
+        // initial display
+        r.refresh({ msg: "Slartibartfast" });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 3 ref="1">
+                    <#group 4 content=Object title="hello2">
+                        <div 1 class="section">
+                            <span 2 class="title">
+                                <#text 3 ref="3" "hello2">
+                            </span>
+                            <#group 4 ref="4">
+                                <#text 5 " Hello ">
+                                <span 6 class="mycontent">
+                                    <#text 7 ref="2" "Slartibartfast ! ">
+                                </span>
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>
+        `, "init");
+        assert.equal(r.changes(), `
+            CreateGroup #-1
+        `, "init");
+
+        r.refresh({ useText:false, msg: "Arthur" });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 3 ref="1">
+                    <#group 4 content=Object title="hello2">
+                        <div 1 class="section">
+                            <span 2 class="title">
+                                <#text 3 ref="3" "hello2">
+                            </span>
+                            <#group 4 ref="4">
+                                <#text 5 " Hello ">
+                                <span 6 class="mycontent">
+                                    <#text 7 ref="2" "Arthur ! ">
+                                </span>
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>
+        `, "init 2");
+        assert.equal(r.changes(), `
+            UpdateText "Arthur ! " in #2
+        `, "init 2 b");
+
+        r.refresh({ useText:true, msg: "Arthur" });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 1 ref="5">
+                    <#group 2 ref="6" content="Arthur" title="hello">
+                        <div 1 class="section">
+                            <span 2 class="title">
+                                <#text 3 ref="7" "hello">
+                            </span>
+                            <#group 4 ref="8">
+                                <#text -1 ref="9" "Arthur">
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>
+        `, "update");
+        assert.equal(r.changes(), `
+            CreateGroup #5 in #-1 at position 0
+            DeleteGroup #1 in #-1 at position 1
+        `, "update b");
+
+        r.refresh({ useText:true, msg: "Bart" });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 1 ref="5">
+                    <#group 2 ref="6" content="Bart" title="hello">
+                        <div 1 class="section">
+                            <span 2 class="title">
+                                <#text 3 ref="7" "hello">
+                            </span>
+                            <#group 4 ref="8">
+                                <#text -1 ref="9" "Bart">
+                            </#group>
+                        </div>
+                    </#group>
+                </#group>
+            </#group>
+        `, "update 2");
+        assert.equal(r.changes(), `
+            UpdateText "Bart" in #9
+        `, "update 2 b");
+
     });
 });

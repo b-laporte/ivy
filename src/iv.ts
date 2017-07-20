@@ -26,7 +26,30 @@ export const ivRuntime: IvRuntime = {
         return nd;
     },
 
-    createCpt(parent: VdContainer, index: number, props: {}, needRef: 0 | 1, r: VdRenderer, vdFunction: VdFunction): VdGroupNode {
+    insert(parent: VdContainer, index: number, content: any): VdGroupNode {
+        let g: VdGroupNode = {
+            kind: VdNodeKind.Group,
+            index: index,
+            cm: 0,
+            props: {},
+            changes: null,
+            ref: ++ivRuntime.refCount,
+            children: [],
+            domNode: null,
+            parent: parent
+        };
+        if (content && content.kind === VdNodeKind.Group) {
+            // content is a node list
+            g.children = content.children
+        } else if (typeof content === "string") {
+            // create a text node
+            ivRuntime.dynTxtNode(g, -1, content);
+        }
+        parent.children[parent.children.length] = g;
+        return g;
+    },
+
+    createCpt(parent: VdContainer, index: number, props: {}, r: VdRenderer, vdFunction: VdFunction, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
         let g: VdCptNode = {
             kind: VdNodeKind.Group,
             index: index,
@@ -37,14 +60,36 @@ export const ivRuntime: IvRuntime = {
             ref: needRef ? ++ivRuntime.refCount : 0,
             children: [],
             domNode: null,
+            sdGroup: null,
+            ltGroup: null,
             parent: parent
         }, p = r.parent;
         parent.children[parent.children.length] = g;
         r.parent = g;
-        // call the sub-function with the supplied parameters
-        vdFunction(r, props);
-        r.parent = p;
-        return g;
+
+        // add sg to parent children, return lg
+        if (hasLightDom) {
+            // create the light dom and return it
+            return g.ltGroup = {
+                kind: VdNodeKind.Group,
+                index: index,
+                cm: 1,
+                vdFunction: vdFunction,
+                changes: null,
+                ref: 0,
+                children: [],
+                domNode: null,
+                sdGroup: g,
+                ltGroup: null,
+                parent: null
+            }
+        } else {
+            // no light dom
+            // call the sub-function with the supplied parameters
+            vdFunction(r, props);
+            r.parent = p;
+            return g;
+        }
     },
 
     checkGroup(childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number): VdGroupNode {
@@ -85,6 +130,7 @@ export const ivRuntime: IvRuntime = {
         let nd: VdNode | undefined = parent.children[childPosition];
         while (nd && nd.index < targetIndex) {
             // delete this group
+            // mutate the children collection in order to keep the same array reference
             parent.children.splice(childPosition, 1);
             let chge: VdDeleteGroup = {
                 kind: VdChangeKind.DeleteGroup,
@@ -170,17 +216,31 @@ export const ivRuntime: IvRuntime = {
 
     refreshCpt(r: VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode): void {
         let p = r.parent, c = cptGroup as VdCptNode;
+
+        if (c.sdGroup !== null) {
+            // there is a light dom - swap back to the shadow dom group
+            let ltGroup = c;
+            c = c.sdGroup;
+            if (!c.props) {
+                c.props = {};
+            }
+            c.props["content"] = ltGroup;
+        }
         r.parent = c;
         c.vdFunction(r, c.props);
         r.parent = p;
+
         // move changes from cptGroup to changeGroup
-        if (c.changes) {
-            if (changeGroup.changes) {
-                changeGroup.changes = changeGroup.changes.concat(c.changes);
-            } else {
-                changeGroup.changes = c.changes;
-            }
-            c.changes = null;
+        moveChangeInstructions(c, changeGroup);
+    },
+
+    refreshInsert(insertGroup: VdGroupNode, content: any, changeGroup: VdGroupNode): void {
+        // todo check if content nature has changed
+        if (content && content.kind === VdNodeKind.Group) {
+            // push back changes
+            moveChangeInstructions(content, changeGroup);
+        } else if (typeof content === "string") {
+            ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeGroup);
         }
     }
 }
@@ -190,6 +250,17 @@ function addChangeInstruction(changeGroup: VdGroupNode, instruction: VdChangeIns
         changeGroup.changes.splice(changeGroup.changes.length, 0, instruction);
     } else {
         changeGroup.changes = [instruction];
+    }
+}
+
+function moveChangeInstructions(changeGroup1: VdGroupNode, changeGroup2: VdGroupNode) {
+    if (changeGroup1.changes) {
+        if (changeGroup2.changes) {
+            changeGroup2.changes = changeGroup2.changes.concat(changeGroup1.changes);
+        } else {
+            changeGroup2.changes = changeGroup1.changes;
+        }
+        changeGroup1.changes = null;
     }
 }
 

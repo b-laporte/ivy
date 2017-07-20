@@ -703,8 +703,8 @@ describe('IV runtime', () => {
                 $a1 = $el($a0, 1, "div");
                 $a2 = $el($a1, 2, "span");
                 $tx($a2, 3, " first ");
-                $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, 1, r, bar);
-                $a2 = $cc($a1, 5, { "value": v + 3, "msg": ("m2:" + v) }, 1, r, bar);
+                $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, r, bar, 0, 1);
+                $a2 = $cc($a1, 5, { "value": v + 3, "msg": ("m2:" + v) }, r, bar, 0, 1);
                 $a2 = $el($a1, 6, "span");
                 $tx($a2, 7, " last ");
                 $a0.cm = 0;

@@ -11,7 +11,12 @@ export interface VdRuntime {
      * and call the component function
      * Use in creation mode only
      */
-    createCpt: (parent: VdContainer, index: number, props: {}, needRef: 0 | 1, r:VdRenderer, f:VdFunction) => VdGroupNode;
+    createCpt: (parent: VdContainer, index: number, props: {}, r: VdRenderer, f: VdFunction, hasLightDom: 0 | 1, needRef: 0 | 1) => VdGroupNode;
+
+    /**
+     * Create an insert group and insert the content node or text passed as argument
+     */
+    insert: (parent: VdContainer, index: number, content: any) => VdGroupNode;
 
     /**
      * Create a VdTextNode node and append it to the parent children list
@@ -42,35 +47,40 @@ export interface VdRuntime {
      * Update instructions will be stored on changeGroup
      * Used in update mode only
      */
-    updateProp: (name:string, value:any, element: VdElementWithProps, changeGroup: VdGroupNode) => void;
+    updateProp: (name: string, value: any, element: VdElementWithProps, changeGroup: VdGroupNode) => void;
 
     /**
      * Update the given attribute on the element passed as argument
      * An Update attribute instruction will be created and stored on changeGroup if the att value has changed
      */
-    updateAtt: (name:string, value:any, element: VdElementWithAtts, changeGroup: VdGroupNode) => void;
+    updateAtt: (name: string, value: any, element: VdElementWithAtts, changeGroup: VdGroupNode) => void;
 
     /**
      * Update a text node with a new value
      * Used in update mode only
      */
-    updateText: (value:string, textNode: VdTextNode, changeGroup: VdGroupNode) => void;
+    updateText: (value: string, textNode: VdTextNode, changeGroup: VdGroupNode) => void;
 
     /**
      * Update a component argument property
      * Used in update mode only
      */
-    updateCptProp: (name:string, value:any, element: VdElementWithProps) => void;
+    updateCptProp: (name: string, value: any, element: VdElementWithProps) => void;
 
     /**
      * Refresh a sub-component
      * Used in update mode only
      */
-    refreshCpt: (r:VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode) => void;
+    refreshCpt: (r: VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode) => void;
+
+    /**
+     * Refresh the content nodes associated to an insert group
+     */
+    refreshInsert: (insertGroup: VdGroupNode, content: any, changeGroup: VdGroupNode) => void;
 }
 
 export interface VdFunction {
-    (r:VdRenderer, $d?:{}): void;
+    (r: VdRenderer, $d?: {}): void;
 }
 
 export interface VdRenderer {
@@ -107,6 +117,8 @@ export interface VdGroupNode extends VdContainer {
 
 export interface VdCptNode extends VdGroupNode {
     vdFunction: VdFunction;
+    sdGroup: VdCptNode | null;               // shadow group = group containing the shadow dom or null if there is no light dom
+    ltGroup: VdCptNode | null;               // light group = group containing the light dom or null if there is not light dom
 }
 
 export interface VdTextNode extends VdNode {

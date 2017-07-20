@@ -560,8 +560,8 @@ describe('Iv compiler', () => {
                     $a1 = $el($a0, 1, "div", 0);
                     $a2 = $el($a1, 2, "span", 0);
                     $tx($a2, 3, " first ");
-                    $a2 = $cc($a1, 4, { "value": v+1, "msg": ("m1:"+v) }, 1, r, bar);
-                    $a2 = $cc($a1, 5, { "value": v+3, "msg": ("m2:"+v) }, 1, r, bar);
+                    $a2 = $cc($a1, 4, { "value": v+1, "msg": ("m1:"+v) }, r, bar, 0, 1);
+                    $a2 = $cc($a1, 5, { "value": v+3, "msg": ("m2:"+v) }, r, bar, 0, 1);
                     $a2 = $el($a1, 6, "span", 0);
                     $tx($a2, 7, " last ");
                     $a0.cm = 0;
@@ -790,7 +790,6 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
-
     it('should compile functions with svg nodes', () => {
         let src = `
             function hello(r:VdRenderer, radius) {
@@ -830,4 +829,112 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
+    it('should compile sub-function calls with content node and dynamic prop', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \` <div>
+                        <c:bar [value]=nbr>
+                            <span> {{nbr+1}} </span>
+                            <span> {{nbr+2}} </span>
+                        </c:bar>
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4;
+                const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $dt = $.dynTxtNode, $rc = $.refreshCpt, $uc = $.updateCptProp, $ut = $.updateText;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $cc($a1, 2, { "value": nbr }, r, bar, 1, 1);
+                    $a3 = $el($a2, 3, "span", 0);
+                    $dt($a3, 4, "" + (nbr+1));
+                    $a3 = $el($a2, 5, "span", 0);
+                    $dt($a3, 6, "" + (nbr+2));
+                    $rc(r, $a2, $a0);
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $uc("value", nbr, $a2);
+                    $a2 = $a2.ltGroup;
+                    $a3 = $a2.children[0];
+                    $a4 = $a3.children[0];
+                    $ut("" + (nbr+1), $a4, $a2);
+                    $a3 = $a2.children[1];
+                    $a4 = $a3.children[0];
+                    $ut("" + (nbr+2), $a4, $a2);
+                    $rc(r, $a2, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile sub-function calls with content node and no dynamic props', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \` <div>
+                        <c:bar>
+                            <span> {{nbr+1}} </span>
+                        </c:bar>
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4;
+                const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $dt = $.dynTxtNode, $rc = $.refreshCpt, $ut = $.updateText;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $cc($a1, 2, {  }, r, bar, 1, 0);
+                    $a3 = $el($a2, 3, "span", 0);
+                    $dt($a3, 4, "" + (nbr+1));
+                    $rc(r, $a2, $a0);
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $a2 = $a2.ltGroup;
+                    $a3 = $a2.children[0];
+                    $a4 = $a3.children[0];
+                    $ut("" + (nbr+1), $a4, $a2);
+                    $rc(r, $a2, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile insert statements', () => {
+        let src = `
+            function hello(r:VdRenderer, body) {
+                \` <div>
+                        <ins:body/>
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2;
+                const $ = r.rt, $el = $.createEltNode, $in = $.insert, $ri = $.refreshInsert;
+                let body = $d["body"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $in($a1, 2, body);
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $ri($a2, body, $a0);
+                }
+            }
+        `, "output generation");
+    });
 });

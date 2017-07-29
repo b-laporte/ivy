@@ -161,4 +161,61 @@ describe('HTML renderer', () => {
         r.refresh({ radius: 42 });
         assert.equal(circle["R"], 42, "radius 42");
     })
+
+    it('should support updates at the end of a block', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        function foo(r: VdRenderer, nbr: number) {
+            `---
+            <section>
+                % if (nbr > 0) {
+                    <section> main </section>
+                    % if (nbr > 1) {
+                        <button class="clear-completed">BUTTON</button>
+                    % }
+                % }
+            </section>
+             ---`
+        }
+
+        let div = doc.createElement("div"), r = htmlRenderer(div, foo, doc);
+
+        // initial display
+        r.refresh({ visible: true, nbr: 1 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <section>
+                        <#text> main </#text>
+                    </section>
+                </section>
+            </div>
+        `, "initial refresh");
+        
+        r.refresh({ visible: true, nbr: 2 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <section>
+                        <#text> main </#text>
+                    </section>
+                    <button class="clear-completed">
+                        <#text>BUTTON</#text>
+                    </button>
+                </section>
+            </div>
+        `, "update 1");
+        
+        r.refresh({ visible: true, nbr: 1 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <section>
+                        <#text> main </#text>
+                    </section>
+                </section>
+            </div>
+        `, "update 2");
+        
+    });
 });

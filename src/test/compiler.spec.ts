@@ -416,12 +416,15 @@ describe('Iv compiler', () => {
                         % if (nbr>142) {
                             <span [title]=nbr+10/>
                         % }
-                        <span [title]=nbr+20/>
+                        <div>
+                            <span [title]=nbr+20/>
+                        </div>
                     % } 
                     DEF
                   </div> \`
             }
         `;
+        debugger
         let cc = compile(src, "test8");
 
         assert.equal(cc.getOutput(), `
@@ -462,20 +465,22 @@ describe('Iv compiler', () => {
                         }
                     }
                     if ($a2.cm) {
-                        $a3 = $el($a2, 7, "span", 1);
-                        $a3.props = { "title": nbr+20 };
+                        $a3 = $el($a2, 7, "div", 0);
+                        $a4 = $el($a3, 8, "span", 1);
+                        $a4.props = { "title": nbr+20 };
                         $a2.cm = 0;
                     } else {
                         $dg($i2, $a2, $a0, 7);
                         $a3 = $a2.children[$i2];
-                        $up("title", nbr+20, $a3, $a0);
+                        $a4 = $a3.children[0];
+                        $up("title", nbr+20, $a4, $a0);
                     }
                 }
                 if ($a0.cm) {
-                    $tx($a1, 8, " DEF ");
+                    $tx($a1, 9, " DEF ");
                     $a0.cm = 0;
                 } else {
-                    $dg($i1, $a1, $a0, 8);
+                    $dg($i1, $a1, $a0, 9);
                 }
             }
         `, "output generation");
@@ -937,4 +942,72 @@ describe('Iv compiler', () => {
             }
         `, "output generation");
     });
+
+    it('should properly handle index reset', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \`  <div>
+                        <div>
+                        % if (true) {
+                            OK
+                        % }
+                        </div>
+                    </div>
+                    <div>
+                        % if (nbr>0) {
+                        Clear
+                        % }
+                    </div> \`
+            }
+        `;
+        debugger
+        let cc = compile(src, "index reset");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $i3;
+                const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $tx = $.createTxtNode, $dg = $.deleteGroups;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $el($a1, 2, "div", 1);
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                }
+                $i0 = 1; $i1 = 1; $i2 = 0;
+                if (true) {
+                    $a3 = $cg($i2, $a2, $a0, $a0, 3);
+                    $i2++;
+                    $i3 = 0;
+                    if ($a3.cm) {
+                        $tx($a3, 4, " OK ");
+                        $a3.cm = 0;
+                    }
+                }
+                if ($a0.cm) {
+                    $a1 = $el($a0, 5, "div", 1);
+                } else {
+                    $dg($i2, $a2, $a0, 5);
+                    $a1 = $a0.children[$i0];
+                }
+                $i0 += 1; $i1 = 0;
+                if (nbr>0) {
+                    $a2 = $cg($i1, $a1, $a0, $a0, 6);
+                    $i1++;
+                    $i2 = 0;
+                    if ($a2.cm) {
+                        $tx($a2, 7, " Clear ");
+                        $a2.cm = 0;
+                    }
+                }
+                if ($a0.cm) {
+                    $a0.cm = 0;
+                } else {
+                    $dg($i1, $a1, $a0, 8);
+                }
+            }
+        `, "output generation");
+    });
+
 });

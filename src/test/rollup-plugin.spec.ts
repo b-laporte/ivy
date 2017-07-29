@@ -359,9 +359,8 @@ describe('Rollup plugin', () => {
         `, "invisible");
     });
 
-    it('should generate functions with insert blocks', () => {
-        // same test as in compiler.spec and runtime.spec
-
+    it('should generate functions with node re-projection (insert blocks)', () => {
+        
         function main(r: VdRenderer, useText: boolean, msg) {
             `---
             % if (useText) {
@@ -478,4 +477,5 @@ describe('Rollup plugin', () => {
         `, "update 2 b");
 
     });
+
 });

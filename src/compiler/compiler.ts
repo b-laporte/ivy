@@ -172,13 +172,13 @@ function addError(cc: CompilationCtxt, description: string, line: number, col: n
         cc.errors = [];
     }
     let e;
-    cc.errors.push(e={
+    cc.errors.push(e = {
         description: description,
         lineNbr: line,
         columnNbr: col,
         fileName: cc.fileName
     });
-    console.log("Error: ",e.descriptioin, e.lineNbr);
+    console.log("Error: ", e.descriptioin, e.lineNbr);
 }
 
 function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
@@ -281,7 +281,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
         currentBlock: CodeBlock | null = null; // current block being processed
     if (nd) {
         let lastShift = shifts[shifts.length - 1];
-        shifts.push({ nbrOfCreations: 0, relative: false, generated: false, changeGroupIdx: b.changeGroupIdx, isHtmlNS: lastShift ? lastShift.isHtmlNS : true });
+        shifts.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, changeGroupIdx: b.changeGroupIdx, isHtmlNS: lastShift ? lastShift.isHtmlNS : true });
     }
     // always start with a node block
     appendNodeBlock();
@@ -317,6 +317,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
             if (currentBlock && currentBlock.kind === CodeBlockKind.NodeBlock) {
                 let nb = <NodeBlock>currentBlock, sh = nb.shifts;
                 generateNodeBlockRefsLine(nb, shifts, currentLevel());
+                generateNodeBlockEndLines(nb, shifts);
 
                 // ensure that parent node is created with a reference
                 let level = currentLevel(), cl: CodeLine;
@@ -336,7 +337,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
                 kind: CodeBlockKind.JsBlock,
                 functionCtxt: b.functionCtxt,
                 baseIndent: b.baseIndent + "    ",
-                startLevel: currentLevel() + 1,
+                startLevel: currentLevel() + 1, // increased by 1 to have the internal block nodes starting at this level
                 endLevel: currentLevel(),
                 blocks: [],
                 startStatement: ("" + nd.nodeValue.startBlockExpression).trim(),
@@ -360,7 +361,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
             }
             checkMaxShiftIndex(b.functionCtxt, cg.parentLevel);
             shifts[cg.parentLevel].nbrOfCreations += 1;
-            shifts[cg.parentLevel].generated = true;
+            shifts[cg.parentLevel].refGenerated = true;
             jsb.initLines.push(cg);
             let ii: ClIncrementIdx = {
                 kind: CodeLineKind.IncrementIdx,
@@ -446,7 +447,8 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
             shifts: [],
             cmLines: [],
             umLines: [],
-            initLines: []
+            initLines: [],
+            endLines: []
         }
         // if not first block, generate a delete groups instruction
         deleteGroups(nodeBlock.umLines, startLevel);
@@ -465,20 +467,13 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
     // helper function to find next node
     function nextNode(nd, noChild = false) {
         if (!noChild && nd.firstChild) {
-            let lastShift = shifts[shifts.length - 1];
-            shifts.push({ nbrOfCreations: 0, relative: false, generated: false, isHtmlNS: lastShift ? lastShift.isHtmlNS : true, changeGroupIdx: lastShift.changeGroupIdx });
-            updateShifts();
+            incrementShift();
             nacPath.push(nd);
             return nd.firstChild;
         } else if (nd.nextSibling) {
             return nd.nextSibling;
         } else {
-            let lastShift = shifts[shifts.length - 1];
-            if (lastShift && lastShift.ondelete) {
-                lastShift.ondelete();
-            }
-            shifts.pop();
-            updateShifts();
+            decrementShift();
             nd = nacPath.pop();
             return nd ? nextNode(nd, true) : null;
         }
@@ -486,6 +481,21 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
 
     function currentLevel() {
         return nacPath.length + b.startLevel;
+    }
+
+    function incrementShift() {
+        let lastShift = shifts[shifts.length - 1];
+        shifts.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, isHtmlNS: lastShift ? lastShift.isHtmlNS : true, changeGroupIdx: lastShift.changeGroupIdx });
+        updateShifts();
+    }
+
+    function decrementShift() {
+        let lastShift = shifts[shifts.length - 1];
+        if (lastShift && lastShift.ondelete) {
+            lastShift.ondelete();
+        }
+        shifts.pop();
+        updateShifts();
     }
 
     function updateShifts() {
@@ -498,7 +508,7 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
         let sh;
         for (let i = 0; shifts.length > i; i++) {
             sh = shifts[i];
-            shifts[i] = { nbrOfCreations: 0, relative: true, generated: sh.generated === true, isHtmlNS: sh.isHtmlNS, changeGroupIdx: sh.changeGroupIdx, ondelete: sh.ondelete }; // create new objects to avoid impact on previous copies
+            shifts[i] = { nbrOfCreations: 0, relative: true, refGenerated: sh.refGenerated === true, idxGenerated: sh.idxGenerated === true, isHtmlNS: sh.isHtmlNS, changeGroupIdx: sh.changeGroupIdx, ondelete: sh.ondelete }; // create new objects to avoid impact on previous copies
         }
     }
 
@@ -526,14 +536,15 @@ function scanBlocks(nac: NacNode, b: JsBlock, shifts: CodeShift[] = []) {
 function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, shifts: CodeShift[]) {
     if (nd.nodeType === NacNodeType.ELEMENT) {
         // creation mode
-        let cl: ClCreateNode, 
-            cc: ClCreateComponent | null = null, 
-            el: ClCreateElement | null = null, 
+        let cl: ClCreateNode,
+            cc: ClCreateComponent | null = null,
+            el: ClCreateElement | null = null,
             ins: ClInsert | null = null,
             isHtmlNS = shifts[shifts.length - 1].isHtmlNS;
 
         shifts[level].nbrOfCreations += 1;
-        shifts[level].generated = false;
+        shifts[level].refGenerated = false;
+        shifts[level].idxGenerated = false;
 
         if (nd.nodeNameSpace === "c") {
             // create component
@@ -561,11 +572,11 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
 
             // add refresh instruction
             generateNodeBlockRefsLine(nb, shifts);
-            nb.umLines.push(<ClRefreshInsert> {
+            nb.umLines.push(<ClRefreshInsert>{
                 kind: CodeLineKind.RefreshInsert,
-                groupLevel: level+1,
+                groupLevel: level + 1,
                 expr: nd.nodeName,
-                changeGroupLevel:shifts[level].changeGroupIdx
+                changeGroupLevel: shifts[level].changeGroupIdx
             });
             // no need to parse attributes
             return;
@@ -731,6 +742,26 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, s
     }
 }
 
+function generateNodeBlockEndLines(nb: NodeBlock, shifts: CodeShift[]) {
+    // generate end lines
+    // push index changes - e.g. $i1 = 1;
+    let shiftExprs: { level: number; relative: boolean; value: number }[] = [], sh;
+    for (let i = 0; shifts.length > i; i++) {
+        sh = shifts[i];
+        if (!sh.idxGenerated && (!sh.relative || sh.nbrOfCreations > 0)) {
+            shiftExprs.push({ level: i, relative: sh.relative, value: sh.nbrOfCreations });
+            sh.idxGenerated = true;
+        }
+    }
+    if (shiftExprs.length) {
+        let si: ClSetIndexes = {
+            kind: CodeLineKind.SetIndexes,
+            indexes: shiftExprs
+        }
+        nb.endLines.push(si);
+    }
+}
+
 function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: number, shifts: CodeShift[]) {
     let len = ndList.length;
     if (!len) return;
@@ -742,7 +773,8 @@ function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: numb
             text: encodeTextString(ndList[0].nodeValue)
         }
         shifts[level].nbrOfCreations += 1;
-        shifts[level].generated = false;
+        shifts[level].refGenerated = false;
+        shifts[level].idxGenerated = false;
         nb.cmLines.push(cl);
     } else {
         // there are dynamic parts
@@ -768,7 +800,8 @@ function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: numb
             fragments: exprs
         }
         shifts[level].nbrOfCreations += 1;
-        shifts[level].generated = false;
+        shifts[level].refGenerated = false;
+        shifts[level].idxGenerated = false;
         nb.cmLines.push(cl);
 
         // push update mode instruction
@@ -795,7 +828,7 @@ function generateNodeBlockRefsLine(nb: NodeBlock, shifts: CodeShift[], max: numb
     for (let i = 0; max > i; i++) {
         sh = nb.shifts[i];
         val = sh.nbrOfCreations - 1;
-        if (!sh.generated) {
+        if (!sh.refGenerated) {
             let childRef: any;
             if (sh.relative) {
                 checkMaxShiftIndex(nb.functionCtxt, i);
@@ -805,8 +838,8 @@ function generateNodeBlockRefsLine(nb: NodeBlock, shifts: CodeShift[], max: numb
             } else if (val > 0) {
                 childRef = sh.relative ? `$i${i}+${val}` : "" + val;
             } else if (val < 0) {
-                // this should not happen on non-generated references
-                console.error("Invalid shift reference");
+                // node has not been generated yet
+                break;
             }
             // e.g. $a2 = $a1.children[0]
             sn = {
@@ -815,11 +848,11 @@ function generateNodeBlockRefsLine(nb: NodeBlock, shifts: CodeShift[], max: numb
                 childRef: childRef
             };
             nb.umLines.push(sn);
-            sh.generated = true;
+            sh.refGenerated = true;
             if (shifts[i]) {
                 // push the generated information to the main shifts array
                 // as nb stores a clone
-                shifts[i].generated = true;
+                shifts[i].refGenerated = true;
             }
         }
     }
@@ -861,31 +894,22 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                 }
                 lines.push(`${b.baseIndent}}`);
 
-                // push shifts - e.g. $i1 = 1;
-                let shiftExprs: string[] = [], sh;
-                for (let i = 0; b.shifts.length > i; i++) {
-                    sh = b.shifts[i];
-                    if (i >= b.startLevel && (!sh.relative || sh.nbrOfCreations > 0)) {
-                        if (sh.relative) {
-                            shiftExprs.push(`$i${i} += ${sh.nbrOfCreations};`);
-                        } else {
-                            shiftExprs.push(`$i${i} = ${sh.nbrOfCreations};`);
-                        }
-                    }
-                }
                 if (!isLast) {
                     let idxNext = b.shifts.length;
                     // make sure next potential level is reset
                     if (idxNext <= fc.headDeclarations.maxShiftIdx) {
                         checkMaxShiftIndex(fc, idxNext);
                     }
+
+                    if (b.endLines.length) {
+                        for (let el of b.endLines) {
+                            lines.push(stringifyCodeLine(el, b.baseIndent, fc));
+                        }
+                    }
                 } else {
                     checkMaxShiftIndex(fc, b.shifts.length - 1);
                 }
 
-                if (shiftExprs.length) {
-                    lines.push(b.baseIndent + shiftExprs.join(" "));
-                }
             }
         } else if (block.kind === CodeBlockKind.JsBlock) {
             let jsb = block as JsBlock;
@@ -936,7 +960,8 @@ interface CodeShift {
     // structure to store index shift information when new nodes are created
     nbrOfCreations: number;    // nbr of nodes created at this level
     relative: boolean;         // tells if the shift is absolute (e.g. as long as no js block is met) or relative
-    generated: boolean;        // tells is the node reference has already been generated in the code (in which case it must not be regenarated)
+    refGenerated: boolean;     // tells is the node reference has already been generated in the code (in which case it must not be regenarated)
+    idxGenerated: boolean;     // tells if the level index (e.g. $i1) has been generated
     isHtmlNS: boolean;         // true if level is associated to HTML namespace
     ondelete?: () => void;
     changeGroupIdx: number;
@@ -948,6 +973,7 @@ interface NodeBlock extends CodeBlock {
     cmLines: CodeLine[];       // code lines corresponding to the creation mode
     umLines: CodeLine[];       // code lines correponding to the update mode
     initLines: CodeLine[];     // code lines corresponding to the block initialization (e.g. js expressions)
+    endLines: CodeLine[];      // code the lines at the end of the code block (e.g. index update)
 }
 
 interface JsBlock extends CodeBlock {
@@ -998,7 +1024,8 @@ const enum CodeLineKind {
     FuncDef = 17,
     SwapLtGroup = 18,
     Insert = 19,
-    RefreshInsert = 20
+    RefreshInsert = 20,
+    SetIndexes = 21
 }
 
 interface ClCreateNode extends CodeLine {
@@ -1120,6 +1147,12 @@ interface ClResetIdx extends CodeLine {
     // e.g. $i1 = 0;
     kind: CodeLineKind.ResetIdx;
     idxLevel: number;           // 1 in this example
+}
+
+interface ClSetIndexes extends CodeLine {
+    // e.g. $i2 += 3;
+    kind: CodeLineKind.SetIndexes;
+    indexes: { level: number, relative: boolean, value: number }[];   // in this example: level=2, relative=true, value=3
 }
 
 interface ClJsExpression extends CodeLine {
@@ -1282,6 +1315,13 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
                 fc.headDeclarations.maxShiftIdx = ridx.idxLevel
             }
             return `${indent}$i${ridx.idxLevel} = 0;`;
+        case CodeLineKind.SetIndexes:
+            let sidx = cl as ClSetIndexes, siBuf: string[] = [];;
+            // e.g. $i2 += 3;
+            for (var si of sidx.indexes) {
+                siBuf.push(`$i${si.level} ${si.relative ? '+' : ''}= ${si.value};`);
+            }
+            return `${indent}${siBuf.join(' ')}`;
         case CodeLineKind.JsExpression:
             let jse = cl as ClJsExpression;
             // e.g. let x = 123;

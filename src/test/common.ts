@@ -418,6 +418,15 @@ class ElementNode {
         this.childNodes = ch2;
     }
 
+    set textContent(value) {
+        if (value === "") {
+            // remove all child nodes
+            this.childNodes = [];
+        } else {
+            throw "Unsupported textContent: " + value;
+        }
+    }
+
     insertBefore(node, nodeRef) {
         // find nodeRef index
         let idx = -1;

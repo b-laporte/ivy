@@ -152,7 +152,7 @@ describe('HTML renderer', () => {
         let div = doc.createElement("div"), r = htmlRenderer(div, hello, doc);
 
         r.refresh({ radius: 9 });
-        let svg=div.childNodes[0].childNodes[0], circle=svg.childNodes[0].childNodes[0];
+        let svg = div.childNodes[0].childNodes[0], circle = svg.childNodes[0].childNodes[0];
         assert.equal(svg["VIEWBOX"], "0 0 100 100", "viewbox");
         assert.equal(svg["namespaceURI"], "http://www.w3.org/2000/svg", "ns");
         assert.equal(circle["namespaceURI"], "http://www.w3.org/2000/svg", "ns");
@@ -191,7 +191,7 @@ describe('HTML renderer', () => {
                 </section>
             </div>
         `, "initial refresh");
-        
+
         r.refresh({ visible: true, nbr: 2 });
         assert.equal(div.stringify("        ", true), `
             <div>
@@ -205,7 +205,7 @@ describe('HTML renderer', () => {
                 </section>
             </div>
         `, "update 1");
-        
+
         r.refresh({ visible: true, nbr: 1 });
         assert.equal(div.stringify("        ", true), `
             <div>
@@ -216,6 +216,59 @@ describe('HTML renderer', () => {
                 </section>
             </div>
         `, "update 2");
-        
+    });
+
+    it('should use textContent to empty groups that are the only child of an element', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        function foo(r: VdRenderer, nbr: number) {
+            `---
+            <section>
+                % if (nbr > 0) {
+                    <section> main </section>
+                    <div> some content </div>
+                % }
+            </section>
+             ---`
+        }
+
+        let div = doc.createElement("div"), r = htmlRenderer(div, foo, doc);
+
+        // initial display
+        r.refresh({ visible: true, nbr: 1 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <section>
+                        <#text> main </#text>
+                    </section>
+                    <div>
+                        <#text> some content </#text>
+                    </div>
+                </section>
+            </div>
+        `, "initial refresh");
+
+        r.refresh({ visible: true, nbr: 0 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section/>
+            </div>
+        `, "update 1");
+
+        r.refresh({ visible: true, nbr: 1 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <section>
+                        <#text> main </#text>
+                    </section>
+                    <div>
+                        <#text> some content </#text>
+                    </div>
+                </section>
+            </div>
+        `, "update 2");
+
     });
 });

@@ -139,7 +139,7 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
                 }
             }
         } else if (chge.kind === VdChangeKind.DeleteGroup) {
-            removeGroupFromDom((<VdDeleteGroup>chge).node);
+            removeGroupFromDom((<VdDeleteGroup>chge).node, true);
         } else if (chge.kind === VdChangeKind.UpdateAtt) {
             let ua = chge as VdUpdateAtt;
             ua.node.domNode.setAttribute(ua.name, ua.value);
@@ -231,20 +231,30 @@ function addEvtListener(domNd, nd, propName) {
     });
 }
 
-function removeGroupFromDom(group: VdGroupNode) {
+function removeGroupFromDom(group: VdGroupNode, removeInDom: boolean) {
     let ch = group.children, nd, parentDomNd = group.domNode;
     if (ch) {
         let len = ch.length;
+
+        if (len === parentDomNd.childNodes.length) {
+            // if group is the only child of the parent dom nd, use DOM node through the fast track
+            // cf. https://github.com/krausest/js-framework-benchmark/blob/85a6d94f31c79c75eb2d4d9bc7ce997e3dfde938/vanillajs-non-keyed/src/Main.js#L262-L284
+            if (removeInDom) {
+                parentDomNd.textContent = "";
+                removeInDom = false;
+            }
+        }
+
+        // recursively clean child nodes
         for (let i = 0; len > i; i++) {
             nd = ch[i];
             if (nd.kind === VdNodeKind.Group) {
-                removeGroupFromDom(nd);
-            } else if (nd.kind === VdNodeKind.Element) {
-                parentDomNd.removeChild(nd.domNode);
-                nd.domNode = null;
-                // todo recursively clean children vdom
-            } else if (nd.kind === VdNodeKind.Text) {
-                parentDomNd.removeChild(nd.domNode);
+                removeGroupFromDom(nd, removeInDom);
+            } else if (nd.kind === VdNodeKind.Text || nd.kind === VdNodeKind.Element) {
+                if (removeInDom) {
+                    parentDomNd.removeChild(nd.domNode);
+                    // todo recursively clean children vdom for elements
+                }
                 nd.domNode = null;
             }
         }

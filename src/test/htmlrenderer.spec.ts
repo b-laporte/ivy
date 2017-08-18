@@ -4,7 +4,6 @@ import { htmlRenderer } from "../htmlrenderer";
 import { VdRenderer } from "../vdom";
 
 describe('HTML renderer', () => {
-
     it('should render a simple function', () => {
         function test(r: VdRenderer, nbr) {
             `---
@@ -225,6 +224,7 @@ describe('HTML renderer', () => {
             `---
             <section>
                 % if (nbr > 0) {
+                    <:foo> blah </:foo>
                     <section> main </section>
                     <div> some content </div>
                 % }
@@ -249,12 +249,15 @@ describe('HTML renderer', () => {
             </div>
         `, "initial refresh");
 
+        doc.traces.reset();
+        assert.equal(doc.traces.wentThroughTextContentDelete, false, "trace reset");
         r.refresh({ visible: true, nbr: 0 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <section/>
             </div>
         `, "update 1");
+        assert.equal(doc.traces.wentThroughTextContentDelete, true, "deletion through textContent");
 
         r.refresh({ visible: true, nbr: 1 });
         assert.equal(div.stringify("        ", true), `
@@ -271,4 +274,217 @@ describe('HTML renderer', () => {
         `, "update 2");
 
     });
+
+    it('should support data nodes', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        function test(r: VdRenderer, selectedCard: string, content1: string, list: any[]) {
+            `---
+            % list = list || [];
+            <section>
+                <c:cardSet [selection]=selectedCard>
+                    <:card ref="first">
+                        <:title> <b> First Card </b> </:title>
+                        <b> {{ content1 }} </b>
+                    </:card>
+                    % for (let c of list) {
+                        <:card ref=c.ref>
+                            % if (c.ref !== "c1") {
+                                <:title> Card {{c.ref}} </:title>
+                            % }
+                            <span class="cn"> {{ c.content }} </span>
+                        </:card>
+                    % }
+                </c:cardSet>
+            </section>
+             ---`
+        }
+
+        function cardSet(r: VdRenderer, selection: string) {
+            `---
+            % let cards = r.getDataNodes("card");
+            % for (let card of cards) {
+                % if (card.props["ref"] === selection) {
+                    % let title = r.getDataNode("title", card);
+                    <div class="card">
+                        % if (title) {
+                            <div class="title"> title: <ins:title/></div>
+                        % }
+                        <ins:card/>
+                    </div>
+                % }
+            % }
+             ---`
+        }
+
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        // initial display
+        r.refresh({ selectedCard: "first", content1: "First Card content" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <b>
+                                <#text> First Card </#text>
+                            </b>
+                        </div>
+                        <b>
+                            <#text>First Card content</#text>
+                        </b>
+                    </div>
+                </section>
+            </div>
+        `, "initial refresh");
+
+        r.refresh({ selectedCard: "first", content1: "New First Card content" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <b>
+                                <#text> First Card </#text>
+                            </b>
+                        </div>
+                        <b>
+                            <#text>New First Card content</#text>
+                        </b>
+                    </div>
+                </section>
+            </div>
+        `, "update 1");
+
+        let list = [{ ref: "c1", content: "content #1" }, { ref: "c2", content: "content #2" }];
+        r.refresh({ selectedCard: "c2", content1: "New First Card content", list: list });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <#text> Card c2</#text>
+                        </div>
+                        <span class="cn">
+                            <#text>content #2</#text>
+                        </span>
+                    </div>
+                </section>
+            </div>
+        `, "update 2");
+
+        r.refresh({ selectedCard: "c1", content1: "New First Card content", list: list });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <span class="cn">
+                            <#text>content #1</#text>
+                        </span>
+                    </div>
+                </section>
+            </div>
+        `, "update 3");
+
+        r.refresh({ selectedCard: "unknown", content1: "New First Card content", list: list });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section/>
+            </div>
+        `, "update 4");
+
+        r.refresh({ selectedCard: "first", content1: "Hello World!", list: list });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <b>
+                                <#text> First Card </#text>
+                            </b>
+                        </div>
+                        <b>
+                            <#text>Hello World!</#text>
+                        </b>
+                    </div>
+                </section>
+            </div>
+        `, "update 5");
+    });
+
+    // to be released soon
+    // xit('should support data nodes from props for single nodes', () => {
+    //     // same test as in compiler.spec and runtime.spec
+
+    //     function test(r: VdRenderer, selectedCard: string) {
+    //         `---
+    //         <section>
+    //             <c:cardSet [selection]=selectedCard>
+    //                 <:card ref="r1" title=" First Card ">
+    //                     <b> Card 1 </b>
+    //                 </:card>
+    //                 <:card ref="r2" title=" Second Card ">
+    //                     <b> Card 2 </b>
+    //                 </:card>
+    //             </c:cardSet>
+    //         </section>
+    //          ---`
+    //     }
+        
+    //     function cardSet(r: VdRenderer, selection: string) {
+    //         `---
+    //         % let cards = r.getDataNodes("card");
+    //         % for (let card of cards) {
+    //             % if (card.props["ref"] === selection) {
+    //                 % let title = r.getDataNode("title", card);
+    //                 <div class="card">
+    //                     % if (title) {
+    //                         <div class="title"> title: <ins:title/></div>
+    //                     % }
+    //                     <ins:card/>
+    //                 </div>
+    //             % }
+    //         % }
+    //         % let sel = r.getDataNode("selection");
+    //         Selection: <ins:sel/>
+    //          ---`
+    //     }
+        
+    //     let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+    //     // initial display
+    //     r.refresh({ selectedCard: "r1" });
+    //     assert.equal(div.stringify("        ", true), `
+    //         <div>
+    //             <section>
+    //                 <div class="card">
+    //                     <div class="title">
+    //                         <#text> title: </#text>
+    //                         <#text> First Card </#text>
+    //                     </div>
+    //                     <b>
+    //                         <#text> Card 1 </#text>
+    //                     </b>
+    //                 </div>
+    //                 <#text> Selection: </#text>
+    //                 <#text>r1</#text>
+    //             </section>
+    //         </div>
+    //     `, "initial refresh");
+
+    //     r.refresh({ selectedCard: "unknown" });
+    //     assert.equal(div.stringify("        ", true), `
+    //         <div>
+    //             <section>
+    //                 <#text> Selection: </#text>
+    //                 <#text></#text>
+    //             </section>
+    //         </div>
+    //     `, "unpdate 1");
+        
+    // });
 });

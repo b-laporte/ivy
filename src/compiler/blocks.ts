@@ -13,10 +13,24 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
         nodeBlock: NodeBlock,
         jsExprBuffer: CodeLine[] = [],
         nextSiblingOnly: boolean,
-        currentBlock: CodeBlock | null = null; // current block being processed
+        currentBlock: CodeBlock | null = null,  // current block being processed
+        nextNodeBlock: NodeBlock = { // placeholder to store code lines for the next node block
+            kind: CodeBlockKind.NodeBlock,
+            functionCtxt: b.functionCtxt,
+            baseIndent: b.baseIndent,
+            startLevel: -1,
+            endLevel: -1,
+            parentGroupIdx: -1,
+            changeCtnIdx: -1,
+            levels: [],
+            cmLines: [],
+            umLines: [],
+            initLines: [],
+            endLines: []
+        };
     if (nd) {
-        let lastShift = levels[levels.length - 1];
-        levels.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, changeGroupIdx: b.changeGroupIdx, isHtmlNS: lastShift ? lastShift.isHtmlNS : true });
+        let lastLevel = levels[levels.length - 1];
+        levels.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, changeCtnIdx: b.changeCtnIdx, isHtmlNS: lastLevel ? lastLevel.isHtmlNS : true });
     }
     // always start with a node block
     appendNodeBlock();
@@ -59,13 +73,13 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
                 // find last CreateElement code line that matches this level
                 for (let i = nb.cmLines.length - 1; i > -1; i--) {
                     cl = nb.cmLines[i];
-                    if (cl.kind === CodeLineKind.CreateElement && (level === (<ClCreateElement>cl).parentLevel + 1)) {
-                        (<ClCreateElement>cl).needRef = true;
+                    if ((cl.kind === CodeLineKind.CreateElement || cl.kind === CodeLineKind.CreateDataNode) && (level === (<ClCreateNode>cl).parentLevel + 1)) {
+                        (<ClCreateNode>cl).needRef = true;
                     }
                 }
             }
             if (b.blocks.length > 0) {
-                resetShifts();
+                resetLevels();
             }
 
             let jsb: JsBlock = {
@@ -78,7 +92,7 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
                 startStatement: ("" + nd.nodeValue.startBlockExpression).trim(),
                 endStatement: ("" + nd.nodeValue.endBlockExpression).trim(),
                 parentGroupIdx: currentLevel() + 1,
-                changeGroupIdx: b.changeGroupIdx,
+                changeCtnIdx: b.changeCtnIdx,
                 initLines: []
             }
             if (currentBlock && currentBlock.kind === CodeBlockKind.JsBlock) {
@@ -91,10 +105,10 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
                 kind: CodeLineKind.CheckGroup,
                 groupIdx: b.functionCtxt.nextNodeIdx(),
                 parentLevel: currentLevel(),
-                changeGroupLevel: jsb.changeGroupIdx,
+                changeCtnIdx: jsb.changeCtnIdx,
                 parentGroupLevel: b.parentGroupIdx
             }
-            checkMaxShiftIndex(b.functionCtxt, cg.parentLevel);
+            checkMaxLevelIndex(b.functionCtxt, cg.parentLevel);
             levels[cg.parentLevel].nbrOfCreations += 1;
             levels[cg.parentLevel].refGenerated = true;
             jsb.initLines.push(cg);
@@ -168,7 +182,7 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
         // create new block
         let startLevel = currentLevel();
         if (b.blocks.length > 0) {
-            resetShifts();  // reset all shifts to 0
+            resetLevels();  // reset all levels to 0
             startLevel = b.blocks[b.blocks.length - 1].endLevel;
         }
         nodeBlock = {
@@ -178,19 +192,24 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
             startLevel: startLevel,
             endLevel: currentLevel(),
             parentGroupIdx: b.startLevel,
-            changeGroupIdx: b.changeGroupIdx,
+            changeCtnIdx: b.changeCtnIdx,
             levels: [],
-            cmLines: [],
-            umLines: [],
-            initLines: [],
-            endLines: []
+            cmLines: nextNodeBlock.cmLines,
+            umLines: nextNodeBlock.umLines,
+            initLines: nextNodeBlock.initLines,
+            endLines: nextNodeBlock.endLines
         }
+
+        nextNodeBlock.cmLines = [];
+        nextNodeBlock.umLines = [];
+        nextNodeBlock.initLines = [];
+        nextNodeBlock.endLines = [];
         // if not first block, generate a delete groups instruction
         deleteGroups(nodeBlock.umLines, startLevel);
 
         b.blocks.push(nodeBlock);
         currentBlock = nodeBlock;
-        updateShifts();
+        updateLevels();
 
         if (jsExprBuffer.length) {
             // some single lines expression have been found before the block
@@ -202,13 +221,18 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
     // helper function to find next node
     function nextNode(nd, noChild = false) {
         if (!noChild && nd.firstChild) {
-            incrementShift();
+            incrementLevel();
             nacPath.push(nd);
             return nd.firstChild;
         } else if (nd.nextSibling) {
+            let lastLevel = levels[levels.length - 1];
+            if (lastLevel && lastLevel.ondelete && currentBlock) {
+                lastLevel.ondelete(currentBlock, nextNodeBlock);
+                lastLevel.ondelete = undefined;
+            }
             return nd.nextSibling;
         } else {
-            decrementShift();
+            decrementLevel();
             nd = nacPath.pop();
             return nd ? nextNode(nd, true) : null;
         }
@@ -218,52 +242,50 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
         return nacPath.length + b.startLevel;
     }
 
-    function incrementShift() {
-        let lastShift = levels[levels.length - 1];
-        levels.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, isHtmlNS: lastShift ? lastShift.isHtmlNS : true, changeGroupIdx: lastShift.changeGroupIdx });
-        updateShifts();
+    function incrementLevel() {
+        let lastLevel = levels[levels.length - 1];
+        levels.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, isHtmlNS: lastLevel ? lastLevel.isHtmlNS : true, changeCtnIdx: lastLevel.changeCtnIdx });
+        updateLevels();
     }
 
-    function decrementShift() {
-        let lastShift = levels[levels.length - 1];
-        if (lastShift && lastShift.ondelete) {
-            lastShift.ondelete();
+    function decrementLevel() {
+        let lastLevel = levels[levels.length - 1];
+        if (lastLevel && lastLevel.ondelete && currentBlock) {
+            lastLevel.ondelete(currentBlock, nextNodeBlock);
         }
         levels.pop();
-        updateShifts();
+        updateLevels();
     }
 
-    function updateShifts() {
+    function updateLevels() {
         if (currentBlock && currentBlock.kind === CodeBlockKind.NodeBlock) {
-            (<NodeBlock>currentBlock).levels = levels.slice(0); // clone shifts array
+            (<NodeBlock>currentBlock).levels = levels.slice(0); // clone levels array
         }
     }
 
-    function resetShifts() {
+    function resetLevels() {
         let sh;
         for (let i = 0; levels.length > i; i++) {
             sh = levels[i];
-            levels[i] = { nbrOfCreations: 0, relative: true, refGenerated: sh.refGenerated === true, idxGenerated: sh.idxGenerated === true, isHtmlNS: sh.isHtmlNS, changeGroupIdx: sh.changeGroupIdx, ondelete: sh.ondelete }; // create new objects to avoid impact on previous copies
+            levels[i] = { nbrOfCreations: 0, relative: true, refGenerated: sh.refGenerated === true, idxGenerated: sh.idxGenerated === true, isHtmlNS: sh.isHtmlNS, changeCtnIdx: sh.changeCtnIdx, ondelete: sh.ondelete }; // create new objects to avoid impact on previous copies
         }
     }
 
     function deleteGroups(lines: CodeLine[], level: number) {
         if (b.blocks.length > 0) {
-
-            //b.changeGroupIdx
-            let changeGroupLevel = b.changeGroupIdx;
+            let changeCtnIdx = b.changeCtnIdx;
             if (levels[level]) {
-                // shifts[level] doesn't exist when we append a last js block that doesn't correspond to any node
-                changeGroupLevel = levels[level].changeGroupIdx;
+                // levels[level] doesn't exist when we append a last js block that doesn't correspond to any node
+                changeCtnIdx = levels[level].changeCtnIdx;
             }
 
             let dg: ClDeleteGroups = {
                 kind: CodeLineKind.DeleteGroups,
                 targetIdx: b.functionCtxt.lastNodeIdx() + 1,
                 parentLevel: level,
-                changeGroupLevel: changeGroupLevel
+                changeCtnIdx: changeCtnIdx
             }
-            lines.push(dg);
+            lines.splice(0, 0, dg);
         }
     }
 }
@@ -311,10 +333,31 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                 kind: CodeLineKind.RefreshInsert,
                 groupLevel: level + 1,
                 expr: nd.nodeName,
-                changeGroupLevel: levels[level].changeGroupIdx
+                changeCtnIdx: levels[level].changeCtnIdx
             });
             // no need to parse attributes
             return;
+        } else if (nd.nodeNameSpace === "") {
+            // data node
+            let dn = {
+                kind: CodeLineKind.CreateDataNode,
+                eltName: nd.nodeName,
+                nodeIdx: nb.functionCtxt.nextNodeIdx(),
+                parentLevel: level,
+                needRef: false
+            };
+            nb.cmLines.push(dn);
+            cl = dn;
+            if (nd.firstChild) {
+                // data node has a light dom - we have to register it as change container
+                let currentChangeCtnIdx = levels[level].changeCtnIdx;
+                levels[level].changeCtnIdx = level + 1;
+
+                levels[level].ondelete = () => {
+                    // set back changeCtnIdx
+                    levels[level].changeCtnIdx = currentChangeCtnIdx;
+                };
+            }
         } else {
             // create element
             // e.g. $a1 = $el($a0, 1, "div", 1);
@@ -415,7 +458,7 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                             eltLevel: cl.parentLevel + 1,
                             attName: att.name,
                             expr: att.value,
-                            changeGroupLevel: levels[level].changeGroupIdx
+                            changeCtnIdx: levels[level].changeCtnIdx
                         });
                     } else {
                         nb.umLines.push(<ClUpdateProp>{
@@ -423,7 +466,7 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                             eltLevel: cl.parentLevel + 1,
                             propName: att.name,
                             expr: att.value,
-                            changeGroupLevel: levels[level].changeGroupIdx
+                            changeCtnIdx: levels[level].changeCtnIdx
                         });
                     }
                 }
@@ -435,7 +478,7 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                         kind: CodeLineKind.RefreshCpt,
                         rendererNm: nb.functionCtxt.rendererNm,
                         cptLevel: level + 1,
-                        changeGroupLevel: levels[level].changeGroupIdx
+                        changeCtnIdx: levels[level].changeCtnIdx
                     });
                 }
             }
@@ -448,27 +491,24 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                 cptLevel: level + 1
             });
 
-            let currentChangeGroupIdx = levels[level].changeGroupIdx;
-            levels[level].changeGroupIdx = cc.parentLevel + 1;
+            let currentChangeCtnIdx = levels[level].changeCtnIdx;
+            levels[level].changeCtnIdx = cc.parentLevel + 1;
 
-            levels[level].ondelete = () => {
-                // set back changeGroupIdx
-                levels[level].changeGroupIdx = currentChangeGroupIdx;
-
+            levels[level].ondelete = (cb: CodeBlock, nextNb: NodeBlock) => {
+                // set back changeCtnIdx
+                levels[level].changeCtnIdx = currentChangeCtnIdx;
                 // add instructions once all child nodes have been handled
-                nb.cmLines.push(<ClRefreshCpt>{
-                    kind: CodeLineKind.RefreshCpt,
-                    rendererNm: nb.functionCtxt.rendererNm,
-                    cptLevel: level + 1,
-                    changeGroupLevel: currentChangeGroupIdx
-                });
 
-                nb.umLines.push(<ClRefreshCpt>{
+                let rc = <ClRefreshCpt>{
                     kind: CodeLineKind.RefreshCpt,
                     rendererNm: nb.functionCtxt.rendererNm,
                     cptLevel: level + 1,
-                    changeGroupLevel: currentChangeGroupIdx
-                });
+                    changeCtnIdx: currentChangeCtnIdx
+                };
+
+                let ndb: NodeBlock = (cb.kind === CodeBlockKind.NodeBlock) ? cb as NodeBlock : nextNb;
+                ndb.cmLines.push(rc);
+                ndb.umLines.push(rc);
             }
         }
 
@@ -480,18 +520,18 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
 function generateNodeBlockEndLines(nb: NodeBlock, levels: LevelCtxt[]) {
     // generate end lines
     // push index changes - e.g. $i1 = 1;
-    let shiftExprs: { level: number; relative: boolean; value: number }[] = [], sh;
+    let idxExprs: { level: number; relative: boolean; value: number }[] = [], sh;
     for (let i = 0; levels.length > i; i++) {
         sh = levels[i];
         if (!sh.idxGenerated && (!sh.relative || sh.nbrOfCreations > 0)) {
-            shiftExprs.push({ level: i, relative: sh.relative, value: sh.nbrOfCreations });
+            idxExprs.push({ level: i, relative: sh.relative, value: sh.nbrOfCreations });
             sh.idxGenerated = true;
         }
     }
-    if (shiftExprs.length) {
+    if (idxExprs.length) {
         let si: ClSetIndexes = {
             kind: CodeLineKind.SetIndexes,
-            indexes: shiftExprs
+            indexes: idxExprs
         }
         nb.endLines.push(si);
     }
@@ -545,7 +585,7 @@ function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: numb
             kind: CodeLineKind.UpdateText,
             fragments: exprs,
             eltLevel: cl.parentLevel + 1,
-            changeGroupLevel: levels[level].changeGroupIdx
+            changeCtnIdx: levels[level].changeCtnIdx
         });
     }
 }
@@ -566,7 +606,7 @@ function generateNodeBlockRefsLine(nb: NodeBlock, levels: LevelCtxt[], max: numb
         if (!sh.refGenerated) {
             let childRef: any;
             if (sh.relative) {
-                checkMaxShiftIndex(nb.functionCtxt, i);
+                checkMaxLevelIndex(nb.functionCtxt, i);
             }
             if (val === 0) {
                 childRef = sh.relative ? `$i${i}` : "0";
@@ -585,7 +625,7 @@ function generateNodeBlockRefsLine(nb: NodeBlock, levels: LevelCtxt[], max: numb
             nb.umLines.push(sn);
             sh.refGenerated = true;
             if (levels[i]) {
-                // push the generated information to the main shifts array
+                // push the generated information to the main levels array
                 // as nb stores a clone
                 levels[i].refGenerated = true;
             }
@@ -598,9 +638,9 @@ function generateNodeBlockRefsLine(nb: NodeBlock, levels: LevelCtxt[], max: numb
  * @param fc 
  * @param max 
  */
-export function checkMaxShiftIndex(fc, max) {
-    if (fc.headDeclarations.maxShiftIdx < max) {
+export function checkMaxLevelIndex(fc, max) {
+    if (fc.headDeclarations.maxLevelIdx < max) {
         // to ensure shift variables (e.g. $i1) to be declared
-        fc.headDeclarations.maxShiftIdx = max;
+        fc.headDeclarations.maxLevelIdx = max;
     }
 }

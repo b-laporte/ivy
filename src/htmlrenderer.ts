@@ -1,5 +1,5 @@
 
-import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt } from "./vdom";
+import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode } from "./vdom";
 import { ivRuntime } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
@@ -60,6 +60,14 @@ class Renderer implements HtmlRenderer {
                 return document.createElementNS(ns, name);
             }
         }
+    }
+
+    getDataNodes(nodeName: string, parent?: VdContainer) {
+        return ivRuntime.getDataNodes(<VdGroupNode>(this.parent), nodeName, parent);
+    }
+
+    getDataNode(nodeName: string, parent?: VdContainer) {
+        return ivRuntime.getDataNode(<VdGroupNode>(this.parent), nodeName, parent);
     }
 
     refresh($d) {
@@ -139,7 +147,8 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
                 }
             }
         } else if (chge.kind === VdChangeKind.DeleteGroup) {
-            removeGroupFromDom((<VdDeleteGroup>chge).node, true);
+            let dg = <VdDeleteGroup>chge;
+            removeGroupFromDom(dg.node, true, dg.position === 0 && dg.nbrOfNextSiblings === 0);
         } else if (chge.kind === VdChangeKind.UpdateAtt) {
             let ua = chge as VdUpdateAtt;
             ua.node.domNode.setAttribute(ua.name, ua.value);
@@ -163,6 +172,9 @@ function processNode(nd: VdNode, domParent, doc: HtmlDoc, ns: string | null) {
             let domNd = doc.createTextNode((<VdTextNode>nd).value);
             nd.domNode = domNd;
             domParent.appendChild(domNd);
+            break;
+        case VdNodeKind.Data:
+            // ignore
             break;
         default:
             console.error("[iv html renderer] Invalid node kind: " + nd.kind);
@@ -231,15 +243,17 @@ function addEvtListener(domNd, nd, propName) {
     });
 }
 
-function removeGroupFromDom(group: VdGroupNode, removeInDom: boolean) {
+function removeGroupFromDom(group: VdGroupNode, removeInDom: boolean, checkForFastDelete: boolean) {
     let ch = group.children, nd, parentDomNd = group.domNode;
     if (ch) {
         let len = ch.length;
 
-        if (len === parentDomNd.childNodes.length) {
-            // if group is the only child of the parent dom nd, use DOM node through the fast track
-            // cf. https://github.com/krausest/js-framework-benchmark/blob/85a6d94f31c79c75eb2d4d9bc7ce997e3dfde938/vanillajs-non-keyed/src/Main.js#L262-L284
-            if (removeInDom) {
+        if (removeInDom && checkForFastDelete) {
+            // group may contain data nodes, so we have to count visible elememnts
+            if (countGroupDomChildren(group) === parentDomNd.childNodes.length) {
+                // if group is the only child of the parent dom nd, use DOM node through the fast track
+                // cf. https://github.com/krausest/js-framework-benchmark/blob/85a6d94f31c79c75eb2d4d9bc7ce997e3dfde938/vanillajs-non-keyed/src/Main.js#L262-L284
+
                 parentDomNd.textContent = "";
                 removeInDom = false;
             }
@@ -249,7 +263,7 @@ function removeGroupFromDom(group: VdGroupNode, removeInDom: boolean) {
         for (let i = 0; len > i; i++) {
             nd = ch[i];
             if (nd.kind === VdNodeKind.Group) {
-                removeGroupFromDom(nd, removeInDom);
+                removeGroupFromDom(nd, removeInDom, false);
             } else if (nd.kind === VdNodeKind.Text || nd.kind === VdNodeKind.Element) {
                 if (removeInDom) {
                     parentDomNd.removeChild(nd.domNode);
@@ -260,6 +274,20 @@ function removeGroupFromDom(group: VdGroupNode, removeInDom: boolean) {
         }
     }
     group.domNode = null;
+}
+
+function countGroupDomChildren(group: VdGroupNode): number {
+    let r = 0, ch = group.children, len = ch.length, c, k;
+    for (let i = 0; len > i; i++) {
+        c = ch[i];
+        k = c.kind;
+        if (k === VdNodeKind.Group) {
+            r += countGroupDomChildren(c);
+        } else if (k !== VdNodeKind.Data) {
+            r++;
+        }
+    }
+    return r;
 }
 
 /**

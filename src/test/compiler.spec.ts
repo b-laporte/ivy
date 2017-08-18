@@ -424,7 +424,6 @@ describe('Iv compiler', () => {
                   </div> \`
             }
         `;
-        debugger
         let cc = compile(src, "test8");
 
         assert.equal(cc.getOutput(), `
@@ -878,6 +877,120 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
+    it('should compile sub-function calls with js block content', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \` <div>
+                        <c:bar [value]=nbr>
+                            {{nbr+1}}
+                            % if (nbr===42) {
+                                {{nbr+2}}
+                            % }
+                            {{nbr+2}}
+                        </c:bar>
+                        Hello
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+                const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $dt = $.dynTxtNode, $uc = $.updateCptProp, $ut = $.updateText, $cg = $.checkGroup, $rc = $.refreshCpt, $tx = $.createTxtNode, $dg = $.deleteGroups;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $cc($a1, 2, { "value": nbr }, r, bar, 1, 1);
+                    $dt($a2, 3, "" + (nbr+1));
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $uc("value", nbr, $a2);
+                    $a2 = $a2.ltGroup;
+                    $a3 = $a2.children[0];
+                    $ut("" + (nbr+1), $a3, $a2);
+                }
+                $i0 = 1; $i1 = 1; $i2 = 1;
+                if (nbr===42) {
+                    $a3 = $cg($i2, $a2, $a0, $a0, 4);
+                    $i2++;
+                    $i3 = 0;
+                    if ($a3.cm) {
+                        $dt($a3, 5, "" + (nbr+2));
+                        $a3.cm = 0;
+                    } else {
+                        $a4 = $a3.children[0];
+                        $ut("" + (nbr+2), $a4, $a0);
+                    }
+                }
+                if ($a0.cm) {
+                    $dt($a2, 6, "" + (nbr+2));
+                    $rc(r, $a2, $a0);
+                    $tx($a1, 7, " Hello ");
+                    $a0.cm = 0;
+                } else {
+                    $dg($i2, $a2, $a2, 6);
+                    $a3 = $a2.children[$i2];
+                    $ut("" + (nbr+2), $a3, $a2);
+                    $rc(r, $a2, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile sub-function calls with js block as full content', () => {
+        let src = `
+            function hello(r:VdRenderer, nbr) {
+                \` <div>
+                        <c:bar [value]=nbr>
+                            % if (nbr===42) {
+                                {{nbr+2}}
+                            % }
+                        </c:bar>
+                   </div> \`
+            }
+        `;
+        let cc = compile(src, "test10");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+                const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $uc = $.updateCptProp, $cg = $.checkGroup, $dt = $.dynTxtNode, $ut = $.updateText, $rc = $.refreshCpt, $dg = $.deleteGroups;
+                let nbr = $d["nbr"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a2 = $cc($a1, 2, { "value": nbr }, r, bar, 1, 1);
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $uc("value", nbr, $a2);
+                    $a2 = $a2.ltGroup;
+                }
+                $i0 = 1; $i1 = 1; $i2 = 0;
+                if (nbr===42) {
+                    $a3 = $cg($i2, $a2, $a0, $a0, 3);
+                    $i2++;
+                    $i3 = 0;
+                    if ($a3.cm) {
+                        $dt($a3, 4, "" + (nbr+2));
+                        $a3.cm = 0;
+                    } else {
+                        $a4 = $a3.children[0];
+                        $ut("" + (nbr+2), $a4, $a0);
+                    }
+                }
+                if ($a0.cm) {
+                    $rc(r, $a2, $a0);
+                    $a0.cm = 0;
+                } else {
+                    $dg($i2, $a2, $a0, 5);
+                    $rc(r, $a2, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
     it('should compile sub-function calls with content node and no dynamic props', () => {
         let src = `
             function hello(r:VdRenderer, nbr) {
@@ -960,7 +1073,6 @@ describe('Iv compiler', () => {
                     </div> \`
             }
         `;
-        debugger
         let cc = compile(src, "index reset");
 
         assert.equal(cc.getOutput(), `
@@ -1005,6 +1117,46 @@ describe('Iv compiler', () => {
                     $a0.cm = 0;
                 } else {
                     $dg($i1, $a1, $a0, 8);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile data nodes with bindings', () => {
+        let src = `
+            function hello(r:VdRenderer, foo:string, bar) {
+                \`<div class="hello">
+                     <:title [type]=foo> Greeting {{bar}} </:title>
+                     Hello World ! {{bar+"..."}}
+                     <:footer> Have a nice day </:footer>
+                 </div> \`
+            }
+        `;
+        let cc = compile(src, "test4");
+
+        assert.equal(cc.getOutput(), `
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3;
+                const $ = r.rt, $t0 = " Greeting ", $t1 = " Hello World ! ", $el = $.createEltNode, $dn = $.createDtNode, $dt = $.dynTxtNode, $tx = $.createTxtNode, $up = $.updateProp, $ut = $.updateText;
+                let foo = $d["foo"], bar = $d["bar"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 0);
+                    $a1.props = { "class": "hello" };
+                    $a2 = $dn($a1, 2, "title", 1);
+                    $a2.props = { "type": foo };
+                    $dt($a2, 3, $t0 + (bar));
+                    $dt($a1, 4, $t1 + (bar+"..."));
+                    $a2 = $dn($a1, 5, "footer", 0);
+                    $tx($a2, 6, " Have a nice day ");
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $a2 = $a1.children[0];
+                    $up("type", foo, $a2, $a2);
+                    $a3 = $a2.children[0];
+                    $ut($t0 + (bar), $a3, $a2);
+                    $a2 = $a1.children[1];
+                    $ut($t1 + (bar+"..."), $a2, $a0);
                 }
             }
         `, "output generation");

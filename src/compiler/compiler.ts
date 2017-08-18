@@ -1,7 +1,7 @@
 import * as ts from "typescript";
 import { parse } from "./parser";
-import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup } from "./types";
-import { scanBlocks, checkMaxShiftIndex } from "./blocks";
+import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup, ClCreateDataNode } from "./types";
+import { scanBlocks, checkMaxLevelIndex } from "./blocks";
 
 const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
 
@@ -198,7 +198,7 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
             headDeclarations: {
                 params: tf.params,
                 constAliases: {},
-                maxShiftIdx: -1,
+                maxLevelIdx: -1,
                 maxTextIdx: -1,
                 maxFuncIdx: -1
             },
@@ -209,7 +209,7 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
             startLevel: 0,
             endLevel: 0,
             parentGroupIdx: 0,
-            changeGroupIdx: 0,
+            changeCtnIdx: 0,
             nextNodeIdx: () => ++nodeCount,
             lastNodeIdx: () => nodeCount,
             functionCtxt: null,
@@ -229,7 +229,7 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
     let constBuf: string[] = [],
         params = fc.headDeclarations.params,
         aliases = fc.headDeclarations.constAliases,
-        maxShiftIdx = fc.headDeclarations.maxShiftIdx,
+        maxLevelIdx = fc.headDeclarations.maxLevelIdx,
         maxFuncIdx = fc.headDeclarations.maxFuncIdx,
         elRefs: string[] = [],
         idxRefs: string[] = [];
@@ -239,7 +239,7 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
             elRefs.push(", $a" + (i + 1));
         }
     }
-    for (let i = 0; maxShiftIdx >= i; i++) {
+    for (let i = 0; maxLevelIdx >= i; i++) {
         if (i === 0) {
             idxRefs.push(", $i0 = 0");
         } else {
@@ -308,8 +308,8 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                 if (!isLast) {
                     let idxNext = b.levels.length;
                     // make sure next potential level is reset
-                    if (idxNext <= fc.headDeclarations.maxShiftIdx) {
-                        checkMaxShiftIndex(fc, idxNext);
+                    if (idxNext <= fc.headDeclarations.maxLevelIdx) {
+                        checkMaxLevelIndex(fc, idxNext);
                     }
 
                     if (b.endLines.length) {
@@ -318,7 +318,7 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                         }
                     }
                 } else {
-                    checkMaxShiftIndex(fc, b.levels.length - 1);
+                    checkMaxLevelIndex(fc, b.levels.length - 1);
                 }
 
             }
@@ -345,6 +345,14 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
                 fc.maxLevel = el.parentLevel + 1;
             }
             return `${indent}$a${el.parentLevel + 1} = $el($a${el.parentLevel}, ${el.nodeIdx}, "${el.eltName}", ${el.needRef ? 1 : 0});`;
+        case CodeLineKind.CreateDataNode:
+            // $dn($a1, 2, "title", 1);
+            let dn = cl as ClCreateDataNode;
+            fc.headDeclarations.constAliases["$dn"] = "$.createDtNode";
+            if (fc.maxLevel < dn.parentLevel + 1) {
+                fc.maxLevel = dn.parentLevel + 1;
+            }
+            return `${indent}$a${dn.parentLevel + 1} = $dn($a${dn.parentLevel}, ${dn.nodeIdx}, "${dn.eltName}", ${dn.needRef ? 1 : 0});`;
         case CodeLineKind.Insert:
             let ins = cl as ClInsert;
             // e.g. $a2 = $in($a1, 9, body);
@@ -395,17 +403,17 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let up = cl as ClUpdateProp;
             // e.g. $up("baz", nbr + 3, $a2, $a0)
             fc.headDeclarations.constAliases["$up"] = "$.updateProp";
-            return `${indent}$up("${up.propName}", ${up.expr}, $a${up.eltLevel}, $a${up.changeGroupLevel});`;
+            return `${indent}$up("${up.propName}", ${up.expr}, $a${up.eltLevel}, $a${up.changeCtnIdx});`;
         case CodeLineKind.UpdateAtt:
             let ua = cl as ClUpdateAtt;
             // e.g. $up("baz", nbr + 3, $a2, $a0)
             fc.headDeclarations.constAliases["$ua"] = "$.updateAtt";
-            return `${indent}$ua("${ua.attName}", ${ua.expr}, $a${ua.eltLevel}, $a${ua.changeGroupLevel});`;
+            return `${indent}$ua("${ua.attName}", ${ua.expr}, $a${ua.eltLevel}, $a${ua.changeCtnIdx});`;
         case CodeLineKind.UpdateText:
             let ut = cl as ClUpdateText;
             // e.g. $ut($t0 + (nbr+1) + $t1, $a2, $a0);
             fc.headDeclarations.constAliases["$ut"] = "$.updateText";
-            return `${indent}$ut(${ut.fragments.join(" + ")}, $a${ut.eltLevel}, $a${ut.changeGroupLevel});`;
+            return `${indent}$ut(${ut.fragments.join(" + ")}, $a${ut.eltLevel}, $a${ut.changeCtnIdx});`;
         case CodeLineKind.UpdateCptProp:
             let uc = cl as ClUpdateCptProp;
             // e.g. $uc("baz", nbr + 3, $a2)
@@ -415,12 +423,12 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let rc = cl as ClRefreshCpt;
             // e.g. $rc(r, $a2, $a0);
             fc.headDeclarations.constAliases["$rc"] = "$.refreshCpt";
-            return `${indent}$rc(${rc.rendererNm}, $a${rc.cptLevel}, $a${rc.changeGroupLevel});`;
+            return `${indent}$rc(${rc.rendererNm}, $a${rc.cptLevel}, $a${rc.changeCtnIdx});`;
         case CodeLineKind.RefreshInsert:
             let ri = cl as ClRefreshInsert;
             // e.g. $ri($a2, body, $a0);
             fc.headDeclarations.constAliases["$ri"] = "$.refreshInsert";
-            return `${indent}$ri($a${ri.groupLevel}, ${ri.expr}, $a${ri.changeGroupLevel});`;
+            return `${indent}$ri($a${ri.groupLevel}, ${ri.expr}, $a${ri.changeCtnIdx});`;
         case CodeLineKind.SetNodeRef:
             let sr = cl as ClSetNodeRef;
             // e.g. $a2 = $a1.children[0];
@@ -432,24 +440,24 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             if (fc.maxLevel < cg.parentLevel + 1) {
                 fc.maxLevel = cg.parentLevel + 1;
             }
-            return `${indent}$a${cg.parentLevel + 1} = $cg($i${cg.parentLevel}, $a${cg.parentLevel}, $a${cg.changeGroupLevel}, $a${cg.parentGroupLevel}, ${cg.groupIdx});`;
+            return `${indent}$a${cg.parentLevel + 1} = $cg($i${cg.parentLevel}, $a${cg.parentLevel}, $a${cg.changeCtnIdx}, $a${cg.parentGroupLevel}, ${cg.groupIdx});`;
         case CodeLineKind.DeleteGroups:
             let dg = cl as ClDeleteGroups;
             // e.g. $dg($i1, $a1, $a0, 8);
             fc.headDeclarations.constAliases["$dg"] = "$.deleteGroups";
-            return `${indent}$dg($i${dg.parentLevel}, $a${dg.parentLevel}, $a${dg.changeGroupLevel}, ${dg.targetIdx});`;
+            return `${indent}$dg($i${dg.parentLevel}, $a${dg.parentLevel}, $a${dg.changeCtnIdx}, ${dg.targetIdx});`;
         case CodeLineKind.IncrementIdx:
             let ii = cl as ClIncrementIdx;
             // e.g. $i1++;
-            if (fc.headDeclarations.maxShiftIdx < ii.idxLevel) {
-                fc.headDeclarations.maxShiftIdx = ii.idxLevel
+            if (fc.headDeclarations.maxLevelIdx < ii.idxLevel) {
+                fc.headDeclarations.maxLevelIdx = ii.idxLevel
             }
             return `${indent}$i${ii.idxLevel}++;`;
         case CodeLineKind.ResetIdx:
             let ridx = cl as ClResetIdx;
             // e.g. $i1 = 0+;
-            if (fc.headDeclarations.maxShiftIdx < ridx.idxLevel) {
-                fc.headDeclarations.maxShiftIdx = ridx.idxLevel
+            if (fc.headDeclarations.maxLevelIdx < ridx.idxLevel) {
+                fc.headDeclarations.maxLevelIdx = ridx.idxLevel
             }
             return `${indent}$i${ridx.idxLevel} = 0;`;
         case CodeLineKind.SetIndexes:

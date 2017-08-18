@@ -15,7 +15,7 @@ export interface CodeBlock {
     startLevel: number;        // e.g. 0 when the current parent node is at depth 0
     endLevel: number;          // e.g. 1 when the block leaves a node element open at depth 1
     parentGroupIdx: number;    // depth level of the block's parent group (may not be the direct parent)
-    changeGroupIdx: number;    // depth level of the block's change group (usually 0)
+    changeCtnIdx: number;      // depth level of the block's change group (usually 0)
 }
 
 export interface LevelCtxt {
@@ -25,8 +25,8 @@ export interface LevelCtxt {
     refGenerated: boolean;     // tells is the node reference has already been generated in the code (in which case it must not be regenarated)
     idxGenerated: boolean;     // tells if the level index (e.g. $i1) has been generated
     isHtmlNS: boolean;         // true if level is associated to HTML namespace
-    ondelete?: () => void;
-    changeGroupIdx: number;
+    ondelete?: (currentBlock: CodeBlock, nextNodeBlock: NodeBlock) => void;
+    changeCtnIdx: number;
 }
 
 export interface NodeBlock extends CodeBlock {
@@ -48,7 +48,7 @@ export interface JsBlock extends CodeBlock {
 
 export interface FunctionBlock extends JsBlock {
     kind: CodeBlockKind.FunctionBlock;
-    headDeclarations: { constAliases: {}; maxShiftIdx: number; maxTextIdx: number; maxFuncIdx: number; params: { name: string; type: string }[]; };
+    headDeclarations: { constAliases: {}; maxLevelIdx: number; maxTextIdx: number; maxFuncIdx: number; params: { name: string; type: string }[]; };
     maxLevel: number;
     rendererNm: string;         // renderer identifier (e.g. "r")
     nextNodeIdx: () => number;  // create a new incremental node index
@@ -87,7 +87,8 @@ export const enum CodeLineKind {
     SwapLtGroup = 18,
     Insert = 19,
     RefreshInsert = 20,
-    SetIndexes = 21
+    SetIndexes = 21,
+    CreateDataNode = 22
 }
 
 export interface ClCreateNode extends CodeLine {
@@ -103,12 +104,17 @@ export interface ClCreateElement extends ClCreateNode {
     kind: CodeLineKind.CreateElement;
 }
 
+export interface ClCreateDataNode extends ClCreateNode {
+    // e.g. $a1 = $dn($a1, 2, "title", 1);
+    kind: CodeLineKind.CreateDataNode;
+}
+
 export interface ClCreateComponent extends ClCreateNode {
     // e.g. $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, r, bar, 0 ,1);
     kind: CodeLineKind.CreateComponent;
     props: string[];            // ["value", "v + 1", "msg", '("m1:" + v)']
     rendererNm: string;         // "r" in this example
-    hasLightDom: boolean;        // 0 in this example
+    hasLightDom: boolean;       // 0 in this example
 }
 
 export interface ClSetProps extends CodeLine {
@@ -131,7 +137,7 @@ export interface ClUpdateProp extends CodeLine {
     propName: string;           // "baz" in this example
     expr: string;               // "nbr + 3" in this example
     eltLevel: number;           // 2 in this example
-    changeGroupLevel: number;   // 0 in this example
+    changeCtnIdx: number;       // 0 in this example
 }
 
 export interface ClUpdateAtt extends CodeLine {
@@ -140,7 +146,7 @@ export interface ClUpdateAtt extends CodeLine {
     attName: string;            // "aria-disabled" in this example
     expr: string;               // "nbr + 3" in this example
     eltLevel: number;           // 2 in this example
-    changeGroupLevel: number;   // 0 in this example
+    changeCtnIdx: number;       // 0 in this example
 }
 
 export interface ClUpdateCptProp extends CodeLine {
@@ -179,7 +185,7 @@ export interface ClUpdateText extends CodeLine {
     kind: CodeLineKind.UpdateText;
     fragments: string[];        // ["$t0", "(nbr+1)", "$t1"]
     eltLevel: number;           // 2 in this example
-    changeGroupLevel: number;   // 0 in this example
+    changeCtnIdx: number;       // 0 in this example
 }
 
 export interface ClCheckGroup extends CodeLine {
@@ -187,7 +193,7 @@ export interface ClCheckGroup extends CodeLine {
     kind: CodeLineKind.CheckGroup;
     groupIdx: number;           // 3 in this example
     parentLevel: number;        // 1 in this case
-    changeGroupLevel: number;   // 0 in this case (3rd position)
+    changeCtnIdx: number;       // 0 in this case (3rd position)
     parentGroupLevel: number;   // 0 in this case (4th position)
 }
 
@@ -196,7 +202,7 @@ export interface ClDeleteGroups extends CodeLine {
     kind: CodeLineKind.DeleteGroups;
     targetIdx: number;          // 8 in this example
     parentLevel: number;        // 1 in this example (for $i1 and $a1)
-    changeGroupLevel: number;   // 0 in this example (for $a0)
+    changeCtnIdx: number;       // 0 in this example (for $a0)
 }
 
 export interface ClIncrementIdx extends CodeLine {
@@ -228,7 +234,7 @@ export interface ClRefreshCpt extends CodeLine {
     kind: CodeLineKind.RefreshCpt;
     rendererNm: string;         // "r" in this example
     cptLevel: number;           // 2 in this example
-    changeGroupLevel: number;   // 0 in this example
+    changeCtnIdx: number;   // 0 in this example
 }
 
 export interface ClInsert extends CodeLine {
@@ -244,7 +250,7 @@ export interface ClRefreshInsert extends CodeLine {
     kind: CodeLineKind.RefreshInsert;
     groupLevel: number;         // 2 in this example
     expr: string;               // body in this example
-    changeGroupLevel: number;   // 0 in this example
+    changeCtnIdx: number;   // 0 in this example
 }
 
 export interface ClSwapLtGroup extends CodeLine {

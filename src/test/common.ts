@@ -2,7 +2,7 @@
 import { NacNodeType } from '../compiler/nac';
 import {
     VdRenderer, VdRuntime, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
-    VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText, VdUpdateAtt
+    VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdContainer
 } from '../vdom';
 import { ivRuntime } from '../iv';
 
@@ -114,7 +114,6 @@ function compareNodes(n1, n2) {
         return;
     }
     if (!n1 && n2) {
-        //debugger
         throw "Node1 not found: " + n2.nodeName;
     }
     if (n1 && !n2) {
@@ -141,7 +140,6 @@ function compareNodes(n1, n2) {
         }
     }
     if (n1.nodeType === NacNodeType.ELEMENT && n1.nodeName !== n2.nodeName) {
-        //debugger
         throw "Different node names found: " + n1.nodeName + " vs. " + n2.nodeName;
     }
     if (n1.firstChild || n2.firstChild) {
@@ -152,7 +150,6 @@ function compareNodes(n1, n2) {
             nd1 = nd1.nextSibling;
             nd2 = nd2.nextSibling;
             if ((nd1 && !nd2) || (!nd1 && nd2)) {
-                //debugger
                 throw "Different number of child nodes in " + n1.nodeName;
             }
         }
@@ -232,6 +229,12 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
             }
             this.parent = this.root;
             this.func(this, $d);
+        },
+        getDataNodes: function(nodeName: string, parent?:VdContainer) {
+            return ivRuntime.getDataNodes(<VdGroupNode>(this.parent), nodeName, parent);
+        },
+        getDataNode: function(nodeName: string, parent?:VdContainer) {
+            return ivRuntime.getDataNode(<VdGroupNode>(this.parent), nodeName, parent);
         }
     }
 
@@ -362,6 +365,13 @@ function serializeChanges(nd: VdGroupNode, indent: string) {
 }
 
 export const doc = {
+    traces: {
+        wentThroughTextContentDelete:false,
+        reset: function() {
+            this.wentThroughTextContentDelete = false;
+        }
+    },
+    
     createDocFragment: function () {
         return new DocFragment();
     },
@@ -422,6 +432,7 @@ class ElementNode {
         if (value === "") {
             // remove all child nodes
             this.childNodes = [];
+            doc.traces.wentThroughTextContentDelete = true;
         } else {
             throw "Unsupported textContent: " + value;
         }

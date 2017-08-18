@@ -1,28 +1,62 @@
 
 import {
     VdNodeKind, VdRenderer, VdRuntime, VdFunction, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
+
+const EMPTY_PROPS = {}, NO_PROPS = undefined;
 
 interface IvRuntime extends VdRuntime {
     refCount: number;
 }
 
+function createEltOrDataNode(parent, kind: VdNodeKind, index: number, name: string, props, needRef?: 0 | 1) {
+    let nd: VdElementNode = {
+        kind: kind,
+        index: index,
+        name: name,
+        ref: needRef ? ++ivRuntime.refCount : 0,
+        children: [],
+        props: props,
+        domNode: null
+    };
+    parent.children[parent.children.length] = nd;
+    return nd;
+}
+
 export const ivRuntime: IvRuntime = {
     refCount: 0,
 
-    createEltNode(parent: VdContainer, index: number, name: string, needRef?: 0 | 1): VdElementNode {
+    createEltNode(parent: VdParent, index: number, name: string, needRef?: 0 | 1): VdElementNode {
         let nd: VdElementNode = {
             kind: VdNodeKind.Element,
             index: index,
             name: name,
             ref: needRef ? ++ivRuntime.refCount : 0,
             children: [],
+            props: NO_PROPS,
             domNode: null
         };
         parent.children[parent.children.length] = nd;
+        return nd;
+    },
+
+    createDtNode(parent: VdParent | null = null, index: number, name: string, needRef?: 0 | 1): VdDataNode {
+        let nd: VdDataNode = {
+            kind: VdNodeKind.Data,
+            index: index,
+            name: name,
+            ref: needRef ? ++ivRuntime.refCount : 0,
+            children: [],
+            props: EMPTY_PROPS,
+            changes: null,
+            domNode: null
+        };
+        if (parent) {
+            parent.children[parent.children.length] = nd;
+        }
         return nd;
     },
 
@@ -38,7 +72,7 @@ export const ivRuntime: IvRuntime = {
             domNode: null,
             parent: parent
         };
-        if (content && content.kind === VdNodeKind.Group) {
+        if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
             // content is a node list
             g.children = content.children
         } else if (typeof content === "string") {
@@ -92,7 +126,7 @@ export const ivRuntime: IvRuntime = {
         }
     },
 
-    checkGroup(childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number): VdGroupNode {
+    checkGroup(childPosition: number, parent: VdContainer, changeCtn: VdChangeContainer, parentGroup: VdGroupNode, index: number): VdGroupNode {
         let nd: VdNode | undefined = parent.children[childPosition];
         if (nd && nd.index === index) {
             return <VdGroupNode>nd;
@@ -120,25 +154,27 @@ export const ivRuntime: IvRuntime = {
                     position: childPosition,
                     nextSibling: findNextSibling(parent, childPosition)
                 }
-                addChangeInstruction(changeGroup, chge);
+                addChangeInstruction(changeCtn, chge);
             }
             return g;
         }
     },
 
-    deleteGroups(childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, targetIndex: number) {
+    deleteGroups(childPosition: number, parent: VdContainer, changeCtn: VdChangeContainer, targetIndex: number) {
         let nd: VdNode | undefined = parent.children[childPosition];
         while (nd && nd.index < targetIndex) {
             // delete this group
-            // mutate the children collection in order to keep the same array reference
-            parent.children.splice(childPosition, 1);
             let chge: VdDeleteGroup = {
                 kind: VdChangeKind.DeleteGroup,
                 node: <VdGroupNode>nd,
                 parent: parent,
-                position: childPosition
+                position: childPosition,
+                nbrOfNextSiblings: (parent.children.length - 1 - childPosition)
             }
-            addChangeInstruction(changeGroup, chge);
+            // mutate the children collection in order to keep the same array reference
+            parent.children.splice(childPosition, 1);
+
+            addChangeInstruction(changeCtn, chge);
             nd = parent.children[childPosition];
         }
     },
@@ -154,7 +190,7 @@ export const ivRuntime: IvRuntime = {
         parent.children[parent.children.length] = nd;
     },
 
-    dynTxtNode(parent: VdContainer, index: number, value: string): void {
+    dynTxtNode(parent: VdContainer, index: number, value: string): VdTextNode {
         let nd: VdTextNode = {
             kind: VdNodeKind.Text,
             index: index,
@@ -162,17 +198,17 @@ export const ivRuntime: IvRuntime = {
             ref: ++ivRuntime.refCount,
             domNode: null
         };
-        parent.children[parent.children.length] = nd;
+        return parent.children[parent.children.length] = nd;
     },
 
-    updateProp(name: string, value: any, element: VdElementWithProps, changeGroup: VdGroupNode): void {
+    updateProp(name: string, value: any, element: VdElementWithProps | VdDataNode, changeCtn: VdChangeContainer): void {
         if (element.props[name] !== value) {
             // value has changed
             element.props[name] = value;
             if (!value.call) {
                 // we don't create change instructions for function values as the event handler will use
                 // the function stored in the node property at the time of the event - so no new handler needs to be create
-                addChangeInstruction(changeGroup, <VdUpdateProp>{
+                addChangeInstruction(changeCtn, <VdUpdateProp>{
                     kind: VdChangeKind.UpdateProp,
                     name: name,
                     value: value,
@@ -182,14 +218,14 @@ export const ivRuntime: IvRuntime = {
         }
     },
 
-    updateAtt(name: string, value: any, element: VdElementWithAtts, changeGroup: VdGroupNode): void {
+    updateAtt(name: string, value: any, element: VdElementWithAtts, changeCtn: VdChangeContainer): void {
         if (element.atts[name] !== value) {
             // value has changed
             element.atts[name] = value;
             if (!value.call) {
                 // we don't create change instructions for function values as the event handler will use
                 // the function stored in the node property at the time of the event - so no new handler needs to be create
-                addChangeInstruction(changeGroup, <VdUpdateAtt>{
+                addChangeInstruction(changeCtn, <VdUpdateAtt>{
                     kind: VdChangeKind.UpdateAtt,
                     name: name,
                     value: value,
@@ -199,10 +235,10 @@ export const ivRuntime: IvRuntime = {
         }
     },
 
-    updateText(value: string, textNode: VdTextNode, changeGroup: VdGroupNode): void {
+    updateText(value: string, textNode: VdTextNode, changeCtn: VdChangeContainer): void {
         if (textNode.value !== value) {
             textNode.value = value;
-            addChangeInstruction(changeGroup, <VdUpdateText>{
+            addChangeInstruction(changeCtn, <VdUpdateText>{
                 kind: VdChangeKind.UpdateText,
                 value: value,
                 node: textNode
@@ -214,7 +250,7 @@ export const ivRuntime: IvRuntime = {
         element.props[name] = value;
     },
 
-    refreshCpt(r: VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode): void {
+    refreshCpt(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
         let p = r.parent, c = cptGroup as VdCptNode;
 
         if (c.sdGroup !== null) {
@@ -230,37 +266,107 @@ export const ivRuntime: IvRuntime = {
         c.vdFunction(r, c.props);
         r.parent = p;
 
-        // move changes from cptGroup to changeGroup
-        moveChangeInstructions(c, changeGroup);
+        // move changes from cptGroup to change container
+        moveChangeInstructions(c, changeCtn);
     },
 
-    refreshInsert(insertGroup: VdGroupNode, content: any, changeGroup: VdGroupNode): void {
+    refreshInsert(insertGroup: VdGroupNode, content: any, changeCtn: VdChangeContainer): void {
         // todo check if content nature has changed
-        if (content && content.kind === VdNodeKind.Group) {
+        if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
             // push back changes
-            moveChangeInstructions(content, changeGroup);
+            moveChangeInstructions(content, changeCtn);
         } else if (typeof content === "string") {
-            ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeGroup);
+            ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeCtn);
+        }
+    },
+
+    getDataNodes(fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer): VdDataNode[] {
+        let r = [];
+        if (!parent && fnGroup.props) {
+            parent = fnGroup.props["content"];
+        }
+        if (parent) {
+            grabDataNodes(parent.children, nodeName, r);
+        }
+        return r;
+    },
+
+    getDataNode(fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer): VdDataNode | null {
+        let r: VdDataNode | null = null;
+        if (!parent && fnGroup.props) {
+            let p = fnGroup.props;
+            // to be released soon
+            // if (p && p[nodeName]) {
+            //     // create a data node with a sub-textNode from the prop value
+            //     return r = createDataNodeWrapper(nodeName, p[nodeName]);
+            // }
+            parent = fnGroup.props["content"];
+        }
+        if (parent) {
+            let p = parent.props;
+            // if (p && p[nodeName]) {
+            //     // create a data node with a sub-textNode from the prop value
+            //     r = createDataNodeWrapper(nodeName, p[nodeName]);
+            // } else {
+            r = grabFirstDataNode(parent.children, nodeName);
+            //}
+        }
+        return r;
+    }
+}
+
+function createDataNodeWrapper(nodeName, textValue) {
+    let dn = ivRuntime.createDtNode(null, -1, nodeName, 0);
+    let tx = ivRuntime.dynTxtNode(dn, -1, textValue===""? "x": ""); 
+    // value has to be different from textValue to genereate a change instruction
+    ivRuntime.updateText(textValue, tx, dn);
+    return dn;
+}
+
+function grabDataNodes(list: VdNode[], nodeName, resultsList) {
+    let len = list.length, nd;
+    for (let i = 0; len > i; i++) {
+        nd = list[i];
+        if (nd.kind === VdNodeKind.Data && (<VdDataNode>nd).name === nodeName) {
+            resultsList[resultsList.length] = nd;
+        } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
+            grabDataNodes(nd.children, nodeName, resultsList);
         }
     }
 }
 
-function addChangeInstruction(changeGroup: VdGroupNode, instruction: VdChangeInstruction) {
-    if (changeGroup.changes) {
-        changeGroup.changes.splice(changeGroup.changes.length, 0, instruction);
+function grabFirstDataNode(list: VdNode[], nodeName): VdDataNode | null {
+    let len = list.length, nd;
+    for (let i = 0; len > i; i++) {
+        nd = list[i];
+        if (nd.kind === VdNodeKind.Data) {
+            return nd;
+        } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
+            nd = grabFirstDataNode(nd.children, nodeName);
+            if (nd) {
+                return nd;
+            }
+        }
+    }
+    return null;
+}
+
+function addChangeInstruction(changeCtn: VdChangeContainer, instruction: VdChangeInstruction) {
+    if (changeCtn.changes) {
+        changeCtn.changes.splice(changeCtn.changes.length, 0, instruction);
     } else {
-        changeGroup.changes = [instruction];
+        changeCtn.changes = [instruction];
     }
 }
 
-function moveChangeInstructions(changeGroup1: VdGroupNode, changeGroup2: VdGroupNode) {
-    if (changeGroup1.changes) {
-        if (changeGroup2.changes) {
-            changeGroup2.changes = changeGroup2.changes.concat(changeGroup1.changes);
+function moveChangeInstructions(changeCtn1: VdChangeContainer, changeCtn2: VdChangeContainer) {
+    if (changeCtn1.changes) {
+        if (changeCtn2.changes) {
+            changeCtn2.changes = changeCtn2.changes.concat(changeCtn1.changes);
         } else {
-            changeGroup2.changes = changeGroup1.changes;
+            changeCtn2.changes = changeCtn1.changes;
         }
-        changeGroup1.changes = null;
+        changeCtn1.changes = null;
     }
 }
 

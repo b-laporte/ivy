@@ -7,6 +7,12 @@ export interface VdRuntime {
     createEltNode: (parent: VdContainer, index: number, name: string, needRef?: 0 | 1) => VdElementNode;
 
     /**
+     * Create a VdDataNode and append it to the parent children list (similar to createEltNode)
+     * Used in creation mode only 
+     */
+    createDtNode: (parent: VdContainer | null, index: number, name: string, needRef?: 0 | 1) => VdDataNode;
+
+    /**
      * Create a VdGroupNode associated to component, append it to the parent children list 
      * and call the component function
      * Use in creation mode only
@@ -27,39 +33,39 @@ export interface VdRuntime {
     /**
      * Create a dynamic text node and append it to the parent children list
      */
-    dynTxtNode: (parent: VdContainer, index: number, value: string) => void;
+    dynTxtNode: (parent: VdContainer, index: number, value: string) => VdTextNode;
 
     /**
      * Check that a group with the right index exists in the parent children at childPosition and create it if not
      * Used in creation and update mode
      * @return the group note
      */
-    checkGroup: (childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, parentGroup: VdGroupNode, index: number) => VdGroupNode;
+    checkGroup: (childPosition: number, parent: VdContainer, changeContainer: VdChangeContainer, parentGroup: VdGroupNode, index: number) => VdGroupNode;
 
     /**
      * Delete group nodes in the parent children list at childPosition until group index becomes greater or equal to the targetIndex
      * Used in upadte mode only
      */
-    deleteGroups: (childPosition: number, parent: VdContainer, changeGroup: VdGroupNode, targetIndex: number) => void;
+    deleteGroups: (childPosition: number, parent: VdContainer, changeContainer: VdChangeContainer, targetIndex: number) => void;
 
     /**
      * Update the given property on the element passed as argument
      * Update instructions will be stored on changeGroup
      * Used in update mode only
      */
-    updateProp: (name: string, value: any, element: VdElementWithProps, changeGroup: VdGroupNode) => void;
+    updateProp: (name: string, value: any, element: VdElementWithProps, changeContainer: VdChangeContainer) => void;
 
     /**
      * Update the given attribute on the element passed as argument
      * An Update attribute instruction will be created and stored on changeGroup if the att value has changed
      */
-    updateAtt: (name: string, value: any, element: VdElementWithAtts, changeGroup: VdGroupNode) => void;
+    updateAtt: (name: string, value: any, element: VdElementWithAtts, changeContainer: VdChangeContainer) => void;
 
     /**
      * Update a text node with a new value
      * Used in update mode only
      */
-    updateText: (value: string, textNode: VdTextNode, changeGroup: VdGroupNode) => void;
+    updateText: (value: string, textNode: VdTextNode, changeContainer: VdChangeContainer) => void;
 
     /**
      * Update a component argument property
@@ -71,12 +77,24 @@ export interface VdRuntime {
      * Refresh a sub-component
      * Used in update mode only
      */
-    refreshCpt: (r: VdRenderer, cptGroup: VdGroupNode, changeGroup: VdGroupNode) => void;
+    refreshCpt: (r: VdRenderer, cptGroup: VdGroupNode, changeContainer: VdChangeContainer) => void;
 
     /**
      * Refresh the content nodes associated to an insert group
      */
-    refreshInsert: (insertGroup: VdGroupNode, content: any, changeGroup: VdGroupNode) => void;
+    refreshInsert: (insertGroup: VdGroupNode, content: any, changeContainer: VdChangeContainer) => void;
+
+    /**
+     * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
+     * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
+     */
+    getDataNodes: (fnGroup:VdGroupNode, nodeName:string, parent?:VdContainer) => VdDataNode[];
+
+    /**
+     * Same as getDataNodes() but will only return the first element (faster method when only one data node is expected)
+     */
+    getDataNode: (fnGroup:VdGroupNode, nodeName:string, parent?:VdContainer) => VdDataNode | null;
+
 }
 
 export interface VdFunction {
@@ -86,6 +104,18 @@ export interface VdFunction {
 export interface VdRenderer {
     rt: VdRuntime;
     parent: VdGroupNode;
+    /**
+     * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
+     * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
+     * (helper method redirecting to rt.getDataNodes)
+     */
+    getDataNodes: (nodeName:string, parent?:VdContainer) => VdDataNode[];
+
+    /**
+     * Same as getDataNodes() but will only return the first element (faster method when only one data node is expected)
+     * (helper method redirecting to rt.getDataNode)
+     */
+    getDataNode: (nodeName:string, parent?:VdContainer) => VdDataNode | null;
 }
 
 export const enum VdNodeKind {
@@ -102,16 +132,23 @@ export interface VdNode {
     domNode: any;
 }
 
+export interface VdParent {
+    children: VdNode[];         // list of child nodes
+}
+
 export interface VdContainer extends VdNode {
     props?: {};                 // key-value map of node properties
     atts?: {};                  // key-value map of node attributes
     children: VdNode[];         // list of child nodes
 }
 
-export interface VdGroupNode extends VdContainer {
+export interface VdChangeContainer {
+    changes: VdChangeInstruction[] | null;   // list of change instructions
+}
+
+export interface VdGroupNode extends VdContainer, VdChangeContainer {
     kind: VdNodeKind.Group;
     cm: 0 | 1;                               // creation mode
-    changes: VdChangeInstruction[] | null;   // list of change instructions
     parent: VdContainer | null;
 }
 
@@ -128,6 +165,13 @@ export interface VdTextNode extends VdNode {
 
 export interface VdElementNode extends VdContainer {
     name: string;               // element tag name
+}
+
+export interface VdDataNode extends VdContainer {
+    kind: VdNodeKind.Data;
+    name: string;               // element tag name
+    changes: VdChangeInstruction[] | null;   // list of change instructions
+    props: {};
 }
 
 export interface VdElementWithProps extends VdElementNode {
@@ -183,5 +227,6 @@ export interface VdDeleteGroup extends VdChangeInstruction {
     kind: VdChangeKind.DeleteGroup;
     node: VdGroupNode;
     parent: VdContainer | null;
-    position: number
+    position: number,
+    nbrOfNextSiblings: number
 }

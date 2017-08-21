@@ -416,6 +416,57 @@ describe('HTML renderer', () => {
         `, "update 5");
     });
 
+    it('should gracefully handle null and undefined values in dynamic text nodes', () => {
+        // same test as in compiler.spec and runtime.spec
+
+        function test(r: VdRenderer, v1, v2) {
+            `---
+            <span> v1 {{v1}} {{v1+1}} </span>
+            <span> v2 {{v2}} {{v2+2}} </span>
+             ---`
+        }
+
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        // initial display
+        r.refresh({ v1: null, v2: undefined });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <span>
+                    <#text> v1 1</#text>
+                </span>
+                <span>
+                    <#text> v2 </#text>
+                </span>
+            </div>
+        `, "initial refresh");
+
+        r.refresh({ v1: 'a', v2: 123 });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <span>
+                    <#text> v1 aa1</#text>
+                </span>
+                <span>
+                    <#text> v2 123125</#text>
+                </span>
+            </div>
+        `, "update 1");
+
+        r.refresh({ v1: undefined, v2: null });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <span>
+                    <#text> v1 </#text>
+                </span>
+                <span>
+                    <#text> v2 2</#text>
+                </span>
+            </div>
+        `, "update 2");
+
+    });
+
     // to be released soon
     // xit('should support data nodes from props for single nodes', () => {
     //     // same test as in compiler.spec and runtime.spec

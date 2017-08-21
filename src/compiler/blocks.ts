@@ -565,7 +565,7 @@ function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: numb
                 if (exprs.length === 0) {
                     exprs.push('""'); // to ensure string concatenation
                 }
-                exprs.push("(" + nd.nodeValue + ")");
+                exprs.push("((" + nd.nodeValue + ")||'')");
             }
         }
         let cl: ClCreateDynTextNode = {

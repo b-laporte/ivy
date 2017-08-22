@@ -280,6 +280,10 @@ export const ivRuntime: IvRuntime = {
         }
     },
 
+    cleanTxt(e: any): any {
+        return e === 0 ? '0' : e || '';
+    },
+
     getDataNodes(fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer): VdDataNode[] {
         let r = [];
         if (!parent && fnGroup.props) {
@@ -317,7 +321,7 @@ export const ivRuntime: IvRuntime = {
 
 function createDataNodeWrapper(nodeName, textValue) {
     let dn = ivRuntime.createDtNode(null, -1, nodeName, 0);
-    let tx = ivRuntime.dynTxtNode(dn, -1, textValue===""? "x": ""); 
+    let tx = ivRuntime.dynTxtNode(dn, -1, textValue === "" ? "x" : "");
     // value has to be different from textValue to genereate a change instruction
     ivRuntime.updateText(textValue, tx, dn);
     return dn;

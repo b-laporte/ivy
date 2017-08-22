@@ -419,9 +419,9 @@ describe('HTML renderer', () => {
     it('should gracefully handle null and undefined values in dynamic text nodes', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function test(r: VdRenderer, v1, v2) {
+        function test(r: VdRenderer, v1, v2, v3) {
             `---
-            <span> v1 {{v1}} {{v1+1}} </span>
+            <span> v1 {{v1}} {{v1+1}} {{v3}} </span>
             <span> v2 {{v2}} {{v2+2}} </span>
              ---`
         }
@@ -429,11 +429,11 @@ describe('HTML renderer', () => {
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
         // initial display
-        r.refresh({ v1: null, v2: undefined });
+        r.refresh({ v1: null, v2: undefined, v3: 0 });
         assert.equal(div.stringify("        ", true), `
             <div>
                 <span>
-                    <#text> v1 1</#text>
+                    <#text> v1 10</#text>
                 </span>
                 <span>
                     <#text> v2 </#text>
@@ -485,7 +485,7 @@ describe('HTML renderer', () => {
     //         </section>
     //          ---`
     //     }
-        
+
     //     function cardSet(r: VdRenderer, selection: string) {
     //         `---
     //         % let cards = r.getDataNodes("card");
@@ -504,7 +504,7 @@ describe('HTML renderer', () => {
     //         Selection: <ins:sel/>
     //          ---`
     //     }
-        
+
     //     let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
     //     // initial display
@@ -536,6 +536,6 @@ describe('HTML renderer', () => {
     //             </section>
     //         </div>
     //     `, "unpdate 1");
-        
+
     // });
 });

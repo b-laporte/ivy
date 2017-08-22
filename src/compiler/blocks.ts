@@ -553,26 +553,26 @@ function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: numb
         nb.cmLines.push(cl);
     } else {
         // there are dynamic parts
-        let nd: NacNode, hd = nb.functionCtxt.headDeclarations, tIdx: number, exprs: string[] = [];
+        let nd: NacNode, hd = nb.functionCtxt.headDeclarations, tIdx: number, fragments: string[] = [];
         for (let i = 0; len > i; i++) {
             nd = ndList[i];
             if (nd.nodeType === NacNodeType.TEXT) {
                 // add text as function const
                 tIdx = ++hd.maxTextIdx;
                 hd.constAliases["$t" + tIdx] = '"' + encodeTextString(nd.nodeValue) + '"';
-                exprs.push("$t" + tIdx);
+                fragments.push("$t" + tIdx);
             } else if (nd.nodeType === NacNodeType.INSERT) {
-                if (exprs.length === 0) {
-                    exprs.push('""'); // to ensure string concatenation
+                if (fragments.length === 0) {
+                    fragments.push('""'); // to ensure string concatenation
                 }
-                exprs.push("((" + nd.nodeValue + ")||'')");
+                fragments.push("$ct(" + nd.nodeValue + ")"); // e.g. '$ct(nbr+1)'
             }
         }
         let cl: ClCreateDynTextNode = {
             kind: CodeLineKind.CreateDynText,
             nodeIdx: nb.functionCtxt.nextNodeIdx(),
             parentLevel: level,
-            fragments: exprs
+            fragments: fragments
         }
         levels[level].nbrOfCreations += 1;
         levels[level].refGenerated = false;
@@ -583,7 +583,7 @@ function generateTextNodeCodeLines(nb: NodeBlock, ndList: NacNode[], level: numb
         generateNodeBlockRefsLine(nb, levels);
         nb.umLines.push(<ClUpdateText>{
             kind: CodeLineKind.UpdateText,
-            fragments: exprs,
+            fragments: fragments,
             eltLevel: cl.parentLevel + 1,
             changeCtnIdx: levels[level].changeCtnIdx
         });

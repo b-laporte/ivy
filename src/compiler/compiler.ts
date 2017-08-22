@@ -381,10 +381,16 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let dt = cl as ClCreateDynTextNode;
             // e.g. $dt($a1, 2, " nbr " + (nbr+1) + "! ");
             fc.headDeclarations.constAliases["$dt"] = "$.dynTxtNode";
+            fc.headDeclarations.constAliases["$ct"] = "$.cleanTxt";
             if (fc.maxLevel < dt.parentLevel + 1) {
                 fc.maxLevel = dt.parentLevel + 1;
             }
             return `${indent}$dt($a${dt.parentLevel}, ${dt.nodeIdx}, ${dt.fragments.join(" + ")});`;
+        case CodeLineKind.UpdateText:
+            let ut = cl as ClUpdateText;
+            // e.g. $ut($t0 + (nbr+1) + $t1, $a2, $a0);
+            fc.headDeclarations.constAliases["$ut"] = "$.updateText";
+            return `${indent}$ut(${ut.fragments.join(" + ")}, $a${ut.eltLevel}, $a${ut.changeCtnIdx});`;
         case CodeLineKind.SetProps:
             let sp = cl as ClSetProps, propsBuf: string[] = [];
             // $a1.props = { "class": "hello", "foo": 123 };
@@ -409,11 +415,6 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             // e.g. $up("baz", nbr + 3, $a2, $a0)
             fc.headDeclarations.constAliases["$ua"] = "$.updateAtt";
             return `${indent}$ua("${ua.attName}", ${ua.expr}, $a${ua.eltLevel}, $a${ua.changeCtnIdx});`;
-        case CodeLineKind.UpdateText:
-            let ut = cl as ClUpdateText;
-            // e.g. $ut($t0 + (nbr+1) + $t1, $a2, $a0);
-            fc.headDeclarations.constAliases["$ut"] = "$.updateText";
-            return `${indent}$ut(${ut.fragments.join(" + ")}, $a${ut.eltLevel}, $a${ut.changeCtnIdx});`;
         case CodeLineKind.UpdateCptProp:
             let uc = cl as ClUpdateCptProp;
             // e.g. $uc("baz", nbr + 3, $a2)

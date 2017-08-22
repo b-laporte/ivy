@@ -173,17 +173,17 @@ export interface ClCreateTextNode extends CodeLine {
 }
 
 export interface ClCreateDynTextNode extends CodeLine {
-    // e.g. $dt($a1, 2, " nbr " + (nbr+1) + "! ");
+    // e.g. $dt($a1, 2, " nbr " + $ct(nbr+1) + "! ");
     kind: CodeLineKind.CreateDynText;
     nodeIdx: number;            // 3 in this example
     parentLevel: number;        // 2 in this example ($a1 is deduced from $a0)
-    fragments: string[];        // ['" nbr "', '(nbr+1)', '"! "']
+    fragments: string[];        // ['" nbr "', '$ct(nbr+1)', '"! "']
 }
 
 export interface ClUpdateText extends CodeLine {
-    // e.g. $ut($t0 + (nbr+1) + $t1, $a2, $a0);
+    // e.g. $ut($a1, 2, " nbr " + $ct(nbr+1) + "! ");
     kind: CodeLineKind.UpdateText;
-    fragments: string[];        // ["$t0", "(nbr+1)", "$t1"]
+    fragments: string[];        // ['" nbr "', '$ct(nbr+1)', '"! "']
     eltLevel: number;           // 2 in this example
     changeCtnIdx: number;       // 0 in this example
 }

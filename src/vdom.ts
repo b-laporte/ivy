@@ -95,6 +95,11 @@ export interface VdRuntime {
      */
     getDataNode: (fnGroup:VdGroupNode, nodeName:string, parent?:VdContainer) => VdDataNode | null;
 
+    /**
+     * Clean a text expression: return '' for null or undefined expression
+     */
+    cleanTxt: (expr:any) => any;
+
 }
 
 export interface VdFunction {

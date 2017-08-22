@@ -6,6 +6,7 @@ import jfbConfig from './src/samples/js-framework-benchmark/rollup.config';
 import svgConfig from './src/samples/svg/rollup.config.js';
 import todoMVCConfig from './src/samples/todomvc/rollup.config';
 import hwConfig from './src/samples/helloworld/rollup.config';
+import triangleConfig from './src/samples/triangle/rollup.config';
 
 export default [
   hwConfig,
@@ -15,5 +16,6 @@ export default [
   hnpwaConfig,
   jfbConfig,
   svgConfig,
-  todoMVCConfig
+  todoMVCConfig,
+  triangleConfig
 ];

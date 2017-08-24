@@ -467,75 +467,130 @@ describe('HTML renderer', () => {
 
     });
 
-    // to be released soon
-    // xit('should support data nodes from props for single nodes', () => {
-    //     // same test as in compiler.spec and runtime.spec
+    it('should support data nodes from props for single nodes', () => {
+        // same test as in compiler.spec and runtime.spec
 
-    //     function test(r: VdRenderer, selectedCard: string) {
-    //         `---
-    //         <section>
-    //             <c:cardSet [selection]=selectedCard>
-    //                 <:card ref="r1" title=" First Card ">
-    //                     <b> Card 1 </b>
-    //                 </:card>
-    //                 <:card ref="r2" title=" Second Card ">
-    //                     <b> Card 2 </b>
-    //                 </:card>
-    //             </c:cardSet>
-    //         </section>
-    //          ---`
-    //     }
+        function test(r: VdRenderer, selectedCard: string, firstCardTitle: string) {
+            `---
+            <section>
+                <c:cardSet [selection]=selectedCard>
+                    <:card ref="r1" [title]=firstCardTitle>
+                        <b> Card 1 </b>
+                    </:card>
+                    <:card ref="r2" title="Second Card">
+                        <b> Card 2 </b>
+                    </:card>
+                </c:cardSet>
+            </section>
+             ---`
+        }
 
-    //     function cardSet(r: VdRenderer, selection: string) {
-    //         `---
-    //         % let cards = r.getDataNodes("card");
-    //         % for (let card of cards) {
-    //             % if (card.props["ref"] === selection) {
-    //                 % let title = r.getDataNode("title", card);
-    //                 <div class="card">
-    //                     % if (title) {
-    //                         <div class="title"> title: <ins:title/></div>
-    //                     % }
-    //                     <ins:card/>
-    //                 </div>
-    //             % }
-    //         % }
-    //         % let sel = r.getDataNode("selection");
-    //         Selection: <ins:sel/>
-    //          ---`
-    //     }
+        function cardSet(r: VdRenderer, selection: string) {
+            `---
+            % let cards = r.getDataNodes("card");
+            % for (let card of cards) {
+                % if (card.props["ref"] === selection) {
+                    % let title = r.getDataNode("title", card);
+                    <div class="card">
+                        % if (title) {
+                            <div class="title"> title: <ins:title/></div>
+                        % }
+                        <ins:card/>
+                    </div>
+                % }
+            % }
+            % let sel = r.getDataNode("selection");
+            Selection: <ins:sel/>
+             ---`
+        }
 
-    //     let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
-    //     // initial display
-    //     r.refresh({ selectedCard: "r1" });
-    //     assert.equal(div.stringify("        ", true), `
-    //         <div>
-    //             <section>
-    //                 <div class="card">
-    //                     <div class="title">
-    //                         <#text> title: </#text>
-    //                         <#text> First Card </#text>
-    //                     </div>
-    //                     <b>
-    //                         <#text> Card 1 </#text>
-    //                     </b>
-    //                 </div>
-    //                 <#text> Selection: </#text>
-    //                 <#text>r1</#text>
-    //             </section>
-    //         </div>
-    //     `, "initial refresh");
+        // initial display
+        r.refresh({ selectedCard: "r1", firstCardTitle: "First Card" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <#text>First Card</#text>
+                        </div>
+                        <b>
+                            <#text> Card 1 </#text>
+                        </b>
+                    </div>
+                    <#text> Selection: </#text>
+                    <#text>r1</#text>
+                </section>
+            </div>
+        `, "initial refresh");
+        
+        r.refresh({ selectedCard: "r1", firstCardTitle: "First Card Bis" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <#text>First Card Bis</#text>
+                        </div>
+                        <b>
+                            <#text> Card 1 </#text>
+                        </b>
+                    </div>
+                    <#text> Selection: </#text>
+                    <#text>r1</#text>
+                </section>
+            </div>
+        `, "update 1");
 
-    //     r.refresh({ selectedCard: "unknown" });
-    //     assert.equal(div.stringify("        ", true), `
-    //         <div>
-    //             <section>
-    //                 <#text> Selection: </#text>
-    //                 <#text></#text>
-    //             </section>
-    //         </div>
-    //     `, "unpdate 1");
+        r.refresh({ selectedCard: "r2", firstCardTitle: "First Card" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <#text>Second Card</#text>
+                        </div>
+                        <b>
+                            <#text> Card 2 </#text>
+                        </b>
+                    </div>
+                    <#text> Selection: </#text>
+                    <#text>r2</#text>
+                </section>
+            </div>
+        `, "update 2");
 
-    // });
+        r.refresh({ selectedCard: "unknown" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <#text> Selection: </#text>
+                    <#text>unknown</#text>
+                </section>
+            </div>
+        `, "unpdate 3");
+
+        r.refresh({ selectedCard: "r1", firstCardTitle: "First CARD" });
+        assert.equal(div.stringify("        ", true), `
+            <div>
+                <section>
+                    <div class="card">
+                        <div class="title">
+                            <#text> title: </#text>
+                            <#text>First CARD</#text>
+                        </div>
+                        <b>
+                            <#text> Card 1 </#text>
+                        </b>
+                    </div>
+                    <#text> Selection: </#text>
+                    <#text>r1</#text>
+                </section>
+            </div>
+        `, "update 4");
+    });
 });

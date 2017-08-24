@@ -83,6 +83,16 @@ export const ivRuntime: IvRuntime = {
         return g;
     },
 
+    refreshInsert(insertGroup: VdGroupNode, content: any, changeCtn: VdChangeContainer): void {
+        // todo check if content nature has changed
+        if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
+            // push back changes
+            moveChangeInstructions(content, changeCtn);
+        } else if (typeof content === "string") {
+            ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeCtn);
+        }
+    },
+
     createCpt(parent: VdContainer, index: number, props: {}, r: VdRenderer, vdFunction: VdFunction, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
         let g: VdCptNode = {
             kind: VdNodeKind.Group,
@@ -205,7 +215,7 @@ export const ivRuntime: IvRuntime = {
         if (element.props[name] !== value) {
             // value has changed
             element.props[name] = value;
-            if (!value.call) {
+            if (!value || !value.call) {
                 // we don't create change instructions for function values as the event handler will use
                 // the function stored in the node property at the time of the event - so no new handler needs to be create
                 addChangeInstruction(changeCtn, <VdUpdateProp>{
@@ -222,7 +232,7 @@ export const ivRuntime: IvRuntime = {
         if (element.atts[name] !== value) {
             // value has changed
             element.atts[name] = value;
-            if (!value.call) {
+            if (!value || !value.call) {
                 // we don't create change instructions for function values as the event handler will use
                 // the function stored in the node property at the time of the event - so no new handler needs to be create
                 addChangeInstruction(changeCtn, <VdUpdateAtt>{
@@ -270,16 +280,6 @@ export const ivRuntime: IvRuntime = {
         moveChangeInstructions(c, changeCtn);
     },
 
-    refreshInsert(insertGroup: VdGroupNode, content: any, changeCtn: VdChangeContainer): void {
-        // todo check if content nature has changed
-        if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
-            // push back changes
-            moveChangeInstructions(content, changeCtn);
-        } else if (typeof content === "string") {
-            ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeCtn);
-        }
-    },
-
     cleanTxt(e: any): any {
         return e === 0 ? '0' : e || '';
     },
@@ -299,32 +299,39 @@ export const ivRuntime: IvRuntime = {
         let r: VdDataNode | null = null;
         if (!parent && fnGroup.props) {
             let p = fnGroup.props;
-            // to be released soon
-            // if (p && p[nodeName]) {
-            //     // create a data node with a sub-textNode from the prop value
-            //     return r = createDataNodeWrapper(nodeName, p[nodeName]);
-            // }
+            if (p && p[nodeName]) {
+                // create a data node with a sub-textNode from the prop value
+                return r = getDataNodeWrapper(p, nodeName, p[nodeName]);
+            }
             parent = fnGroup.props["content"];
         }
         if (parent) {
             let p = parent.props;
-            // if (p && p[nodeName]) {
-            //     // create a data node with a sub-textNode from the prop value
-            //     r = createDataNodeWrapper(nodeName, p[nodeName]);
-            // } else {
-            r = grabFirstDataNode(parent.children, nodeName);
-            //}
+            if (p && p[nodeName]) {
+                // create a data node with a sub-textNode from the prop value
+                r = getDataNodeWrapper(p, nodeName, p[nodeName]);
+            } else {
+                r = grabFirstDataNode(parent.children, nodeName);
+            }
         }
         return r;
     }
 }
 
-function createDataNodeWrapper(nodeName, textValue) {
-    let dn = ivRuntime.createDtNode(null, -1, nodeName, 0);
-    let tx = ivRuntime.dynTxtNode(dn, -1, textValue === "" ? "x" : "");
-    // value has to be different from textValue to genereate a change instruction
-    ivRuntime.updateText(textValue, tx, dn);
-    return dn;
+function getDataNodeWrapper(props, nodeName, textValue) {
+    // create a wrapper if doesn't exist - and cache it in the props object
+    // note: we have to avoid creating the wrapper everytime as the <ins:dataNode/> instruction
+    // would delete and recreate all all the times
+    let dnPropName = "$dn_" + nodeName, dnw = props[dnPropName];
+    if (!dnw) {
+        dnw = ivRuntime.createDtNode(null, -1, nodeName, 0);
+        let tx = ivRuntime.dynTxtNode(dnw, -1, textValue);
+        props[dnPropName] = dnw;
+    } else {
+        // node is the same but text may have changed
+        ivRuntime.updateText(textValue, dnw.children[0], dnw);
+    }
+    return dnw;
 }
 
 function grabDataNodes(list: VdNode[], nodeName, resultsList) {

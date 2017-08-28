@@ -313,7 +313,7 @@ export const ivRuntime: IvRuntime = {
             if (!c.props) {
                 c.props = {};
             }
-            c.props["content"] = ltGroup;
+            c.props["$content"] = ltGroup;
         }
         r.parent = c;
         c.vdFunction(r, c.props);
@@ -330,7 +330,7 @@ export const ivRuntime: IvRuntime = {
     getDataNodes(fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer): VdDataNode[] {
         let r = [];
         if (!parent && fnGroup.props) {
-            parent = fnGroup.props["content"];
+            parent = fnGroup.props["$content"];
         }
         if (parent) {
             grabDataNodes(parent.children, nodeName, r);
@@ -346,7 +346,7 @@ export const ivRuntime: IvRuntime = {
                 // create a data node with a sub-textNode from the prop value
                 return r = getDataNodeWrapper(p, nodeName, p[nodeName]);
             }
-            parent = fnGroup.props["content"];
+            parent = fnGroup.props["$content"];
         }
         if (parent) {
             let p = parent.props;

@@ -364,7 +364,7 @@ describe('Rollup plugin', () => {
         function main(r: VdRenderer, useText: boolean, msg) {
             `---
             % if (useText) {
-                <c:section title="hello" [content]=msg/>
+                <c:section title="hello" [$content]=msg/>
             % } else {
                 <c:section title="hello2">
                     Hello
@@ -374,11 +374,11 @@ describe('Rollup plugin', () => {
              ---`
         }
 
-        function section(r: VdRenderer, title, content) {
+        function section(r: VdRenderer, title, $content) {
             `---
             <div class="section">
                 <span class="title"> {{title}} </span>
-                <ins:content/>
+                <ins:$content/>
             </div>
              ---`
         }
@@ -389,7 +389,7 @@ describe('Rollup plugin', () => {
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 3 ref="1">
-                    <#group 4 content=IvNode title="hello2">
+                    <#group 4 $content=IvNode title="hello2">
                         <div 1 ref="3" class="section">
                             <span 2 class="title">
                                 <#text 3 ref="4" "hello2">
@@ -413,7 +413,7 @@ describe('Rollup plugin', () => {
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 3 ref="1">
-                    <#group 4 content=IvNode title="hello2">
+                    <#group 4 $content=IvNode title="hello2">
                         <div 1 ref="3" class="section">
                             <span 2 class="title">
                                 <#text 3 ref="4" "hello2">
@@ -437,7 +437,7 @@ describe('Rollup plugin', () => {
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 1 ref="6">
-                    <#group 2 ref="7" content="Arthur" title="hello">
+                    <#group 2 ref="7" $content="Arthur" title="hello">
                         <div 1 ref="8" class="section">
                             <span 2 class="title">
                                 <#text 3 ref="9" "hello">
@@ -459,7 +459,7 @@ describe('Rollup plugin', () => {
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 1 ref="6">
-                    <#group 2 ref="7" content="Bart" title="hello">
+                    <#group 2 ref="7" $content="Bart" title="hello">
                         <div 1 ref="8" class="section">
                             <span 2 class="title">
                                 <#text 3 ref="9" "hello">
@@ -517,7 +517,7 @@ describe('Rollup plugin', () => {
         r.refresh({ showFirst:true, showLast:true });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
-                <#group 1 content=IvNode>
+                <#group 1 $content=IvNode>
                     <ul 1 ref="9">
                         <#group 2 ref="10">
                             <#group 3 ref="11">
@@ -597,7 +597,7 @@ describe('Rollup plugin', () => {
         // as the for loop is not keyed, the first group will be reused (group 2 ref="10")
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
-                <#group 1 content=IvNode>
+                <#group 1 $content=IvNode>
                     <ul 1 ref="9">
                         <#group 2 ref="10">
                             <#group 3 ref="11">
@@ -658,7 +658,7 @@ describe('Rollup plugin', () => {
         // as the for loop is not keyed, the first group will be reused (group 2 ref="10")
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
-                <#group 1 content=IvNode>
+                <#group 1 $content=IvNode>
                     <ul 1 ref="9">
                         <#group 2 ref="10">
                             <#group 3 ref="11">

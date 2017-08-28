@@ -1,5 +1,5 @@
 
-import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode } from "./vdom";
+import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
 import { ivRuntime } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
@@ -94,36 +94,11 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             if (!cg.parent) {
                 // root node
                 let df = doc.createDocFragment();
-                processNode(cg.node, df, doc, null);
+                createDomNode(cg.node, df, doc, null);
                 rootDomContainer.appendChild(df);
                 replaceDomNode(df, rootDomContainer, cg.node);
             } else {
-                // create elements
-                let df = doc.createDocFragment(), ns: string | null = null, pvnd = cg.parent;
-                if (pvnd && pvnd.domNode) {
-                    ns = pvnd.domNode.namespaceURI;
-                    if (ns && ns.match(RX_HTML)) {
-                        ns = null;
-                    }
-                }
-                processNode(cg.node, df, doc, ns);
-
-                // look for the previous sibling
-                if (pvnd && pvnd.domNode) {
-                    let done = false;
-                    if (cg.nextSibling) {
-                        if (cg.nextSibling.domNode) {
-                            pvnd.domNode.insertBefore(df, cg.nextSibling.domNode);
-                            done = true;
-                        }
-                    } else {
-                        pvnd.domNode.appendChild(df);
-                        done = true;
-                    }
-                    if (done) {
-                        replaceDomNode(df, pvnd.domNode, cg.node);
-                    }
-                }
+                insertGroupContent(cg.node, cg.parent, cg.nextSibling, doc);
             }
         } else if (chge.kind === VdChangeKind.UpdateText) {
             let ut = chge as VdUpdateText, nd = ut.node;
@@ -152,6 +127,12 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
         } else if (chge.kind === VdChangeKind.UpdateAtt) {
             let ua = chge as VdUpdateAtt;
             ua.node.domNode.setAttribute(ua.name, ua.value);
+        } else if (chge.kind === VdChangeKind.ReplaceGroup) {
+            let rg = chge as VdReplaceGroup;
+            // delete current content
+            removeGroupFromDom(rg.oldNode, true, rg.position === 0 && rg.nextSibling === null);
+            // inject new content
+            insertGroupContent(rg.newNode, rg.parent, rg.nextSibling, doc);
         } else {
             console.error("[iv html renderer] Unsupported change kind: " + chge.kind);
         }
@@ -159,7 +140,44 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
     vdom.changes = null;
 }
 
-function processNode(nd: VdNode, domParent, doc: HtmlDoc, ns: string | null) {
+function insertGroupContent(groupNd, parentNd, nextSibling, doc: HtmlDoc) {
+    let df = doc.createDocFragment(), ns: string | null = null;
+    if (parentNd && parentNd.domNode) {
+        ns = parentNd.domNode.namespaceURI;
+        if (ns && ns.match(RX_HTML)) {
+            ns = null;
+        }
+    }
+    createDomNode(groupNd, df, doc, ns);
+
+    // look for the previous sibling
+    if (parentNd && parentNd.domNode) {
+        let done = false;
+        if (nextSibling) {
+            if (nextSibling.domNode) {
+                parentNd.domNode.insertBefore(df, nextSibling.domNode);
+                done = true;
+            }
+        } else {
+            parentNd.domNode.appendChild(df);
+            done = true;
+        }
+        if (done) {
+            replaceDomNode(df, parentNd.domNode, groupNd);
+        }
+    }
+}
+
+function createDomNode(nd: VdNode, domParent, doc: HtmlDoc, ns: string | null) {
+    if (nd.domNode) {
+        // node has already been projected, so we have to disconnect them from their current parent
+        let dnd = nd.domNode;
+        if (dnd.parentNode) {
+            dnd.parentNode.removeChild(dnd);
+        }
+        domParent.appendChild(dnd);
+        return;
+    }
     switch (nd.kind) {
         case VdNodeKind.Element:
             createElementDomNode(nd as VdElementNode, domParent, doc, ns);
@@ -184,7 +202,7 @@ function processNode(nd: VdNode, domParent, doc: HtmlDoc, ns: string | null) {
 function processChildNodes(nd: VdContainer, domParent, doc: HtmlDoc, ns: string | null) {
     let ch = nd.children, len = ch.length;
     for (let i = 0; len > i; i++) {
-        processNode(ch[i], domParent, doc, ns);
+        createDomNode(ch[i], domParent, doc, ns);
     }
 }
 
@@ -265,11 +283,11 @@ function removeGroupFromDom(group: VdGroupNode, removeInDom: boolean, checkForFa
             if (nd.kind === VdNodeKind.Group) {
                 removeGroupFromDom(nd, removeInDom, false);
             } else if (nd.kind === VdNodeKind.Text || nd.kind === VdNodeKind.Element) {
-                if (removeInDom) {
+                if (removeInDom && nd.domNode && nd.domNode.parentNode === parentDomNd) {
+                    // we have to test that the node in in parentDomNd as it may have been already removed
+                    // and re-injected in another parent (cf. ReplaceGroup instruction)
                     parentDomNd.removeChild(nd.domNode);
-                    // todo recursively clean children vdom for elements
                 }
-                nd.domNode = null;
             }
         }
     }

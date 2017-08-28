@@ -360,7 +360,7 @@ describe('Rollup plugin', () => {
     });
 
     it('should generate functions with node re-projection (insert blocks)', () => {
-        
+
         function main(r: VdRenderer, useText: boolean, msg) {
             `---
             % if (useText) {
@@ -389,12 +389,12 @@ describe('Rollup plugin', () => {
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 3 ref="1">
-                    <#group 4 content=Object title="hello2">
-                        <div 1 class="section">
+                    <#group 4 content=IvNode title="hello2">
+                        <div 1 ref="3" class="section">
                             <span 2 class="title">
-                                <#text 3 ref="3" "hello2">
+                                <#text 3 ref="4" "hello2">
                             </span>
-                            <#group 4 ref="4">
+                            <#group 4 ref="5" $content_ref=IvNode>
                                 <#text 5 " Hello ">
                                 <span 6 class="mycontent">
                                     <#text 7 ref="2" "Slartibartfast ! ">
@@ -409,16 +409,16 @@ describe('Rollup plugin', () => {
             CreateGroup #-1
         `, "init");
 
-        r.refresh({ useText:false, msg: "Arthur" });
+        r.refresh({ useText: false, msg: "Arthur" });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
                 <#group 3 ref="1">
-                    <#group 4 content=Object title="hello2">
-                        <div 1 class="section">
+                    <#group 4 content=IvNode title="hello2">
+                        <div 1 ref="3" class="section">
                             <span 2 class="title">
-                                <#text 3 ref="3" "hello2">
+                                <#text 3 ref="4" "hello2">
                             </span>
-                            <#group 4 ref="4">
+                            <#group 4 ref="5" $content_ref=IvNode>
                                 <#text 5 " Hello ">
                                 <span 6 class="mycontent">
                                     <#text 7 ref="2" "Arthur ! ">
@@ -431,19 +431,19 @@ describe('Rollup plugin', () => {
         `, "init 2");
         assert.equal(r.changes(), `
             UpdateText "Arthur ! " in #2
-        `, "init 2 b");
+        `, "init 2b");
 
-        r.refresh({ useText:true, msg: "Arthur" });
+        r.refresh({ useText: true, msg: "Arthur" });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
-                <#group 1 ref="5">
-                    <#group 2 ref="6" content="Arthur" title="hello">
-                        <div 1 class="section">
+                <#group 1 ref="6">
+                    <#group 2 ref="7" content="Arthur" title="hello">
+                        <div 1 ref="8" class="section">
                             <span 2 class="title">
-                                <#text 3 ref="7" "hello">
+                                <#text 3 ref="9" "hello">
                             </span>
-                            <#group 4 ref="8">
-                                <#text -1 ref="9" "Arthur">
+                            <#group 4 ref="10" $content_ref="Arthur">
+                                <#text -1 ref="11" "Arthur">
                             </#group>
                         </div>
                     </#group>
@@ -451,21 +451,21 @@ describe('Rollup plugin', () => {
             </#group>
         `, "update");
         assert.equal(r.changes(), `
-            CreateGroup #5 in #-1 at position 0
+            CreateGroup #6 in #-1 at position 0
             DeleteGroup #1 in #-1 at position 1
         `, "update b");
 
-        r.refresh({ useText:true, msg: "Bart" });
+        r.refresh({ useText: true, msg: "Bart" });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
-                <#group 1 ref="5">
-                    <#group 2 ref="6" content="Bart" title="hello">
-                        <div 1 class="section">
+                <#group 1 ref="6">
+                    <#group 2 ref="7" content="Bart" title="hello">
+                        <div 1 ref="8" class="section">
                             <span 2 class="title">
-                                <#text 3 ref="7" "hello">
+                                <#text 3 ref="9" "hello">
                             </span>
-                            <#group 4 ref="8">
-                                <#text -1 ref="9" "Bart">
+                            <#group 4 ref="10" $content_ref="Bart">
+                                <#text -1 ref="11" "Bart">
                             </#group>
                         </div>
                     </#group>
@@ -473,9 +473,260 @@ describe('Rollup plugin', () => {
             </#group>
         `, "update 2");
         assert.equal(r.changes(), `
-            UpdateText "Bart" in #9
-        `, "update 2 b");
+            UpdateText "Bart" in #11
+        `, "update 2b");
 
+    });
+
+    it('should support insert content nature change and ReplaceGroupContent instructions', () => {
+        function test(r: VdRenderer, showFirst: boolean, showLast: boolean) {
+            `---
+            <c:menu>
+                % if (showFirst) {
+                    <:item key="F"> First item </:item>
+                    <:separator/>
+                % }
+                % for (let k of ["A", "B", "C"]) {
+                    <:item key=k> <b> Item {{k}} </b> </:item>
+                % }
+                % if (showLast) {
+                    <:separator/>
+                    <:item key="L"> Last item </:item>
+                % }
+            </c:menu>
+             ---`
+        }
+
+        function menu(r: VdRenderer, selection: string) {
+            `---
+            % let dataNodes = r.getDataNodes("*");
+            <ul>
+            % for (let dn of dataNodes) {
+                % if (dn.name === "item") {
+                    <li> [{{dn.props["key"]}}] <ins:dn/> </li>
+                % } else if (dn.name === "separator") {
+                    <hr/>
+                % }
+            % }
+            </ul>
+             ---`
+        }
+
+        let r = createTestRenderer(test, OPTIONS);
+        // initial display
+        r.refresh({ showFirst:true, showLast:true });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 1 content=IvNode>
+                    <ul 1 ref="9">
+                        <#group 2 ref="10">
+                            <#group 3 ref="11">
+                                <li 4 ref="12">
+                                    <#text 5 ref="13" " [F] ">
+                                    <#group 6 ref="14" $content_ref=IvNode>
+                                        <#text 4 " First item ">
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="15">
+                            <#group 7 ref="16">
+                                <hr 8/>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="17">
+                            <#group 3 ref="18">
+                                <li 4 ref="19">
+                                    <#text 5 ref="20" " [A] ">
+                                    <#group 6 ref="21" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="3" " Item A">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="22">
+                            <#group 3 ref="23">
+                                <li 4 ref="24">
+                                    <#text 5 ref="25" " [B] ">
+                                    <#group 6 ref="26" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="5" " Item B">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="27">
+                            <#group 3 ref="28">
+                                <li 4 ref="29">
+                                    <#text 5 ref="30" " [C] ">
+                                    <#group 6 ref="31" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="7" " Item C">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="32">
+                            <#group 7 ref="33">
+                                <hr 8/>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="34">
+                            <#group 3 ref="35">
+                                <li 4 ref="36">
+                                    <#text 5 ref="37" " [L] ">
+                                    <#group 6 ref="38" $content_ref=IvNode>
+                                        <#text 13 " Last item ">
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                    </ul>
+                </#group>
+            </#group>
+        `, "init");
+        assert.equal(r.changes(), `
+            CreateGroup #-1
+        `, "init b");
+
+        r.refresh({ showFirst:false, showLast:false });
+        // as the for loop is not keyed, the first group will be reused (group 2 ref="10")
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 1 content=IvNode>
+                    <ul 1 ref="9">
+                        <#group 2 ref="10">
+                            <#group 3 ref="11">
+                                <li 4 ref="12">
+                                    <#text 5 ref="13" " [A] ">
+                                    <#group 6 ref="39" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="3" " Item A">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="15">
+                            <#group 3 ref="40">
+                                <li 4 ref="41">
+                                    <#text 5 ref="42" " [B] ">
+                                    <#group 6 ref="43" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="5" " Item B">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="17">
+                            <#group 3 ref="18">
+                                <li 4 ref="19">
+                                    <#text 5 ref="20" " [C] ">
+                                    <#group 6 ref="44" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="7" " Item C">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                    </ul>
+                </#group>
+            </#group>
+        `, "update");
+        
+        // as the for loop is not keyed, the first group will be reused (group 2 ref="10")
+        assert.equal(r.changes(), `
+            UpdateText " [A] " in #13
+            ReplaceGroupContent #14 in #12 at position 1
+            CreateGroup #40 in #15 at position 0
+            DeleteGroup #16 in #15 at position 1
+            UpdateText " [C] " in #20
+            ReplaceGroupContent #21 in #19 at position 1
+            DeleteGroup #22 in #9 at position 3
+            DeleteGroup #27 in #9 at position 3
+            DeleteGroup #32 in #9 at position 3
+            DeleteGroup #34 in #9 at position 3
+        `, "update b");
+
+        r.refresh({ showFirst:true, showLast:false });
+        // as the for loop is not keyed, the first group will be reused (group 2 ref="10")
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <#group 1 content=IvNode>
+                    <ul 1 ref="9">
+                        <#group 2 ref="10">
+                            <#group 3 ref="11">
+                                <li 4 ref="12">
+                                    <#text 5 ref="13" " [F] ">
+                                    <#group 6 ref="46" $content_ref=IvNode>
+                                        <#text 4 " First item ">
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="15">
+                            <#group 7 ref="47">
+                                <hr 8/>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="17">
+                            <#group 3 ref="18">
+                                <li 4 ref="19">
+                                    <#text 5 ref="20" " [A] ">
+                                    <#group 6 ref="48" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="3" " Item A">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="49">
+                            <#group 3 ref="50">
+                                <li 4 ref="51">
+                                    <#text 5 ref="52" " [B] ">
+                                    <#group 6 ref="53" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="5" " Item B">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                        <#group 2 ref="54">
+                            <#group 3 ref="55">
+                                <li 4 ref="56">
+                                    <#text 5 ref="57" " [C] ">
+                                    <#group 6 ref="58" $content_ref=IvNode>
+                                        <b 8>
+                                            <#text 9 ref="7" " Item C">
+                                        </b>
+                                    </#group>
+                                </li>
+                            </#group>
+                        </#group>
+                    </ul>
+                </#group>
+            </#group>
+        `, "update 2");
+        
+        // as the for loop is not keyed, the first group will be reused (group 2 ref="10")
+        assert.equal(r.changes(), `
+            UpdateText " [F] " in #13
+            ReplaceGroupContent #39 in #12 at position 1
+            DeleteGroup #40 in #15 at position 0
+            CreateGroup #47 in #15 at position 0
+            UpdateText " [A] " in #20
+            ReplaceGroupContent #44 in #19 at position 1
+            CreateGroup #49 in #9 at position 3
+            CreateGroup #54 in #9 at position 4
+        `, "update 2b");
     });
 
 });

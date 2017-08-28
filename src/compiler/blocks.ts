@@ -63,20 +63,14 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
             }
             nextSiblingOnly = true;
         } else if (nd.nodeType === NacNodeType.JS_BLOCK) {
+            let level = currentLevel();
             if (currentBlock && currentBlock.kind === CodeBlockKind.NodeBlock) {
                 let nb = <NodeBlock>currentBlock, sh = nb.levels;
-                generateNodeBlockRefsLine(nb, levels, currentLevel());
+                generateNodeBlockRefsLine(nb, levels, level);
                 generateNodeBlockEndLines(nb, levels);
 
                 // ensure that parent node is created with a reference
-                let level = currentLevel(), cl: CodeLine;
-                // find last CreateElement code line that matches this level
-                for (let i = nb.cmLines.length - 1; i > -1; i--) {
-                    cl = nb.cmLines[i];
-                    if ((cl.kind === CodeLineKind.CreateElement || cl.kind === CodeLineKind.CreateDataNode) && (level === (<ClCreateNode>cl).parentLevel + 1)) {
-                        (<ClCreateNode>cl).needRef = true;
-                    }
-                }
+                setRefOnParentElement(nb, level);
             }
             if (b.blocks.length > 0) {
                 resetLevels();
@@ -86,17 +80,17 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
                 kind: CodeBlockKind.JsBlock,
                 functionCtxt: b.functionCtxt,
                 baseIndent: b.baseIndent + "    ",
-                startLevel: currentLevel() + 1, // increased by 1 to have the internal block nodes starting at this level
-                endLevel: currentLevel(),
+                startLevel: level + 1, // increased by 1 to have the internal block nodes starting at this level
+                endLevel: level,
                 blocks: [],
                 startStatement: ("" + nd.nodeValue.startBlockExpression).trim(),
                 endStatement: ("" + nd.nodeValue.endBlockExpression).trim(),
-                parentGroupIdx: currentLevel() + 1,
-                changeCtnIdx: b.changeCtnIdx,
+                parentGroupIdx: level + 1,
+                changeCtnIdx: getChangeCtnIdx(level),
                 initLines: []
             }
             if (currentBlock && currentBlock.kind === CodeBlockKind.JsBlock) {
-                deleteGroups(jsb.initLines, currentLevel());
+                deleteGroups(jsb.initLines, level);
             }
             b.blocks.push(jsb);
             currentBlock = jsb;
@@ -104,7 +98,7 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
             let cg: ClCheckGroup = {
                 kind: CodeLineKind.CheckGroup,
                 groupIdx: b.functionCtxt.nextNodeIdx(),
-                parentLevel: currentLevel(),
+                parentLevel: level,
                 changeCtnIdx: jsb.changeCtnIdx,
                 parentGroupLevel: b.parentGroupIdx
             }
@@ -114,12 +108,12 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
             jsb.initLines.push(cg);
             let ii: ClIncrementIdx = {
                 kind: CodeLineKind.IncrementIdx,
-                idxLevel: currentLevel()
+                idxLevel: level
             }
             jsb.initLines.push(ii);
             let ri: ClResetIdx = {
                 kind: CodeLineKind.ResetIdx,
-                idxLevel: currentLevel() + 1
+                idxLevel: level + 1
             }
             jsb.initLines.push(ri);
 
@@ -273,19 +267,37 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
 
     function deleteGroups(lines: CodeLine[], level: number) {
         if (b.blocks.length > 0) {
-            let changeCtnIdx = b.changeCtnIdx;
-            if (levels[level]) {
-                // levels[level] doesn't exist when we append a last js block that doesn't correspond to any node
-                changeCtnIdx = levels[level].changeCtnIdx;
-            }
-
             let dg: ClDeleteGroups = {
                 kind: CodeLineKind.DeleteGroups,
                 targetIdx: b.functionCtxt.lastNodeIdx() + 1,
                 parentLevel: level,
-                changeCtnIdx: changeCtnIdx
+                changeCtnIdx: getChangeCtnIdx(level)
             }
             lines.splice(0, 0, dg);
+        }
+    }
+
+    function getChangeCtnIdx(level: number): number {
+        if (levels[level]) {
+            return levels[level].changeCtnIdx;
+        } else if (b.blocks.length) {
+            // levels[level] doesn't exist when we append a last js block that doesn't correspond to any node
+            // -> take the changeCtnIdx from the last block as the delete instruction is associated to this block
+            return b.blocks[b.blocks.length - 1].changeCtnIdx
+        }
+        return 0;
+    }
+}
+
+function setRefOnParentElement(nb: NodeBlock, level) {
+    // note: won't set the ref if parent element is defined in a previous block - but as ref are only used for test
+    // purposes, this is not too serious
+    let cl: CodeLine;
+    // find last CreateElement code line that matches this level
+    for (let i = nb.cmLines.length - 1; i > -1; i--) {
+        cl = nb.cmLines[i];
+        if ((cl.kind === CodeLineKind.CreateElement || cl.kind === CodeLineKind.CreateDataNode) && (level === (<ClCreateNode>cl).parentLevel + 1)) {
+            (<ClCreateNode>cl).needRef = true;
         }
     }
 }
@@ -323,18 +335,26 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                 kind: CodeLineKind.Insert,
                 nodeIdx: nb.functionCtxt.nextNodeIdx(),
                 parentLevel: level,
-                expr: nd.nodeName
+                expr: nd.nodeName,
+                changeCtnIdx: levels[level].changeCtnIdx
             }
             nb.cmLines.push(ins);
 
             // add refresh instruction
-            generateNodeBlockRefsLine(nb, levels);
-            nb.umLines.push(<ClRefreshInsert>{
-                kind: CodeLineKind.RefreshInsert,
-                groupLevel: level + 1,
-                expr: nd.nodeName,
-                changeCtnIdx: levels[level].changeCtnIdx
-            });
+            // note: we don't generate the last ref as it is not needed here
+            generateNodeBlockRefsLine(nb, levels, levels.length - 1);
+
+            let idxExpr = generateLevelIndexRef(levels[level], level);
+            if (idxExpr !== undefined) {
+                nb.umLines.push(<ClRefreshInsert>{
+                    kind: CodeLineKind.RefreshInsert,
+                    parentLevel: level,
+                    idxExpr: idxExpr,
+                    expr: nd.nodeName,
+                    changeCtnIdx: levels[level].changeCtnIdx
+                });
+                setRefOnParentElement(nb, level);
+            }
             // no need to parse attributes
             return;
         } else if (nd.nodeNameSpace === "") {
@@ -595,26 +615,20 @@ function encodeTextString(s: string): string {
 }
 
 function generateNodeBlockRefsLine(nb: NodeBlock, levels: LevelCtxt[], max: number = -1) {
-    let sh, sn: ClSetNodeRef, val;
+    let sh, sn: ClSetNodeRef;
     if (max < 0) {
         max = nb.levels.length;
     }
 
     for (let i = 0; max > i; i++) {
         sh = nb.levels[i];
-        val = sh.nbrOfCreations - 1;
         if (!sh.refGenerated) {
-            let childRef: any;
+            let childRef = generateLevelIndexRef(sh, i);
             if (sh.relative) {
                 checkMaxLevelIndex(nb.functionCtxt, i);
             }
-            if (val === 0) {
-                childRef = sh.relative ? `$i${i}` : "0";
-            } else if (val > 0) {
-                childRef = sh.relative ? `$i${i}+${val}` : "" + val;
-            } else if (val < 0) {
-                // node has not been generated yet
-                break;
+            if (childRef === undefined) {
+                break; // node not generated yet
             }
             // e.g. $a2 = $a1.children[0]
             sn = {
@@ -630,6 +644,18 @@ function generateNodeBlockRefsLine(nb: NodeBlock, levels: LevelCtxt[], max: numb
                 levels[i].refGenerated = true;
             }
         }
+    }
+}
+
+function generateLevelIndexRef(levelCtxt: LevelCtxt, levelIndex: number): string | undefined {
+    let val = levelCtxt.nbrOfCreations - 1;
+    if (val === 0) {
+        return levelCtxt.relative ? `$i${levelIndex}` : "0";
+    } else if (val > 0) {
+        return levelCtxt.relative ? `$i${levelIndex}+${val}` : "" + val;
+    } else {
+        // val<0: node has not been generated yet
+        return undefined
     }
 }
 

@@ -913,7 +913,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1; $i2 = 1;
                 if (nbr===42) {
-                    $a3 = $cg($i2, $a2, $a0, $a0, 4);
+                    $a3 = $cg($i2, $a2, $a2, $a0, 4);
                     $i2++;
                     $i3 = 0;
                     if ($a3.cm) {
@@ -921,7 +921,7 @@ describe('Iv compiler', () => {
                         $a3.cm = 0;
                     } else {
                         $a4 = $a3.children[0];
-                        $ut("" + $ct(nbr+2), $a4, $a0);
+                        $ut("" + $ct(nbr+2), $a4, $a2);
                     }
                 }
                 if ($a0.cm) {
@@ -969,7 +969,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1; $i2 = 0;
                 if (nbr===42) {
-                    $a3 = $cg($i2, $a2, $a0, $a0, 3);
+                    $a3 = $cg($i2, $a2, $a2, $a0, 3);
                     $i2++;
                     $i3 = 0;
                     if ($a3.cm) {
@@ -977,14 +977,14 @@ describe('Iv compiler', () => {
                         $a3.cm = 0;
                     } else {
                         $a4 = $a3.children[0];
-                        $ut("" + $ct(nbr+2), $a4, $a0);
+                        $ut("" + $ct(nbr+2), $a4, $a2);
                     }
                 }
                 if ($a0.cm) {
                     $rc(r, $a2, $a0);
                     $a0.cm = 0;
                 } else {
-                    $dg($i2, $a2, $a0, 5);
+                    $dg($i2, $a2, $a2, 5);
                     $rc(r, $a2, $a0);
                 }
             }
@@ -1044,13 +1044,12 @@ describe('Iv compiler', () => {
                 const $ = r.rt, $el = $.createEltNode, $in = $.insert, $ri = $.refreshInsert;
                 let body = $d["body"];
                 if ($a0.cm) {
-                    $a1 = $el($a0, 1, "div", 0);
-                    $a2 = $in($a1, 2, body);
+                    $a1 = $el($a0, 1, "div", 1);
+                    $a2 = $in($a1, 2, body, $a0);
                     $a0.cm = 0;
                 } else {
                     $a1 = $a0.children[0];
-                    $a2 = $a1.children[0];
-                    $ri($a2, body, $a0);
+                    $ri($a1, 0, body, $a0);
                 }
             }
         `, "output generation");
@@ -1157,6 +1156,76 @@ describe('Iv compiler', () => {
                     $ut($t0 + $ct(bar), $a3, $a2);
                     $a2 = $a1.children[1];
                     $ut($t1 + $ct(bar+"..."), $a2, $a0);
+                }
+            }
+        `, "output generation");
+    });
+
+    it('should compile data nodes mixed with if blocks in components', () => {
+        let src = `
+            function test(r:VdRenderer, showFirst, showLast) {
+                \`<c:menu>
+                    {{showFirst && showLast}}
+                    % if (showFirst) {
+                        <:item key="F"> First item </:item>
+                    % }
+                    % if (showLast) {
+                        <:item key="L"> Last item {{showFirst}} </:item>
+                    % }
+                </c:menu> \`
+            }
+        `;
+
+        let cc = compile(src, "data nodes in components");
+
+        assert.equal(cc.getOutput(), `
+            function test(r: VdRenderer, $d: any) {
+                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2;
+                const $ = r.rt, $t0 = " Last item ", $cc = $.createCpt, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ut = $.updateText, $cg = $.checkGroup, $dn = $.createDtNode, $tx = $.createTxtNode, $dg = $.deleteGroups, $rc = $.refreshCpt;
+                let showFirst = $d["showFirst"], showLast = $d["showLast"];
+                if ($a0.cm) {
+                    $a1 = $cc($a0, 1, {  }, r, menu, 1, 0);
+                    $dt($a1, 2, "" + $ct(showFirst && showLast));
+                } else {
+                    $a1 = $a0.children[0];
+                    $a1 = $a1.ltGroup;
+                    $a2 = $a1.children[0];
+                    $ut("" + $ct(showFirst && showLast), $a2, $a1);
+                }
+                $i0 = 1; $i1 = 1;
+                if (showFirst) {
+                    $a2 = $cg($i1, $a1, $a1, $a0, 3);
+                    $i1++;
+                    $i2 = 0;
+                    if ($a2.cm) {
+                        $a3 = $dn($a2, 4, "item", 0);
+                        $a3.props = { "key": "F" };
+                        $tx($a3, 5, " First item ");
+                        $a2.cm = 0;
+                    }
+                }
+                if (showLast) {
+                    $dg($i1, $a1, $a1, 6);
+                    $a2 = $cg($i1, $a1, $a1, $a0, 6);
+                    $i1++;
+                    $i2 = 0;
+                    if ($a2.cm) {
+                        $a3 = $dn($a2, 7, "item", 0);
+                        $a3.props = { "key": "L" };
+                        $dt($a3, 8, $t0 + $ct(showFirst));
+                        $a2.cm = 0;
+                    } else {
+                        $a3 = $a2.children[0];
+                        $a4 = $a3.children[0];
+                        $ut($t0 + $ct(showFirst), $a4, $a3);
+                    }
+                }
+                if ($a0.cm) {
+                    $rc(r, $a1, $a0);
+                    $a0.cm = 0;
+                } else {
+                    $dg($i1, $a1, $a1, 9);
+                    $rc(r, $a1, $a0);
                 }
             }
         `, "output generation");

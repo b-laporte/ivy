@@ -234,23 +234,25 @@ export interface ClRefreshCpt extends CodeLine {
     kind: CodeLineKind.RefreshCpt;
     rendererNm: string;         // "r" in this example
     cptLevel: number;           // 2 in this example
-    changeCtnIdx: number;   // 0 in this example
+    changeCtnIdx: number;       // 0 in this example
 }
 
 export interface ClInsert extends CodeLine {
-    // e.g. $a2 = $in($a1, 9, body);
+    // e.g. $a2 = $in($a1, 9, body, $a0);
     kind: CodeLineKind.Insert;
     nodeIdx: number;            // 9 in this example
     parentLevel: number;        // 1 in this example
     expr: string;               // body in this example
+    changeCtnIdx: number;       // 0 in this example
 }
 
 export interface ClRefreshInsert extends CodeLine {
-    // e.g. $ri($a2, body, $a0);
+    // e.g. $ri($a1, $i1+1, body, $a0);
     kind: CodeLineKind.RefreshInsert;
-    groupLevel: number;         // 2 in this example
+    parentLevel: number;        // 1 in this example
+    idxExpr: string;            // "$i1+1" in this example
     expr: string;               // body in this example
-    changeCtnIdx: number;   // 0 in this example
+    changeCtnIdx: number;       // 0 in this example
 }
 
 export interface ClSwapLtGroup extends CodeLine {
@@ -263,5 +265,5 @@ export interface ClFuncDef extends CodeLine {
     // e.g. $f2=function() {doSomething()};
     kind: CodeLineKind.FuncDef;
     index: number;              // 2 in this example
-    expr: string;                // function() {doSomething()} in this example
+    expr: string;               // function() {doSomething()} in this example
 }

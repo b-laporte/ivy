@@ -22,7 +22,7 @@ export interface VdRuntime {
     /**
      * Create an insert group and insert the content node or text passed as argument
      */
-    insert: (parent: VdContainer, index: number, content: any) => VdGroupNode;
+    insert: (parent: VdContainer, index: number, content: any, changeContainer: VdChangeContainer, append?:boolean) => VdGroupNode;
 
     /**
      * Create a VdTextNode node and append it to the parent children list
@@ -82,7 +82,7 @@ export interface VdRuntime {
     /**
      * Refresh the content nodes associated to an insert group
      */
-    refreshInsert: (insertGroup: VdGroupNode, content: any, changeContainer: VdChangeContainer) => void;
+    refreshInsert: (parent: VdContainer, childPosition: number, content: any, changeContainer: VdChangeContainer) => void;
 
     /**
      * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
@@ -124,10 +124,10 @@ export interface VdRenderer {
 }
 
 export const enum VdNodeKind {
-    Group = 0,
-    Element = 1,
-    Text = 2,
-    Data = 3
+    Group = "G",
+    Element = "E",
+    Text = "T",
+    Data = "D"
 };
 
 export interface VdNode {
@@ -188,12 +188,13 @@ export interface VdElementWithAtts extends VdElementNode {
 }
 
 export const enum VdChangeKind {
-    Unknown = 0,
-    CreateGroup = 1,
-    DeleteGroup = 2,
-    UpdateProp = 3,
-    UpdateAtt = 4,
-    UpdateText = 5
+    Unknown = "?",
+    CreateGroup = "CG",
+    DeleteGroup = "DG",
+    UpdateProp = "UP",
+    UpdateAtt = "UA",
+    UpdateText = "UT",
+    ReplaceGroup = "RG"
 };
 
 export interface VdChangeInstruction {
@@ -234,4 +235,13 @@ export interface VdDeleteGroup extends VdChangeInstruction {
     parent: VdContainer | null;
     position: number,
     nbrOfNextSiblings: number
+}
+
+export interface VdReplaceGroup extends VdChangeInstruction {
+    kind: VdChangeKind.ReplaceGroup;
+    oldNode: VdGroupNode;
+    newNode: VdGroupNode;
+    parent: VdContainer | null;
+    position: number;
+    nextSibling: VdTextNode | VdElementNode | null;
 }

@@ -4,6 +4,9 @@ import { htmlRenderer } from "../htmlrenderer";
 import { VdRenderer } from "../vdom";
 
 describe('HTML renderer', () => {
+    let OPTIONS = { indent: "        ", isRoot: true, showUid: false },
+        OPTIONS_UID = { indent: "        ", isRoot: true, showUid: true };
+
     it('should render a simple function', () => {
         function test(r: VdRenderer, nbr) {
             `---
@@ -24,7 +27,7 @@ describe('HTML renderer', () => {
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
         r.refresh({ nbr: 9 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <div foo="9">
                     <#text> ABC </#text>
@@ -34,7 +37,7 @@ describe('HTML renderer', () => {
         `, "initial refresh");
 
         r.refresh({ nbr: 145 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <div foo="145">
                     <#text> ABC </#text>
@@ -47,7 +50,7 @@ describe('HTML renderer', () => {
         `, "refresh 145");
 
         r.refresh({ nbr: 45 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <div foo="45">
                     <#text> ABC </#text>
@@ -59,7 +62,7 @@ describe('HTML renderer', () => {
         `, "refresh 145");
 
         r.refresh({ nbr: 245 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <div foo="245">
                     <#text> ABC </#text>
@@ -72,7 +75,7 @@ describe('HTML renderer', () => {
         `, "refresh 245");
 
         r.refresh({ nbr: 12 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <div foo="12">
                     <#text> ABC </#text>
@@ -82,7 +85,7 @@ describe('HTML renderer', () => {
         `, "refresh 12");
 
         r.refresh({ nbr: 50 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <div foo="50">
                     <#text> ABC </#text>
@@ -177,40 +180,41 @@ describe('HTML renderer', () => {
              ---`
         }
 
+        doc.resetUid();
         let div = doc.createElement("div"), r = htmlRenderer(div, foo, doc);
 
         // initial display
         r.refresh({ visible: true, nbr: 1 });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <section>
-                        <#text> main </#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <section::E4>
+                        <#text::T5> main </#text>
                     </section>
                 </section>
             </div>
         `, "initial refresh");
 
         r.refresh({ visible: true, nbr: 2 });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <section>
-                        <#text> main </#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <section::E4>
+                        <#text::T5> main </#text>
                     </section>
-                    <button class="clear-completed">
-                        <#text>BUTTON</#text>
+                    <button::E7 class="clear-completed">
+                        <#text::T8>BUTTON</#text>
                     </button>
                 </section>
             </div>
         `, "update 1");
 
         r.refresh({ visible: true, nbr: 1 });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <section>
-                        <#text> main </#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <section::E4>
+                        <#text::T5> main </#text>
                     </section>
                 </section>
             </div>
@@ -236,7 +240,7 @@ describe('HTML renderer', () => {
 
         // initial display
         r.refresh({ visible: true, nbr: 1 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <section>
@@ -252,7 +256,7 @@ describe('HTML renderer', () => {
         doc.traces.reset();
         assert.equal(doc.traces.wentThroughTextContentDelete, false, "trace reset");
         r.refresh({ visible: true, nbr: 0 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section/>
             </div>
@@ -260,7 +264,7 @@ describe('HTML renderer', () => {
         assert.equal(doc.traces.wentThroughTextContentDelete, true, "deletion through textContent");
 
         r.refresh({ visible: true, nbr: 1 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <section>
@@ -317,22 +321,23 @@ describe('HTML renderer', () => {
              ---`
         }
 
+        doc.resetUid();
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
         // initial display
         r.refresh({ selectedCard: "first", content1: "First Card content" });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <div class="card">
-                        <div class="title">
-                            <#text> title: </#text>
-                            <b>
-                                <#text> First Card </#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <div::E4 class="card">
+                        <div::E5 class="title">
+                            <#text::T6> title: </#text>
+                            <b::E7>
+                                <#text::T8> First Card </#text>
                             </b>
                         </div>
-                        <b>
-                            <#text>First Card content</#text>
+                        <b::E9>
+                            <#text::T10>First Card content</#text>
                         </b>
                     </div>
                 </section>
@@ -340,18 +345,18 @@ describe('HTML renderer', () => {
         `, "initial refresh");
 
         r.refresh({ selectedCard: "first", content1: "New First Card content" });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <div class="card">
-                        <div class="title">
-                            <#text> title: </#text>
-                            <b>
-                                <#text> First Card </#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <div::E4 class="card">
+                        <div::E5 class="title">
+                            <#text::T6> title: </#text>
+                            <b::E7>
+                                <#text::T8> First Card </#text>
                             </b>
                         </div>
-                        <b>
-                            <#text>New First Card content</#text>
+                        <b::E9>
+                            <#text::T10>New First Card content</#text>
                         </b>
                     </div>
                 </section>
@@ -360,16 +365,16 @@ describe('HTML renderer', () => {
 
         let list = [{ ref: "c1", content: "content #1" }, { ref: "c2", content: "content #2" }];
         r.refresh({ selectedCard: "c2", content1: "New First Card content", list: list });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <div class="card">
-                        <div class="title">
-                            <#text> title: </#text>
-                            <#text> Card c2</#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <div::E13 class="card">
+                        <div::E14 class="title">
+                            <#text::T15> title: </#text>
+                            <#text::T16> Card c2</#text>
                         </div>
-                        <span class="cn">
-                            <#text>content #2</#text>
+                        <span::E17 class="cn">
+                            <#text::T18>content #2</#text>
                         </span>
                     </div>
                 </section>
@@ -377,12 +382,12 @@ describe('HTML renderer', () => {
         `, "update 2");
 
         r.refresh({ selectedCard: "c1", content1: "New First Card content", list: list });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <div class="card">
-                        <span class="cn">
-                            <#text>content #1</#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <div::E20 class="card">
+                        <span::E21 class="cn">
+                            <#text::T22>content #1</#text>
                         </span>
                     </div>
                 </section>
@@ -390,25 +395,26 @@ describe('HTML renderer', () => {
         `, "update 3");
 
         r.refresh({ selectedCard: "unknown", content1: "New First Card content", list: list });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section/>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3/>
             </div>
         `, "update 4");
 
+        debugger
         r.refresh({ selectedCard: "first", content1: "Hello World!", list: list });
-        assert.equal(div.stringify("        ", true), `
-            <div>
-                <section>
-                    <div class="card">
-                        <div class="title">
-                            <#text> title: </#text>
-                            <b>
-                                <#text> First Card </#text>
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <section::E3>
+                    <div::E24 class="card">
+                        <div::E25 class="title">
+                            <#text::T26> title: </#text>
+                            <b::E7>
+                                <#text::T8> First Card </#text>
                             </b>
                         </div>
-                        <b>
-                            <#text>Hello World!</#text>
+                        <b::E9>
+                            <#text::T10>Hello World!</#text>
                         </b>
                     </div>
                 </section>
@@ -430,7 +436,7 @@ describe('HTML renderer', () => {
 
         // initial display
         r.refresh({ v1: null, v2: undefined, v3: 0 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <span>
                     <#text> v1 10</#text>
@@ -442,7 +448,7 @@ describe('HTML renderer', () => {
         `, "initial refresh");
 
         r.refresh({ v1: 'a', v2: 123 });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <span>
                     <#text> v1 aa1</#text>
@@ -454,7 +460,7 @@ describe('HTML renderer', () => {
         `, "update 1");
 
         r.refresh({ v1: undefined, v2: null });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <span>
                     <#text> v1 </#text>
@@ -508,7 +514,7 @@ describe('HTML renderer', () => {
 
         // initial display
         r.refresh({ selectedCard: "r1", firstCardTitle: "First Card" });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <div class="card">
@@ -525,9 +531,9 @@ describe('HTML renderer', () => {
                 </section>
             </div>
         `, "initial refresh");
-        
+
         r.refresh({ selectedCard: "r1", firstCardTitle: "First Card Bis" });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <div class="card">
@@ -546,7 +552,7 @@ describe('HTML renderer', () => {
         `, "update 1");
 
         r.refresh({ selectedCard: "r2", firstCardTitle: "First Card" });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <div class="card">
@@ -565,7 +571,7 @@ describe('HTML renderer', () => {
         `, "update 2");
 
         r.refresh({ selectedCard: "unknown" });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <#text> Selection: </#text>
@@ -575,7 +581,7 @@ describe('HTML renderer', () => {
         `, "unpdate 3");
 
         r.refresh({ selectedCard: "r1", firstCardTitle: "First CARD" });
-        assert.equal(div.stringify("        ", true), `
+        assert.equal(div.stringify(OPTIONS), `
             <div>
                 <section>
                     <div class="card">
@@ -592,5 +598,173 @@ describe('HTML renderer', () => {
                 </section>
             </div>
         `, "update 4");
+    });
+
+    it('should support * wildcard in getDataNodes()', () => {
+        // same test as in rollup-plugin.spec
+
+        function test(r: VdRenderer, showFirst: boolean, showLast: boolean) {
+            `---
+            <c:menu>
+                % if (showFirst) {
+                    <:item key="F"> First item </:item>
+                    <:separator/>
+                % }
+                % for (let k of ["A", "B", "C"]) {
+                    <:item key=k> <b> Item {{k}} </b> </:item>
+                % }
+                % if (showLast) {
+                    <:separator/>
+                    <:item key="L"> Last item </:item>
+                % }
+            </c:menu>
+             ---`
+        }
+
+        function menu(r: VdRenderer, selection: string) {
+            `---
+            % let dataNodes = r.getDataNodes("*");
+            <ul>
+                % for (let dn of dataNodes) {
+                    % if (dn.name === "item") {
+                        <li> [{{dn.props["key"]}}] <ins:dn/> </li>
+                    % } else if (dn.name === "separator") {
+                        <hr/>
+                    % }
+                % }
+            </ul>
+             ---`
+        }
+
+        doc.resetUid();
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        // initial display
+        r.refresh({ showFirst: true, showLast: true });
+        // note uid 2 is for the first docfragment ("F2")
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <ul::E3>
+                    <li::E4>
+                        <#text::T5> [F] </#text>
+                        <#text::T6> First item </#text>
+                    </li>
+                    <hr::E7/>
+                    <li::E8>
+                        <#text::T9> [A] </#text>
+                        <b::E10>
+                            <#text::T11> Item A</#text>
+                        </b>
+                    </li>
+                    <li::E12>
+                        <#text::T13> [B] </#text>
+                        <b::E14>
+                            <#text::T15> Item B</#text>
+                        </b>
+                    </li>
+                    <li::E16>
+                        <#text::T17> [C] </#text>
+                        <b::E18>
+                            <#text::T19> Item C</#text>
+                        </b>
+                    </li>
+                    <hr::E20/>
+                    <li::E21>
+                        <#text::T22> [L] </#text>
+                        <#text::T23> Last item </#text>
+                    </li>
+                </ul>
+            </div>
+        `, "initial refresh");
+        
+        assert.equal(doc.getLastUid(), 23, "last init uid");
+        r.refresh({ showFirst: false, showLast: false });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <ul::E3>
+                    <li::E4>
+                        <#text::T5> [A] </#text>
+                        <b::E10>
+                            <#text::T11> Item A</#text>
+                        </b>
+                    </li>
+                    <li::E26>
+                        <#text::T27> [B] </#text>
+                        <b::E14>
+                            <#text::T15> Item B</#text>
+                        </b>
+                    </li>
+                    <li::E8>
+                        <#text::T9> [C] </#text>
+                        <b::E18>
+                            <#text::T19> Item C</#text>
+                        </b>
+                    </li>
+                </ul>
+            </div>
+        `, "update 1");
+
+        r.refresh({ showFirst:false, showLast:true });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <ul::E3>
+                    <li::E4>
+                        <#text::T5> [A] </#text>
+                        <b::E10>
+                            <#text::T11> Item A</#text>
+                        </b>
+                    </li>
+                    <li::E26>
+                        <#text::T27> [B] </#text>
+                        <b::E14>
+                            <#text::T15> Item B</#text>
+                        </b>
+                    </li>
+                    <li::E8>
+                        <#text::T9> [C] </#text>
+                        <b::E18>
+                            <#text::T19> Item C</#text>
+                        </b>
+                    </li>
+                    <hr::E30/>
+                    <li::E32>
+                        <#text::T33> [L] </#text>
+                        <#text::T34> Last item </#text>
+                    </li>
+                </ul>
+            </div>
+        `, "update 2");
+
+        r.refresh({ showFirst:true, showLast:false });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <ul::E3>
+                    <li::E4>
+                        <#text::T5> [F] </#text>
+                        <#text::T36> First item </#text>
+                    </li>
+                    <hr::E38/>
+                    <li::E8>
+                        <#text::T9> [A] </#text>
+                        <b::E10>
+                            <#text::T11> Item A</#text>
+                        </b>
+                    </li>
+                    <li::E41>
+                        <#text::T42> [B] </#text>
+                        <b::E14>
+                            <#text::T15> Item B</#text>
+                        </b>
+                    </li>
+                    <li::E32>
+                        <#text::T33> [C] </#text>
+                        <b::E18>
+                            <#text::T19> Item C</#text>
+                        </b>
+                    </li>
+                </ul>
+            </div>
+        `, "update 3");
+
     });
 });

@@ -179,7 +179,8 @@ function addError(cc: CompilationCtxt, description: string, line: number, col: n
         columnNbr: col,
         fileName: cc.fileName
     });
-    console.log("Error: ", e.descriptioin, e.lineNbr);
+    let d = e.description ? e.description : "[no description]";
+    console.log("Compilation Error: ", d, " - line: " + e.lineNbr + " in " + cc.fileName);
 }
 
 function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
@@ -360,7 +361,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             if (fc.maxLevel < ins.parentLevel + 1) {
                 fc.maxLevel = ins.parentLevel + 1;
             }
-            return `${indent}$a${ins.parentLevel + 1} = $in($a${ins.parentLevel}, ${ins.nodeIdx}, ${ins.expr});`;
+            return `${indent}$a${ins.parentLevel + 1} = $in($a${ins.parentLevel}, ${ins.nodeIdx}, ${ins.expr}, $a${ins.changeCtnIdx});`;
         case CodeLineKind.CreateComponent:
             let cc = cl as ClCreateComponent, pbuf: string[] = [];
             // e.g. $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, r, bar, 0 ,1);
@@ -429,7 +430,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let ri = cl as ClRefreshInsert;
             // e.g. $ri($a2, body, $a0);
             fc.headDeclarations.constAliases["$ri"] = "$.refreshInsert";
-            return `${indent}$ri($a${ri.groupLevel}, ${ri.expr}, $a${ri.changeCtnIdx});`;
+            return `${indent}$ri($a${ri.parentLevel}, ${ri.idxExpr}, ${ri.expr}, $a${ri.changeCtnIdx});`;
         case CodeLineKind.SetNodeRef:
             let sr = cl as ClSetNodeRef;
             // e.g. $a2 = $a1.children[0];

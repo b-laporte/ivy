@@ -1,12 +1,12 @@
 
 import {
     VdNodeKind, VdRenderer, VdRuntime, VdFunction, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
 
-const EMPTY_PROPS = {}, NO_PROPS = undefined;
+const EMPTY_PROPS = {}, NO_PROPS = undefined, ALL_DN = "*";
 
 interface IvRuntime extends VdRuntime {
     refCount: number;
@@ -60,12 +60,12 @@ export const ivRuntime: IvRuntime = {
         return nd;
     },
 
-    insert(parent: VdContainer, index: number, content: any): VdGroupNode {
+    insert(parent: VdContainer, index: number, content: any, changeCtn: VdChangeContainer, append = true): VdGroupNode {
         let g: VdGroupNode = {
             kind: VdNodeKind.Group,
             index: index,
             cm: 0,
-            props: {},
+            props: { $content_ref: content },
             changes: null,
             ref: ++ivRuntime.refCount,
             children: [],
@@ -75,22 +75,65 @@ export const ivRuntime: IvRuntime = {
         if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
             // content is a node list
             g.children = content.children
+            moveChangeInstructions(content, changeCtn);
         } else if (typeof content === "string") {
             // create a text node
             ivRuntime.dynTxtNode(g, -1, content);
         }
-        parent.children[parent.children.length] = g;
+        if (append) {
+            parent.children[parent.children.length] = g;
+        }
         return g;
     },
 
-    refreshInsert(insertGroup: VdGroupNode, content: any, changeCtn: VdChangeContainer): void {
-        // todo check if content nature has changed
-        if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
+    refreshInsert(parent: VdContainer, childPosition: number, content: any, changeCtn: VdChangeContainer): void {
+        // result depends on content nature change
+        let insertGroup = <VdGroupNode>parent.children[childPosition],
+            contentA: any = insertGroup.props ? insertGroup.props["$content_ref"] : "",
+            contentB = content;
+
+        if (contentA === contentB) {
             // push back changes
-            moveChangeInstructions(content, changeCtn);
-        } else if (typeof content === "string") {
-            ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeCtn);
+            moveChangeInstructions(contentB, changeCtn);
+        } else {
+            let typeA = getInsertContentType(contentA),
+                typeB = getInsertContentType(contentB),
+                replaceGroup = false;
+            if (typeA === "text") {
+                if (typeB === "text") {
+                    // update the text node
+                    ivRuntime.updateText(content, <VdTextNode>insertGroup.children[0], changeCtn);
+                } else if (typeB === "nodelist") {
+                    // delete text node and create new content
+                    replaceGroup = true;
+                }
+            } else if (typeA === "nodelist") {
+                replaceGroup = true; // if (typeB === "nodelist"), node lists are different (cf. first test)
+            }
+
+            if (replaceGroup) {
+                let newInsertGroup = ivRuntime.insert(parent, insertGroup.index, contentB, changeCtn, false);
+                let rg: VdReplaceGroup = {
+                    kind: VdChangeKind.ReplaceGroup,
+                    oldNode: insertGroup,
+                    newNode: newInsertGroup,
+                    parent: parent,
+                    position: childPosition,
+                    nextSibling: findNextDomSibling(parent, childPosition)
+                }
+                parent.children[childPosition] = newInsertGroup;
+                newInsertGroup.changes = null;
+                addChangeInstruction(changeCtn, rg);
+            } else {
+                if (insertGroup.props) {
+                    insertGroup.props["$content_ref"] = contentB;
+                } else {
+                    insertGroup.props = { $content_ref: contentB };
+                }
+            }
+            moveChangeInstructions(contentB, changeCtn);
         }
+        // todo handle error cases where typeA or typeB are "invalid"
     },
 
     createCpt(parent: VdContainer, index: number, props: {}, r: VdRenderer, vdFunction: VdFunction, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
@@ -162,7 +205,7 @@ export const ivRuntime: IvRuntime = {
                     node: g,
                     parent: parent,
                     position: childPosition,
-                    nextSibling: findNextSibling(parent, childPosition)
+                    nextSibling: findNextDomSibling(parent, childPosition)
                 }
                 addChangeInstruction(changeCtn, chge);
             }
@@ -321,7 +364,7 @@ export const ivRuntime: IvRuntime = {
 function getDataNodeWrapper(props, nodeName, textValue) {
     // create a wrapper if doesn't exist - and cache it in the props object
     // note: we have to avoid creating the wrapper everytime as the <ins:dataNode/> instruction
-    // would delete and recreate all all the times
+    // would delete and recreate all the times
     let dnPropName = "$dn_" + nodeName, dnw = props[dnPropName];
     if (!dnw) {
         dnw = ivRuntime.createDtNode(null, -1, nodeName, 0);
@@ -338,8 +381,10 @@ function grabDataNodes(list: VdNode[], nodeName, resultsList) {
     let len = list.length, nd;
     for (let i = 0; len > i; i++) {
         nd = list[i];
-        if (nd.kind === VdNodeKind.Data && (<VdDataNode>nd).name === nodeName) {
-            resultsList[resultsList.length] = nd;
+        if (nd.kind === VdNodeKind.Data) {
+            if (nodeName === ALL_DN || (<VdDataNode>nd).name === nodeName) {
+                resultsList[resultsList.length] = nd;
+            }
         } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
             grabDataNodes(nd.children, nodeName, resultsList);
         }
@@ -381,7 +426,8 @@ function moveChangeInstructions(changeCtn1: VdChangeContainer, changeCtn2: VdCha
     }
 }
 
-function findNextSibling(parent: VdContainer, nodePosition: number, childrenOnly = false): VdTextNode | VdElementNode | null {
+// Find next sibling that is not a Group nor a Data node as those VdNodes are not projected in the real DOM
+function findNextDomSibling(parent: VdContainer, nodePosition: number, childrenOnly = false): VdTextNode | VdElementNode | null {
     let ch = parent.children, nd;
     if (nodePosition + 1 < ch.length) {
         // there is a next element in the children list
@@ -391,10 +437,10 @@ function findNextSibling(parent: VdContainer, nodePosition: number, childrenOnly
         } else if (nd.kind === VdNodeKind.Text) {
             return <VdTextNode>nd;
         } else if (nd.kind === VdNodeKind.Group) {
-            return findNextSibling(nd, -1, true);
+            return findNextDomSibling(nd, -1, true);
         } else {
             // data node
-            return findNextSibling(parent, nodePosition + 1);
+            return findNextDomSibling(parent, nodePosition + 1);
         }
     } else {
         // there is no more element in this list
@@ -407,11 +453,20 @@ function findNextSibling(parent: VdContainer, nodePosition: number, childrenOnly
                 // find parent position
                 for (let i = 0; p.children.length > i; i++) {
                     if (p.children[i] === parent) {
-                        return findNextSibling(p, i);
+                        return findNextDomSibling(p, i);
                     }
                 }
             }
         }
         return null;
     }
+}
+
+function getInsertContentType(content): "nodelist" | "text" | "invalid" {
+    if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
+        return "nodelist";
+    } else if (typeof content === "string") {
+        return "text";
+    }
+    return "invalid";
 }

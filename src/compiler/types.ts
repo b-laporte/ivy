@@ -48,6 +48,7 @@ export interface JsBlock extends CodeBlock {
 
 export interface FunctionBlock extends JsBlock {
     kind: CodeBlockKind.FunctionBlock;
+    isMethod: boolean;          // true if the function is a method of a class
     headDeclarations: { constAliases: {}; maxLevelIdx: number; maxTextIdx: number; maxFuncIdx: number; params: { name: string; type: string }[]; };
     maxLevel: number;
     rendererNm: string;         // renderer identifier (e.g. "r")

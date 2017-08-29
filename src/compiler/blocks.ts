@@ -413,11 +413,19 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                     idx = ++hd.maxFuncIdx,
                     identifier = "$f" + idx;
 
-                nb.initLines.push(<ClFuncDef>{
-                    kind: CodeLineKind.FuncDef,
-                    index: idx,
-                    expr: ["function(", params, ") {", att.value, "}"].join("")
-                });
+                if (nb.functionCtxt.isMethod) {
+                    nb.initLines.push(<ClFuncDef>{
+                        kind: CodeLineKind.FuncDef,
+                        index: idx,
+                        expr: ["(", params, ") => {", att.value, "}"].join("")
+                    });
+                } else {
+                    nb.initLines.push(<ClFuncDef>{
+                        kind: CodeLineKind.FuncDef,
+                        index: idx,
+                        expr: ["function(", params, ") {", att.value, "}"].join("")
+                    });
+                }
 
                 att.value = identifier;
                 upBuf.push(att);

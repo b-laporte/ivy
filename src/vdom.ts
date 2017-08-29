@@ -17,12 +17,12 @@ export interface VdRuntime {
      * and call the component function
      * Use in creation mode only
      */
-    createCpt: (parent: VdContainer, index: number, props: {}, r: VdRenderer, f: VdFunction, hasLightDom: 0 | 1, needRef: 0 | 1) => VdGroupNode;
+    createCpt: (parent: VdContainer, index: number, props: {}, r: VdRenderer, f: VdFunctionCpt | VdClassCpt, hasLightDom: 0 | 1, needRef: 0 | 1) => VdGroupNode;
 
     /**
      * Create an insert group and insert the content node or text passed as argument
      */
-    insert: (parent: VdContainer, index: number, content: any, changeContainer: VdChangeContainer, append?:boolean) => VdGroupNode;
+    insert: (parent: VdContainer, index: number, content: any, changeContainer: VdChangeContainer, append?: boolean) => VdGroupNode;
 
     /**
      * Create a VdTextNode node and append it to the parent children list
@@ -88,22 +88,34 @@ export interface VdRuntime {
      * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
      * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
      */
-    getDataNodes: (fnGroup:VdGroupNode, nodeName:string, parent?:VdContainer) => VdDataNode[];
+    getDataNodes: (fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer) => VdDataNode[];
 
     /**
      * Same as getDataNodes() but will only return the first element (faster method when only one data node is expected)
      */
-    getDataNode: (fnGroup:VdGroupNode, nodeName:string, parent?:VdContainer) => VdDataNode | null;
+    getDataNode: (fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer) => VdDataNode | null;
 
     /**
      * Clean a text expression: return '' for null or undefined expression
      */
-    cleanTxt: (expr:any) => any;
+    cleanTxt: (expr: any) => any;
 
 }
 
-export interface VdFunction {
-    (r: VdRenderer, $d?: {}): void;
+export interface VdClassCpt {
+    (): void;
+    $isClassCpt: true;
+}
+
+export interface VdClassCptInstance {
+    init?():void;
+    shouldUpdate?():boolean;
+    render(r: VdRenderer, $d?: {}): void;
+}
+
+export interface VdFunctionCpt {
+    (r: VdRenderer, $d?: any): void;
+    $isClassCpt?: false;
 }
 
 export interface VdRenderer {
@@ -114,13 +126,13 @@ export interface VdRenderer {
      * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
      * (helper method redirecting to rt.getDataNodes)
      */
-    getDataNodes: (nodeName:string, parent?:VdContainer) => VdDataNode[];
+    getDataNodes: (nodeName: string, parent?: VdContainer) => VdDataNode[];
 
     /**
      * Same as getDataNodes() but will only return the first element (faster method when only one data node is expected)
      * (helper method redirecting to rt.getDataNode)
      */
-    getDataNode: (nodeName:string, parent?:VdContainer) => VdDataNode | null;
+    getDataNode: (nodeName: string, parent?: VdContainer) => VdDataNode | null;
 }
 
 export const enum VdNodeKind {
@@ -158,7 +170,8 @@ export interface VdGroupNode extends VdContainer, VdChangeContainer {
 }
 
 export interface VdCptNode extends VdGroupNode {
-    vdFunction: VdFunction;
+    cpt: VdClassCptInstance | null;
+    render: VdFunctionCpt | null;
     sdGroup: VdCptNode | null;               // shadow group = group containing the shadow dom or null if there is no light dom
     ltGroup: VdCptNode | null;               // light group = group containing the light dom or null if there is not light dom
 }

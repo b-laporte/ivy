@@ -401,7 +401,6 @@ describe('HTML renderer', () => {
             </div>
         `, "update 4");
 
-        debugger
         r.refresh({ selectedCard: "first", content1: "Hello World!", list: list });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>

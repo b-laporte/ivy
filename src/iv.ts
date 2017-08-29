@@ -1,7 +1,7 @@
 
 import {
-    VdNodeKind, VdRenderer, VdRuntime, VdFunction, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup
+    VdNodeKind, VdRenderer, VdRuntime, VdFunctionCpt, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
@@ -136,12 +136,14 @@ export const ivRuntime: IvRuntime = {
         // todo handle error cases where typeA or typeB are "invalid"
     },
 
-    createCpt(parent: VdContainer, index: number, props: {}, r: VdRenderer, vdFunction: VdFunction, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
+    createCpt(parent: VdContainer, index: number, props: {}, r: VdRenderer, cpt: VdFunctionCpt | VdClassCpt, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
+        let isClassCpt = cpt.$isClassCpt === true;
         let g: VdCptNode = {
             kind: VdNodeKind.Group,
             index: index,
             cm: 1,
-            vdFunction: vdFunction,
+            cpt: isClassCpt ? new (<VdClassCpt>cpt)() : null,
+            render: isClassCpt ? null : <VdFunctionCpt>cpt,
             props: props,
             changes: null,
             ref: needRef ? ++ivRuntime.refCount : 0,
@@ -154,6 +156,14 @@ export const ivRuntime: IvRuntime = {
         parent.children[parent.children.length] = g;
         r.parent = g;
 
+        if (g.cpt) {
+            let c = g.cpt;
+            c["props"] = g.props
+            if (c.init) {
+                c.init();
+            }
+        }
+
         // add sg to parent children, return lg
         if (hasLightDom) {
             // create the light dom and return it
@@ -161,7 +171,8 @@ export const ivRuntime: IvRuntime = {
                 kind: VdNodeKind.Group,
                 index: index,
                 cm: 1,
-                vdFunction: vdFunction,
+                cpt: g.cpt,
+                render: g.render,
                 changes: null,
                 ref: 0,
                 children: [],
@@ -173,7 +184,7 @@ export const ivRuntime: IvRuntime = {
         } else {
             // no light dom
             // call the sub-function with the supplied parameters
-            vdFunction(r, props);
+            renderCpt(r, g);
             r.parent = p;
             return g;
         }
@@ -316,7 +327,7 @@ export const ivRuntime: IvRuntime = {
             c.props["$content"] = ltGroup;
         }
         r.parent = c;
-        c.vdFunction(r, c.props);
+        renderCpt(r, c);
         r.parent = p;
 
         // move changes from cptGroup to change container
@@ -358,6 +369,29 @@ export const ivRuntime: IvRuntime = {
             }
         }
         return r;
+    }
+}
+
+/**
+ * Decorate a class component constructor to identify it as a component
+ * @param CptClass 
+ */
+export function $component(CptClass: Function): VdClassCpt {
+    CptClass["$isClassCpt"] = true;
+    return <VdClassCpt>CptClass;
+}
+
+function renderCpt(r: VdRenderer, g) {
+    if (g.cpt) {
+        let c:VdClassCptInstance = <VdClassCptInstance>g.cpt;
+        if (c.shouldUpdate) {
+            if (!c.shouldUpdate()) {
+                return;
+            }
+        }
+        c.render(r);
+    } else {
+        g.render(r, g.props);
     }
 }
 

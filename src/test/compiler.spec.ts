@@ -1231,4 +1231,60 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
+    it('should compile class components with event handlers', () => {
+        let src = `
+            let box = $component( class {
+                props: { size: number, text: string };
+                count = 0;
+
+                increment() {
+                    this.count++;
+                }
+
+                render(r: VdRenderer) {
+                    \`---
+                    % let sz = this.props.size || 100;
+                    <span [attr:class]=("box"+sz) onmouseenter()=this.increment() onmouseleave(e)=this.increment(e) >
+                        {{this.props.text}}
+                    </span> 
+                    ---\`
+                }
+            });
+        `;
+
+        let cc = compile(src, "data nodes in components");
+
+        assert.equal(cc.getOutput(), `
+            let box = $component( class {
+                props: { size: number, text: string };
+                count = 0;
+
+                increment() {
+                    this.count++;
+                }
+
+                render(r: VdRenderer) {
+                    let $a0: any = r.parent, $a1, $a2, $f0, $f1;
+                    const $ = r.rt, $el = $.createEltNode, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ua = $.updateAtt, $up = $.updateProp, $ut = $.updateText;
+                    let sz = this.props.size || 100;
+                    $f0=() => {this.increment()};
+                    $f1=(e) => {this.increment(e)};
+                    if ($a0.cm) {
+                        $a1 = $el($a0, 1, "span", 1);
+                        $a1.props = { "onmouseenter": $f0, "onmouseleave": $f1 };
+                        $a1.atts = { "class": ("box"+sz) };
+                        $dt($a1, 2, "" + $ct(this.props.text));
+                        $a0.cm = 0;
+                    } else {
+                        $a1 = $a0.children[0];
+                        $ua("class", ("box"+sz), $a1, $a0);
+                        $up("onmouseenter", $f0, $a1, $a0);
+                        $up("onmouseleave", $f1, $a1, $a0);
+                        $a2 = $a1.children[0];
+                        $ut("" + $ct(this.props.text), $a2, $a0);
+                    }
+                }
+            });
+        `, "output generation");
+    });
 });

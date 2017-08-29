@@ -1,5 +1,5 @@
 
-import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunction, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
+import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
 import { ivRuntime } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
@@ -25,7 +25,7 @@ class Renderer implements HtmlRenderer {
     vdom: VdGroupNode;
     doc: HtmlDoc;
 
-    constructor(public htmlElement, public vdFunction: VdFunction, doc?: HtmlDoc) {
+    constructor(public htmlElement, public vdFunction: VdFunctionCpt, doc?: HtmlDoc) {
         // create the root group and its create instruction
         let vdom = this.vdom = <VdGroupNode>{
             kind: VdNodeKind.Group,

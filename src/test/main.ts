@@ -6,3 +6,4 @@ import "./compiler.spec";
 import "./runtime.spec";
 import "./rollup-plugin.spec";
 import "./htmlrenderer.spec";
+import "./components.spec";

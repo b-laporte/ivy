@@ -45,6 +45,8 @@ function checkNode(node: ts.Node, cc: CompilationCtxt) {
                         }
 
                         let tfn = addTemplateFunction(cc);
+                        tfn.isMethod = node.kind === ts.SyntaxKind.MethodDeclaration;
+
                         // extract indent and template string
                         let str = ch[0].getText(), sm = str.match(/`\s*\n(\s+)/);
 
@@ -105,6 +107,7 @@ interface TplFunction {
     fnHead: string;      // function code to put at the beginning of the function body (usually local variable declaration)
     fnBody: string;      // main function code
     rendererNm: string;  // identifier name for the VdRenderer parameter - usually "r"
+    isMethod: boolean;   // tell if the function is the method of a class
     params: { name: string; type: string }[];   // function parameters
 }
 
@@ -162,6 +165,7 @@ function addTemplateFunction(cc: CompilationCtxt): TplFunction {
         rendererNm: "",
         declarationStart: "",
         declarationEnd: "",
+        isMethod: false,
         params: []
     }
     cc.tplFunctions.push(tf);
@@ -203,6 +207,7 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
                 maxTextIdx: -1,
                 maxFuncIdx: -1
             },
+            isMethod: tf.isMethod,
             baseIndent: tf.rootIndent,
             startStatement: "",
             endStatemnet: "",

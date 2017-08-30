@@ -94,7 +94,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(x: VdRenderer, $d: any) {
-                let $a0: any = x.parent, $a1, $a2;
+                let $a0: any = x.node, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
@@ -125,7 +125,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2;
+                let $a0: any = r.node, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
@@ -164,7 +164,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2;
+                let $a0: any = r.node, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $ua = $.updateAtt;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
@@ -200,7 +200,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1, $i2;
+                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $dg = $.deleteGroups, $up = $.updateProp;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -252,7 +252,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1, $i2;
+                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1, $i2;
                 const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $tx = $.createTxtNode, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -310,7 +310,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1, $i2;
+                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1, $i2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $dg = $.deleteGroups, $up = $.updateProp;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -372,7 +372,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1;
+                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1;
                 const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $up = $.updateProp, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -428,7 +428,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $up = $.updateProp, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -503,7 +503,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $i0 = 0, $i1;
+                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1;
                 const $ = r.rt, $tx = $.createTxtNode, $cg = $.checkGroup, $el = $.createEltNode, $dg = $.deleteGroups, $up = $.updateProp;
                 let nbr = $d["nbr"];
                 let x=123;
@@ -557,7 +557,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2;
+                let $a0: any = r.node, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cc = $.createCpt, $uc = $.updateCptProp, $rc = $.refreshCpt;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -597,7 +597,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2;
+                let $a0: any = r.node, $a1, $a2;
                 const $ = r.rt, $t0 = " \\"nbr ", $t1 = "!\\"\\n                        !!! ", $el = $.createEltNode, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ut = $.updateText;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -635,7 +635,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1;
+                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1;
                 const $ = r.rt, $cg = $.checkGroup, $el = $.createEltNode, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ut = $.updateText, $dg = $.deleteGroups;
                 let visible = $d["visible"], nbr = $d["nbr"];
                 visibile = visible || true;
@@ -688,7 +688,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $a5, $i0 = 0, $i1, $i2, $i3;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4, $a5, $i0 = 0, $i1, $i2, $i3;
                 const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ut = $.updateText, $dg = $.deleteGroups;
                 let visible = $d["visible"], nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -747,7 +747,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $f0, $f1, $f2;
+                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $f0, $f1, $f2;
                 const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
                 let foo = $d["foo"], bar = $d["bar"];
                 $f0=function() {doSomething(foo,bar+2)};
@@ -810,7 +810,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4;
                 const $ = r.rt, $el = $.createEltNode, $ua = $.updateAtt;
                 let radius = $d["radius"];
                 if ($a0.cm) {
@@ -848,7 +848,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4;
                 const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $dt = $.dynTxtNode, $ct = $.cleanTxt, $rc = $.refreshCpt, $uc = $.updateCptProp, $ut = $.updateText;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -896,7 +896,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
                 const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $dt = $.dynTxtNode, $ct = $.cleanTxt, $uc = $.updateCptProp, $ut = $.updateText, $cg = $.checkGroup, $rc = $.refreshCpt, $tx = $.createTxtNode, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -955,7 +955,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
                 const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $uc = $.updateCptProp, $cg = $.checkGroup, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ut = $.updateText, $rc = $.refreshCpt, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -1005,7 +1005,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4;
                 const $ = r.rt, $el = $.createEltNode, $cc = $.createCpt, $dt = $.dynTxtNode, $ct = $.cleanTxt, $rc = $.refreshCpt, $ut = $.updateText;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -1040,7 +1040,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2;
+                let $a0: any = r.node, $a1, $a2;
                 const $ = r.rt, $el = $.createEltNode, $in = $.insert, $ri = $.refreshInsert;
                 let body = $d["body"];
                 if ($a0.cm) {
@@ -1076,7 +1076,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $i3;
+                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $i3;
                 const $ = r.rt, $el = $.createEltNode, $cg = $.checkGroup, $tx = $.createTxtNode, $dg = $.deleteGroups;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -1135,7 +1135,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3;
+                let $a0: any = r.node, $a1, $a2, $a3;
                 const $ = r.rt, $t0 = " Greeting ", $t1 = " Hello World ! ", $el = $.createEltNode, $dn = $.createDtNode, $dt = $.dynTxtNode, $ct = $.cleanTxt, $tx = $.createTxtNode, $up = $.updateProp, $ut = $.updateText;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
@@ -1180,7 +1180,7 @@ describe('Iv compiler', () => {
 
         assert.equal(cc.getOutput(), `
             function test(r: VdRenderer, $d: any) {
-                let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2;
+                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2;
                 const $ = r.rt, $t0 = " Last item ", $cc = $.createCpt, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ut = $.updateText, $cg = $.checkGroup, $dn = $.createDtNode, $tx = $.createTxtNode, $dg = $.deleteGroups, $rc = $.refreshCpt;
                 let showFirst = $d["showFirst"], showLast = $d["showLast"];
                 if ($a0.cm) {
@@ -1264,7 +1264,7 @@ describe('Iv compiler', () => {
                 }
 
                 render(r: VdRenderer) {
-                    let $a0: any = r.parent, $a1, $a2, $f0, $f1;
+                    let $a0: any = r.node, $a1, $a2, $f0, $f1;
                     const $ = r.rt, $el = $.createEltNode, $dt = $.dynTxtNode, $ct = $.cleanTxt, $ua = $.updateAtt, $up = $.updateProp, $ut = $.updateText;
                     let sz = this.props.size || 100;
                     $f0=() => {this.increment()};

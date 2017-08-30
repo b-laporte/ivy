@@ -13,7 +13,10 @@
 		"noEmitOnError": false,
 		"strictNullChecks": true,
 		"forceConsistentCasingInFileNames": true,
-		"noImplicitReturns": true
+		"noImplicitReturns": true,
+		"lib":[
+			"es2015", "dom"
+		]
 	},
 	"include": [
 		"src/**/*.ts"

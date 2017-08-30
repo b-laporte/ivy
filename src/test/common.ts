@@ -217,7 +217,7 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
     let r: TestRenderer = {
         func: func,
         rt: ivRuntime,
-        parent: rootGroup,
+        node: rootGroup,
         root: undefined,
         vdom: () => serializeGroup(rootGroup, options ? options.baseIndent : "    "),
         changes: () => serializeChanges(rootGroup, options ? options.baseIndent : "    "),
@@ -227,14 +227,19 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
             } else {
                 this.root.changes = null;
             }
-            this.parent = this.root;
+            this.node = this.root;
             this.func(this, $d);
         },
+        processChanges(vdNode: VdGroupNode) {
+            // update the HTML DOM from the change list
+            // ignored here
+            vdNode.changes = null;
+        },
         getDataNodes: function (nodeName: string, parent?: VdContainer) {
-            return ivRuntime.getDataNodes(<VdGroupNode>(this.parent), nodeName, parent);
+            return ivRuntime.getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
         },
         getDataNode: function (nodeName: string, parent?: VdContainer) {
-            return ivRuntime.getDataNode(<VdGroupNode>(this.parent), nodeName, parent);
+            return ivRuntime.getDataNode(<VdGroupNode>(this.node), nodeName, parent);
         }
     }
 

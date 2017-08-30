@@ -17,7 +17,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2;
+            let $a0: any = r.node, $a1, $a2;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp;
             let nbr = $d["nbr"];
 
@@ -94,7 +94,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
+            let $a0: any = r.node, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
@@ -240,7 +240,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
+            let $a0: any = r.node, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
@@ -373,7 +373,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $i1 = 0;
+            let $a0: any = r.node, $a1, $a2, $a3, $i1 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
@@ -507,7 +507,7 @@ describe('IV runtime', () => {
 
         // runtime code as it should be roughly generated
         function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2, $a3, $a4, $i1 = 0, $i2 = 0;
+            let $a0: any = r.node, $a1, $a2, $a3, $a4, $i1 = 0, $i2 = 0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let nbr = $d["nbr"];
             if ($a0.cm) {
@@ -695,7 +695,7 @@ describe('IV runtime', () => {
         // }
 
         function foo(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2;
+            let $a0: any = r.node, $a1, $a2;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $uc = $.updateCptProp,
                 $cc = $.createCpt, $rc = $.refreshCpt;
             let v = $d["v"];
@@ -720,7 +720,7 @@ describe('IV runtime', () => {
         }
 
         function bar(r: VdRenderer, $d: { value?: any, msg?: any }) {
-            let value = $d.value || "", msg = $d.msg || "", $a0: any = r.parent, $a1, $a2, $i1;
+            let value = $d.value || "", msg = $d.msg || "", $a0: any = r.node, $a1, $a2, $i1;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
 
             if ($a0.cm) {
@@ -839,7 +839,7 @@ describe('IV runtime', () => {
         // }
 
         function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.parent, $a1, $a2, $i0;
+            let $a0: any = r.node, $a1, $a2, $i0;
             const $ = r.rt, $el = $.createEltNode, $tx = $.createTxtNode, $up = $.updateProp, $cg = $.checkGroup, $dg = $.deleteGroups;
             let list = $d["list"];
             if ($a0.cm) {

@@ -108,9 +108,11 @@ export interface VdClassCpt {
 }
 
 export interface VdClassCptInstance {
-    init?():void;
-    shouldUpdate?():boolean;
-    render(r: VdRenderer, $d?: {}): void;
+    $vdNode?: VdCptNode;
+    $renderer?: VdRenderer;
+    init?(): void;
+    shouldUpdate?(): boolean;
+    render(r: VdRenderer): void;
 }
 
 export interface VdFunctionCpt {
@@ -120,7 +122,13 @@ export interface VdFunctionCpt {
 
 export interface VdRenderer {
     rt: VdRuntime;
-    parent: VdGroupNode;
+    node: VdGroupNode;
+
+    /**
+     * Process the changes associated to a given node
+     */
+    processChanges:(vdNode: VdGroupNode) => void;
+
     /**
      * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
      * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
@@ -174,6 +182,11 @@ export interface VdCptNode extends VdGroupNode {
     render: VdFunctionCpt | null;
     sdGroup: VdCptNode | null;               // shadow group = group containing the shadow dom or null if there is no light dom
     ltGroup: VdCptNode | null;               // light group = group containing the light dom or null if there is not light dom
+}
+
+export interface VdFuncCptNode extends VdCptNode {
+    cpt: null;
+    render: VdFunctionCpt;
 }
 
 export interface VdTextNode extends VdNode {

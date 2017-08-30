@@ -255,7 +255,7 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
     for (let i = 0; maxFuncIdx >= i; i++) {
         idxRefs.push(", $f" + i);
     }
-    let fh: string[] = [`${tf.rootIndent}let $a0: any = ${tf.rendererNm}.parent${elRefs.join("")}${idxRefs.join("")};`];
+    let fh: string[] = [`${tf.rootIndent}let $a0: any = ${tf.rendererNm}.node${elRefs.join("")}${idxRefs.join("")};`];
 
     for (let k in aliases) {
         if (aliases.hasOwnProperty(k)) {

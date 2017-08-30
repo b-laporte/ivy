@@ -1,4 +1,4 @@
-import { VdRenderer, $component } from "../../iv";
+import { VdRenderer, $component, $refresh } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
 let r;
@@ -72,10 +72,12 @@ let dot = $component(class {
 
     hover() {
         this.hoverMode = true;
+        $refresh(this);
     }
 
     unhover() {
         this.hoverMode = false;
+        $refresh(this);
     }
 });
 

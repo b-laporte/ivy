@@ -1,7 +1,7 @@
 import { assert, doc } from "./common";
 import { htmlRenderer } from "../htmlrenderer";
 import { VdRenderer } from "../vdom";
-import { $component } from "../iv";
+import { $component, $refreshSync } from "../iv";
 
 describe('Class Components', () => {
     let OPTIONS = { indent: "        ", isRoot: true, showUid: false },
@@ -31,12 +31,13 @@ describe('Class Components', () => {
     }
     let label2 = $component(Label2);
 
-    let box = $component( class {
+    let box = $component(class {
         props: {
             size: number,
             text: string
         }
         lastSize = -1;
+        txt = "";
 
         shouldUpdate() {
             // only update if the size changed since last display
@@ -47,13 +48,18 @@ describe('Class Components', () => {
             `---
             % this.lastSize = this.props.size;
             % let sz = this.props.size || 100;
-            <span [attr:class]=("box"+sz) >
-                {{this.props.text}}
+            <span [attr:class]=("box"+sz) onclick()=this.update()>
+                {{this.props.text}}{{this.txt}}
             </span> 
             ---`
         }
+
+        update() {
+            this.txt = (this.txt === "") ? "1" : "" + (parseInt(this.txt, 10) + 1);
+            $refreshSync(this);
+        }
     });
-    
+
     it('should support no init()', () => {
 
         function test(r: VdRenderer, txt1, txt2) {
@@ -135,7 +141,7 @@ describe('Class Components', () => {
             </div>
         `, "initial refresh");
 
-        r.refresh({ txt1: "b"});
+        r.refresh({ txt1: "b" });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
                 <span::E3 class="label">
@@ -152,7 +158,7 @@ describe('Class Components', () => {
 
     });
 
-    it('should support shouldRender()', () => {
+    it('should support shouldUpdate()', () => {
 
         function test(r: VdRenderer, sz1, txt1, sz2, txt2) {
             `---
@@ -167,10 +173,10 @@ describe('Class Components', () => {
         r.refresh({ sz1: 10, txt1: "init1", sz2: 20, txt2: "init2" });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 CLASS="box10">
+                <span::E3 onclick=[function] CLASS="box10">
                     <#text::T4>init1</#text>
                 </span>
-                <span::E5 CLASS="box20">
+                <span::E5 onclick=[function] CLASS="box20">
                     <#text::T6>init2</#text>
                 </span>
             </div>
@@ -179,15 +185,66 @@ describe('Class Components', () => {
         r.refresh({ sz1: 10, txt1: "update11", sz2: 30, txt2: "update12" });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 CLASS="box10">
+                <span::E3 onclick=[function] CLASS="box10">
                     <#text::T4>init1</#text>
                 </span>
-                <span::E5 CLASS="box30">
+                <span::E5 onclick=[function] CLASS="box30">
                     <#text::T6>update12</#text>
                 </span>
             </div>
         `, "update 1");
 
     });
+
+    it('should support event handlers and $refreshSync()', () => {
+
+        function test(r: VdRenderer, sz1, txt1, sz2, txt2) {
+            `---
+            <c:box [size]=sz1 [text]=txt1/>
+            <c:box [size]=sz2 [text]=txt2/>
+             ---`
+        }
+
+        doc.resetUid();
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        r.refresh({ sz1: 10, txt1: "init1", sz2: 20, txt2: "init2" });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <span::E3 onclick=[function] CLASS="box10">
+                    <#text::T4>init1</#text>
+                </span>
+                <span::E5 onclick=[function] CLASS="box20">
+                    <#text::T6>init2</#text>
+                </span>
+            </div>
+        `, "initial refresh");
+
+        (<any>r).vdom.domNode.childNodes[0].click();
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <span::E3 onclick=[function] CLASS="box10">
+                    <#text::T4>init11</#text>
+                </span>
+                <span::E5 onclick=[function] CLASS="box20">
+                    <#text::T6>init2</#text>
+                </span>
+            </div>
+        `, "update 1");
+
+        (<any>r).vdom.domNode.childNodes[0].click();
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <span::E3 onclick=[function] CLASS="box10">
+                    <#text::T4>init12</#text>
+                </span>
+                <span::E5 onclick=[function] CLASS="box20">
+                    <#text::T6>init2</#text>
+                </span>
+            </div>
+        `, "update 2");
+
+    });
+
 
 });

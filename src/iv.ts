@@ -1,7 +1,7 @@
 
 import {
     VdNodeKind, VdRenderer, VdRuntime, VdFunctionCpt, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance, VdFuncCptNode
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
@@ -152,12 +152,14 @@ export const ivRuntime: IvRuntime = {
             sdGroup: null,
             ltGroup: null,
             parent: parent
-        }, p = r.parent;
+        }, p = r.node;
         parent.children[parent.children.length] = g;
-        r.parent = g;
+        r.node = g;
 
         if (g.cpt) {
-            let c = g.cpt;
+            let c = <VdClassCptInstance>g.cpt;
+            c.$vdNode = g;
+            c.$renderer = r;
             c["props"] = g.props
             if (c.init) {
                 c.init();
@@ -185,7 +187,7 @@ export const ivRuntime: IvRuntime = {
             // no light dom
             // call the sub-function with the supplied parameters
             renderCpt(r, g);
-            r.parent = p;
+            r.node = p;
             return g;
         }
     },
@@ -315,7 +317,7 @@ export const ivRuntime: IvRuntime = {
     },
 
     refreshCpt(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
-        let p = r.parent, c = cptGroup as VdCptNode;
+        let p = r.node, c = cptGroup as VdCptNode;
 
         if (c.sdGroup !== null) {
             // there is a light dom - swap back to the shadow dom group
@@ -326,9 +328,9 @@ export const ivRuntime: IvRuntime = {
             }
             c.props["$content"] = ltGroup;
         }
-        r.parent = c;
+        r.node = c;
         renderCpt(r, c);
-        r.parent = p;
+        r.node = p;
 
         // move changes from cptGroup to change container
         moveChangeInstructions(c, changeCtn);
@@ -381,9 +383,28 @@ export function $component(CptClass: Function): VdClassCpt {
     return <VdClassCpt>CptClass;
 }
 
-function renderCpt(r: VdRenderer, g) {
+export function $refreshSync(cpt: VdClassCptInstance) {
+    if (cpt.$vdNode && cpt.$renderer) {
+        let r = cpt.$renderer, n1 = r.node, n2 = cpt.$vdNode;
+        r.node = n2;
+        cpt.render(r);
+        r.processChanges(n2);
+        r.node = n1;
+    }
+}
+
+export async function $refresh(cpt: VdClassCptInstance) {
+    return new Promise((resolve, reject) => {
+        requestAnimationFrame(() => {
+            $refreshSync(cpt);
+            resolve();
+        })
+    });
+}
+
+function renderCpt(r: VdRenderer, g: VdCptNode) {
     if (g.cpt) {
-        let c:VdClassCptInstance = <VdClassCptInstance>g.cpt;
+        let c: VdClassCptInstance = <VdClassCptInstance>g.cpt;
         if (c.shouldUpdate) {
             if (!c.shouldUpdate()) {
                 return;
@@ -391,7 +412,7 @@ function renderCpt(r: VdRenderer, g) {
         }
         c.render(r);
     } else {
-        g.render(r, g.props);
+        (<VdFuncCptNode>g).render(r, g.props);
     }
 }
 

@@ -1,6 +1,6 @@
 
-import { VdRenderer, VdRuntime, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
-import { ivRuntime } from './iv';
+import { VdRenderer, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
+import { getDataNode, getDataNodes, $nextRef } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
     return new Renderer(htmlElement, func, doc);
@@ -20,7 +20,6 @@ interface HtmlDoc {
 const RX_EVT_HANDLER = /^on/, RX_HTML = /html/i;
 
 class Renderer implements HtmlRenderer {
-    rt = ivRuntime;
     node: VdGroupNode;
     vdom: VdGroupNode;
     doc: HtmlDoc;
@@ -30,7 +29,7 @@ class Renderer implements HtmlRenderer {
         let vdom = this.vdom = <VdGroupNode>{
             kind: VdNodeKind.Group,
             index: 0,
-            ref: ++ivRuntime.refCount,
+            ref: $nextRef(),
             cm: 1,
             changes: null,
             children: [],
@@ -63,11 +62,11 @@ class Renderer implements HtmlRenderer {
     }
 
     getDataNodes(nodeName: string, parent?: VdContainer) {
-        return ivRuntime.getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
+        return getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
     }
 
     getDataNode(nodeName: string, parent?: VdContainer) {
-        return ivRuntime.getDataNode(<VdGroupNode>(this.node), nodeName, parent);
+        return getDataNode(<VdGroupNode>(this.node), nodeName, parent);
     }
 
     refresh($d) {

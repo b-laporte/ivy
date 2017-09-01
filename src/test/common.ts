@@ -1,10 +1,10 @@
 
 import { NacNodeType } from '../compiler/nac';
 import {
-    VdRenderer, VdRuntime, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
+    VdRenderer, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
     VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdContainer, VdReplaceGroup, VdDataNode
 } from '../vdom';
-import { ivRuntime } from '../iv';
+import { getDataNodes, getDataNode, $resetRefCount } from "../iv";
 
 const CR = "\n";
 
@@ -201,7 +201,7 @@ interface TestRenderer extends VdRenderer {
 
 export function createTestRenderer(func: (r: VdRenderer, ...any) => void, options?: { baseIndent: string }): TestRenderer {
     // override ivRuntime to always start ref at 0
-    ivRuntime.refCount = 0;
+    $resetRefCount();
 
     let rootGroup: VdGroupNode = {
         kind: VdNodeKind.Group,
@@ -216,7 +216,6 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
 
     let r: TestRenderer = {
         func: func,
-        rt: ivRuntime,
         node: rootGroup,
         root: undefined,
         vdom: () => serializeGroup(rootGroup, options ? options.baseIndent : "    "),
@@ -236,10 +235,10 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
             vdNode.changes = null;
         },
         getDataNodes: function (nodeName: string, parent?: VdContainer) {
-            return ivRuntime.getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
+            return getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
         },
         getDataNode: function (nodeName: string, parent?: VdContainer) {
-            return ivRuntime.getDataNode(<VdGroupNode>(this.node), nodeName, parent);
+            return getDataNode(<VdGroupNode>(this.node), nodeName, parent);
         }
     }
 

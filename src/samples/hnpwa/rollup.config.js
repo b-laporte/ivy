@@ -6,7 +6,7 @@ import gzip from "rollup-plugin-gzip";
 export default {
   entry: 'src/samples/hnpwa/hnpwa.ts',
   format: 'es',
-  plugins: [iv({ trace: false }), typescript2(), uglify(), gzip()],
+  plugins: [iv({ trace: false, runtime: 'src/iv' }), typescript2(), uglify(), gzip()],
   external: [],
   sourceMap: false,    // not supported by iv plugin
   dest: 'dist/hnpwa/hnpwa.js'

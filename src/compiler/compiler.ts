@@ -5,9 +5,9 @@ import { scanBlocks, checkMaxLevelIndex } from "./blocks";
 
 const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
 
-export function compile(source: string, id: string): CompilationCtxt {
-    let srcFile = ts.createSourceFile(id, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true),
-        cc = new CompilationCtxt(source, id);
+export function compile(source: string, filePath: string, ivPath: string): CompilationCtxt {
+    let srcFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true),
+        cc = new CompilationCtxt(source, filePath, ivPath);
     scan(srcFile);
     for (let tf of cc.tplFunctions) {
         compileTemplateFunction(tf, cc);
@@ -118,14 +118,39 @@ interface CompilationError {
     fileName: string;
 }
 
+interface CompilateOptions {
+    ivImports?: boolean;
+}
+
 class CompilationCtxt {
+    ivImports = {};
     tplFunctions: TplFunction[] = [];
     errors: CompilationError[] | null = null;
 
-    constructor(public src: string, public fileName: string) { }
+    constructor(public src: string, public fileName: string, public ivPath: string) { }
 
-    getOutput(): string {
-        let res = this.src, pos = 0, chunks: string[] = [], param: string;
+    getOutput(options?: CompilateOptions): string {
+        let res = this.src, pos = 0, chunks: string[] = [], param: string, buf: string[] = [], ivImports = true;
+        if (options && options.ivImports === false) {
+            ivImports = false;
+        }
+
+        if (ivImports) {
+            // generate main import
+            for (let k in this.ivImports) {
+                if (this.ivImports.hasOwnProperty(k)) {
+                    buf.push(k)
+                }
+            }
+            if (buf.length) {
+                let rx = this.src.match(/^\n*([ \t]*)/i), indent = "";
+                if (rx && rx.length > 1) {
+                    indent = rx[1];
+                }
+                chunks.push(indent + "import { " + buf.join(", ") + " } from \"" + this.ivPath + "\";" + CARRIAGE_RETURN);
+            }
+        }
+
         for (let fn of this.tplFunctions) {
             chunks.push(this.src.substring(pos, fn.pos));
             chunks.push(fn.declarationStart);
@@ -203,6 +228,7 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
             headDeclarations: {
                 params: tf.params,
                 constAliases: {},
+                ivImports: cc.ivImports,
                 maxLevelIdx: -1,
                 maxTextIdx: -1,
                 maxFuncIdx: -1
@@ -226,12 +252,12 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
         scanBlocks(nac, fc);
         let lines: string[] = [];
         generateCode(fc, lines);
-        generateTplFunctionDeclarations(tf, fc);
+        generateTplFunctionHead(tf, fc);
         tf.fnBody = lines.join(CR);
     }
 }
 
-function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
+function generateTplFunctionHead(tf: TplFunction, fc: FunctionBlock) {
     let constBuf: string[] = [],
         params = fc.headDeclarations.params,
         aliases = fc.headDeclarations.constAliases,
@@ -263,7 +289,7 @@ function generateTplFunctionDeclarations(tf: TplFunction, fc: FunctionBlock) {
         }
     }
     if (constBuf.length) {
-        fh.push(tf.rootIndent + "const $ = r.rt, " + constBuf.join(", ") + ";");
+        fh.push(tf.rootIndent + "const " + constBuf.join(", ") + ";");
     }
     if (params && params.length) {
         let pbuf: string[] = [];
@@ -346,7 +372,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.CreateElement:
             let el = cl as ClCreateElement;
             // e.g. $a1 = $el($a0, 3, "div", 1);
-            fc.headDeclarations.constAliases["$el"] = "$.createEltNode";
+            fc.headDeclarations.ivImports["$el"] = 1;
             if (fc.maxLevel < el.parentLevel + 1) {
                 fc.maxLevel = el.parentLevel + 1;
             }
@@ -354,7 +380,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.CreateDataNode:
             // $dn($a1, 2, "title", 1);
             let dn = cl as ClCreateDataNode;
-            fc.headDeclarations.constAliases["$dn"] = "$.createDtNode";
+            fc.headDeclarations.ivImports["$dn"] = 1;
             if (fc.maxLevel < dn.parentLevel + 1) {
                 fc.maxLevel = dn.parentLevel + 1;
             }
@@ -362,7 +388,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.Insert:
             let ins = cl as ClInsert;
             // e.g. $a2 = $in($a1, 9, body);
-            fc.headDeclarations.constAliases["$in"] = "$.insert";
+            fc.headDeclarations.ivImports["$in"] = 1;
             if (fc.maxLevel < ins.parentLevel + 1) {
                 fc.maxLevel = ins.parentLevel + 1;
             }
@@ -370,7 +396,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.CreateComponent:
             let cc = cl as ClCreateComponent, pbuf: string[] = [];
             // e.g. $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, r, bar, 0 ,1);
-            fc.headDeclarations.constAliases["$cc"] = "$.createCpt";
+            fc.headDeclarations.ivImports["$cc"] = 1;
             if (fc.maxLevel < cc.parentLevel + 1) {
                 fc.maxLevel = cc.parentLevel + 1;
             }
@@ -381,13 +407,13 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.CreateTextNode:
             let tx = cl as ClCreateTextNode;
             // e.g. $tx($a2, 3, " Hello ");
-            fc.headDeclarations.constAliases["$tx"] = "$.createTxtNode";
+            fc.headDeclarations.ivImports["$tx"] = 1;
             return `${indent}$tx($a${tx.parentLevel}, ${tx.nodeIdx}, "${tx.text}");`;
         case CodeLineKind.CreateDynText:
             let dt = cl as ClCreateDynTextNode;
             // e.g. $dt($a1, 2, " nbr " + (nbr+1) + "! ");
-            fc.headDeclarations.constAliases["$dt"] = "$.dynTxtNode";
-            fc.headDeclarations.constAliases["$ct"] = "$.cleanTxt";
+            fc.headDeclarations.ivImports["$dt"] = 1;
+            fc.headDeclarations.ivImports["$ct"] = 1;
             if (fc.maxLevel < dt.parentLevel + 1) {
                 fc.maxLevel = dt.parentLevel + 1;
             }
@@ -395,7 +421,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.UpdateText:
             let ut = cl as ClUpdateText;
             // e.g. $ut($t0 + (nbr+1) + $t1, $a2, $a0);
-            fc.headDeclarations.constAliases["$ut"] = "$.updateText";
+            fc.headDeclarations.ivImports["$ut"] = 1;
             return `${indent}$ut(${ut.fragments.join(" + ")}, $a${ut.eltLevel}, $a${ut.changeCtnIdx});`;
         case CodeLineKind.SetProps:
             let sp = cl as ClSetProps, propsBuf: string[] = [];
@@ -414,27 +440,27 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.UpdateProp:
             let up = cl as ClUpdateProp;
             // e.g. $up("baz", nbr + 3, $a2, $a0)
-            fc.headDeclarations.constAliases["$up"] = "$.updateProp";
+            fc.headDeclarations.ivImports["$up"] = 1;
             return `${indent}$up("${up.propName}", ${up.expr}, $a${up.eltLevel}, $a${up.changeCtnIdx});`;
         case CodeLineKind.UpdateAtt:
             let ua = cl as ClUpdateAtt;
             // e.g. $up("baz", nbr + 3, $a2, $a0)
-            fc.headDeclarations.constAliases["$ua"] = "$.updateAtt";
+            fc.headDeclarations.ivImports["$ua"] = 1;
             return `${indent}$ua("${ua.attName}", ${ua.expr}, $a${ua.eltLevel}, $a${ua.changeCtnIdx});`;
         case CodeLineKind.UpdateCptProp:
             let uc = cl as ClUpdateCptProp;
             // e.g. $uc("baz", nbr + 3, $a2)
-            fc.headDeclarations.constAliases["$uc"] = "$.updateCptProp";
+            fc.headDeclarations.ivImports["$uc"] = 1;
             return `${indent}$uc("${uc.propName}", ${uc.expr}, $a${uc.eltLevel});`;
         case CodeLineKind.RefreshCpt:
             let rc = cl as ClRefreshCpt;
             // e.g. $rc(r, $a2, $a0);
-            fc.headDeclarations.constAliases["$rc"] = "$.refreshCpt";
+            fc.headDeclarations.ivImports["$rc"] = 1;
             return `${indent}$rc(${rc.rendererNm}, $a${rc.cptLevel}, $a${rc.changeCtnIdx});`;
         case CodeLineKind.RefreshInsert:
             let ri = cl as ClRefreshInsert;
             // e.g. $ri($a2, body, $a0);
-            fc.headDeclarations.constAliases["$ri"] = "$.refreshInsert";
+            fc.headDeclarations.ivImports["$ri"] = 1;
             return `${indent}$ri($a${ri.parentLevel}, ${ri.idxExpr}, ${ri.expr}, $a${ri.changeCtnIdx});`;
         case CodeLineKind.SetNodeRef:
             let sr = cl as ClSetNodeRef;
@@ -443,7 +469,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.CheckGroup:
             let cg = cl as ClCheckGroup;
             // e.g. $a2 = $cg($i1, $a1, $a0, $a0, 3);
-            fc.headDeclarations.constAliases["$cg"] = "$.checkGroup";
+            fc.headDeclarations.ivImports["$cg"] = 1;
             if (fc.maxLevel < cg.parentLevel + 1) {
                 fc.maxLevel = cg.parentLevel + 1;
             }
@@ -451,7 +477,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
         case CodeLineKind.DeleteGroups:
             let dg = cl as ClDeleteGroups;
             // e.g. $dg($i1, $a1, $a0, 8);
-            fc.headDeclarations.constAliases["$dg"] = "$.deleteGroups";
+            fc.headDeclarations.ivImports["$dg"] = 1;
             return `${indent}$dg($i${dg.parentLevel}, $a${dg.parentLevel}, $a${dg.changeCtnIdx}, ${dg.targetIdx});`;
         case CodeLineKind.IncrementIdx:
             let ii = cl as ClIncrementIdx;

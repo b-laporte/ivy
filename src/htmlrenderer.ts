@@ -1,6 +1,6 @@
 
 import { VdRenderer, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
-import { getDataNode, getDataNodes, $nextRef } from './iv';
+import { $dataNode, $dataNodes, $nextRef } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
     return new Renderer(htmlElement, func, doc);
@@ -59,14 +59,6 @@ class Renderer implements HtmlRenderer {
                 return document.createElementNS(ns, name);
             }
         }
-    }
-
-    getDataNodes(nodeName: string, parent?: VdContainer) {
-        return getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
-    }
-
-    getDataNode(nodeName: string, parent?: VdContainer) {
-        return getDataNode(<VdGroupNode>(this.node), nodeName, parent);
     }
 
     refresh($d) {

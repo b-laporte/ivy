@@ -26,7 +26,7 @@ export function $resetRefCount() {
  * Return the next available reference
  */
 export function $nextRef() {
-    return ++ refCount;
+    return ++refCount;
 }
 
 /**
@@ -414,40 +414,46 @@ export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeCon
  * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
  * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
  */
-export function getDataNodes(fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer): VdDataNode[] {
-    let r = [];
-    if (!parent && fnGroup.props) {
-        parent = fnGroup.props["$content"];
+export function $dataNodes(nodeName: string, parent: VdRenderer | VdContainer): VdDataNode[] {
+    let res = [];
+    if (parent["node"]) {
+        let nd = (<VdRenderer>parent).node;
+        if (nd.props) {
+            parent = nd.props["$content"];
+        }
     }
     if (parent) {
-        grabDataNodes(parent.children, nodeName, r);
+        grabDataNodes((<VdContainer>parent).children, nodeName, res);
     }
-    return r;
+    return res;
 }
 
 /**
- * Same as getDataNodes() but will only return the first element (faster method when only one data node is expected)
+ * Same as $dataNodes() but will only return the first element (faster method when only one data node is expected)
  */
-export function getDataNode(fnGroup: VdGroupNode, nodeName: string, parent?: VdContainer): VdDataNode | null {
-    let r: VdDataNode | null = null;
-    if (!parent && fnGroup.props) {
-        let p = fnGroup.props;
-        if (p && p[nodeName]) {
-            // create a data node with a sub-textNode from the prop value
-            return r = getDataNodeWrapper(p, nodeName, p[nodeName]);
+export function $dataNode(nodeName: string, parent: VdRenderer | VdContainer): VdDataNode | null {
+    let res: VdDataNode | null = null;
+    if (parent["node"]) {
+        let nd = (<VdRenderer>parent).node;
+        if (nd.props) {
+            let p = nd.props;
+            if (p && p[nodeName]) {
+                // create a data node with a sub-textNode from the prop value
+                return res = getDataNodeWrapper(p, nodeName, p[nodeName]);
+            }
+            parent = nd.props["$content"];
         }
-        parent = fnGroup.props["$content"];
     }
     if (parent) {
-        let p = parent.props;
+        let p = (<VdContainer>parent).props;
         if (p && p[nodeName]) {
             // create a data node with a sub-textNode from the prop value
-            r = getDataNodeWrapper(p, nodeName, p[nodeName]);
+            res = getDataNodeWrapper(p, nodeName, p[nodeName]);
         } else {
-            r = grabFirstDataNode(parent.children, nodeName);
+            res = grabFirstDataNode((<VdContainer>parent).children, nodeName);
         }
     }
-    return r;
+    return res;
 }
 
 /**

@@ -2,6 +2,7 @@
 import { assert, doc } from "./common";
 import { htmlRenderer } from "../htmlrenderer";
 import { VdRenderer } from "../vdom";
+import { $dataNodes, $dataNode } from "../iv";
 
 describe('HTML renderer', () => {
     let OPTIONS = { indent: "        ", isRoot: true, showUid: false },
@@ -306,10 +307,10 @@ describe('HTML renderer', () => {
 
         function cardSet(r: VdRenderer, selection: string) {
             `---
-            % let cards = r.getDataNodes("card");
+            % let cards = $dataNodes("card", r);
             % for (let card of cards) {
                 % if (card.props["ref"] === selection) {
-                    % let title = r.getDataNode("title", card);
+                    % let title = $dataNode("title", card);
                     <div class="card">
                         % if (title) {
                             <div class="title"> title: <ins:title/></div>
@@ -492,10 +493,10 @@ describe('HTML renderer', () => {
 
         function cardSet(r: VdRenderer, selection: string) {
             `---
-            % let cards = r.getDataNodes("card");
+            % let cards = $dataNodes("card", r);
             % for (let card of cards) {
                 % if (card.props["ref"] === selection) {
-                    % let title = r.getDataNode("title", card);
+                    % let title = $dataNode("title", card);
                     <div class="card">
                         % if (title) {
                             <div class="title"> title: <ins:title/></div>
@@ -504,7 +505,7 @@ describe('HTML renderer', () => {
                     </div>
                 % }
             % }
-            % let sel = r.getDataNode("selection");
+            % let sel = $dataNode("selection", r);
             Selection: <ins:sel/>
              ---`
         }
@@ -599,7 +600,7 @@ describe('HTML renderer', () => {
         `, "update 4");
     });
 
-    it('should support * wildcard in getDataNodes()', () => {
+    it('should support * wildcard in dataNodes()', () => {
         // same test as in rollup-plugin.spec
 
         function test(r: VdRenderer, showFirst: boolean, showLast: boolean) {
@@ -622,7 +623,7 @@ describe('HTML renderer', () => {
 
         function menu(r: VdRenderer, selection: string) {
             `---
-            % let dataNodes = r.getDataNodes("*");
+            % let dataNodes = $dataNodes("*", r);
             <ul>
                 % for (let dn of dataNodes) {
                     % if (dn.name === "item") {

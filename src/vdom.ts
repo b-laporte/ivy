@@ -10,19 +10,6 @@ export interface VdRenderer {
      * Process the changes associated to a given node
      */
     processChanges:(vdNode: VdGroupNode) => void;
-    
-    /**
-     * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
-     * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
-     * (helper method redirecting to rt.getDataNodes)
-     */
-    getDataNodes: (nodeName: string, parent?: VdContainer) => VdDataNode[];
-
-    /**
-     * Same as getDataNodes() but will only return the first element (faster method when only one data node is expected)
-     * (helper method redirecting to rt.getDataNode)
-     */
-    getDataNode: (nodeName: string, parent?: VdContainer) => VdDataNode | null;
 }
 
 export interface VdClassCpt {

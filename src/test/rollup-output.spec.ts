@@ -1,6 +1,6 @@
 
 import { assert, createTestRenderer } from "./common";
-import { VdRenderer } from "../iv";
+import { VdRenderer, $dataNodes } from "../iv";
 
 describe('Rollup output', () => {
 
@@ -499,7 +499,7 @@ describe('Rollup output', () => {
 
         function menu(r: VdRenderer, selection: string) {
             `---
-            % let dataNodes = r.getDataNodes("*");
+            % let dataNodes = $dataNodes("*", r);
             <ul>
             % for (let dn of dataNodes) {
                 % if (dn.name === "item") {

@@ -4,7 +4,7 @@ import {
     VdRenderer, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
     VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdContainer, VdReplaceGroup, VdDataNode
 } from '../vdom';
-import { getDataNodes, getDataNode, $resetRefCount } from "../iv";
+import { $resetRefCount } from "../iv";
 
 const CR = "\n";
 
@@ -233,12 +233,6 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
             // update the HTML DOM from the change list
             // ignored here
             vdNode.changes = null;
-        },
-        getDataNodes: function (nodeName: string, parent?: VdContainer) {
-            return getDataNodes(<VdGroupNode>(this.node), nodeName, parent);
-        },
-        getDataNode: function (nodeName: string, parent?: VdContainer) {
-            return getDataNode(<VdGroupNode>(this.node), nodeName, parent);
         }
     }
 

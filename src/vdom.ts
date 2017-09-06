@@ -9,7 +9,7 @@ export interface VdRenderer {
     /**
      * Process the changes associated to a given node
      */
-    processChanges:(vdNode: VdGroupNode) => void;
+    processChanges: (vdNode: VdGroupNode) => void;
 }
 
 export interface VdClassCpt {
@@ -106,6 +106,7 @@ export const enum VdChangeKind {
     DeleteGroup = "DG",
     UpdateProp = "UP",
     UpdateAtt = "UA",
+    UpdatePropMap = "UM",
     UpdateText = "UT",
     ReplaceGroup = "RG"
 };
@@ -117,6 +118,13 @@ export interface VdChangeInstruction {
 export interface VdUpdateProp extends VdChangeInstruction {
     kind: VdChangeKind.UpdateProp;
     name: string;
+    value: any;
+    node: VdElementNode;
+}
+
+export interface VdUpdatePropMap extends VdChangeInstruction {
+    kind: VdChangeKind.UpdatePropMap;
+    names: (string | 0)[];
     value: any;
     node: VdElementNode;
 }

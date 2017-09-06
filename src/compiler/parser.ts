@@ -32,6 +32,7 @@ const CHAR_GT = 62,             // >
     CHAR_PARENEND = 41,         // )
     CHAR_BRACKETSTART = 91,     // [
     CHAR_BRACKETEND = 93,       // ]
+    CHAR_DOT = 46,              // .
     CHAR_0 = 48,
     CHAR_9 = 57,
     CHAR_A = 65,
@@ -564,7 +565,31 @@ function nodeAttributeName(p, attMap) {
     }
 
     if (p.advanceMany(b, isJsIdentifierChar)) {
-        // look for namespace
+        // look for dot (e.g style.borderColor)
+        if (p.advanceChar(CHAR_DOT, false)) {
+            // a dot has been found, check that previous identifier was not empty
+            b.push(".");
+            let moveNext = true;
+            do {
+                if (p.advanceMany(b, isJsIdentifierChar)) {
+                    if (p.advanceChar(CHAR_DOT, false)) {
+                        b.push(".");
+                    } else {
+                        moveNext = false;
+                    }
+                } else {
+                    moveNext = false;
+                }
+            } while (moveNext);
+
+            // check that all identifiers are not empty
+            let names = b.join("").split(".");
+            for (let i = 0; names.length > i; i++) if (names[i] === "") {
+                throw "Invalid attribute name: "+b.join("");
+            }
+        }
+
+        // look for namespace 
         if (p.advanceChar(CHAR_COLON, false)) {
             // a namespace has been found
             att.ns = b.join("");

@@ -499,6 +499,29 @@ describe('Iv parser', () => {
         `).toBe("(2:-1) Duplicate attribute: '@default'");
     });
 
+    it('should parse attributes with js paths', () => {
+        let res = nac`
+            <div class.foo.bar=expr()/>
+        `;
+        expect(compare(res, n("div")
+            .addAttribute("class.foo.bar","expr()",NacAttributeNature.STANDARD)
+        )).toEqual('');
+    });
+
+    it('should raise errors for invalid attributes using js paths', () => {
+        expect(error`
+            <div foo.bar.=123> Hello </div>
+        `).toBe("(2:26) Invalid attribute name: foo.bar.");
+
+        expect(error`
+            <div .foo=123> Hello </div>
+        `).toBe("(2:18) Unexpected '.' was found instead of '>'");
+
+        expect(error`
+            <div foo..bar=123> Hello </div>
+        `).toBe("(2:22) Invalid attribute name: foo.");
+    });
+
     it('should support ${expression} in attribute values', () => {
         let text2 = "text2";
         expect(compare(nac`

@@ -7,4 +7,5 @@ import "./runtime.spec";
 import "./rollup-plugin.spec";
 import "./rollup-output.spec";
 import "./htmlrenderer.spec";
+import "./mapsinprops.spec";
 import "./components.spec";

@@ -1,5 +1,5 @@
 
-import { VdRenderer, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup } from "./vdom";
+import { VdRenderer, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup, VdUpdatePropMap } from "./vdom";
 import { $dataNode, $dataNodes, $nextRef } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
@@ -127,6 +127,19 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             removeGroupFromDom(rg.oldNode, true, rg.position === 0 && rg.nextSibling === null);
             // inject new content
             insertGroupContent(rg.newNode, rg.parent ? rg.parent.domNode : null, rg.nextSibling, doc);
+        } else if (chge.kind === VdChangeKind.UpdatePropMap) {
+            let um = chge as VdUpdatePropMap, rootProp = um.names[0], domNode = um.node.domNode;
+            if (rootProp === "class") {
+                if (um.value) {
+                    domNode.classList.add(um.names[1]);
+                } else {
+                    domNode.classList.remove(um.names[1]);
+                }
+            } else if (rootProp === "style") {
+                domNode.style[um.names[1]] = um.value;
+            } else {
+                console.error("[iv html renderer] Unsupported property map:" + rootProp);
+            }
         } else {
             console.error("[iv html renderer] Unsupported change kind: " + chge.kind);
         }
@@ -211,6 +224,12 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
         domNd = doc.createElement(nd.name)
     }
 
+    if (atts) {
+        for (let k in atts) {
+            if (!atts.hasOwnProperty(k)) continue;
+            domNd.setAttribute(k, atts[k]);
+        }
+    }
     if (props) {
         if (ns && !ns.match(RX_HTML)) {
             // remove this block when <:xmlns .../> is supported
@@ -221,10 +240,25 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
         } else {
             for (let k in props) {
                 if (!props.hasOwnProperty(k)) continue;
-                // TODO support complex attributes such as class.foo
-                // TODO support event handlers
                 val = props[k];
-                if (k === "class" || k === "className") {
+                if (val.$isMap) {
+                    // e.g. style.borderColor or class.myClassName
+                    if (k === "class") {
+                        let vals: string[] = [];
+                        for (let key in val) {
+                            if (val.hasOwnProperty(key) && key[0] !== "$") {
+                                if (val[key]) {
+                                    vals.push(key);
+                                }
+                            }
+                        }
+                        if (vals.length) {
+                            domNd.className = vals.join(" ");
+                        }
+                    } else if (k === "style") {
+                        setMapProperties(domNd.style, val);
+                    }
+                } else if (k === "class" || k === "className") {
                     domNd.className = val;
                 } else if (k === "style") {
                     domNd.setAttribute(k, val);
@@ -238,15 +272,16 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
             }
         }
     }
-    if (atts) {
-        for (let k in atts) {
-            if (!atts.hasOwnProperty(k)) continue;
-            domNd.setAttribute(k, atts[k]);
-        }
-    }
     nd.domNode = domNd;
     domParent.appendChild(domNd);
     processChildNodes(nd, domNd, doc, ns);
+}
+
+function setMapProperties(parent, props) {
+    for (let k in props) {
+        if (!props.hasOwnProperty(k) || k[0] === "$") continue;
+        parent[k] = props[k];
+    }
 }
 
 function addEvtListener(domNd, nd, propName) {

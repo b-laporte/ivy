@@ -89,7 +89,9 @@ export const enum CodeLineKind {
     Insert = 19,
     RefreshInsert = 20,
     SetIndexes = 21,
-    CreateDataNode = 22
+    CreateDataNode = 22,
+    CreatePropMap = 23,
+    UpdatePropMap = 24
 }
 
 export interface ClCreateNode extends CodeLine {
@@ -125,6 +127,14 @@ export interface ClSetProps extends CodeLine {
     props: string[];            // ["class",'"hello"',"foo","123"] in this example
 }
 
+export interface ClCreatePropMap extends CodeLine {
+    // e.g. $cm("class", "important", 0, 0, (highlight===true), $a1);
+    kind: CodeLineKind.CreatePropMap;
+    eltLevel: number;           // 1 in this example
+    names: string[];            // ["class","important"] in this example
+    expr: string;               // "(highlight===true)"
+}
+
 export interface ClSetAtts extends CodeLine {
     // e.g. $a1.atts = { "aria-disabled": "false" };
     kind: CodeLineKind.SetAtts;
@@ -138,6 +148,15 @@ export interface ClUpdateProp extends CodeLine {
     propName: string;           // "baz" in this example
     expr: string;               // "nbr + 3" in this example
     eltLevel: number;           // 2 in this example
+    changeCtnIdx: number;       // 0 in this example
+}
+
+export interface ClUpdatePropMap extends CodeLine {
+    // e.g. $um("class", "important", 0, 0, (highlight===true), $a1, $a0);
+    kind: CodeLineKind.UpdatePropMap;
+    eltLevel: number;           // 1 in this example
+    names: string[];            // ["class","important"] in this example
+    expr: string;               // "(highlight===true)"
     changeCtnIdx: number;       // 0 in this example
 }
 

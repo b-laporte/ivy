@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { parse } from "./parser";
-import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup, ClCreateDataNode } from "./types";
+import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup, ClCreateDataNode, ClCreatePropMap, ClUpdatePropMap } from "./types";
 import { scanBlocks, checkMaxLevelIndex } from "./blocks";
 
 const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
@@ -430,6 +430,14 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
                 propsBuf.push(`"${sp.props[i]}": ${sp.props[i + 1]}`);
             }
             return `${indent}$a${sp.eltLevel}.props = { ${propsBuf.join(", ")} };`;
+        case CodeLineKind.CreatePropMap:
+            let cm = cl as ClCreatePropMap, namesBuf: string[] = [];
+            // e.g. $cm("class", "important", 0, 0, (highlight===true), $a1);
+            fc.headDeclarations.ivImports["$cm"] = 1;
+            for (let i = 0; 4 > i; i ++) {
+                namesBuf.push(cm.names.length > i? `"${cm.names[i]}"` : '0');
+            }
+            return `${indent}$cm(${namesBuf.join(", ")}, ${cm.expr}, $a${cm.eltLevel});`;
         case CodeLineKind.SetAtts:
             let sa = cl as ClSetAtts, attsBuf: string[] = [];
             // $a1.props = { "class": "hello", "foo": 123 };
@@ -442,6 +450,14 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             // e.g. $up("baz", nbr + 3, $a2, $a0)
             fc.headDeclarations.ivImports["$up"] = 1;
             return `${indent}$up("${up.propName}", ${up.expr}, $a${up.eltLevel}, $a${up.changeCtnIdx});`;
+        case CodeLineKind.UpdatePropMap:
+            let um = cl as ClUpdatePropMap, namesBuf2: string[] = [];
+            // e.g. $um("class", "important", 0, 0, (highlight===true), $a1, $a0);
+            fc.headDeclarations.ivImports["$um"] = 1;
+            for (let i = 0; 4 > i; i ++) {
+                namesBuf2.push(um.names.length > i? `"${um.names[i]}"` : '0');
+            }
+            return `${indent}$um(${namesBuf2.join(", ")}, ${um.expr}, $a${um.eltLevel}, $a${um.changeCtnIdx});`;
         case CodeLineKind.UpdateAtt:
             let ua = cl as ClUpdateAtt;
             // e.g. $up("baz", nbr + 3, $a2, $a0)

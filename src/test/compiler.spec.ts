@@ -1269,4 +1269,31 @@ describe('Iv compiler', () => {
             });
         `, "output generation");
     });
+
+    it('should compile props maps using paths', () => {
+        let src = `
+            function hello(r:VdRenderer, highlight) {
+                \`<div [class.important]=(highlight===true)> hello </div> \`
+            }
+        `;
+        let cc = compile(src, "test4.1", ivPath);
+
+        assert.equal(cc.getOutput(), `\
+            import { $el, $cm, $tx, $um } from "../iv";
+
+            function hello(r: VdRenderer, $d: any) {
+                let $a0: any = r.node, $a1;
+                let highlight = $d["highlight"];
+                if ($a0.cm) {
+                    $a1 = $el($a0, 1, "div", 1);
+                    $cm("class", "important", 0, 0, (highlight===true), $a1);
+                    $tx($a1, 2, " hello ");
+                    $a0.cm = 0;
+                } else {
+                    $a1 = $a0.children[0];
+                    $um("class", "important", 0, 0, (highlight===true), $a1, $a0);
+                }
+            }
+        `, "output generation");
+    });
 });

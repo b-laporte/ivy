@@ -173,10 +173,10 @@ describe('Class Components', () => {
         r.refresh({ sz1: 10, txt1: "init1", sz2: 20, txt2: "init2" });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 onclick=[function] CLASS="box10">
+                <span::E3 CLASS="box10" onclick=[function]>
                     <#text::T4>init1</#text>
                 </span>
-                <span::E5 onclick=[function] CLASS="box20">
+                <span::E5 CLASS="box20" onclick=[function]>
                     <#text::T6>init2</#text>
                 </span>
             </div>
@@ -185,10 +185,10 @@ describe('Class Components', () => {
         r.refresh({ sz1: 10, txt1: "update11", sz2: 30, txt2: "update12" });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 onclick=[function] CLASS="box10">
+                <span::E3 CLASS="box10" onclick=[function]>
                     <#text::T4>init1</#text>
                 </span>
-                <span::E5 onclick=[function] CLASS="box30">
+                <span::E5 CLASS="box30" onclick=[function]>
                     <#text::T6>update12</#text>
                 </span>
             </div>
@@ -211,10 +211,10 @@ describe('Class Components', () => {
         r.refresh({ sz1: 10, txt1: "init1", sz2: 20, txt2: "init2" });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 onclick=[function] CLASS="box10">
+                <span::E3 CLASS="box10" onclick=[function]>
                     <#text::T4>init1</#text>
                 </span>
-                <span::E5 onclick=[function] CLASS="box20">
+                <span::E5 CLASS="box20" onclick=[function]>
                     <#text::T6>init2</#text>
                 </span>
             </div>
@@ -223,10 +223,10 @@ describe('Class Components', () => {
         (<any>r).vdom.domNode.childNodes[0].click();
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 onclick=[function] CLASS="box10">
+                <span::E3 CLASS="box10" onclick=[function]>
                     <#text::T4>init11</#text>
                 </span>
-                <span::E5 onclick=[function] CLASS="box20">
+                <span::E5 CLASS="box20" onclick=[function]>
                     <#text::T6>init2</#text>
                 </span>
             </div>
@@ -235,10 +235,10 @@ describe('Class Components', () => {
         (<any>r).vdom.domNode.childNodes[0].click();
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
-                <span::E3 onclick=[function] CLASS="box10">
+                <span::E3 CLASS="box10" onclick=[function]>
                     <#text::T4>init12</#text>
                 </span>
-                <span::E5 onclick=[function] CLASS="box20">
+                <span::E5 CLASS="box20" onclick=[function]>
                     <#text::T6>init2</#text>
                 </span>
             </div>

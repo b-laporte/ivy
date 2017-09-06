@@ -53,7 +53,8 @@ let dot = $component(class {
         `---
         % let p = this.props;
         % this.lastText = p.text;
-        <div [attr:style]=this.getStyle() onmouseenter()=this.hover() onmouseleave()=this.unhover()>
+        <div attr:style=this.getStyle() [style.backgroundColor]=(this.hoverMode ? "#ff0" : "#61dafb") 
+            onmouseenter()=this.hover() onmouseleave()=this.unhover()>
             % if (this.hoverMode) {
                 **{{p.text}}**
             % } else {
@@ -66,8 +67,7 @@ let dot = $component(class {
     getStyle() {
         let p = this.props, sz = 1.3 * p.size;
         return `position:absolute;font:normal 15px sans-serif;text-align:center;cursor:pointer;\
-            width:${sz}px;height:${sz}px;left:${p.x}px;top:${p.y}px;border-radius:${sz / 2}px;line-height:${sz}px;\
-            background:${this.hoverMode ? "#ff0" : "#61dafb"}`;
+            width:${sz}px;height:${sz}px;left:${p.x}px;top:${p.y}px;border-radius:${sz / 2}px;line-height:${sz}px;`;
     }
 
     hover() {

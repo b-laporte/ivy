@@ -1,7 +1,7 @@
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
-import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClSwapLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock } from "./types";
+import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClSwapLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock, ClCreatePropMap, ClUpdatePropMap } from "./types";
 
-const ATT_NS = "attr", XMLNS = "xmlns", RX_HTML = /html/i;
+const ATT_NS = "attr", XMLNS = "xmlns", RX_HTML = /html/i, RX_DOTS = /\./;
 
 /**
  * Generate a block list from the
@@ -394,7 +394,11 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
 
         // then set properties
         // e.g. $a2.props = { "class": "one", "title": "blah", "foo": nbr+4 };
-        let att = nd.firstAttribute, propsBuf: string[] = [], attsBuf: string[] = [], upBuf: string[] = [];
+        let att = nd.firstAttribute,
+            propsBuf: string[] = [],
+            attsBuf: string[] = [],
+            mapBuf: any[] = [],
+            upBuf: string[] = [];
         // check first if there is an xmlns
         while (att) {
             if (att.name === XMLNS) {
@@ -432,12 +436,21 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
             }
             if (!cc && (!isHtmlNS || att.ns === ATT_NS)) {
                 // this is an att
+                if (att.nature === NacAttributeNature.DEFERRED_EXPRESSION || att.name.match(RX_DOTS)) {
+                    // todo error
+                    console.error("Map properties are not supported on attributes: " + att.name);
+                }
                 attsBuf.push(att.name);
                 attsBuf.push(att.value);
             } else {
-                // this is a prop or a cpt call
-                propsBuf.push(att.name);
-                propsBuf.push(att.value);
+                if (att.nature !== NacAttributeNature.DEFERRED_EXPRESSION && att.name.match(RX_DOTS)) {
+                    mapBuf.push(att.name.split("."));
+                    mapBuf.push(att.value);
+                } else {
+                    // this is a prop or a cpt call
+                    propsBuf.push(att.name);
+                    propsBuf.push(att.value);
+                }
             }
             if (att.nature === NacAttributeNature.BOUND1WAY || att.nature === NacAttributeNature.BOUND2WAYS) {
                 upBuf.push(att);
@@ -465,37 +478,59 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
             }
             nb.cmLines.push(sp);
         }
+        if (mapBuf.length) {
+            for (let i = 0; mapBuf.length > i; i += 2) {
+                let cm: ClCreatePropMap = {
+                    kind: CodeLineKind.CreatePropMap,
+                    eltLevel: cl.parentLevel + 1,
+                    names: mapBuf[i],
+                    expr: mapBuf[i + 1]
+                }
+                nb.cmLines.push(cm);
+            }
+        }
 
         // update mode
         if (upBuf.length) {
             // set node refs
             generateNodeBlockRefsLine(nb, levels);
             for (att of upBuf) {
-                if (cc) {
-                    nb.umLines.push(<ClUpdateCptProp>{
-                        kind: CodeLineKind.UpdateCptProp,
-                        eltLevel: cc.parentLevel + 1,
-                        propName: att.name,
-                        expr: att.value
+                if (att.nature !== NacAttributeNature.DEFERRED_EXPRESSION && att.name.match(RX_DOTS)) {
+                    // map property
+                    nb.umLines.push(<ClUpdatePropMap>{
+                        kind: CodeLineKind.UpdatePropMap,
+                        eltLevel: cl.parentLevel + 1,
+                        names: att.name.split("."),
+                        expr: att.value,
+                        changeCtnIdx: levels[level].changeCtnIdx
                     });
-                    // todo raise error if attribute is used on component
                 } else {
-                    if (!isHtmlNS || att.ns === ATT_NS) {
-                        nb.umLines.push(<ClUpdateAtt>{
-                            kind: CodeLineKind.UpdateAtt,
-                            eltLevel: cl.parentLevel + 1,
-                            attName: att.name,
-                            expr: att.value,
-                            changeCtnIdx: levels[level].changeCtnIdx
-                        });
-                    } else {
-                        nb.umLines.push(<ClUpdateProp>{
-                            kind: CodeLineKind.UpdateProp,
-                            eltLevel: cl.parentLevel + 1,
+                    if (cc) {
+                        nb.umLines.push(<ClUpdateCptProp>{
+                            kind: CodeLineKind.UpdateCptProp,
+                            eltLevel: cc.parentLevel + 1,
                             propName: att.name,
-                            expr: att.value,
-                            changeCtnIdx: levels[level].changeCtnIdx
+                            expr: att.value
                         });
+                        // todo raise error if attribute is used on component
+                    } else {
+                        if (!isHtmlNS || att.ns === ATT_NS) {
+                            nb.umLines.push(<ClUpdateAtt>{
+                                kind: CodeLineKind.UpdateAtt,
+                                eltLevel: cl.parentLevel + 1,
+                                attName: att.name,
+                                expr: att.value,
+                                changeCtnIdx: levels[level].changeCtnIdx
+                            });
+                        } else {
+                            nb.umLines.push(<ClUpdateProp>{
+                                kind: CodeLineKind.UpdateProp,
+                                eltLevel: cl.parentLevel + 1,
+                                propName: att.name,
+                                expr: att.value,
+                                changeCtnIdx: levels[level].changeCtnIdx
+                            });
+                        }
                     }
                 }
             }

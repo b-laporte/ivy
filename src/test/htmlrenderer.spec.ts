@@ -676,7 +676,7 @@ describe('HTML renderer', () => {
                 </ul>
             </div>
         `, "initial refresh");
-        
+
         assert.equal(doc.getLastUid(), 23, "last init uid");
         r.refresh({ showFirst: false, showLast: false });
         assert.equal(div.stringify(OPTIONS_UID), `
@@ -704,7 +704,7 @@ describe('HTML renderer', () => {
             </div>
         `, "update 1");
 
-        r.refresh({ showFirst:false, showLast:true });
+        r.refresh({ showFirst: false, showLast: true });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
                 <ul::E3>
@@ -735,7 +735,7 @@ describe('HTML renderer', () => {
             </div>
         `, "update 2");
 
-        r.refresh({ showFirst:true, showLast:false });
+        r.refresh({ showFirst: true, showLast: false });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>
                 <ul::E3>

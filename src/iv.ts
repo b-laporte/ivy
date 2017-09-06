@@ -1,7 +1,7 @@
 
 import {
     VdNodeKind, VdRenderer, VdFunctionCpt, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
-    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance, VdFuncCptNode
+    VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance, VdFuncCptNode, VdUpdatePropMap
 } from "./vdom";
 
 export { VdRenderer as VdRenderer };
@@ -199,6 +199,7 @@ export function $cc(parent: VdContainer, index: number, props: {}, r: VdRenderer
             cm: 1,
             cpt: g.cpt,
             render: g.render,
+            props: g.props,
             changes: null,
             ref: 0,
             children: [],
@@ -318,6 +319,83 @@ export function $ct(e: any): any {
 }
 
 /**
+ * Create Property in Map
+ * Create a map property to hold sub-maps or other properties (up to 4 levels: style.foo.bar.baz)
+ * e.g. $cm("class", "important", 0, 0, (highlight===true), $a1);
+ * Used in creation mode only
+ */
+export function $cm(name1: string, name2: string, name3: string | 0, name4: string | 0, value: any, element: VdElementWithProps | VdDataNode): void {
+    if (!element.props) {
+        element.props = {};
+    }
+    let propParent = element.props[name1];
+    if (!propParent) {
+        propParent = element.props[name1] = { $isMap: true, $changeCount: 0 };
+    }
+    if (name3) {
+        if (propParent[name2]) {
+            propParent = propParent[name2];
+        } else {
+            propParent = propParent[name2] = { $isMap: true, $changeCount: 0 };
+        }
+        if (name4) {
+            if (!propParent[name3]) {
+                propParent = propParent[name3];
+            } else {
+                propParent = propParent[name3] = { $isMap: true, $changeCount: 0 };
+            }
+            propParent[name4] = value;
+        } else {
+            propParent[name3] = value;
+        }
+    } else {
+        propParent[name2] = value;
+    }
+}
+
+/**
+ * Update property in map
+ * Used in update mode only
+ */
+export function $um(name1: string, name2: string, name3: string | 0, name4: string | 0, value: any, element: VdElementWithProps | VdDataNode, changeCtn: VdChangeContainer): void {
+    let propParent = element.props[name1], propName = name2;
+    if (name3) {
+        propParent = propParent[name2];
+        propName = name3;
+        if (name4) {
+            propParent = propParent[name3];
+            propName = name4;
+        }
+    }
+    // same logic as for Update Property
+    if (propParent[propName] !== value) {
+        propParent[propName] = value;
+        if (!value || !value.call) {
+            // change the $refreshCount of each container object (to avoid using immutable objects)
+            propParent = element.props[name1];
+            propParent.$changeCount++;
+            if (name3) {
+                propParent = propParent[name2];
+                propParent.$changeCount++;
+                if (name4) {
+                    propParent[name3].$changeCount++;
+                }
+            }
+
+            if (element.kind !== VdNodeKind.Group || (<any>element).cpt) {
+                // no need to create update instruction for components
+                addChangeInstruction(changeCtn, <VdUpdatePropMap>{
+                    kind: VdChangeKind.UpdatePropMap,
+                    names: [name1, name2, name3, name4],
+                    value: value,
+                    node: element
+                });
+            }
+        }
+    }
+}
+
+/**
  * Update Property
  * Update the given property on the element passed as argument
  * Update instructions will be stored on changeGroup
@@ -397,6 +475,7 @@ export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeCon
         // there is a light dom - swap back to the shadow dom group
         let ltGroup = c;
         c = c.sdGroup;
+        
         if (!c.props) {
             c.props = {};
         }

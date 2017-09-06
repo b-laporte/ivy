@@ -429,17 +429,49 @@ class TextNode {
     }
 }
 
+class ElementClassList {
+    constructor(public elt: any) { }
+
+    add(name: string) {
+        if (!this.elt.className) {
+            this.elt.className = name;
+        } else {
+            var arr = this.elt.className.split(" "), found = false;
+            for (let i = 0; arr.length > i; i++) if (arr[i] === name) {
+                found = true;
+                break;
+            }
+            if (!found) {
+                this.elt.className += (this.elt.className === "") ? name : (" " + name);
+            }
+        }
+    }
+
+    remove(name: string) {
+        if (this.elt.className) {
+            var arr = this.elt.className.split(" "), arr2: string[] = [];
+            for (let i = 0; arr.length > i; i++) if (arr[i] !== name) {
+                arr2.push(arr[i]);
+            }
+            this.elt.className = arr2.join(" ");
+        }
+    }
+}
+
 class ElementNode {
     $uid: string;
     childNodes: any[] = [];
     namespaceURI: string = "http://www.w3.org/1999/xhtml";
     parentNode = null;
+    classList: ElementClassList;
+    style = {};
 
     constructor(public nodeName: string, namespace?: string) {
         this.$uid = ((nodeName === "#doc-fragment") ? "F" : "E") + (++UID_COUNT);
         if (namespace) {
             this.namespaceURI = namespace;
         }
+        this.classList = new ElementClassList(this);
     }
 
     setAttribute(key: string, value: string) {
@@ -520,11 +552,21 @@ class ElementNode {
             isRoot = options.isRoot === true,
             showUid = options.showUid === true,
             uid = showUid ? "::" + this.$uid : "",
+            styleBuf: string[] = [],
             lines: string[] = [], indent2 = isRoot ? indent + "    " : indent, atts: string[] = [], att = "";
+
+        for (let k in this.style) {
+            if (!this.style.hasOwnProperty(k)) continue;
+            styleBuf.push(k + ":" + this.style[k]);
+        }
+        if (styleBuf.length) {
+            atts.push('style="' + styleBuf.join(";") + '"');
+        }
 
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
-                && k !== "namespaceURI" && k !== "$uid" && k !== "parentNode") {
+                && k !== "namespaceURI" && k !== "$uid" && k !== "parentNode" 
+                && k !== "style" && k !== "classList") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);
                 } else if (k === "className") {

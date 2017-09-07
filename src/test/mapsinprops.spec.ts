@@ -24,6 +24,22 @@ describe('Maps in props', () => {
         }
     });
 
+    let box2 = $component(class {
+        props: {
+            $content: any;
+            className: {}
+        }
+
+        render(r: VdRenderer) {
+            `---
+            % let content = this.props.$content;
+            <span [className]=this.props.className>
+                <ins:content/>
+            </span> 
+            ---`
+        }
+    });
+
     it('should be supported on element style', () => {
         function test(r: VdRenderer, color, width) {
             `---
@@ -59,10 +75,10 @@ describe('Maps in props', () => {
         `, "update 1");
     });
 
-    it('should be supported on element class', () => {
+    it('should be supported on element className', () => {
         function test(r: VdRenderer, nbr) {
             `---
-            <div class.foo=(nbr===1) [class.bar]=(nbr===2) class.baz=1> 
+            <div className.foo=(nbr===1) [className.bar]=(nbr===2) className.baz=1> 
                 hello
             </div>
              ---`
@@ -99,39 +115,79 @@ describe('Maps in props', () => {
 
     });
 
-    // todo: will be supported in a future PR
-    // it('should be supported on component style', () => {
-    //     function test(r: VdRenderer, color, width) {
-    //         `---
-    //         <div> 
-    //             <c:box style.borderColor=color [style.borderWidth]=width+"px"> Hello </c:box>
-    //         </div>
-    //          ---`
-    //     }
+    it('should be supported on component style', () => {
+        function test(r: VdRenderer, color, width) {
+            `---
+            <section> 
+                <c:box style.borderColor=color [style.borderWidth]=width+"px"> Hello </c:box>
+            </section>
+             ---`
+        }
 
-    //     let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
 
-    //     r.refresh({ color: "#FFFFFF", width: 1 });
-    //     assert.equal(div.stringify(OPTIONS), `
-    //         <div>
-    //             <div>
-    //                 <span style="borderColor:#FFFFFF;borderWidth:1px">
-    //                     <#text> Hello </#text>
-    //                 </span>
-    //             </div>
-    //         </div>
-    //     `, "initial refresh");
+        r.refresh({ color: "#FFFFFF", width: 1 });
+        assert.equal(div.stringify(OPTIONS), `
+            <div>
+                <section>
+                    <span style="borderColor:#FFFFFF;borderWidth:1px">
+                        <#text> Hello </#text>
+                    </span>
+                </section>
+            </div>
+        `, "initial refresh");
 
-    //     debugger
-    //     r.refresh({ color: "#000000", width: 3 });
-    //     assert.equal(div.stringify(OPTIONS), `
-    //         <div>
-    //             <div>
-    //                 <span style="borderColor:#FFFFFF;borderWidth:3px">
-    //                     <#text> Hello </#text>
-    //                 </span>
-    //             </div>
-    //         </div>
-    //     `, "update 1");
-    // });
+        r.refresh({ color: "#000000", width: 3 });
+        assert.equal(div.stringify(OPTIONS), `
+            <div>
+                <section>
+                    <span style="borderColor:#FFFFFF;borderWidth:3px">
+                        <#text> Hello </#text>
+                    </span>
+                </section>
+            </div>
+        `, "update 1");
+    });
+
+    it('should be supported on component className', () => {
+        function test(r: VdRenderer, isFoo, val) {
+            `---
+            <section> 
+                <c:box> Hello </c:box>
+                <c:box2 className.foo=isFoo [className.bar]=(val==="ok")> Hello 2 </c:box2>
+            </section>
+             ---`
+        }
+
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        debugger
+        r.refresh({ isFoo: true, val:"ko" });
+        assert.equal(div.stringify(OPTIONS), `
+            <div>
+                <section>
+                    <span>
+                        <#text> Hello </#text>
+                    </span>
+                    <span class="foo">
+                        <#text> Hello 2 </#text>
+                    </span>
+                </section>
+            </div>
+        `, "initial refresh");
+
+        r.refresh({ isFoo: true, val:"ok" });
+        assert.equal(div.stringify(OPTIONS), `
+            <div>
+                <section>
+                    <span>
+                        <#text> Hello </#text>
+                    </span>
+                    <span class="foo bar">
+                        <#text> Hello 2 </#text>
+                    </span>
+                </section>
+            </div>
+        `, "update 1");
+    });
 });

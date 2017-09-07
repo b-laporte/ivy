@@ -1,6 +1,6 @@
 
 import { VdRenderer, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup, VdUpdatePropMap } from "./vdom";
-import { $dataNode, $dataNodes, $nextRef } from './iv';
+import { $dataNode, $dataNodes, $nextRef, $refreshTemplate, $iv } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
     return new Renderer(htmlElement, func, doc);
@@ -34,7 +34,9 @@ class Renderer implements HtmlRenderer {
             changes: null,
             children: [],
             domNode: null,
-            parent: null
+            parent: null,
+            $lastChange: $iv.refreshCount,
+            $lastRefresh: $iv.refreshCount
         }
         let cg: VdCreateGroup = {
             kind: VdChangeKind.CreateGroup,
@@ -63,9 +65,7 @@ class Renderer implements HtmlRenderer {
 
     refresh($d) {
         // refresh the virtual dom
-        this.node = this.vdom;
-        this.vdFunction(this, $d);
-        this.processChanges(this.vdom);
+        $refreshTemplate(this, this.vdFunction, this.vdom, $d);
     }
 
     processChanges(vdNode: VdGroupNode) {
@@ -128,23 +128,39 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             // inject new content
             insertGroupContent(rg.newNode, rg.parent ? rg.parent.domNode : null, rg.nextSibling, doc);
         } else if (chge.kind === VdChangeKind.UpdatePropMap) {
-            let um = chge as VdUpdatePropMap, rootProp = um.names[0], domNode = um.node.domNode;
-            if (rootProp === "class") {
-                if (um.value) {
-                    domNode.classList.add(um.names[1]);
-                } else {
-                    domNode.classList.remove(um.names[1]);
+            let um = chge as VdUpdatePropMap, domNode = um.node.domNode;
+
+            if (um.names) {
+                updateMapValue(domNode, um.names[0], um.names[1], um.value);
+            } else if (um.name) {
+                // update all props
+                let map = um.value;
+                for (let k in map) {
+                    if (k[0] !== "$" && map.hasOwnProperty(k)) {
+                        updateMapValue(domNode, um.name, k, map[k]);
+                    }
                 }
-            } else if (rootProp === "style") {
-                domNode.style[um.names[1]] = um.value;
-            } else {
-                console.error("[iv html renderer] Unsupported property map:" + rootProp);
             }
+
         } else {
             console.error("[iv html renderer] Unsupported change kind: " + chge.kind);
         }
     }
     vdom.changes = null;
+}
+
+function updateMapValue(domNode, rootName, propName, value) {
+    if (rootName === "style") {
+        domNode.style[propName] = value;
+    } else if (rootName === "class" || rootName === "className" || rootName === "classList") {
+        if (value) {
+            domNode.classList.add(propName);
+        } else {
+            domNode.classList.remove(propName);
+        }
+    } else {
+        console.error("[iv html renderer] Unsupported property map:" + rootName);
+    }
 }
 
 function insertGroupContent(groupNd, domNode, nextSibling, doc: HtmlDoc) {
@@ -241,9 +257,11 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
             for (let k in props) {
                 if (!props.hasOwnProperty(k)) continue;
                 val = props[k];
-                if (val.$isMap) {
-                    // e.g. style.borderColor or class.myClassName
-                    if (k === "class") {
+                if (val===undefined) continue;
+
+                if (val && val.$isMap) {
+                    // e.g. style.borderColor or className.myClassName
+                    if (k === "className") {
                         let vals: string[] = [];
                         for (let key in val) {
                             if (val.hasOwnProperty(key) && key[0] !== "$") {

@@ -1,6 +1,7 @@
 
 import { assert, createTestRenderer } from "./common";
-import { VdRenderer, $el, $tx, $up, $cg, $dg, $cc, $uc, $rc } from "../iv";
+import { VdRenderer, $el, $tx, $up, $cg, $dg, $cc, $uc, $rc, $iv } from "../iv";
+import { VdChangeContainer } from "../vdom";
 
 describe('IV runtime', () => {
 
@@ -37,7 +38,7 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(test, OPTIONS);
+        let r = createTestRenderer(test, OPTIONS), refreshCount1 = $iv.refreshCount;
 
         // initial display
         r.refresh({ nbr: 42 });
@@ -56,6 +57,7 @@ describe('IV runtime', () => {
         assert.equal(r.changes(), `
             CreateGroup #-1
         `, "update changes");
+        assert.equal((<VdChangeContainer>r.node).$lastRefresh, refreshCount1 + 1, "refresh count 1");
 
         // update
         r.refresh({ nbr: 5 });
@@ -77,6 +79,7 @@ describe('IV runtime', () => {
             UpdateProp "bar"=10 in #1
         `, "update changes");
 
+        assert.equal((<VdChangeContainer>r.node).$lastRefresh, refreshCount1 + 2, "refresh count 2");
     });
 
     it('should support simple if blocks', () => {
@@ -738,7 +741,13 @@ describe('IV runtime', () => {
             }
         }
 
-        let r = createTestRenderer(foo, OPTIONS);
+        let r = createTestRenderer(foo, OPTIONS), refreshCount1 = $iv.refreshCount;
+
+        // cpt getter
+        function cpt(idx): VdChangeContainer {
+            return <VdChangeContainer>((<any>r.node).children[0].children[idx]);
+        }
+
         // initial display
         r.refresh({ v: 9 });
         assert.equal(r.vdom(), `
@@ -762,6 +771,9 @@ describe('IV runtime', () => {
         assert.equal(r.changes(), `
             CreateGroup #-1
         `, "update changes");
+        assert.equal((<VdChangeContainer>r.node).$lastRefresh, refreshCount1 + 1, "refresh count 1");
+        assert.equal(cpt(1).$lastRefresh, refreshCount1+1, "cpt1 refresh 1");
+        assert.equal(cpt(1).$lastChange, refreshCount1+1, "cpt1 change 1");
 
         // update 1
         r.refresh({ v: 42 });
@@ -793,8 +805,10 @@ describe('IV runtime', () => {
             UpdateProp "title"="45 m2:9" in #4
             CreateGroup #5 in #3 at position 1
         `, "update changes 42");
+        assert.equal(cpt(1).$lastRefresh, refreshCount1+2, "cpt1 refresh 2");
+        assert.equal(cpt(1).$lastChange, refreshCount1+2, "cpt1 change 2");
 
-        // update 1
+        // update 2
         r.refresh({ v: 9 });
         assert.equal(r.vdom(), `
             <#group 0 ref="-1">
@@ -819,6 +833,34 @@ describe('IV runtime', () => {
             UpdateProp "title"="12 m2:9" in #4
             DeleteGroup #5 in #3 at position 1
         `, "update changes 9");
+        assert.equal(cpt(1).$lastRefresh, refreshCount1+3, "cpt1 refresh 3");
+        assert.equal(cpt(1).$lastChange, refreshCount1+3, "cpt1 change 3");
+
+        // update 3
+        r.refresh({ v: 9 });
+        assert.equal(r.vdom(), `
+            <#group 0 ref="-1">
+                <div 1>
+                    <span 2>
+                        <#text 3 " first ">
+                    </span>
+                    <#group 4 ref="1" msg="m1:9" value=10>
+                        <span 1 ref="2" title="10 m1:9"/>
+                    </#group>
+                    <#group 5 ref="3" msg="m2:9" value=12>
+                        <span 1 ref="4" title="12 m2:9"/>
+                    </#group>
+                    <span 6>
+                        <#text 7 " last ">
+                    </span>
+                </div>
+            </#group>
+        `, "update 9 bis");
+        assert.equal(r.changes(), `
+        `, "update changes 9 bis");
+        assert.equal(cpt(1).$lastRefresh, refreshCount1+4, "cpt1 refresh 4");
+        assert.equal((<any>r.node).$lastChange, refreshCount1+3, "root node change 4");
+        assert.equal(cpt(1).$lastChange, refreshCount1+3, "cpt1 change 4");
     });
 
     it('should support loops with no keys', () => {

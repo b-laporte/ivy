@@ -4,7 +4,7 @@ import {
     VdRenderer, VdNode, VdNodeKind, VdGroupNode, VdElementNode, VdTextNode,
     VdChangeInstruction, VdChangeKind, VdCreateGroup, VdUpdateProp, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdContainer, VdReplaceGroup, VdDataNode
 } from '../vdom';
-import { $resetRefCount } from "../iv";
+import { $iv, $refreshTemplate } from "../iv";
 
 const CR = "\n";
 
@@ -201,7 +201,7 @@ interface TestRenderer extends VdRenderer {
 
 export function createTestRenderer(func: (r: VdRenderer, ...any) => void, options?: { baseIndent: string }): TestRenderer {
     // override ivRuntime to always start ref at 0
-    $resetRefCount();
+    $iv.reset(1);
 
     let rootGroup: VdGroupNode = {
         kind: VdNodeKind.Group,
@@ -211,7 +211,9 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
         changes: null,
         children: [],
         domNode: null,
-        parent: null
+        parent: null,
+        $lastChange: $iv.refreshCount,
+        $lastRefresh: $iv.refreshCount
     }
 
     let r: TestRenderer = {
@@ -226,8 +228,7 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
             } else {
                 this.root.changes = null;
             }
-            this.node = this.root;
-            this.func(this, $d);
+            $refreshTemplate(this, this.func, this.root, $d, false);
         },
         processChanges(vdNode: VdGroupNode) {
             // update the HTML DOM from the change list

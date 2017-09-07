@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { parse } from "./parser";
-import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup, ClCreateDataNode, ClCreatePropMap, ClUpdatePropMap } from "./types";
+import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup, ClCreateDataNode, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn } from "./types";
 import { scanBlocks, checkMaxLevelIndex } from "./blocks";
 
 const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
@@ -473,6 +473,11 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             // e.g. $rc(r, $a2, $a0);
             fc.headDeclarations.ivImports["$rc"] = 1;
             return `${indent}$rc(${rc.rendererNm}, $a${rc.cptLevel}, $a${rc.changeCtnIdx});`;
+        case CodeLineKind.RefreshDataNode:
+            let rd = cl as ClRefreshDn;
+            // e.g. $rd(r, $a2, $a0);
+            fc.headDeclarations.ivImports["$rd"] = 1;
+            return `${indent}$rd(${rd.rendererNm}, $a${rd.cptLevel}, $a${rd.changeCtnIdx});`;
         case CodeLineKind.RefreshInsert:
             let ri = cl as ClRefreshInsert;
             // e.g. $ri($a2, body, $a0);

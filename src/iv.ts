@@ -8,18 +8,25 @@ export { VdRenderer as VdRenderer };
 
 const EMPTY_PROPS = {}, NO_PROPS = undefined, ALL_DN = "*";
 
-/**
- * Reference count
- * Used to track node reference in unit tests
- */
-let refCount = 0;
+let refreshCount = 0,   // Refresh count - used to know when change occured
+    refCount = 0;       // Reference count - used to track node reference in unit tests
 
-/**
- * Reset the reference counter
- * For test only
- */
-export function $resetRefCount() {
-    refCount = 0;
+export let $iv = {
+    /**
+     * Reset internal counters
+     * For test only
+     */
+    reset(counterId) {
+        if (counterId === 1) {
+            refCount = 0;
+        } else if (counterId === 2) {
+            refreshCount = 0
+        }
+    },
+
+    get refreshCount() {
+        return refreshCount;
+    }
 }
 
 /**
@@ -62,7 +69,9 @@ export function $dn(parent: VdParent | null = null, index: number, name: string,
         children: [],
         props: EMPTY_PROPS,
         changes: null,
-        domNode: null
+        domNode: null,
+        $lastChange: refreshCount,
+        $lastRefresh: refreshCount
     };
     if (parent) {
         parent.children[parent.children.length] = nd;
@@ -84,7 +93,9 @@ export function $in(parent: VdContainer, index: number, content: any, changeCtn:
         ref: ++refCount,
         children: [],
         domNode: null,
-        parent: parent
+        parent: parent,
+        $lastChange: refreshCount,
+        $lastRefresh: refreshCount
     };
     if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
         // content is a node list
@@ -175,14 +186,16 @@ export function $cc(parent: VdContainer, index: number, props: {}, r: VdRenderer
         domNode: null,
         sdGroup: null,
         ltGroup: null,
-        parent: parent
+        parent: parent,
+        $lastChange: refreshCount,
+        $lastRefresh: refreshCount
     }, p = r.node;
     parent.children[parent.children.length] = g;
     r.node = g;
 
     if (g.cpt) {
         let c = <VdClassCptInstance>g.cpt;
-        c.$vdNode = g;
+        c.$node = g;
         c.$renderer = r;
         c["props"] = g.props
         if (c.init) {
@@ -206,7 +219,9 @@ export function $cc(parent: VdContainer, index: number, props: {}, r: VdRenderer
             domNode: null,
             sdGroup: g,
             ltGroup: null,
-            parent: null
+            parent: null,
+            $lastChange: refreshCount,
+            $lastRefresh: refreshCount
         }
     } else {
         // no light dom
@@ -237,7 +252,9 @@ export function $cg(childPosition: number, parent: VdContainer, changeCtn: VdCha
             ref: ++refCount,
             children: [],
             domNode: null,
-            parent: parent
+            parent: parent,
+            $lastChange: refreshCount,
+            $lastRefresh: refreshCount
         };
         if (parentGroup.cm) {
             parent.children[parent.children.length] = g;
@@ -330,19 +347,19 @@ export function $cm(name1: string, name2: string, name3: string | 0, name4: stri
     }
     let propParent = element.props[name1];
     if (!propParent) {
-        propParent = element.props[name1] = { $isMap: true, $changeCount: 0 };
+        propParent = element.props[name1] = { $isMap: true, $lastChange: refreshCount };
     }
     if (name3) {
         if (propParent[name2]) {
             propParent = propParent[name2];
         } else {
-            propParent = propParent[name2] = { $isMap: true, $changeCount: 0 };
+            propParent = propParent[name2] = { $isMap: true, $lastChange: refreshCount };
         }
         if (name4) {
             if (!propParent[name3]) {
                 propParent = propParent[name3];
             } else {
-                propParent = propParent[name3] = { $isMap: true, $changeCount: 0 };
+                propParent = propParent[name3] = { $isMap: true, $lastChange: refreshCount };
             }
             propParent[name4] = value;
         } else {
@@ -373,19 +390,20 @@ export function $um(name1: string, name2: string, name3: string | 0, name4: stri
         if (!value || !value.call) {
             // change the $refreshCount of each container object (to avoid using immutable objects)
             propParent = element.props[name1];
-            propParent.$changeCount++;
+            propParent.$lastChange = refreshCount;
             if (name3) {
                 propParent = propParent[name2];
-                propParent.$changeCount++;
+                propParent.$lastChange = refreshCount;
                 if (name4) {
-                    propParent[name3].$changeCount++;
+                    propParent[name3].$lastChange = refreshCount;
                 }
             }
 
-            if (element.kind !== VdNodeKind.Group || (<any>element).cpt) {
+            if (element.kind !== VdNodeKind.Group || !(<any>element).cpt) {
                 // no need to create update instruction for components
                 addChangeInstruction(changeCtn, <VdUpdatePropMap>{
                     kind: VdChangeKind.UpdatePropMap,
+                    name: null,
                     names: [name1, name2, name3, name4],
                     value: value,
                     node: element
@@ -402,7 +420,8 @@ export function $um(name1: string, name2: string, name3: string | 0, name4: stri
  * Used in update mode only
  */
 export function $up(name: string, value: any, element: VdElementWithProps | VdDataNode, changeCtn: VdChangeContainer): void {
-    if (element.props[name] !== value) {
+    let v1 = element.props[name]
+    if (v1 !== value) {
         // value has changed
         element.props[name] = value;
         if (!value || !value.call) {
@@ -411,6 +430,19 @@ export function $up(name: string, value: any, element: VdElementWithProps | VdDa
             addChangeInstruction(changeCtn, <VdUpdateProp>{
                 kind: VdChangeKind.UpdateProp,
                 name: name,
+                value: value,
+                node: element
+            });
+        }
+    } else if (v1 && v1.$isMap && v1.$lastChange > changeCtn.$lastRefresh) {
+        // v1 is a prop map and changed
+
+        if (element.kind !== VdNodeKind.Group || (<any>element).cpt) {
+            // no need to create update instruction for components
+            addChangeInstruction(changeCtn, <VdUpdatePropMap>{
+                kind: VdChangeKind.UpdatePropMap,
+                name: name,
+                names: null,
                 value: value,
                 node: element
             });
@@ -475,7 +507,7 @@ export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeCon
         // there is a light dom - swap back to the shadow dom group
         let ltGroup = c;
         c = c.sdGroup;
-        
+
         if (!c.props) {
             c.props = {};
         }
@@ -487,6 +519,14 @@ export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeCon
 
     // move changes from cptGroup to change container
     moveChangeInstructions(c, changeCtn);
+}
+
+/**
+ * Refresh Data node
+ * Used in update mode only to update $lastRefresh
+ */
+export function $rd(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
+
 }
 
 /**
@@ -544,11 +584,25 @@ export function $component(CptClass: Function): VdClassCpt {
     return <VdClassCpt>CptClass;
 }
 
+export function $refreshTemplate(renderer, func: Function, rootNode, data, autoProcessChanges = true) {
+    let n1 = renderer.node;
+    renderer.node = rootNode;
+    refreshCount++;
+    func(renderer, data);
+    rootNode.$lastRefresh = refreshCount;
+    renderer.node = n1;
+    if (autoProcessChanges) {
+        renderer.processChanges(rootNode);
+    }
+}
+
 export function $refreshSync(cpt: VdClassCptInstance) {
-    if (cpt.$vdNode && cpt.$renderer) {
-        let r = cpt.$renderer, n1 = r.node, n2 = cpt.$vdNode;
+    if (cpt.$node && cpt.$renderer) {
+        let r = cpt.$renderer, n1 = r.node, n2 = cpt.$node;
         r.node = n2;
+        refreshCount++;
         cpt.render(r);
+        n2.$lastRefresh = refreshCount;
         r.processChanges(n2);
         r.node = n1;
     }
@@ -587,8 +641,10 @@ function renderCpt(r: VdRenderer, g: VdCptNode) {
             }
         }
         c.render(r);
+        (<any>c.$node).$lastRefresh = refreshCount;
     } else {
         (<VdFuncCptNode>g).render(r, g.props);
+        (<VdFuncCptNode>g).$lastRefresh = refreshCount;
     }
 }
 
@@ -644,6 +700,7 @@ function addChangeInstruction(changeCtn: VdChangeContainer, instruction: VdChang
     } else {
         changeCtn.changes = [instruction];
     }
+    changeCtn.$lastChange = refreshCount;
 }
 
 function moveChangeInstructions(changeCtn1: VdChangeContainer, changeCtn2: VdChangeContainer) {
@@ -653,6 +710,7 @@ function moveChangeInstructions(changeCtn1: VdChangeContainer, changeCtn2: VdCha
         } else {
             changeCtn2.changes = changeCtn1.changes;
         }
+        changeCtn2.$lastChange = refreshCount;
         changeCtn1.changes = null;
     }
 }

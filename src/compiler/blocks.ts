@@ -1,5 +1,5 @@
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
-import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClSwapLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock, ClCreatePropMap, ClUpdatePropMap } from "./types";
+import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClSwapLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn } from "./types";
 
 const ATT_NS = "attr", XMLNS = "xmlns", RX_HTML = /html/i, RX_DOTS = /\./;
 
@@ -373,9 +373,19 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                 let currentChangeCtnIdx = levels[level].changeCtnIdx;
                 levels[level].changeCtnIdx = level + 1;
 
-                levels[level].ondelete = () => {
+                levels[level].ondelete = (cb: CodeBlock, nextNb: NodeBlock) => {
                     // set back changeCtnIdx
                     levels[level].changeCtnIdx = currentChangeCtnIdx;
+
+                    let rd = <ClRefreshDn>{
+                        kind: CodeLineKind.RefreshDataNode,
+                        rendererNm: nb.functionCtxt.rendererNm,
+                        cptLevel: level + 1,
+                        changeCtnIdx: currentChangeCtnIdx
+                    };
+
+                    let ndb: NodeBlock = (cb.kind === CodeBlockKind.NodeBlock) ? cb as NodeBlock : nextNb;
+                    ndb.umLines.push(rd);
                 };
             }
         } else {

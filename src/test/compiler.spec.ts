@@ -1137,8 +1137,10 @@ describe('Iv compiler', () => {
                     $up("type", foo, $a2, $a2);
                     $a3 = $a2.children[0];
                     $ut($t0 + $ct(bar), $a3, $a2);
+                    $rd(r, $a2, $a0);
                     $a2 = $a1.children[1];
                     $ut($t1 + $ct(bar+"..."), $a2, $a0);
+                    $rd(r, $a2, $a0);
                 }
             }
         `, "output generation");
@@ -1185,6 +1187,8 @@ describe('Iv compiler', () => {
                         $a3.props = { "key": "F" };
                         $tx($a3, 5, " First item ");
                         $a2.cm = 0;
+                    } else {
+                        $rd(r, $a3, $a1);
                     }
                 }
                 if (showLast) {
@@ -1201,6 +1205,7 @@ describe('Iv compiler', () => {
                         $a3 = $a2.children[0];
                         $a4 = $a3.children[0];
                         $ut($t0 + $ct(showFirst), $a4, $a3);
+                        $rd(r, $a3, $a1);
                     }
                 }
                 if ($a0.cm) {

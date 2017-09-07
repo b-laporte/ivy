@@ -91,7 +91,8 @@ export const enum CodeLineKind {
     SetIndexes = 21,
     CreateDataNode = 22,
     CreatePropMap = 23,
-    UpdatePropMap = 24
+    UpdatePropMap = 24,
+    RefreshDataNode = 25
 }
 
 export interface ClCreateNode extends CodeLine {
@@ -252,6 +253,14 @@ export interface ClJsExpression extends CodeLine {
 export interface ClRefreshCpt extends CodeLine {
     // e.g. $rc(r, $a2, $a0);
     kind: CodeLineKind.RefreshCpt;
+    rendererNm: string;         // "r" in this example
+    cptLevel: number;           // 2 in this example
+    changeCtnIdx: number;       // 0 in this example
+}
+
+export interface ClRefreshDn extends CodeLine {
+    // e.g. $rd(r, $a2, $a0);
+    kind: CodeLineKind.RefreshDataNode;
     rendererNm: string;         // "r" in this example
     cptLevel: number;           // 2 in this example
     changeCtnIdx: number;       // 0 in this example

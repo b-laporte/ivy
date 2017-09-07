@@ -18,7 +18,7 @@ export interface VdClassCpt {
 }
 
 export interface VdClassCptInstance {
-    $vdNode?: VdCptNode;
+    $node?: VdCptNode;
     $renderer?: VdRenderer;
     init?(): void;
     shouldUpdate?(): boolean;
@@ -55,7 +55,9 @@ export interface VdContainer extends VdNode {
 }
 
 export interface VdChangeContainer {
-    changes: VdChangeInstruction[] | null;   // list of change instructions
+    changes: VdChangeInstruction[] | null;  // list of change instructions
+    $lastRefresh: number;                   // value of the iv refresh counter when the last refresh occured (set after the refresh)
+    $lastChange: number;                    // value of the iv refresh counter when the last change occured (<= $lastRefresh)
 }
 
 export interface VdGroupNode extends VdContainer, VdChangeContainer {
@@ -85,10 +87,9 @@ export interface VdElementNode extends VdContainer {
     name: string;               // element tag name
 }
 
-export interface VdDataNode extends VdContainer {
+export interface VdDataNode extends VdContainer, VdChangeContainer {
     kind: VdNodeKind.Data;
     name: string;               // element tag name
-    changes: VdChangeInstruction[] | null;   // list of change instructions
     props: {};
 }
 
@@ -124,7 +125,8 @@ export interface VdUpdateProp extends VdChangeInstruction {
 
 export interface VdUpdatePropMap extends VdChangeInstruction {
     kind: VdChangeKind.UpdatePropMap;
-    names: (string | 0)[];
+    name: string | null;
+    names: (string | 0)[] | null;
     value: any;
     node: VdElementNode;
 }

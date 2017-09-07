@@ -124,8 +124,8 @@ describe('HTML renderer', () => {
     it('should support nodes with attributes', () => {
         function hello(r: VdRenderer, nbr: number) {
             `---
-            <div class="hello" [attr:aria-disabled]=nbr>
-                    <span attr:aria-expanded="false" > Hello </span>
+            <div class="hello" [a:aria-disabled]=nbr>
+                    <span a:aria-expanded="false" > Hello </span>
             </div> 
              ---`
         }

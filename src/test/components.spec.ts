@@ -48,7 +48,7 @@ describe('Class Components', () => {
             `---
             % this.lastSize = this.props.size;
             % let sz = this.props.size || 100;
-            <span [attr:class]=("box"+sz) onclick()=this.update()>
+            <span [a:class]=("box"+sz) onclick()=this.update()>
                 {{this.props.text}}{{this.txt}}
             </span> 
             ---`

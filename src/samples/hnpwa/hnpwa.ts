@@ -50,15 +50,15 @@ function hnpwa(r: VdRenderer, data, nav) {
 
 function header(r: VdRenderer, page) {
  `---
-  <header class="header">
-    <nav class="inner">
-      <a href="#" class="logo">IV</a>
-      <a href="#top" [class]=(page==='#top'?'router-link-active':'')>Top</a>
-      <a href="#new" [class]=(page==='#new'?'router-link-active':'')>New</a>
-      <a href="#show" [class]=(page==='#show'?'router-link-active':'')>Show</a>
-      <a href="#ask" [class]=(page==='#ask'?'router-link-active':'')>Ask</a>
-      <a href="#job" [class]=(page==='#job'?'router-link-active':'')>Jobs</a>
-      <a href="https://github.com/b-laporte/iv" rel="noopener" class="github">Built with IV</a>
+  <header a:class="header">
+    <nav a:class="inner">
+      <a href="#" a:class="logo">IV</a>
+      <a href="#top" [a:class]=(page==='#top'?'router-link-active':'')>Top</a>
+      <a href="#new" [a:class]=(page==='#new'?'router-link-active':'')>New</a>
+      <a href="#show" [a:class]=(page==='#show'?'router-link-active':'')>Show</a>
+      <a href="#ask" [a:class]=(page==='#ask'?'router-link-active':'')>Ask</a>
+      <a href="#job" [a:class]=(page==='#job'?'router-link-active':'')>Jobs</a>
+      <a href="https://github.com/b-laporte/iv" rel="noopener" a:class="github">Built with IV</a>
     </nav>
   </header>
   ---`
@@ -66,7 +66,7 @@ function header(r: VdRenderer, page) {
 
 function content(r: VdRenderer, data, nav) {
   `---
-  <div class="view">
+  <div a:class="view">
     % if (data) {
       % if (data.error) {
           Unable to fetch data, you might be offline
@@ -84,16 +84,16 @@ function content(r: VdRenderer, data, nav) {
 
 function newsList(r: VdRenderer, data, nav) {
   `---
-  <div class="news-list">
+  <div a:class="news-list">
     <ul>
         % for (let i =0; i < data.length; i++) {
             % const item = data[i];
-            <li class="news-item">
-                <span class="score">{{item.points || 0}}</span>
-                <span class="title">
+            <li a:class="news-item">
+                <span a:class="score">{{item.points || 0}}</span>
+                <span a:class="title">
                     <a href=item.url rel="noopener">{{item.title}}</a>({{item.domain}})
                 </span>
-                <span class="meta">
+                <span a:class="meta">
                     % if (item.type != 'job') {
                         by <a href=("#user/"+item.user)>{{item.user}}</a>
                     % }
@@ -107,20 +107,20 @@ function newsList(r: VdRenderer, data, nav) {
     </ul>
   </div>
   % if (data.length === 30) {
-    <a class="news-list-more" [href]=(nav.page+"/"+(parseInt(nav.param)+1))>More ...</a>
+    <a a:class="news-list-more" [href]=(nav.page+"/"+(parseInt(nav.param)+1))>More ...</a>
   % }
   ---`
 }
 
 function user(r: VdRenderer, data, nav) {
   `---
-  <div class="user-view view">
+  <div a:class="user-view view">
     <h1>User : {{data.id}}</h1>
-    <ul class="meta">
-        <li><span class="label">Created:</span> {{' ' + data.created}}</li>
-        <li><span class="label">Karma:</span> {{' ' +data.karma}}</li>
+    <ul a:class="meta">
+        <li><span a:class="label">Created:</span> {{' ' + data.created}}</li>
+        <li><span a:class="label">Karma:</span> {{' ' +data.karma}}</li>
     </ul>
-    <p class="links">
+    <p a:class="links">
         <a [href]=('https://news.ycombinator.com/submitted?id='+data.id)>submissions</a> |
         <a [href]=('https://news.ycombinator.com/threads?id='+data.id)>comments</a>
     </p>
@@ -130,16 +130,16 @@ function user(r: VdRenderer, data, nav) {
 
 function item(r: VdRenderer, data, nav) {
   `---
-  <div class="item-view view">
-    <div class="item-view-header">
+  <div a:class="item-view view">
+    <div a:class="item-view-header">
         <a [href]=data.url>
             <h1>{{data.title}}</h1>
         </a>
-        <span class="host"> ({{data.domain}})</span>
-        <p class="meta">{{data.points}} points | by <a [href]=('#user/'+data.user) class="">{{data.user}}</a>{{' ' + data.time_ago}}</p>
+        <span a:class="host"> ({{data.domain}})</span>
+        <p a:class="meta">{{data.points}} points | by <a [href]=('#user/'+data.user) a:class="">{{data.user}}</a>{{' ' + data.time_ago}}</p>
     </div>
-    <div class="item-view-comments">
-        <p class="item-view-comments-header">
+    <div a:class="item-view-comments">
+        <p a:class="item-view-comments-header">
         {{data.comments_count}} comments
         </p>
         <c:commentList [comments]=data.comments />
@@ -150,7 +150,7 @@ function item(r: VdRenderer, data, nav) {
 
 function commentList(r: VdRenderer, comments) {
   `---
-  <ul class="comment-children">
+  <ul a:class="comment-children">
     % for (let i = 0; i < comments.length; i++) {
         % const comment = comments[i];
         <c:commentItem [comment]=comment />
@@ -161,14 +161,14 @@ function commentList(r: VdRenderer, comments) {
 
 function commentItem(r: VdRenderer, comment) {
   `---
-  <li class="comment">
-      <div class="by"><a [href]=('#user/'+comment.user) class="">{{comment.user}}</a>{{' ' + comment.time_ago}}</div>
-      <div class="text" innerHTML=comment.content />
+  <li a:class="comment">
+      <div a:class="by"><a [href]=('#user/'+comment.user) a:class="">{{comment.user}}</a>{{' ' + comment.time_ago}}</div>
+      <div a:class="text" innerHTML=comment.content />
       % if (comment.comments && comment.comments.length > 0) {
             % if (comment.collapsed) {
-                <div class="toggle" onclick()=toggle(comment)><a>[+] {{comment.comments.length}} replies collapsed</a></div>
+                <div a:class="toggle" onclick()=toggle(comment)><a>[+] {{comment.comments.length}} replies collapsed</a></div>
             % } else {
-                <div class="toggle open" onclick()=toggle(comment)><a>[-]</a></div>
+                <div a:class="toggle open" onclick()=toggle(comment)><a>[-]</a></div>
                 <c:commentList [comments]=comment.comments />
             % }
       % }

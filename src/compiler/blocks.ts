@@ -1,7 +1,7 @@
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
 import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClSwapLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn } from "./types";
 
-const ATT_NS = "attr", XMLNS = "xmlns", RX_HTML = /html/i, RX_DOTS = /\./;
+const ATT_NS = "a", XMLNS = "xmlns", RX_HTML = /html/i, RX_DOTS = /\./;
 
 /**
  * Generate a block list from the

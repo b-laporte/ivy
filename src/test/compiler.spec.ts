@@ -155,8 +155,8 @@ describe('Iv compiler', () => {
         let src = `
             function hello(r:VdRenderer, foo:string, bar) {
                 \`---
-                <div class="hello" [attr:aria-disabled]=foo>
-                     <span attr:aria-expanded=false > Hello </span>
+                <div class="hello" [a:aria-disabled]=foo>
+                     <span a:aria-expanded=false > Hello </span>
                 </div> 
                  ---\`
             }
@@ -1232,7 +1232,7 @@ describe('Iv compiler', () => {
                 render(r: VdRenderer) {
                     \`---
                     % let sz = this.props.size || 100;
-                    <span [attr:class]=("box"+sz) onmouseenter()=this.increment() onmouseleave(e)=this.increment(e) >
+                    <span [a:class]=("box"+sz) onmouseenter()=this.increment() onmouseleave(e)=this.increment(e) >
                         {{this.props.text}}
                     </span> 
                     ---\`

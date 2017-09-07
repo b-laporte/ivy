@@ -17,7 +17,7 @@ interface HtmlDoc {
     createElementNS(ns: string, name: string): any;
 }
 
-const RX_EVT_HANDLER = /^on/, RX_HTML = /html/i;
+const RX_HTML = /html/i;
 
 class Renderer implements HtmlRenderer {
     node: VdGroupNode;
@@ -108,11 +108,7 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
                 if (!ns.match(RX_HTML)) {
                     nd.domNode.setAttribute(prop, up.value);
                 } else {
-                    if (prop === "class" || prop === "className") {
-                        nd.domNode.className = up.value;
-                    } else {
-                        nd.domNode[prop] = up.value;
-                    }
+                    nd.domNode[prop] = up.value;
                 }
             }
         } else if (chge.kind === VdChangeKind.DeleteGroup) {
@@ -257,7 +253,7 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
             for (let k in props) {
                 if (!props.hasOwnProperty(k)) continue;
                 val = props[k];
-                if (val===undefined) continue;
+                if (val === undefined) continue;
 
                 if (val && val.$isMap) {
                     // e.g. style.borderColor or className.myClassName
@@ -276,12 +272,8 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
                     } else if (k === "style") {
                         setMapProperties(domNd.style, val);
                     }
-                } else if (k === "class" || k === "className") {
-                    domNd.className = val;
-                } else if (k === "style") {
-                    domNd.setAttribute(k, val);
                 } else if (val.call) {
-                    if (k.match(RX_EVT_HANDLER)) {
+                    if (k[0] === "o") {
                         addEvtListener(domNd, nd, k);
                     }
                 } else {

@@ -61,49 +61,49 @@ function setFilter() {
 
 function todomvc(r: VdRenderer, todos: Todo[], filter: Filter) {
   `---
-  <section class="todoapp">
-    <header class="header">
+  <section a:class="todoapp">
+    <header a:class="header">
       <h1>todos</h1>
-      <input class="new-todo" placeholder="What needs to be done?" autofocus="true" onkeyup(e)=addTodo(e) />
+      <input a:class="new-todo" placeholder="What needs to be done?" autofocus="true" onkeyup(e)=addTodo(e) />
     </header>
     % if (todos.length > 0) {
       % const itemsLeft = todos.filter((todo) => !todo.completed).length;
-      <section class="main">
-        <input id="toggle-all" class="toggle-all" type="checkbox" [checked]=itemsLeft===0/>
+      <section a:class="main">
+        <input id="toggle-all" a:class="toggle-all" type="checkbox" [checked]=itemsLeft===0/>
         <label for="toggle-all" onclick()=markAll()>Mark all as complete</label>
-        <ul class="todo-list">
+        <ul a:class="todo-list">
           % todos.filter((todo) => (filter == Filter.ALL || (filter == Filter.COMPLETED && todo.completed) || (filter == Filter.ACTIVE && !todo.completed))).forEach((todo) => {
-            <li [class]=((todo.editing?'editing ':'')+(todo.completed?'completed':''))>
-              <div class="view">
-                <input class="toggle" type="checkbox" [checked]=todo.completed onclick()=toggleTodo(todo) />
+            <li [a:class]=((todo.editing?'editing ':'')+(todo.completed?'completed':''))>
+              <div a:class="view">
+                <input a:class="toggle" type="checkbox" [checked]=todo.completed onclick()=toggleTodo(todo) />
                 <label ondblclick(e)=startEditing(e, todo)>{{todo.title}}</label>
-                <button class="destroy" onclick()=deleteTodo(todo)></button>
+                <button a:class="destroy" onclick()=deleteTodo(todo)></button>
               </div>
-              <input class="edit" [value]=todo.title onkeyup(e)=editTodo(e, todo) onblur(e)=stopEditing(e, todo)/>
+              <input a:class="edit" [value]=todo.title onkeyup(e)=editTodo(e, todo) onblur(e)=stopEditing(e, todo)/>
             </li>
           % });
         </ul>
       </section>
-      <footer class="footer">
-        <span class="todo-count"><strong>{{itemsLeft}}</strong> item{{itemsLeft > 1?'s':''}} left</span>
-        <ul class="filters">
+      <footer a:class="footer">
+        <span a:class="todo-count"><strong>{{itemsLeft}}</strong> item{{itemsLeft > 1?'s':''}} left</span>
+        <ul a:class="filters">
           <li>
-            <a [class]=(filter===Filter.ALL?'selected':'') href="#/">All</a>
+            <a [a:class]=(filter===Filter.ALL?'selected':'') href="#/">All</a>
           </li>
           <li>
-            <a [class]=(filter===Filter.ACTIVE?'selected':'') href="#/active">Active</a>
+            <a [a:class]=(filter===Filter.ACTIVE?'selected':'') href="#/active">Active</a>
           </li>
           <li>
-            <a [class]=(filter===Filter.COMPLETED?'selected':'') href="#/completed">Completed</a>
+            <a [a:class]=(filter===Filter.COMPLETED?'selected':'') href="#/completed">Completed</a>
           </li>
         </ul>
         % if (todos.length > itemsLeft) {
-          <button class="clear-completed" onclick()=clearCompleted()>Clear completed</button>
+          <button a:class="clear-completed" onclick()=clearCompleted()>Clear completed</button>
         % }
       </footer>
     % }
   </section>
-  <footer class="info">
+  <footer a:class="info">
     <p>Double-click to edit a todo</p>
     <p>Template by <a href="http://sindresorhus.com">Sindre Sorhus</a></p>
     <p>Created with <a href="https://github.com/b-laporte/iv/">IV</a></p>

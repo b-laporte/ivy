@@ -36,10 +36,10 @@ class Clock {
 function clock(r: VdRenderer, c) {
     `---
     // example from http://www.ractivejs.org/examples/clock/
-    <div class="square">
+    <div a:class="square">
         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
             <g transform="translate(50,50)">
-                <circle class="clock-face" r="48"/>
+                <circle a:class="clock-face" r="48"/> // a attribute prefix not-mandatory in svg
                 // minute markers
                 % for (let i=0;60>i;i++) {
                     % let isMajorMarker = (i%5 === 0);

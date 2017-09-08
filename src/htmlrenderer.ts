@@ -125,7 +125,6 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             insertGroupContent(rg.newNode, rg.parent ? rg.parent.domNode : null, rg.nextSibling, doc);
         } else if (chge.kind === VdChangeKind.UpdatePropMap) {
             let um = chge as VdUpdatePropMap, domNode = um.node.domNode;
-
             if (um.names) {
                 updateMapValue(domNode, um.names[0], um.names[1], um.value);
             } else if (um.name) {
@@ -137,7 +136,6 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
                     }
                 }
             }
-
         } else {
             console.error("[iv html renderer] Unsupported change kind: " + chge.kind);
         }

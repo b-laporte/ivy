@@ -89,7 +89,7 @@ function main(r: VdRenderer, seconds, elapsed) {
         <li> text node updates every second (the number in the blue dots) </li>
         <li> text node update on user input (you need to hover one of the blue dots) </li>
     </ul>
-    <i> code derived from the rrew <a href="https://stencil-fiber-demo.firebaseapp.com">stencil fiber demo</a></i>
+    <i> code derived from the <a href="https://stencil-fiber-demo.firebaseapp.com">stencil fiber demo</a></i>
     
     <div id="main" [a:style]=computeMainStyle(elapsed)>
         <c:triangle x=0 y=0 size=1e3 [seconds]=seconds/>

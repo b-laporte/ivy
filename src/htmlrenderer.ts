@@ -20,7 +20,6 @@ interface HtmlDoc {
 const RX_HTML = /html/i;
 
 class Renderer implements HtmlRenderer {
-    node: VdGroupNode;
     vdom: VdGroupNode;
     doc: HtmlDoc;
 

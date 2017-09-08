@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
 window["showClock"] = function (elt) {
@@ -8,13 +7,13 @@ window["showClock"] = function (elt) {
 class Clock {
     _iid;                   // interval id
     _renderer;              // html renderer
-    hours:number;
-    minutes:number;
-    seconds:number;
-    milliseconds:number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    milliseconds: number;
 
     constructor(elt) {
-        this._iid=setInterval(this.tick.bind(this),100);
+        this._iid = setInterval(this.tick.bind(this), 100);
         this._renderer = htmlRenderer(elt, clock);
         this.tick();
     }
@@ -23,17 +22,17 @@ class Clock {
         clearInterval(this._iid);
     }
 
-	tick() {
-		var d=new Date();
-		this.hours = d.getHours();
-		this.minutes = d.getMinutes();
-		this.seconds = d.getSeconds();
-		this.milliseconds = d.getMilliseconds();
-        this._renderer.refresh({c:this});
-	}
+    tick() {
+        var d = new Date();
+        this.hours = d.getHours();
+        this.minutes = d.getMinutes();
+        this.seconds = d.getSeconds();
+        this.milliseconds = d.getMilliseconds();
+        this._renderer.refresh({ c: this });
+    }
 };
 
-function clock(r: VdRenderer, c) {
+function clock(c) {
     `---
     // example from http://www.ractivejs.org/examples/clock/
     <div a:class="square">
@@ -60,7 +59,7 @@ function clock(r: VdRenderer, c) {
      ---`
 }
 
-function hand(r:VdRenderer, kind:string, rotation:number) {
+function hand(kind: string, rotation: number) {
     `---
         <line class=kind y1="2" y2=(kind==="minute"? "-25" : "-17") [transform]=("rotate(" + rotation + ")")/>
      ---`

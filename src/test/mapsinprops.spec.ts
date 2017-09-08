@@ -1,7 +1,6 @@
 
 import { assert, doc } from "./common";
 import { htmlRenderer } from "../htmlrenderer";
-import { VdRenderer } from "../vdom";
 import { $component } from "../iv";
 
 describe('Maps in props', () => {
@@ -14,7 +13,7 @@ describe('Maps in props', () => {
             style: {}
         }
 
-        render(r: VdRenderer) {
+        render() {
             `---
             % let content = this.props.$content;
             <span [style]=this.props.style>
@@ -30,7 +29,7 @@ describe('Maps in props', () => {
             className: {}
         }
 
-        render(r: VdRenderer) {
+        render() {
             `---
             % let content = this.props.$content;
             <span [className]=this.props.className>
@@ -41,7 +40,7 @@ describe('Maps in props', () => {
     });
 
     it('should be supported on element style', () => {
-        function test(r: VdRenderer, color, width) {
+        function test(color, width) {
             `---
             <div style.borderColor=color [style.borderWidth]=width+"px"> 
                 hello
@@ -76,7 +75,7 @@ describe('Maps in props', () => {
     });
 
     it('should be supported on element className', () => {
-        function test(r: VdRenderer, nbr) {
+        function test(nbr) {
             `---
             <div className.foo=(nbr===1) [className.bar]=(nbr===2) className.baz=1> 
                 hello
@@ -116,7 +115,7 @@ describe('Maps in props', () => {
     });
 
     it('should be supported on component style', () => {
-        function test(r: VdRenderer, color, width) {
+        function test(color, width) {
             `---
             <section> 
                 <c:box style.borderColor=color [style.borderWidth]=width+"px"> Hello </c:box>
@@ -150,7 +149,7 @@ describe('Maps in props', () => {
     });
 
     it('should be supported on component className', () => {
-        function test(r: VdRenderer, isFoo, val) {
+        function test(isFoo, val) {
             `---
             <section> 
                 <c:box> Hello </c:box>

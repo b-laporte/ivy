@@ -1,6 +1,6 @@
 
 import { assert, createTestRenderer } from "./common";
-import { VdRenderer, $el, $tx, $up, $cg, $dg, $cc, $uc, $rc, $iv } from "../iv";
+import { $el, $tx, $up, $cg, $dg, $cc, $uc, $rc, $iv } from "../iv";
 import { VdChangeContainer } from "../vdom";
 
 describe('IV runtime', () => {
@@ -8,7 +8,7 @@ describe('IV runtime', () => {
     let OPTIONS = { baseIndent: "        " }
 
     it('should create and update simple nodes', () => {
-        // function test(r: VdRenderer, nbr) {
+        // function test(nbr) {
         //     `<div class="hello">
         //         // some comment
         //         <span class="one" title="blah" foo=nbr+4> Hello </span>
@@ -17,8 +17,8 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2;
+        function test($d: any) {
+            let $a0: any = $iv.node, $a1, $a2;
             let nbr = $d["nbr"];
 
             if ($a0.cm) {
@@ -57,7 +57,7 @@ describe('IV runtime', () => {
         assert.equal(r.changes(), `
             CreateGroup #-1
         `, "update changes");
-        assert.equal((<VdChangeContainer>r.node).$lastRefresh, refreshCount1 + 1, "refresh count 1");
+        assert.equal((<VdChangeContainer>r.root).$lastRefresh, refreshCount1 + 1, "refresh count 1");
 
         // update
         r.refresh({ nbr: 5 });
@@ -79,11 +79,11 @@ describe('IV runtime', () => {
             UpdateProp "bar"=10 in #1
         `, "update changes");
 
-        assert.equal((<VdChangeContainer>r.node).$lastRefresh, refreshCount1 + 2, "refresh count 2");
+        assert.equal((<VdChangeContainer>r.root).$lastRefresh, refreshCount1 + 2, "refresh count 2");
     });
 
     it('should support simple if blocks', () => {
-        // function test(r: VdRenderer, nbr) {
+        // function test(nbr) {
         //     <div>
         //         ABC
         //         % if (nbr===42) {
@@ -95,8 +95,8 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2, $a3, $i1 = 0;
+        function test($d: any) {
+            let $a0: any = $iv.node, $a1, $a2, $a3, $i1 = 0;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -229,7 +229,7 @@ describe('IV runtime', () => {
     });
 
     it('should support if+else blocks and consecutive blocks', () => {
-        // function test(r: VdRenderer, nbr) {
+        // function test(nbr) {
         //     <div>
         //         % if (nbr===42) {
         //             Case 42
@@ -240,8 +240,8 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2, $a3, $i1 = 0;
+        function test($d: any) {
+            let $a0: any = $iv.node, $a1, $a2, $a3, $i1 = 0;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -357,7 +357,7 @@ describe('IV runtime', () => {
     });
 
     it('should support non consecutive blocks', () => {
-        // function test(r: VdRenderer, nbr) {
+        // function test(nbr) {
         //     <div>
         //         ABC
         //         % if (nbr>42) {
@@ -372,8 +372,8 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2, $a3, $i1 = 0;
+        function test($d: any) {
+            let $a0: any = $iv.node, $a1, $a2, $a3, $i1 = 0;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -490,7 +490,7 @@ describe('IV runtime', () => {
     });
 
     it('should support nested blocks', () => {
-        // function test(r: VdRenderer, nbr) {
+        // function test(nbr) {
         //     <div>
         //         ABC
         //         % if (nbr>42) {
@@ -505,8 +505,8 @@ describe('IV runtime', () => {
         // }
 
         // runtime code as it should be roughly generated
-        function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2, $a3, $a4, $i1 = 0, $i2 = 0;
+        function test($d: any) {
+            let $a0: any = $iv.node, $a1, $a2, $a3, $a4, $i1 = 0, $i2 = 0;
             let nbr = $d["nbr"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 1);
@@ -676,7 +676,7 @@ describe('IV runtime', () => {
     });
 
     it('should support sub-function calls', () => {
-        // function foo (r: VdRenderer, v:number=123) {
+        // function foo (v:number=123) {
         //     <div>
         //         <span> first </span>
         //         <c:bar [value]=v+1 msg=("m1:"+v)/>
@@ -685,22 +685,22 @@ describe('IV runtime', () => {
         //     </div>
         // }
 
-        // function bar (r: VdRenderer, value, msg="") {
+        // function bar (value, msg="") {
         //     <span [title]=(value+' '+msg)/>
         //     % if (value === 45) {
         //         <span> Hello 45! </span>
         //     % }
         // }
 
-        function foo(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2;
+        function foo($d: any) {
+            let $a0: any = $iv.node, $a1, $a2;
             let v = $d["v"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div");
                 $a2 = $el($a1, 2, "span");
                 $tx($a2, 3, " first ");
-                $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, r, bar, 0, 1);
-                $a2 = $cc($a1, 5, { "value": v + 3, "msg": ("m2:" + v) }, r, bar, 0, 1);
+                $a2 = $cc($a1, 4, { "value": v + 1, "msg": ("m1:" + v) }, bar, 0, 1);
+                $a2 = $cc($a1, 5, { "value": v + 3, "msg": ("m2:" + v) }, bar, 0, 1);
                 $a2 = $el($a1, 6, "span");
                 $tx($a2, 7, " last ");
                 $a0.cm = 0;
@@ -708,15 +708,15 @@ describe('IV runtime', () => {
                 $a1 = $a0.children[0]
                 $a2 = $a1.children[1];
                 $uc("value", v + 1, $a2);
-                $rc(r, $a2, $a0);
+                $rc($a2, $a0);
                 $a2 = $a1.children[2];
                 $uc("value", v + 3, $a2);
-                $rc(r, $a2, $a0);
+                $rc($a2, $a0);
             }
         }
 
-        function bar(r: VdRenderer, $d: { value?: any, msg?: any }) {
-            let value = $d.value || "", msg = $d.msg || "", $a0: any = r.node, $a1, $a2, $i1;
+        function bar($d: { value?: any, msg?: any }) {
+            let value = $d.value || "", msg = $d.msg || "", $a0: any = $iv.node, $a1, $a2, $i1;
 
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "span", 1);
@@ -745,7 +745,7 @@ describe('IV runtime', () => {
 
         // cpt getter
         function cpt(idx): VdChangeContainer {
-            return <VdChangeContainer>((<any>r.node).children[0].children[idx]);
+            return <VdChangeContainer>((<any>r.root).children[0].children[idx]);
         }
 
         // initial display
@@ -771,7 +771,7 @@ describe('IV runtime', () => {
         assert.equal(r.changes(), `
             CreateGroup #-1
         `, "update changes");
-        assert.equal((<VdChangeContainer>r.node).$lastRefresh, refreshCount1 + 1, "refresh count 1");
+        assert.equal((<VdChangeContainer>r.root).$lastRefresh, refreshCount1 + 1, "refresh count 1");
         assert.equal(cpt(1).$lastRefresh, refreshCount1+1, "cpt1 refresh 1");
         assert.equal(cpt(1).$lastChange, refreshCount1+1, "cpt1 change 1");
 
@@ -859,12 +859,12 @@ describe('IV runtime', () => {
         assert.equal(r.changes(), `
         `, "update changes 9 bis");
         assert.equal(cpt(1).$lastRefresh, refreshCount1+4, "cpt1 refresh 4");
-        assert.equal((<any>r.node).$lastChange, refreshCount1+3, "root node change 4");
+        assert.equal((<any>r.root).$lastChange, refreshCount1+3, "root node change 4");
         assert.equal(cpt(1).$lastChange, refreshCount1+3, "cpt1 change 4");
     });
 
     it('should support loops with no keys', () => {
-        // function test(r:VdRenderer, list=[]) {
+        // function test(list=[]) {
         //     <div title="first"/>
         //     % for (let i=0;list.length>i;i++) {
         //         <div [title]=("Hello " + list[i].name)/>
@@ -872,8 +872,8 @@ describe('IV runtime', () => {
         //     <div [title]=list.length/>
         // }
 
-        function test(r: VdRenderer, $d: any) {
-            let $a0: any = r.node, $a1, $a2, $i0;
+        function test($d: any) {
+            let $a0: any = $iv.node, $a1, $a2, $i0;
             let list = $d["list"];
             if ($a0.cm) {
                 $a1 = $el($a0, 1, "div", 0);

@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 import { Benchmark } from './benchmark';
 
@@ -6,7 +5,7 @@ const renderer = htmlRenderer(document.getElementById("root"), jfb);
 const benchmark = new Benchmark(renderer);
 benchmark.refresh();
 
-function jfb(r: VdRenderer, benchmark: Benchmark) {
+function jfb(benchmark: Benchmark) {
     `---
     <div a:class="container">
         <div a:class="jumbotron">

@@ -372,11 +372,11 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                 // data node has a light dom - we have to register it as change container
                 let currentChangeCtnIdx = levels[level].changeCtnIdx;
                 levels[level].changeCtnIdx = level + 1;
+                generateNodeBlockRefsLine(nb, levels);
 
                 levels[level].ondelete = (cb: CodeBlock, nextNb: NodeBlock) => {
                     // set back changeCtnIdx
                     levels[level].changeCtnIdx = currentChangeCtnIdx;
-
                     let rd = <ClRefreshDn>{
                         kind: CodeLineKind.RefreshDataNode,
                         rendererNm: nb.functionCtxt.rendererNm,

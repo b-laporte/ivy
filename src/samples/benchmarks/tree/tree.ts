@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../../iv";
 import { htmlRenderer } from "../../../htmlrenderer";
 import {bindAction, profile} from '../util';
 import {buildTree, emptyTree} from './util';
@@ -28,7 +27,7 @@ function detectChanges() {
 
 function getColor(row: number) { return row % 2 ? '' : 'grey'; }
 
-function tree(r: VdRenderer, data) {
+function tree(data) {
   `---
   <tree>
     <span style=("background-color:"+getColor(data.depth))>{{data.value}}</span>

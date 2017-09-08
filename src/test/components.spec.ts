@@ -1,6 +1,5 @@
 import { assert, doc } from "./common";
 import { htmlRenderer } from "../htmlrenderer";
-import { VdRenderer } from "../vdom";
 import { $component, $refreshSync } from "../iv";
 
 describe('Class Components', () => {
@@ -13,7 +12,7 @@ describe('Class Components', () => {
         }
         initValue = "";
 
-        render(r: VdRenderer) {
+        render() {
             `---
             <span class="label">
                 {{this.props.value || this.initValue}}
@@ -44,7 +43,7 @@ describe('Class Components', () => {
             return (this.lastSize !== this.props.size);
         }
 
-        render(r: VdRenderer) {
+        render() {
             `---
             % this.lastSize = this.props.size;
             % let sz = this.props.size || 100;
@@ -62,7 +61,7 @@ describe('Class Components', () => {
 
     it('should support no init()', () => {
 
-        function test(r: VdRenderer, txt1, txt2) {
+        function test(txt1, txt2) {
             `---
             <div>
                 Label 1: <c:label [value]=txt1/>
@@ -115,7 +114,7 @@ describe('Class Components', () => {
 
     it('should support init()', () => {
 
-        function test(r: VdRenderer, txt1, txt2, txt3) {
+        function test(txt1, txt2, txt3) {
             `---
             <c:label2 [value]=txt1/>
             <c:label2 [value]=txt2/>
@@ -160,7 +159,7 @@ describe('Class Components', () => {
 
     it('should support shouldUpdate()', () => {
 
-        function test(r: VdRenderer, sz1, txt1, sz2, txt2) {
+        function test(sz1, txt1, sz2, txt2) {
             `---
             <c:box [size]=sz1 [text]=txt1/>
             <c:box [size]=sz2 [text]=txt2/>
@@ -193,12 +192,11 @@ describe('Class Components', () => {
                 </span>
             </div>
         `, "update 1");
-
     });
 
     it('should support event handlers and $refreshSync()', () => {
 
-        function test(r: VdRenderer, sz1, txt1, sz2, txt2) {
+        function test(sz1, txt1, sz2, txt2) {
             `---
             <c:box [size]=sz1 [text]=txt1/>
             <c:box [size]=sz2 [text]=txt2/>

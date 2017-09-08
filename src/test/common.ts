@@ -193,13 +193,13 @@ function checkArrayProperty(name, att1, att2) {
 
 interface TestRenderer extends VdRenderer {
     root?: VdGroupNode;
-    func: (r: VdRenderer, ...any) => void;
+    func: (...any) => void;
     vdom: () => string;
     changes: () => string;
     refresh: (data?: {}) => void;
 }
 
-export function createTestRenderer(func: (r: VdRenderer, ...any) => void, options?: { baseIndent: string }): TestRenderer {
+export function createTestRenderer(func: (...any) => void, options?: { baseIndent: string }): TestRenderer {
     // override ivRuntime to always start ref at 0
     $iv.reset(1);
 
@@ -218,7 +218,6 @@ export function createTestRenderer(func: (r: VdRenderer, ...any) => void, option
 
     let r: TestRenderer = {
         func: func,
-        node: rootGroup,
         root: undefined,
         vdom: () => serializeGroup(rootGroup, options ? options.baseIndent : "    "),
         changes: () => serializeChanges(rootGroup, options ? options.baseIndent : "    "),

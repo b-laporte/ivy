@@ -1,4 +1,4 @@
-import { VdRenderer, $component, $refresh } from "../../iv";
+import { $component, $refresh } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
 let r;
@@ -24,7 +24,7 @@ let triangle = $component(class {
         return (this.lastSeconds !== this.props.seconds);
     }
 
-    render(r: VdRenderer) {
+    render() {
         `---
         % let p = this.props, x=p.x, y=p.y, size=p.size, seconds=this.lastSeconds=p.seconds;
         % if (size<=25) {
@@ -49,7 +49,7 @@ let dot = $component(class {
         return (this.lastText !== this.props.text);
     }
 
-    render(r: VdRenderer) {
+    render() {
         `---
         % let p = this.props;
         % this.lastText = p.text;
@@ -81,7 +81,7 @@ let dot = $component(class {
     }
 });
 
-function main(r: VdRenderer, seconds, elapsed) {
+function main(seconds, elapsed) {
     `---
     This page demonstrates 3 types of parallel updates:
     <ul>

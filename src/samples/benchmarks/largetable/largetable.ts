@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../../iv";
 import { htmlRenderer } from "../../../htmlrenderer";
 import {bindAction, profile} from '../util';
 import {buildTable, emptyTable} from './util';
@@ -22,7 +21,7 @@ function createDom() {
 
 function getColor(row: number) { return row % 2 ? '' : 'grey'; }
 
-function largeTable(r: VdRenderer, data) {
+function largeTable(data) {
  `---
   <table><tbody>
     % for (let i = 0; i < data.length; i++) {

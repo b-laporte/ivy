@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
 interface Todo {
@@ -43,9 +42,9 @@ function render() {
 
 function refresh() {
   if (window.localStorage) {
-    window.localStorage.setItem('todos-iv', JSON.stringify(_todos.map((todo) => {return {title: todo.title, completed: todo.completed};})));
+    window.localStorage.setItem('todos-iv', JSON.stringify(_todos.map((todo) => { return { title: todo.title, completed: todo.completed }; })));
   }
-  renderer.refresh({todos: _todos, filter: _filter});
+  renderer.refresh({ todos: _todos, filter: _filter });
 }
 
 function setFilter() {
@@ -59,7 +58,7 @@ function setFilter() {
   }
 }
 
-function todomvc(r: VdRenderer, todos: Todo[], filter: Filter) {
+function todomvc(todos: Todo[], filter: Filter) {
   `---
   <section a:class="todoapp">
     <header a:class="header">
@@ -121,7 +120,7 @@ function deleteTodo(todo: Todo) {
 function addTodo(event: any) {
   if (event.keyCode == ENTER_KEY) {
     if (event.target.value.length > 0) {
-      _todos.push({title: event.target.value.trim(), completed: false});
+      _todos.push({ title: event.target.value.trim(), completed: false });
       event.target.value = '';
       refresh();
     }
@@ -168,6 +167,6 @@ function clearCompleted() {
 
 function markAll() {
   const toBeCompleted = _todos.filter((todo) => !todo.completed).length > 0;
-  _todos.forEach((todo) => {todo.completed = toBeCompleted});
+  _todos.forEach((todo) => { todo.completed = toBeCompleted });
   refresh();
 }

@@ -1,6 +1,6 @@
 
 import { assert, createTestRenderer } from "./common";
-import { VdRenderer, $dataNodes } from "../iv";
+import { $dataNodes } from "../iv";
 
 describe('Rollup output', () => {
 
@@ -9,7 +9,7 @@ describe('Rollup output', () => {
     it('should generate functions with nested blocks', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function test(r: VdRenderer, nbr) {
+        function test(nbr) {
             `---
             <div>
                 ABC
@@ -150,7 +150,7 @@ describe('Rollup output', () => {
     it('should generate functions with sub-function calls', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo(r: VdRenderer, v: number = 123) {
+        function foo(v: number = 123) {
             `---
             <div>
                 <span> first </span>
@@ -161,7 +161,7 @@ describe('Rollup output', () => {
              ---`
         }
 
-        function bar(r: VdRenderer, value, msg = "") {
+        function bar(value, msg = "") {
             `
             <span [title]=(value+' '+msg)/>
              % if (value === 45) {
@@ -255,7 +255,7 @@ describe('Rollup output', () => {
     it('should generate functions with dynamic text nodes', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo(r: VdRenderer, nbr: number) {
+        function foo(nbr: number) {
             `---
             <div>
                 <span>{{nbr+1}}</span>
@@ -310,7 +310,7 @@ describe('Rollup output', () => {
     it('should generate functions with main js blocks', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo(r: VdRenderer, visible, nbr: number) {
+        function foo(visible, nbr: number) {
             `---
             % nbr+=3;
             % if (visible) {
@@ -361,7 +361,7 @@ describe('Rollup output', () => {
 
     it('should generate functions with node re-projection (insert blocks)', () => {
 
-        function main(r: VdRenderer, useText: boolean, msg) {
+        function main(useText: boolean, msg) {
             `---
             % if (useText) {
                 <c:section title="hello" [$content]=msg/>
@@ -374,7 +374,7 @@ describe('Rollup output', () => {
              ---`
         }
 
-        function section(r: VdRenderer, title, $content) {
+        function section(title, $content) {
             `---
             <div class="section">
                 <span class="title"> {{title}} </span>
@@ -479,7 +479,7 @@ describe('Rollup output', () => {
     });
 
     it('should support insert content nature change and ReplaceGroupContent instructions', () => {
-        function test(r: VdRenderer, showFirst: boolean, showLast: boolean) {
+        function test(showFirst: boolean, showLast: boolean) {
             `---
             <c:menu>
                 % if (showFirst) {
@@ -497,21 +497,21 @@ describe('Rollup output', () => {
              ---`
         }
 
-        function menu(r: VdRenderer, selection: string) {
+        function menu(selection: string) {
             `---
-            % let dataNodes = $dataNodes("*", r);
+            % let dataNodes = $dataNodes("*");
             <ul>
-            % for (let dn of dataNodes) {
-                % if (dn.name === "item") {
-                    <li> [{{dn.props["key"]}}] <ins:dn/> </li>
-                % } else if (dn.name === "separator") {
-                    <hr/>
+                % for (let dn of dataNodes) {
+                    % if (dn.name === "item") {
+                        <li> [{{dn.props["key"]}}] <ins:dn/> </li>
+                    % } else if (dn.name === "separator") {
+                        <hr/>
+                    % }
                 % }
-            % }
             </ul>
              ---`
         }
-
+        
         let r = createTestRenderer(test, OPTIONS);
         // initial display
         r.refresh({ showFirst:true, showLast:true });

@@ -1,10 +1,8 @@
 
 import {
-    VdNodeKind, VdRenderer, VdFunctionCpt, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
+    VdNodeKind, VdFunctionCpt, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
     VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance, VdFuncCptNode, VdUpdatePropMap
 } from "./vdom";
-
-export { VdRenderer as VdRenderer };
 
 const EMPTY_PROPS = {}, NO_PROPS = undefined, ALL_DN = "*";
 
@@ -12,6 +10,9 @@ let refreshCount = 0,   // Refresh count - used to know when change occured
     refCount = 0;       // Reference count - used to track node reference in unit tests
 
 export let $iv = {
+    node: null,         // current node being processed
+    renderer: null,     // current renderer
+
     /**
      * Reset internal counters
      * For test only
@@ -171,7 +172,7 @@ export function $ri(parent: VdContainer, childPosition: number, content: any, ch
  * and call the component function
  * Use in creation mode only
  */
-export function $cc(parent: VdContainer, index: number, props: {}, r: VdRenderer, cpt: VdFunctionCpt | VdClassCpt, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
+export function $cc(parent: VdContainer, index: number, props: {}, cpt: VdFunctionCpt | VdClassCpt, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
     let isClassCpt = cpt.$isClassCpt === true;
     let g: VdCptNode = {
         kind: VdNodeKind.Group,
@@ -189,14 +190,13 @@ export function $cc(parent: VdContainer, index: number, props: {}, r: VdRenderer
         parent: parent,
         $lastChange: refreshCount,
         $lastRefresh: refreshCount
-    }, p = r.node;
+    };
     parent.children[parent.children.length] = g;
-    r.node = g;
 
     if (g.cpt) {
         let c = <VdClassCptInstance>g.cpt;
         c.$node = g;
-        c.$renderer = r;
+        c.$renderer = <any>$iv.renderer;
         c["props"] = g.props
         if (c.init) {
             c.init();
@@ -226,8 +226,7 @@ export function $cc(parent: VdContainer, index: number, props: {}, r: VdRenderer
     } else {
         // no light dom
         // call the sub-function with the supplied parameters
-        renderCpt(r, g);
-        r.node = p;
+        renderCpt(g);
         return g;
     }
 }
@@ -500,8 +499,8 @@ export function $uc(name: string, value: any, cpt: VdElementWithProps): void {
  * Refresh component
  * Used in update mode only for component with no $content - otherwise used in update and creation mode
  */
-export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
-    let p = r.node, c = cptGroup as VdCptNode;
+export function $rc(cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
+    let c = cptGroup as VdCptNode;
 
     if (c.sdGroup !== null) {
         // there is a light dom - swap back to the shadow dom group
@@ -513,9 +512,7 @@ export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeCon
         }
         c.props["$content"] = ltGroup;
     }
-    r.node = c;
-    renderCpt(r, c);
-    r.node = p;
+    renderCpt(c);
 
     // move changes from cptGroup to change container
     moveChangeInstructions(c, changeCtn);
@@ -525,24 +522,26 @@ export function $rc(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeCon
  * Refresh Data node
  * Used in update mode only to update $lastRefresh
  */
-export function $rd(r: VdRenderer, cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
-
+export function $rd(cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
+    if (cptGroup.$lastChange > changeCtn.$lastChange) {
+        changeCtn.$lastChange = cptGroup.$lastChange;
+    }
 }
 
 /**
  * Return all the data nodes that are direct descendents of the parent container / or direct descendents of sub-groups
  * attached to the parent container (in other words: this function will recursively look in sub-groups - such as js blocks - but not in sub-elements)
  */
-export function $dataNodes(nodeName: string, parent: VdRenderer | VdContainer): VdDataNode[] {
-    let res = [];
-    if (parent["node"]) {
-        let nd = (<VdRenderer>parent).node;
-        if (nd.props) {
-            parent = nd.props["$content"];
+export function $dataNodes(nodeName: string, parent?: VdContainer): VdDataNode[] {
+    let res = [], pnd = parent;
+    if (!pnd) {
+        let nd = <any>($iv.node);
+        if (nd && nd.props) {
+            pnd = nd.props["$content"];
         }
     }
-    if (parent) {
-        grabDataNodes((<VdContainer>parent).children, nodeName, res);
+    if (pnd) {
+        grabDataNodes((<VdContainer>pnd).children, nodeName, res);
     }
     return res;
 }
@@ -550,26 +549,27 @@ export function $dataNodes(nodeName: string, parent: VdRenderer | VdContainer): 
 /**
  * Same as $dataNodes() but will only return the first element (faster method when only one data node is expected)
  */
-export function $dataNode(nodeName: string, parent: VdRenderer | VdContainer): VdDataNode | null {
-    let res: VdDataNode | null = null;
-    if (parent["node"]) {
-        let nd = (<VdRenderer>parent).node;
-        if (nd.props) {
+export function $dataNode(nodeName: string, parent?: VdContainer): VdDataNode | null {
+    let res: VdDataNode | null = null, pnd = parent;
+
+    if (!pnd) {
+        let nd = <any>($iv.node);
+        if (nd && nd.props) {
             let p = nd.props;
             if (p && p[nodeName]) {
                 // create a data node with a sub-textNode from the prop value
                 return res = getDataNodeWrapper(p, nodeName, p[nodeName]);
             }
-            parent = nd.props["$content"];
+            pnd = nd.props["$content"];
         }
     }
-    if (parent) {
-        let p = (<VdContainer>parent).props;
+    if (pnd) {
+        let p = (<VdContainer>pnd).props;
         if (p && p[nodeName]) {
             // create a data node with a sub-textNode from the prop value
             res = getDataNodeWrapper(p, nodeName, p[nodeName]);
         } else {
-            res = grabFirstDataNode((<VdContainer>parent).children, nodeName);
+            res = grabFirstDataNode((<VdContainer>pnd).children, nodeName);
         }
     }
     return res;
@@ -584,27 +584,51 @@ export function $component(CptClass: Function): VdClassCpt {
     return <VdClassCpt>CptClass;
 }
 
+
+function renderCpt(g: VdCptNode) {
+    let n1 = $iv.node;
+    $iv.node = <any>g;
+    if (g.cpt) {
+        let c: VdClassCptInstance = <VdClassCptInstance>g.cpt;
+        if (c.shouldUpdate) {
+            if (!c.shouldUpdate()) {
+                return;
+            }
+        }
+        c.render();
+        (<any>c.$node).$lastRefresh = refreshCount;
+    } else {
+        (<VdFuncCptNode>g).render(g.props);
+        (<VdFuncCptNode>g).$lastRefresh = refreshCount;
+    }
+    $iv.node = n1;
+}
+
 export function $refreshTemplate(renderer, func: Function, rootNode, data, autoProcessChanges = true) {
-    let n1 = renderer.node;
-    renderer.node = rootNode;
+    let n1 = $iv.node, r1 = $iv.renderer;
+
     refreshCount++;
-    func(renderer, data);
+    $iv.node = rootNode;
+    $iv.renderer = renderer;
+    func(data);
     rootNode.$lastRefresh = refreshCount;
-    renderer.node = n1;
+    $iv.node = n1;
+    $iv.renderer = r1;
     if (autoProcessChanges) {
         renderer.processChanges(rootNode);
     }
 }
 
 export function $refreshSync(cpt: VdClassCptInstance) {
+    debugger
     if (cpt.$node && cpt.$renderer) {
-        let r = cpt.$renderer, n1 = r.node, n2 = cpt.$node;
-        r.node = n2;
+        let n1 = $iv.node, n2 = cpt.$node;
+        $iv.node = <any>n2;
         refreshCount++;
-        cpt.render(r);
+        cpt.render();
         n2.$lastRefresh = refreshCount;
-        r.processChanges(n2);
-        r.node = n1;
+        cpt.$renderer.processChanges(n2);
+        $iv.node = n1;
     }
 }
 
@@ -616,7 +640,6 @@ export async function $refresh(cpt: VdClassCptInstance) {
         })
     });
 }
-
 
 function createEltOrDataNode(parent, kind: VdNodeKind, index: number, name: string, props, needRef?: 0 | 1) {
     let nd: VdElementNode = {
@@ -630,22 +653,6 @@ function createEltOrDataNode(parent, kind: VdNodeKind, index: number, name: stri
     };
     parent.children[parent.children.length] = nd;
     return nd;
-}
-
-function renderCpt(r: VdRenderer, g: VdCptNode) {
-    if (g.cpt) {
-        let c: VdClassCptInstance = <VdClassCptInstance>g.cpt;
-        if (c.shouldUpdate) {
-            if (!c.shouldUpdate()) {
-                return;
-            }
-        }
-        c.render(r);
-        (<any>c.$node).$lastRefresh = refreshCount;
-    } else {
-        (<VdFuncCptNode>g).render(r, g.props);
-        (<VdFuncCptNode>g).$lastRefresh = refreshCount;
-    }
 }
 
 function getDataNodeWrapper(props, nodeName, textValue) {
@@ -665,29 +672,33 @@ function getDataNodeWrapper(props, nodeName, textValue) {
 }
 
 function grabDataNodes(list: VdNode[], nodeName, resultsList) {
-    let len = list.length, nd;
-    for (let i = 0; len > i; i++) {
-        nd = list[i];
-        if (nd.kind === VdNodeKind.Data) {
-            if (nodeName === ALL_DN || (<VdDataNode>nd).name === nodeName) {
-                resultsList[resultsList.length] = nd;
+    if (list) {
+        let len = list.length, nd;
+        for (let i = 0; len > i; i++) {
+            nd = list[i];
+            if (nd.kind === VdNodeKind.Data) {
+                if (nodeName === ALL_DN || (<VdDataNode>nd).name === nodeName) {
+                    resultsList[resultsList.length] = nd;
+                }
+            } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
+                grabDataNodes(nd.children, nodeName, resultsList);
             }
-        } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
-            grabDataNodes(nd.children, nodeName, resultsList);
         }
     }
 }
 
 function grabFirstDataNode(list: VdNode[], nodeName): VdDataNode | null {
-    let len = list.length, nd;
-    for (let i = 0; len > i; i++) {
-        nd = list[i];
-        if (nd.kind === VdNodeKind.Data) {
-            return nd;
-        } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
-            nd = grabFirstDataNode(nd.children, nodeName);
-            if (nd) {
+    if (list) {
+        let len = list.length, nd;
+        for (let i = 0; len > i; i++) {
+            nd = list[i];
+            if (nd.kind === VdNodeKind.Data) {
                 return nd;
+            } else if (nd.kind === VdNodeKind.Group && nd.children.length) {
+                nd = grabFirstDataNode(nd.children, nodeName);
+                if (nd) {
+                    return nd;
+                }
             }
         }
     }

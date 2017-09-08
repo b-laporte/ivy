@@ -1,7 +1,6 @@
 
 import { assert, doc } from "./common";
 import { htmlRenderer } from "../htmlrenderer";
-import { VdRenderer } from "../vdom";
 import { $dataNodes, $dataNode } from "../iv";
 
 describe('HTML renderer', () => {
@@ -9,7 +8,7 @@ describe('HTML renderer', () => {
         OPTIONS_UID = { indent: "        ", isRoot: true, showUid: true };
 
     it('should render a simple function', () => {
-        function test(r: VdRenderer, nbr) {
+        function test(nbr) {
             `---
             <div [foo]=nbr>
                 ABC
@@ -105,7 +104,7 @@ describe('HTML renderer', () => {
             count += nbr;
         }
 
-        function test(r: VdRenderer, nbr) {
+        function test(nbr) {
             `--- 
             <div [foo]=nbr>
                 <span onclick()=incrementCount(nbr)> x </span>
@@ -122,7 +121,7 @@ describe('HTML renderer', () => {
     });
 
     it('should support nodes with attributes', () => {
-        function hello(r: VdRenderer, nbr: number) {
+        function hello(nbr: number) {
             `---
             <div class="hello" [a:aria-disabled]=nbr>
                     <span a:aria-expanded="false" > Hello </span>
@@ -141,7 +140,7 @@ describe('HTML renderer', () => {
     })
 
     it('should support svg nodes', () => {
-        function hello(r: VdRenderer, radius) {
+        function hello(radius) {
             `---
             <div>
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -168,7 +167,7 @@ describe('HTML renderer', () => {
     it('should support updates at the end of a block', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo(r: VdRenderer, nbr: number) {
+        function foo(nbr: number) {
             `---
             <section>
                 % if (nbr > 0) {
@@ -225,7 +224,7 @@ describe('HTML renderer', () => {
     it('should use textContent to empty groups that are the only child of an element', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function foo(r: VdRenderer, nbr: number) {
+        function foo(nbr: number) {
             `---
             <section>
                 % if (nbr > 0) {
@@ -283,7 +282,7 @@ describe('HTML renderer', () => {
     it('should support data nodes', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function test(r: VdRenderer, selectedCard: string, content1: string, list: any[]) {
+        function test(selectedCard: string, content1: string, list: any[]) {
             `---
             % list = list || [];
             <section>
@@ -305,9 +304,9 @@ describe('HTML renderer', () => {
              ---`
         }
 
-        function cardSet(r: VdRenderer, selection: string) {
+        function cardSet(selection: string) {
             `---
-            % let cards = $dataNodes("card", r);
+            % let cards = $dataNodes("card");
             % for (let card of cards) {
                 % if (card.props["ref"] === selection) {
                     % let title = $dataNode("title", card);
@@ -324,7 +323,7 @@ describe('HTML renderer', () => {
 
         doc.resetUid();
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
-
+debugger
         // initial display
         r.refresh({ selectedCard: "first", content1: "First Card content" });
         assert.equal(div.stringify(OPTIONS_UID), `
@@ -425,7 +424,7 @@ describe('HTML renderer', () => {
     it('should gracefully handle null and undefined values in dynamic text nodes', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function test(r: VdRenderer, v1, v2, v3) {
+        function test(v1, v2, v3) {
             `---
             <span> v1 {{v1}} {{v1+1}} {{v3}} </span>
             <span> v2 {{v2}} {{v2+2}} </span>
@@ -476,7 +475,7 @@ describe('HTML renderer', () => {
     it('should support data nodes from props for single nodes', () => {
         // same test as in compiler.spec and runtime.spec
 
-        function test(r: VdRenderer, selectedCard: string, firstCardTitle: string) {
+        function test(selectedCard: string, firstCardTitle: string) {
             `---
             <section>
                 <c:cardSet [selection]=selectedCard>
@@ -491,9 +490,9 @@ describe('HTML renderer', () => {
              ---`
         }
 
-        function cardSet(r: VdRenderer, selection: string) {
+        function cardSet(selection: string) {
             `---
-            % let cards = $dataNodes("card", r);
+            % let cards = $dataNodes("card");
             % for (let card of cards) {
                 % if (card.props["ref"] === selection) {
                     % let title = $dataNode("title", card);
@@ -505,7 +504,7 @@ describe('HTML renderer', () => {
                     </div>
                 % }
             % }
-            % let sel = $dataNode("selection", r);
+            % let sel = $dataNode("selection");
             Selection: <ins:sel/>
              ---`
         }
@@ -603,7 +602,7 @@ describe('HTML renderer', () => {
     it('should support * wildcard in dataNodes()', () => {
         // same test as in rollup-plugin.spec
 
-        function test(r: VdRenderer, showFirst: boolean, showLast: boolean) {
+        function test(showFirst: boolean, showLast: boolean) {
             `---
             <c:menu>
                 % if (showFirst) {
@@ -621,9 +620,9 @@ describe('HTML renderer', () => {
              ---`
         }
 
-        function menu(r: VdRenderer, selection: string) {
+        function menu(selection: string) {
             `---
-            % let dataNodes = $dataNodes("*", r);
+            % let dataNodes = $dataNodes("*");
             <ul>
                 % for (let dn of dataNodes) {
                     % if (dn.name === "item") {

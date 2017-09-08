@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
 let renderer, selectedItinerary = null, selectedFare = -1, showAvail = true, availData = {};
@@ -17,7 +16,7 @@ function refresh() {
 }
 
 // <function #avail data selectedItinerary=null selectedFare=-1>
-function avail(r: VdRenderer, data, selectedItinerary, selectedFare, visible) {
+function avail(data, selectedItinerary, selectedFare, visible) {
     `---
     % var availability=data.availability
     % if (visible) {
@@ -49,7 +48,7 @@ function avail(r: VdRenderer, data, selectedItinerary, selectedFare, visible) {
      ---`
 }
 
-function fareFamilyHeaders(r: VdRenderer, fareFamilies) {
+function fareFamilyHeaders(fareFamilies) {
     `---
     <div a:class="fare-family-names">
         % for (let fareFamily of fareFamilies) {
@@ -65,7 +64,7 @@ function fareFamilyHeaders(r: VdRenderer, fareFamilies) {
      ---`
 }
 
-function itineraryLine(r: VdRenderer, itinerary, selectedFare, showFareDetails: boolean, fareFamiliesList, jqFareFamilies, fareFamiliesCaveats) {
+function itineraryLine(itinerary, selectedFare, showFareDetails: boolean, fareFamiliesList, jqFareFamilies, fareFamiliesCaveats) {
     `---
     <div a:class="itinerary">
         <div a:class="itinerary-header">
@@ -131,7 +130,7 @@ function itineraryLine(r: VdRenderer, itinerary, selectedFare, showFareDetails: 
      ---`
 }
 
-function flightSummary(r: VdRenderer, departureAirport, departureTime, arrivalAirport, arrivalTime, airline, flightNumber, flightDuration, nbrOfStops) {
+function flightSummary(departureAirport, departureTime, arrivalAirport, arrivalTime, airline, flightNumber, flightDuration, nbrOfStops) {
     `---
     <div a:class="flight-summary">
         <header>
@@ -154,7 +153,7 @@ function flightSummary(r: VdRenderer, departureAirport, departureTime, arrivalAi
      ---`
 }
 
-function fareDetailGroup(r: VdRenderer, flight, selectedFare, fareFamilies, jqFareFamilies, fareFamiliesCaveats) {
+function fareDetailGroup(flight, selectedFare, fareFamilies, jqFareFamilies, fareFamiliesCaveats) {
     `---
     <div a:class="itinerary-details">
         <div a:class="avail-actions">
@@ -187,7 +186,7 @@ function fareDetailGroup(r: VdRenderer, flight, selectedFare, fareFamilies, jqFa
      ---`
 }
 
-function fareDetails(r: VdRenderer, fare, recommendation, isSelected) {
+function fareDetails(fare, recommendation, isSelected) {
     `---
     % isSelected = isSelected || false;
     % let clsList="fare-flex fare-details";

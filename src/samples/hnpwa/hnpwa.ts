@@ -1,4 +1,3 @@
-import { VdRenderer } from "../../iv";
 import { htmlRenderer } from "../../htmlrenderer";
 
 let renderer, _data, _nav;
@@ -8,7 +7,7 @@ fetchAndRender(true);
 
 function handleDataReady(event) {
   const response = event.data;
-  render(response.data, {page: response.page, param: response.param});
+  render(response.data, { page: response.page, param: response.param });
 }
 
 function handleHashChange() {
@@ -17,12 +16,12 @@ function handleHashChange() {
 
 
 function fetchAndRender(initial = false) {
-  const {url, page, param} = window['__iv__route']();
+  const { url, page, param } = window['__iv__route']();
   if (initial) {
-    render(null, {page, param});
+    render(null, { page, param });
   } else {
     window['__iv__fetchData']().then((response) => {
-      render(response.data, {page: response.page, param: response.param});
+      render(response.data, { page: response.page, param: response.param });
     })
   }
 }
@@ -33,23 +32,23 @@ function render(data, nav) {
   }
   _data = data;
   _nav = nav;
-  renderer.refresh({data: data, nav: nav});
+  renderer.refresh({ data: data, nav: nav });
   window.scrollTo(0, 0);
 }
 
 function refresh() {
-  renderer.refresh({data: _data, nav: _nav});
+  renderer.refresh({ data: _data, nav: _nav });
 }
 
-function hnpwa(r: VdRenderer, data, nav) {
+function hnpwa(data, nav) {
   `---
   <c:header [page]=nav.page />
   <c:content [data]=data [nav]=nav />
   ---`
 }
 
-function header(r: VdRenderer, page) {
- `---
+function header(page) {
+  `---
   <header a:class="header">
     <nav a:class="inner">
       <a href="#" a:class="logo">IV</a>
@@ -64,7 +63,7 @@ function header(r: VdRenderer, page) {
   ---`
 }
 
-function content(r: VdRenderer, data, nav) {
+function content(data, nav) {
   `---
   <div a:class="view">
     % if (data) {
@@ -82,7 +81,7 @@ function content(r: VdRenderer, data, nav) {
   ---`
 }
 
-function newsList(r: VdRenderer, data, nav) {
+function newsList(data, nav) {
   `---
   <div a:class="news-list">
     <ul>
@@ -112,7 +111,7 @@ function newsList(r: VdRenderer, data, nav) {
   ---`
 }
 
-function user(r: VdRenderer, data, nav) {
+function user(data, nav) {
   `---
   <div a:class="user-view view">
     <h1>User : {{data.id}}</h1>
@@ -128,7 +127,7 @@ function user(r: VdRenderer, data, nav) {
   ---`
 }
 
-function item(r: VdRenderer, data, nav) {
+function item(data, nav) {
   `---
   <div a:class="item-view view">
     <div a:class="item-view-header">
@@ -148,7 +147,7 @@ function item(r: VdRenderer, data, nav) {
   ---`
 }
 
-function commentList(r: VdRenderer, comments) {
+function commentList(comments) {
   `---
   <ul a:class="comment-children">
     % for (let i = 0; i < comments.length; i++) {
@@ -159,7 +158,7 @@ function commentList(r: VdRenderer, comments) {
   ---`
 }
 
-function commentItem(r: VdRenderer, comment) {
+function commentItem(comment) {
   `---
   <li a:class="comment">
       <div a:class="by"><a [href]=('#user/'+comment.user) a:class="">{{comment.user}}</a>{{' ' + comment.time_ago}}</div>

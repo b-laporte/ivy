@@ -1,5 +1,4 @@
 import { assert } from "./common";
-import { VdRenderer } from "../iv";
 import plugin from "../compiler/rollup-plugin-iv";
 
 describe('Rollup plugin', () => {

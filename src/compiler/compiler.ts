@@ -29,68 +29,65 @@ function checkNode(node: ts.Node, cc: CompilationCtxt) {
     //console.log(node.kind + "  " + node.pos + "  " + node.end);
 
     if (node.kind === ts.SyntaxKind.FunctionDeclaration || node.kind === ts.SyntaxKind.MethodDeclaration) {
-        let fnd = <ts.FunctionDeclaration>node, p0;
-        if (fnd.parameters.length > 0 && fnd.parameters[0]) {
-            p0 = fnd.parameters[0];
-            if (p0.type && p0.type.getText() === VD_RENDERER_TYPE && fnd.body) {
-                if (fnd.body.statements.length > 0 && fnd.body.statements[0].kind === ts.SyntaxKind.ExpressionStatement) {
-                    let expr = fnd.body.statements[0], ch = expr.getChildren();
-                    if (ch && ch.length > 0 && ch[0].kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
-                        // this is a template function: it has
-                        // - a first parameter of type VdRenderer
-                        // - a body containing a NoSustitutionTemplate as first element
+        let fnd = <ts.FunctionDeclaration>node;
+        if (fnd.body) {
+            if (fnd.body.statements.length > 0 && fnd.body.statements[0].kind === ts.SyntaxKind.ExpressionStatement) {
+                let expr = fnd.body.statements[0], ch = expr.getChildren();
+                if (ch && ch.length > 0 && ch[0].kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
+                    // this is a template function: it has
+                    // - a first parameter of type VdRenderer
+                    // - a body containing a NoSustitutionTemplate as first element
 
-                        if (ch.length > 1) {
-                            console.error("TODO: template function body should only contain template string");
+                    if (ch.length > 1) {
+                        console.error("TODO: template function body should only contain template string");
+                    }
+
+                    let tfn = addTemplateFunction(cc);
+                    tfn.isMethod = node.kind === ts.SyntaxKind.MethodDeclaration;
+
+                    // extract indent and template string
+                    let str = ch[0].getText(), sm = str.match(/`\s*\n(\s+)/);
+
+                    if (sm) {
+                        // the template string starts with a CR and we use the indent that follows
+                        tfn.rootIndent = sm[1];
+                        let em = str.match(/(\s*)\`\s*$/);
+                        if (em) {
+                            tfn.lastIndent = em[1];
                         }
-
-                        let tfn = addTemplateFunction(cc);
-                        tfn.isMethod = node.kind === ts.SyntaxKind.MethodDeclaration;
-
-                        // extract indent and template string
-                        let str = ch[0].getText(), sm = str.match(/`\s*\n(\s+)/);
-
-                        if (sm) {
-                            // the template string starts with a CR and we use the indent that follows
-                            tfn.rootIndent = sm[1];
-                            let em = str.match(/(\s*)\`\s*$/);
-                            if (em) {
-                                tfn.lastIndent = em[1];
-                            }
-                        } else {
-                            // use the indent of template string
-                            let im = expr.getFullText().match(/(\s*\n)*(\s*)\`/);
-                            if (im) {
-                                tfn.rootIndent = im[2];
-                            }
+                    } else {
+                        // use the indent of template string
+                        let im = expr.getFullText().match(/(\s*\n)*(\s*)\`/);
+                        if (im) {
+                            tfn.rootIndent = im[2];
                         }
+                    }
 
-                        // extract function declaration start before the parameter parens
-                        let fndText = fnd.getFullText(), ds = fndText.match(/^[^\(]*/);
-                        if (ds && ds.length) {
-                            tfn.declarationStart = ds[0]
-                        }
-                        // extract function declaratin end after the last `
-                        let de = fndText.match(/[^\`]*$/);
-                        if (de && de.length) {
-                            tfn.declarationEnd = de[0]
-                        }
+                    // extract function declaration start before the parameter parens
+                    let fndText = fnd.getFullText(), ds = fndText.match(/^[^\(]*/);
+                    if (ds && ds.length) {
+                        tfn.declarationStart = ds[0]
+                    }
+                    // extract function declaratin end after the last `
+                    let de = fndText.match(/[^\`]*$/);
+                    if (de && de.length) {
+                        tfn.declarationEnd = de[0]
+                    }
 
-                        tfn.tplString = str.slice(1, - 1).replace(/(^---)|(---$)/g, "");
-                        tfn.pos = fnd.pos; // ch[0].pos;
-                        tfn.end = fnd.end; // ch[0].end;
-                        tfn.rendererNm = p0.name.getText();
-                        for (let i = 1; fnd.parameters.length > i; i++) {
-                            let pi = fnd.parameters[i];
-                            tfn.params.push({
-                                name: pi.name.getText(),
-                                type: pi.type ? pi.type.getText() : ""
-                            });
-                        }
+                    tfn.tplString = str.slice(1, - 1).replace(/(^---)|(---$)/g, "");
+                    tfn.pos = fnd.pos; // ch[0].pos;
+                    tfn.end = fnd.end; // ch[0].end;
+                    for (let i = 0; fnd.parameters.length > i; i++) {
+                        let pi = fnd.parameters[i];
+                        tfn.params.push({
+                            name: pi.name.getText(),
+                            type: pi.type ? pi.type.getText() : ""
+                        });
                     }
                 }
             }
         }
+
     }
 }
 
@@ -106,7 +103,6 @@ interface TplFunction {
     end: number;         // original end position in the TS file
     fnHead: string;      // function code to put at the beginning of the function body (usually local variable declaration)
     fnBody: string;      // main function code
-    rendererNm: string;  // identifier name for the VdRenderer parameter - usually "r"
     isMethod: boolean;   // tell if the function is the method of a class
     params: { name: string; type: string }[];   // function parameters
 }
@@ -154,8 +150,8 @@ class CompilationCtxt {
         for (let fn of this.tplFunctions) {
             chunks.push(this.src.substring(pos, fn.pos));
             chunks.push(fn.declarationStart);
-            param = (fn.params && fn.params.length) ? ", $d: any" : "";
-            chunks.push(`(${fn.rendererNm}: ${VD_RENDERER_TYPE}${param}) \{`);
+            param = (fn.params && fn.params.length) ? "$d: any" : "";
+            chunks.push(`(${param}) \{`);
             chunks.push(CARRIAGE_RETURN);
             if (fn.fnHead) {
                 chunks.push(fn.fnHead);
@@ -187,7 +183,6 @@ function addTemplateFunction(cc: CompilationCtxt): TplFunction {
         end: -1,
         fnHead: "",
         fnBody: "",
-        rendererNm: "",
         declarationStart: "",
         declarationEnd: "",
         isMethod: false,
@@ -245,7 +240,6 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
             nextNodeIdx: () => ++nodeCount,
             lastNodeIdx: () => nodeCount,
             functionCtxt: null,
-            rendererNm: tf.rendererNm,
             maxLevel: 0
         }
         fc.functionCtxt = fc;
@@ -281,7 +275,7 @@ function generateTplFunctionHead(tf: TplFunction, fc: FunctionBlock) {
     for (let i = 0; maxFuncIdx >= i; i++) {
         idxRefs.push(", $f" + i);
     }
-    let fh: string[] = [`${tf.rootIndent}let $a0: any = ${tf.rendererNm}.node${elRefs.join("")}${idxRefs.join("")};`];
+    let fh: string[] = [`${tf.rootIndent}let $a0: any = $iv.node${elRefs.join("")}${idxRefs.join("")};`];
 
     for (let k in aliases) {
         if (aliases.hasOwnProperty(k)) {
@@ -303,6 +297,7 @@ function generateTplFunctionHead(tf: TplFunction, fc: FunctionBlock) {
 
 function generateCode(parentBlock: JsBlock, lines: string[]): void {
     let blockIdx = 0, fc = parentBlock.functionCtxt;
+    fc.headDeclarations.ivImports["$iv"] = 1;
     for (let block of parentBlock.blocks) {
         if (block.kind === CodeBlockKind.NodeBlock) {
             // we have to generate code such as
@@ -403,7 +398,7 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             for (let i = 0; cc.props.length > i; i += 2) {
                 pbuf.push(`"${cc.props[i]}": ${cc.props[i + 1]}`);
             }
-            return `${indent}$a${cc.parentLevel + 1} = $cc($a${cc.parentLevel}, ${cc.nodeIdx}, { ${pbuf.join(", ")} }, ${cc.rendererNm}, ${cc.eltName}, ${cc.hasLightDom ? 1 : 0}, ${cc.needRef ? 1 : 0});`;
+            return `${indent}$a${cc.parentLevel + 1} = $cc($a${cc.parentLevel}, ${cc.nodeIdx}, { ${pbuf.join(", ")} }, ${cc.eltName}, ${cc.hasLightDom ? 1 : 0}, ${cc.needRef ? 1 : 0});`;
         case CodeLineKind.CreateTextNode:
             let tx = cl as ClCreateTextNode;
             // e.g. $tx($a2, 3, " Hello ");
@@ -434,8 +429,8 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let cm = cl as ClCreatePropMap, namesBuf: string[] = [];
             // e.g. $cm("class", "important", 0, 0, (highlight===true), $a1);
             fc.headDeclarations.ivImports["$cm"] = 1;
-            for (let i = 0; 4 > i; i ++) {
-                namesBuf.push(cm.names.length > i? `"${cm.names[i]}"` : '0');
+            for (let i = 0; 4 > i; i++) {
+                namesBuf.push(cm.names.length > i ? `"${cm.names[i]}"` : '0');
             }
             return `${indent}$cm(${namesBuf.join(", ")}, ${cm.expr}, $a${cm.eltLevel});`;
         case CodeLineKind.SetAtts:
@@ -454,8 +449,8 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let um = cl as ClUpdatePropMap, namesBuf2: string[] = [];
             // e.g. $um("class", "important", 0, 0, (highlight===true), $a1, $a0);
             fc.headDeclarations.ivImports["$um"] = 1;
-            for (let i = 0; 4 > i; i ++) {
-                namesBuf2.push(um.names.length > i? `"${um.names[i]}"` : '0');
+            for (let i = 0; 4 > i; i++) {
+                namesBuf2.push(um.names.length > i ? `"${um.names[i]}"` : '0');
             }
             return `${indent}$um(${namesBuf2.join(", ")}, ${um.expr}, $a${um.eltLevel}, $a${um.changeCtnIdx});`;
         case CodeLineKind.UpdateAtt:
@@ -472,12 +467,12 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let rc = cl as ClRefreshCpt;
             // e.g. $rc(r, $a2, $a0);
             fc.headDeclarations.ivImports["$rc"] = 1;
-            return `${indent}$rc(${rc.rendererNm}, $a${rc.cptLevel}, $a${rc.changeCtnIdx});`;
+            return `${indent}$rc($a${rc.cptLevel}, $a${rc.changeCtnIdx});`;
         case CodeLineKind.RefreshDataNode:
             let rd = cl as ClRefreshDn;
             // e.g. $rd(r, $a2, $a0);
             fc.headDeclarations.ivImports["$rd"] = 1;
-            return `${indent}$rd(${rd.rendererNm}, $a${rd.cptLevel}, $a${rd.changeCtnIdx});`;
+            return `${indent}$rd($a${rd.cptLevel}, $a${rd.changeCtnIdx});`;
         case CodeLineKind.RefreshInsert:
             let ri = cl as ClRefreshInsert;
             // e.g. $ri($a2, body, $a0);

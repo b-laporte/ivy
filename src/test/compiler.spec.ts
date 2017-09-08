@@ -8,9 +8,9 @@ describe('Iv compiler', () => {
 
     it('should compile a single function with no params', () => {
         let src = `\
-            import { VdomRenderer } from "../iv";
+            import { bar } from "../baz";
 
-            function foo(r:VdRenderer) {
+            function foo() {
                 \` hello world \`
             }
         `;
@@ -19,10 +19,9 @@ describe('Iv compiler', () => {
         assert.equal(cc.fileName, "test1", "fileName");
         assert.equal(cc.tplFunctions.length, 1, "one function found");
         let tf = cc.tplFunctions[0];
-        assert.equal(tf.pos, 49, "original pos");
-        assert.equal(tf.end, 137, "original end");
+        assert.equal(tf.pos, 41, "original pos");
+        assert.equal(tf.end, 117, "original end");
         assert.equal(tf.params.length, 0, "no params");
-        assert.equal(tf.rendererNm, "r", "VdRenderer name");
         assert.equal(tf.rootIndent, "                ", "root indentation");
         assert.equal(tf.tplString, " hello world ", "template string content");
 
@@ -30,10 +29,10 @@ describe('Iv compiler', () => {
         tf.fnBody = tf.rootIndent + "BODY";
 
         assert.equal(cc.getOutput(), `\
-            import { $tx } from "../iv";
-            import { VdomRenderer } from "../iv";
+            import { $iv, $tx } from "../iv";
+            import { bar } from "../baz";
 
-            function foo(r: VdRenderer) {
+            function foo() {
                 HEAD
                 BODY
             }
@@ -42,14 +41,14 @@ describe('Iv compiler', () => {
 
     it('should compile multiple functions with params', () => {
         let src = `
-            import { VdomRenderer } from "../iv";
+            import { bar } from "../baz";
 
-            function hello(r:VdRenderer, foo:string, bar) {
+            function hello(foo:string, bar) {
                 \` hello world \`
             }
 
             class Blah {
-                render(r:VdRenderer) {\`
+                render() {\`
                     hello 
                     brave 
                     new world
@@ -70,14 +69,14 @@ describe('Iv compiler', () => {
         tf1.fnBody = tf1.rootIndent + "FUNC 1";
 
         assert.equal(cc.getOutput(OPTIONS), `
-            import { VdomRenderer } from "../iv";
+            import { bar } from "../baz";
 
-            function hello(r: VdRenderer, $d: any) {
+            function hello($d: any) {
                 FUNC 0
             }
 
             class Blah {
-                render(r: VdRenderer) {
+                render() {
                     FUNC 1
                 }
             }
@@ -86,7 +85,7 @@ describe('Iv compiler', () => {
 
     it('should compile functions with simple nodes without bindings', function () {
         let src = `
-            function hello(x:VdRenderer, foo:string, bar) {
+            function hello(foo:string, bar) {
                 \`<div class="hello">
                      <span class="one" title="blah" foo=nbr+4> Hello </span>
                      <span class="two" baz=nbr+3 bar=nbr*2> World </span>
@@ -96,8 +95,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test3", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(x: VdRenderer, $d: any) {
-                let $a0: any = x.node, $a1, $a2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
@@ -116,7 +115,7 @@ describe('Iv compiler', () => {
 
     it('should compile functions with simple nodes with bindings', () => {
         let src = `
-            function hello(r:VdRenderer, foo:string, bar) {
+            function hello(foo:string, bar) {
                 \`<div class="hello">
                      <span class="one" title="blah" [foo]=nbr+4> Hello </span>
                      <span class="two" [baz]=nbr+3 [bar]=nbr*2> World </span>
@@ -126,8 +125,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test4", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
@@ -153,7 +152,7 @@ describe('Iv compiler', () => {
 
     it('should compile functions with attribute properties', () => {
         let src = `
-            function hello(r:VdRenderer, foo:string, bar) {
+            function hello(foo:string, bar) {
                 \`---
                 <div class="hello" [a:aria-disabled]=foo>
                      <span a:aria-expanded=false > Hello </span>
@@ -164,8 +163,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "att test", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2;
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -185,7 +184,7 @@ describe('Iv compiler', () => {
 
     it('should compile simple if blocks', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`<div>
                     ABC
                     % if (nbr===42) {
@@ -199,8 +198,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test5", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -237,7 +236,7 @@ describe('Iv compiler', () => {
 
     it('should compile if+else blocks and consecutive blocks', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`<div>
                     % if (nbr===42) {
                         Case 42
@@ -250,8 +249,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test6", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1, $i2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $i0 = 0, $i1, $i2;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -290,7 +289,7 @@ describe('Iv compiler', () => {
 
     it('should compile non consecutive blocks', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`<div>
                     ABC
                     % if (nbr>42) {
@@ -307,8 +306,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test7", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1, $i2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $i0 = 0, $i1, $i2;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -357,7 +356,7 @@ describe('Iv compiler', () => {
 
     it('should compile loops with no keys', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`<div title="first"/>
                   % for (let i=0;list.length>i;i++) {
                       <div [title]=("Hello " + list[i].name)/>
@@ -368,8 +367,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test7 bis", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $i0 = 0, $i1;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
@@ -404,7 +403,7 @@ describe('Iv compiler', () => {
 
     it('should compile nested blocks', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`<div>
                     ABC
                     % if (nbr>42) {
@@ -423,8 +422,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test8", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -482,7 +481,7 @@ describe('Iv compiler', () => {
 
     it('should compile js expressions at the beginning of a block', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`  % let x=123;
                     % let y="abc";
                     ABC
@@ -497,8 +496,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test9", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $i0 = 0, $i1;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $i0 = 0, $i1;
                 let nbr = $d["nbr"];
                 let x=123;
                 let y="abc";
@@ -534,7 +533,7 @@ describe('Iv compiler', () => {
 
     it('should compile sub-function calls and comments', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \` <div>
                         <span> first </span>
                         // first call
@@ -550,15 +549,15 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test10", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
                     $a2 = $el($a1, 2, "span", 0);
                     $tx($a2, 3, " first ");
-                    $a2 = $cc($a1, 4, { "value": v+1, "msg": ("m1:"+v) }, r, bar, 0, 1);
-                    $a2 = $cc($a1, 5, { "value": v+3, "msg": ("m2:"+v) }, r, bar, 0, 1);
+                    $a2 = $cc($a1, 4, { "value": v+1, "msg": ("m1:"+v) }, bar, 0, 1);
+                    $a2 = $cc($a1, 5, { "value": v+3, "msg": ("m2:"+v) }, bar, 0, 1);
                     $a2 = $el($a1, 6, "span", 0);
                     $tx($a2, 7, " last ");
                     $a0.cm = 0;
@@ -566,10 +565,10 @@ describe('Iv compiler', () => {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[1];
                     $uc("value", v+1, $a2);
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                     $a2 = $a1.children[2];
                     $uc("value", v+3, $a2);
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                 }
             }
         `, "output generation");
@@ -577,7 +576,7 @@ describe('Iv compiler', () => {
 
     it('should compile dynamic text nodes', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \` <div>
                         "nbr {{nbr+1}}!"
                         !!!
@@ -589,8 +588,8 @@ describe('Iv compiler', () => {
         // todo dynamic part + concatenation of tx and dt instructions
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2;
                 const $t0 = " \\"nbr ", $t1 = "!\\"\\n                        !!! ";
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
@@ -609,7 +608,7 @@ describe('Iv compiler', () => {
     it('should compile functions with main js blocks', () => {
         // same test as in compiler.spec and runtime.spec
 
-        // function foo (r: VdRenderer, visible, nbr:number) {
+        // function foo (visible, nbr:number) {
         //     `% visibile = visible || true;
         //      % if (visible) {
         //         <span>{{nbr}}</span>
@@ -617,7 +616,7 @@ describe('Iv compiler', () => {
         // }
 
         let src = `
-            function hello(r:VdRenderer, visible, nbr) {
+            function hello(visible, nbr) {
                 \` % visibile = visible || true;
                    % if (visible) {
                       <span>{{nbr}}</span>
@@ -627,8 +626,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test11", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $i0 = 0, $i1;
                 let visible = $d["visible"], nbr = $d["nbr"];
                 visibile = visible || true;
                 if (visible) {
@@ -658,7 +657,7 @@ describe('Iv compiler', () => {
     it('should compile functions with 2 nested full js blocks', () => {
         // same test as in compiler.spec and runtime.spec
 
-        // function foo (r: VdRenderer, visible, nbr:number) {
+        // function foo (visible, nbr:number) {
         //     `% visibile = visible || true;
         //      % if (visible) {
         //         <span>{{nbr}}</span>
@@ -666,7 +665,7 @@ describe('Iv compiler', () => {
         // }
 
         let src = `
-            function hello(r:VdRenderer, visible, nbr) {
+            function hello(visible, nbr) {
                 \` <div>
                    % if (visible) {
                        % if (nbr === 42) {
@@ -679,8 +678,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test11 bis", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4, $a5, $i0 = 0, $i1, $i2, $i3;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4, $a5, $i0 = 0, $i1, $i2, $i3;
                 let visible = $d["visible"], nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -724,7 +723,7 @@ describe('Iv compiler', () => {
 
     it('should compile functions with function props', () => {
         let src = `
-            function hello(r:VdRenderer, foo:string, bar) {\`
+            function hello(foo:string, bar) {\`
                 <div class="hello">
                     <span class="one" title="blah" onclick()=doSomething(foo,bar+2)> Hello </span>
                     % if (bar === 42) {
@@ -737,8 +736,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test15", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $f0, $f1, $f2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $f0, $f1, $f2;
                 let foo = $d["foo"], bar = $d["bar"];
                 $f0=function() {doSomething(foo,bar+2)};
                 if ($a0.cm) {
@@ -786,7 +785,7 @@ describe('Iv compiler', () => {
 
     it('should compile functions with svg nodes', () => {
         let src = `
-            function hello(r:VdRenderer, radius) {
+            function hello(radius) {
                 \`<div>
                      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                         <g transform="translate(50,50)">
@@ -799,8 +798,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test svg", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4;
                 let radius = $d["radius"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
@@ -824,7 +823,7 @@ describe('Iv compiler', () => {
 
     it('should compile sub-function calls with content node and dynamic prop', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \` <div>
                         <c:bar [value]=nbr>
                             <span> {{nbr+1}} </span>
@@ -836,17 +835,17 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test10 ter", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
-                    $a2 = $cc($a1, 2, { "value": nbr }, r, bar, 1, 1);
+                    $a2 = $cc($a1, 2, { "value": nbr }, bar, 1, 1);
                     $a3 = $el($a2, 3, "span", 0);
                     $dt($a3, 4, "" + $ct(nbr+1));
                     $a3 = $el($a2, 5, "span", 0);
                     $dt($a3, 6, "" + $ct(nbr+2));
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                     $a0.cm = 0;
                 } else {
                     $a1 = $a0.children[0];
@@ -859,7 +858,7 @@ describe('Iv compiler', () => {
                     $a3 = $a2.children[1];
                     $a4 = $a3.children[0];
                     $ut("" + $ct(nbr+2), $a4, $a2);
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                 }
             }
         `, "output generation");
@@ -867,7 +866,7 @@ describe('Iv compiler', () => {
 
     it('should compile sub-function calls with js block content', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \` <div>
                         <c:bar [value]=nbr>
                             {{nbr+1}}
@@ -883,12 +882,12 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test10.4", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
-                    $a2 = $cc($a1, 2, { "value": nbr }, r, bar, 1, 1);
+                    $a2 = $cc($a1, 2, { "value": nbr }, bar, 1, 1);
                     $dt($a2, 3, "" + $ct(nbr+1));
                 } else {
                     $a1 = $a0.children[0];
@@ -913,14 +912,14 @@ describe('Iv compiler', () => {
                 }
                 if ($a0.cm) {
                     $dt($a2, 6, "" + $ct(nbr+3));
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                     $tx($a1, 7, " Hello ");
                     $a0.cm = 0;
                 } else {
                     $dg($i2, $a2, $a2, 6);
                     $a3 = $a2.children[$i2];
                     $ut("" + $ct(nbr+3), $a3, $a2);
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                 }
             }
         `, "output generation");
@@ -928,7 +927,7 @@ describe('Iv compiler', () => {
 
     it('should compile sub-function calls with js block as full content', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \` <div>
                         <c:bar [value]=nbr>
                             % if (nbr===42) {
@@ -941,12 +940,12 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test10.5", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2, $i3;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
-                    $a2 = $cc($a1, 2, { "value": nbr }, r, bar, 1, 1);
+                    $a2 = $cc($a1, 2, { "value": nbr }, bar, 1, 1);
                 } else {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[0];
@@ -967,11 +966,11 @@ describe('Iv compiler', () => {
                     }
                 }
                 if ($a0.cm) {
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                     $a0.cm = 0;
                 } else {
                     $dg($i2, $a2, $a2, 5);
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                 }
             }
         `, "output generation");
@@ -979,7 +978,7 @@ describe('Iv compiler', () => {
 
     it('should compile sub-function calls with content node and no dynamic props', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \` <div>
                         <c:bar>
                             <span> {{nbr+1}} </span>
@@ -990,15 +989,15 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test10.6", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
-                    $a2 = $cc($a1, 2, {  }, r, bar, 1, 0);
+                    $a2 = $cc($a1, 2, {  }, bar, 1, 0);
                     $a3 = $el($a2, 3, "span", 0);
                     $dt($a3, 4, "" + $ct(nbr+1));
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                     $a0.cm = 0;
                 } else {
                     $a1 = $a0.children[0];
@@ -1007,7 +1006,7 @@ describe('Iv compiler', () => {
                     $a3 = $a2.children[0];
                     $a4 = $a3.children[0];
                     $ut("" + $ct(nbr+1), $a4, $a2);
-                    $rc(r, $a2, $a0);
+                    $rc($a2, $a0);
                 }
             }
         `, "output generation");
@@ -1015,7 +1014,7 @@ describe('Iv compiler', () => {
 
     it('should compile insert statements', () => {
         let src = `
-            function hello(r:VdRenderer, body) {
+            function hello(body) {
                 \` <div>
                         <ins:body/>
                    </div> \`
@@ -1024,8 +1023,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test10.7", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2;
                 let body = $d["body"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);
@@ -1041,7 +1040,7 @@ describe('Iv compiler', () => {
 
     it('should properly handle index reset', () => {
         let src = `
-            function hello(r:VdRenderer, nbr) {
+            function hello(nbr) {
                 \`  <div>
                         <div>
                         % if (true) {
@@ -1059,8 +1058,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "index reset", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $i3;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $i0 = 0, $i1, $i2, $i3;
                 let nbr = $d["nbr"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 0);
@@ -1106,7 +1105,7 @@ describe('Iv compiler', () => {
 
     it('should compile data nodes with bindings', () => {
         let src = `
-            function hello(r:VdRenderer, foo:string, bar) {
+            function hello(foo:string, bar) {
                 \`<div class="hello">
                      <:title [type]=foo> Greeting {{bar}} </:title>
                      Hello World ! {{bar+"..."}}
@@ -1117,8 +1116,8 @@ describe('Iv compiler', () => {
         let cc = compile(src, "test4.1", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3;
                 const $t0 = " Greeting ", $t1 = " Hello World ! ";
                 let foo = $d["foo"], bar = $d["bar"];
                 if ($a0.cm) {
@@ -1137,10 +1136,11 @@ describe('Iv compiler', () => {
                     $up("type", foo, $a2, $a2);
                     $a3 = $a2.children[0];
                     $ut($t0 + $ct(bar), $a3, $a2);
-                    $rd(r, $a2, $a0);
+                    $rd($a2, $a0);
                     $a2 = $a1.children[1];
                     $ut($t1 + $ct(bar+"..."), $a2, $a0);
-                    $rd(r, $a2, $a0);
+                    $a2 = $a1.children[2];
+                    $rd($a2, $a0);
                 }
             }
         `, "output generation");
@@ -1148,7 +1148,7 @@ describe('Iv compiler', () => {
 
     it('should compile data nodes mixed with if blocks in components', () => {
         let src = `
-            function test(r:VdRenderer, showFirst, showLast) {
+            function test(showFirst, showLast) {
                 \`<c:menu>
                     {{showFirst && showLast}}
                     % if (showFirst) {
@@ -1164,12 +1164,12 @@ describe('Iv compiler', () => {
         let cc = compile(src, "data nodes in components", ivPath);
 
         assert.equal(cc.getOutput(OPTIONS), `
-            function test(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2;
+            function test($d: any) {
+                let $a0: any = $iv.node, $a1, $a2, $a3, $a4, $i0 = 0, $i1, $i2;
                 const $t0 = " Last item ";
                 let showFirst = $d["showFirst"], showLast = $d["showLast"];
                 if ($a0.cm) {
-                    $a1 = $cc($a0, 1, {  }, r, menu, 1, 0);
+                    $a1 = $cc($a0, 1, {  }, menu, 1, 0);
                     $dt($a1, 2, "" + $ct(showFirst && showLast));
                 } else {
                     $a1 = $a0.children[0];
@@ -1188,7 +1188,8 @@ describe('Iv compiler', () => {
                         $tx($a3, 5, " First item ");
                         $a2.cm = 0;
                     } else {
-                        $rd(r, $a3, $a1);
+                        $a3 = $a2.children[0];
+                        $rd($a3, $a1);
                     }
                 }
                 if (showLast) {
@@ -1205,15 +1206,15 @@ describe('Iv compiler', () => {
                         $a3 = $a2.children[0];
                         $a4 = $a3.children[0];
                         $ut($t0 + $ct(showFirst), $a4, $a3);
-                        $rd(r, $a3, $a1);
+                        $rd($a3, $a1);
                     }
                 }
                 if ($a0.cm) {
-                    $rc(r, $a1, $a0);
+                    $rc($a1, $a0);
                     $a0.cm = 0;
                 } else {
                     $dg($i1, $a1, $a1, 9);
-                    $rc(r, $a1, $a0);
+                    $rc($a1, $a0);
                 }
             }
         `, "output generation");
@@ -1229,7 +1230,7 @@ describe('Iv compiler', () => {
                     this.count++;
                 }
 
-                render(r: VdRenderer) {
+                render() {
                     \`---
                     % let sz = this.props.size || 100;
                     <span [a:class]=("box"+sz) onmouseenter()=this.increment() onmouseleave(e)=this.increment(e) >
@@ -1251,8 +1252,8 @@ describe('Iv compiler', () => {
                     this.count++;
                 }
 
-                render(r: VdRenderer) {
-                    let $a0: any = r.node, $a1, $a2, $f0, $f1;
+                render() {
+                    let $a0: any = $iv.node, $a1, $a2, $f0, $f1;
                     let sz = this.props.size || 100;
                     $f0=() => {this.increment()};
                     $f1=(e) => {this.increment(e)};
@@ -1277,17 +1278,17 @@ describe('Iv compiler', () => {
 
     it('should compile props maps using paths', () => {
         let src = `
-            function hello(r:VdRenderer, highlight) {
+            function hello(highlight) {
                 \`<div [class.important]=(highlight===true)> hello </div> \`
             }
         `;
         let cc = compile(src, "test4.1", ivPath);
 
         assert.equal(cc.getOutput(), `\
-            import { $el, $cm, $tx, $um } from "../iv";
+            import { $iv, $el, $cm, $tx, $um } from "../iv";
 
-            function hello(r: VdRenderer, $d: any) {
-                let $a0: any = r.node, $a1;
+            function hello($d: any) {
+                let $a0: any = $iv.node, $a1;
                 let highlight = $d["highlight"];
                 if ($a0.cm) {
                     $a1 = $el($a0, 1, "div", 1);

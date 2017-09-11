@@ -9,3 +9,4 @@ import "./rollup-output.spec";
 import "./htmlrenderer.spec";
 import "./mapsinprops.spec";
 import "./components.spec";
+import "./asyncrefresh.spec";

@@ -39,6 +39,30 @@ describe('Iv compiler', () => {
         `, "output generation");
     });
 
+    it('should not include $iv twice', () => {
+        let src = `\
+            import { $iv } from "../iv";
+
+            function foo() {
+                \` hello world \`
+            }
+        `;
+        let cc = compile(src, "test1", ivPath); // return the new source
+
+        assert.equal(cc.getOutput(), `\
+            import { $tx } from "../iv";
+            import { $iv } from "../iv";
+
+            function foo() {
+                let $a0: any = $iv.node;
+                if ($a0.cm) {
+                    $tx($a0, 1, " hello world ");
+                    $a0.cm = 0;
+                }
+            }
+        `, "output generation");
+    });
+
     it('should compile multiple functions with params', () => {
         let src = `
             import { bar } from "../baz";

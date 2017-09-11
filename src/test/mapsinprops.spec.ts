@@ -159,8 +159,7 @@ describe('Maps in props', () => {
         }
 
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
-
-        debugger
+        
         r.refresh({ isFoo: true, val:"ko" });
         assert.equal(div.stringify(OPTIONS), `
             <div>

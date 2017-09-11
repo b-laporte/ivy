@@ -208,7 +208,7 @@ function createDomNode(nd: VdNode, domParent, doc: HtmlDoc, ns: string | null) {
             domParent.appendChild(domNd);
             break;
         case VdNodeKind.Data:
-            // ignore
+            nd.domNode = domNd;
             break;
         default:
             console.error("[iv html renderer] Invalid node kind: " + nd.kind);

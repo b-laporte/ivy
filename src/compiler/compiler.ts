@@ -28,7 +28,19 @@ export function compile(source: string, filePath: string, ivPath: string): Compi
 function checkNode(node: ts.Node, cc: CompilationCtxt) {
     //console.log(node.kind + "  " + node.pos + "  " + node.end);
 
-    if (node.kind === ts.SyntaxKind.FunctionDeclaration || node.kind === ts.SyntaxKind.MethodDeclaration) {
+    if (node.kind === ts.SyntaxKind.ImportClause) {
+        let ind = <ts.ImportClause>node;
+        if (ind.namedBindings) {
+            let nmi = <ts.NamedImports>ind.namedBindings;
+            if (nmi.elements) {
+                for (let i = 0; nmi.elements.length > i; i++) {
+                    if (nmi.elements[i].name.text === "$iv") {
+                        cc.ivGlobalFound = true;
+                    }
+                }
+            }
+        }
+    } else if (node.kind === ts.SyntaxKind.FunctionDeclaration || node.kind === ts.SyntaxKind.MethodDeclaration) {
         let fnd = <ts.FunctionDeclaration>node;
         if (fnd.body) {
             if (fnd.body.statements.length > 0 && fnd.body.statements[0].kind === ts.SyntaxKind.ExpressionStatement) {
@@ -119,6 +131,7 @@ interface CompilateOptions {
 }
 
 class CompilationCtxt {
+    ivGlobalFound = false; // if true the $iv variable has been found and will not be imported
     ivImports = {};
     tplFunctions: TplFunction[] = [];
     errors: CompilationError[] | null = null;
@@ -243,6 +256,9 @@ function compileTemplateFunction(tf: TplFunction, cc: CompilationCtxt) {
             maxLevel: 0
         }
         fc.functionCtxt = fc;
+        if (!cc.ivGlobalFound) {
+            fc.headDeclarations.ivImports["$iv"] = 1;
+        }
         scanBlocks(nac, fc);
         let lines: string[] = [];
         generateCode(fc, lines);
@@ -297,7 +313,6 @@ function generateTplFunctionHead(tf: TplFunction, fc: FunctionBlock) {
 
 function generateCode(parentBlock: JsBlock, lines: string[]): void {
     let blockIdx = 0, fc = parentBlock.functionCtxt;
-    fc.headDeclarations.ivImports["$iv"] = 1;
     for (let block of parentBlock.blocks) {
         if (block.kind === CodeBlockKind.NodeBlock) {
             // we have to generate code such as

@@ -323,7 +323,7 @@ describe('HTML renderer', () => {
 
         doc.resetUid();
         let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
-debugger
+        
         // initial display
         r.refresh({ selectedCard: "first", content1: "First Card content" });
         assert.equal(div.stringify(OPTIONS_UID), `

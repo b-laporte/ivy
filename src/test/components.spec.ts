@@ -1,6 +1,7 @@
 import { assert, doc } from "./common";
 import { htmlRenderer } from "../htmlrenderer";
 import { $component, $refreshSync } from "../iv";
+import { VdGroupNode } from "../vdom";
 
 describe('Class Components', () => {
     let OPTIONS = { indent: "        ", isRoot: true, showUid: false },
@@ -60,7 +61,6 @@ describe('Class Components', () => {
     });
 
     it('should support no init()', () => {
-
         function test(txt1, txt2) {
             `---
             <div>
@@ -158,7 +158,6 @@ describe('Class Components', () => {
     });
 
     it('should support shouldUpdate()', () => {
-
         function test(sz1, txt1, sz2, txt2) {
             `---
             <c:box [size]=sz1 [text]=txt1/>
@@ -195,7 +194,6 @@ describe('Class Components', () => {
     });
 
     it('should support event handlers and $refreshSync()', () => {
-
         function test(sz1, txt1, sz2, txt2) {
             `---
             <c:box [size]=sz1 [text]=txt1/>
@@ -244,5 +242,68 @@ describe('Class Components', () => {
 
     });
 
+    it('should support $content reprojection', () => {
+
+        let cpt = $component(class {
+            props: {
+                size: number,
+                $content: VdGroupNode
+            }
+    
+            render() {
+                `---
+                % let sz = this.props.size || 100, content = this.props.$content
+                <div [a:class]=("container"+sz)>
+                    <ins:content/>
+                </div> 
+                ---`
+            }
+        });
+
+        function test(ok) {
+            `---
+            <c:cpt size=200>
+                % if (ok) {
+                    Hello World!
+                % } else {
+                    <span> Arghh </span>
+                % }
+            </c:cpt>
+             ---`
+        }
+
+        doc.resetUid();
+        let div = doc.createElement("div"), r = htmlRenderer(div, test, doc);
+
+        r.refresh({ ok:true });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <div::E3 CLASS="container200">
+                    <#text::T4> Hello World! </#text>
+                </div>
+            </div>
+        `, "initial refresh");
+
+        r.refresh({ ok: false });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <div::E3 CLASS="container200">
+                    <span::E6>
+                        <#text::T7> Arghh </#text>
+                    </span>
+                </div>
+            </div>
+        `, "update 1");
+
+        r.refresh({ ok:true });
+        assert.equal(div.stringify(OPTIONS_UID), `
+            <div::E1>
+                <div::E3 CLASS="container200">
+                    <#text::T9> Hello World! </#text>
+                </div>
+            </div>
+        `, "update 2");
+        // note: index is 9 (t9) because 8 was used by the internal doc fragment (D8) created to generate T9
+    });
 
 });

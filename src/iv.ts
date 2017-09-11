@@ -7,6 +7,7 @@ import {
 const EMPTY_PROPS = {}, NO_PROPS = undefined, ALL_DN = "*";
 
 let refreshCount = 0,   // Refresh count - used to know when change occured
+    refreshQueue: { cpt: VdClassCptInstance, tStamp: number }[] = [],
     refCount = 0;       // Reference count - used to track node reference in unit tests
 
 export let $iv = {
@@ -123,8 +124,19 @@ export function $ri(parent: VdContainer, childPosition: number, content: any, ch
         contentB = content;
 
     if (contentA === contentB) {
-        // push back changes
-        moveChangeInstructions(contentB, changeCtn);
+        // contentB instructions will reference parent node that are in the light dom
+        let chge;
+        if (contentB.changes) {
+            for (let i = 0; contentB.changes.length > i; i++) {
+                chge = contentB.changes[i];
+                if (chge.parent && !chge.parent.domNode) {
+                    // chge.parent was the lightDom group associated to the component
+                    chge.parent = parent;
+                }
+            }
+            // push back changes
+            moveChangeInstructions(contentB, changeCtn);
+        }
     } else {
         let typeA = getInsertContentType(contentA),
             typeB = getInsertContentType(contentB),
@@ -589,8 +601,9 @@ function renderCpt(g: VdCptNode) {
     let n1 = $iv.node;
     $iv.node = <any>g;
     if (g.cpt) {
-        let c: VdClassCptInstance = <VdClassCptInstance>g.cpt;
-        if (c.shouldUpdate) {
+        let c: VdClassCptInstance = <VdClassCptInstance>g.cpt, nd = c.$node;
+        let isFirstRefresh = (<any>nd).$lastRefresh === refreshCount;
+        if (!isFirstRefresh && c.shouldUpdate) {
             if (!c.shouldUpdate()) {
                 return;
             }
@@ -620,7 +633,6 @@ export function $refreshTemplate(renderer, func: Function, rootNode, data, autoP
 }
 
 export function $refreshSync(cpt: VdClassCptInstance) {
-    debugger
     if (cpt.$node && cpt.$renderer) {
         let n1 = $iv.node, n2 = cpt.$node;
         $iv.node = <any>n2;
@@ -632,12 +644,50 @@ export function $refreshSync(cpt: VdClassCptInstance) {
     }
 }
 
-export async function $refresh(cpt: VdClassCptInstance) {
-    return new Promise((resolve, reject) => {
-        requestAnimationFrame(() => {
+function processRefreshQueue() {
+    let rr;
+    while (rr = refreshQueue.pop()) {
+        let cpt = rr.cpt;
+        if (cpt.$node.$lastRefresh <= rr.tStamp) {
             $refreshSync(cpt);
-            resolve();
-        })
+        }
+    }
+}
+
+/**
+ * Add a component to the refresh queue and return a promise that will be resolved
+ * when the refresh queue is flushed
+ * If not component is passed, this will simply return a promise resolved when the refresh
+ * queue is flushed
+ * @param cpt the component instance [optional]
+ */
+export async function $refresh(cpt?: VdClassCptInstance) {
+    if (cpt) {
+        let newTStamp = refreshCount, found = false;
+        // check if there is no request already in the queue
+        for (let rr of refreshQueue) {
+            if (rr.cpt === cpt) {
+                // override the time stamp
+                rr.tStamp = newTStamp;
+                found = true;
+            }
+        }
+        if (!found) {
+            refreshQueue.push({ cpt: cpt, tStamp: newTStamp });
+        }
+    }
+    return new Promise((resolve, reject) => {
+        if (typeof requestAnimationFrame !== "undefined") {
+            requestAnimationFrame(() => {
+                processRefreshQueue();
+                resolve();
+            })
+        } else {
+            setTimeout(() => {
+                processRefreshQueue();
+                resolve();
+            }, 0);
+        }
     });
 }
 

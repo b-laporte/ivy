@@ -253,8 +253,8 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
                 if (val === undefined) continue;
 
                 if (val && val.$isMap) {
-                    // e.g. style.borderColor or className.myClassName
-                    if (k === "className") {
+                    // e.g. style.borderColor or classList.myClassName
+                    if (k === "classList") {
                         let vals: string[] = [];
                         if (atts) {
                             if (atts["class"]) {

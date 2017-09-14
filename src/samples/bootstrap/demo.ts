@@ -80,7 +80,7 @@ function getStyle(pageNumber, isCurrentPage) {
 
 function customNavCell(type, disabled, setTabIndex, action) {
     `---
-    <li a:class="page-item" [className.disabled]=disabled>
+    <li a:class="page-item" [classList.disabled]=disabled>
         <a a:aria-label=type a:class="page-link" a:href="" onclick(e)=action(e) 
             [a:tabindex]=(setTabIndex ? null : '-1')>
             % if (type === "Previous" || type === "Next") {

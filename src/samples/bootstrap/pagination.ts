@@ -53,7 +53,7 @@ class BsPagination {
             % }
             % for (let pageNumber of this.pages) {
                 % let isEllipsis = this.isEllipsis(pageNumber);
-                <li a:class="page-item" [className.active]=(pageNumber === p.page) [class.disabled]=(disabled || isEllipsis)>
+                <li a:class="page-item" [classList.active]=(pageNumber === p.page) [classList.disabled]=(disabled || isEllipsis)>
                     <c:pageTpl [pageNumber]=pageNumber [ellipsis]=isEllipsis [isCurrentPage]=(pageNumber === p.page) action(e)=this.selectPage(pageNumber,e) />
                 </li>
             % }
@@ -202,7 +202,7 @@ const defaultCellContent = {
 
 function navigationCell(type, disabled, setTabIndex, action) {
     `---
-    <li a:class="page-item" [className.disabled]=disabled>
+    <li a:class="page-item" [classList.disabled]=disabled>
         <a a:aria-label=type a:class="page-link" a:href="" onclick(e)=action(e) 
             [a:tabindex]=(setTabIndex ? null : '-1')>
             <span a:aria-hidden="true">

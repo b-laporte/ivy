@@ -26,13 +26,13 @@ describe('Maps in props', () => {
     let box2 = $component(class {
         props: {
             $content: any;
-            className: {}
+            classList: {}
         }
 
         render() {
             `---
             % let content = this.props.$content;
-            <span [className]=this.props.className>
+            <span [classList]=this.props.classList>
                 <ins:content/>
             </span> 
             ---`
@@ -74,10 +74,10 @@ describe('Maps in props', () => {
         `, "update 1");
     });
 
-    it('should be supported on element className', () => {
+    it('should be supported on element classList', () => {
         function test(nbr) {
             `---
-            <div a:class="test" className.foo=(nbr===1) [className.bar]=(nbr===2) className.baz=1> 
+            <div a:class="test" classList.foo=(nbr===1) [classList.bar]=(nbr===2) classList.baz=1> 
                 hello
             </div>
              ---`
@@ -148,12 +148,12 @@ describe('Maps in props', () => {
         `, "update 1");
     });
 
-    it('should be supported on component className', () => {
+    it('should be supported on component classList', () => {
         function test(isFoo, val) {
             `---
             <section> 
                 <c:box> Hello </c:box>
-                <c:box2 className.foo=isFoo [className.bar]=(val==="ok")> Hello 2 </c:box2>
+                <c:box2 classList.foo=isFoo [classList.bar]=(val==="ok")> Hello 2 </c:box2>
             </section>
              ---`
         }

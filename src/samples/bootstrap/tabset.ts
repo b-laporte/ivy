@@ -32,7 +32,7 @@ class BsTabSet {
                 % for (let tab of tabs) {
                     % let tp = <any>tab.props, title = $dataNode("title", tab), isActive=(tp.id === p.activeId);
                     <li a:class="nav-item">
-                        <a a:id=tp.id a:class="nav-link" [className.active]=isActive [className.disabled]=tp.disabled 
+                        <a a:id=tp.id a:class="nav-link" [classList.active]=isActive [classList.disabled]=tp.disabled 
                             a:href="" onclick(e)=this.select(tp.id, tabs, e) a:role="tab" [a:tabindex]=(tp.disabled ? '-1': undefined)
                             [a:aria-controls]=(!p.destroyOnHide || isActive ? tp.id + '-panel' : null)
                             [a:aria-expanded]=isActive [a:aria-disabled]=tp.disabled>
@@ -45,7 +45,7 @@ class BsTabSet {
                 % for (let tab of tabs) {
                     % let id = tab.props["id"],  isActive = id === p.activeId, content;
                     % if (isActive || !p.destroyOnHide) {
-                        <div a:role="tabpanel" [a:id]=(id+"-panel") a:class="tab-pane" [className.active]=isActive 
+                        <div a:role="tabpanel" [a:id]=(id+"-panel") a:class="tab-pane" [classList.active]=isActive 
                             [a:aria-labelledby]=id [a:aria-expanded]=isActive>
                             % if (content = tab.props["contentTemplate"]) {
                                 <c:content/> // call content function

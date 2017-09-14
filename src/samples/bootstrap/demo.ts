@@ -9,7 +9,7 @@ function demo(name) {
             <h2>{{name}} demo</h2>
         </div>
         <div a:class="card-body">
-            <c:tabset>
+            <c:tabset destroyOnHide=false>
                 <:tab title="Simple">
                     <p>Raw denim you probably haven't heard of them jean shorts Austin. Nesciunt tofu stumptown aliqua, retro synth
                     master cleanse. Mustache cliche tempor, williamsburg carles vegan helvetica. Reprehenderit butcher retro keffiyeh
@@ -39,15 +39,14 @@ function demo(name) {
                     <c:pagination collectionSize=120 page=3 maxSize=5 boundaryLinks=true directionLinks=true 
                         pageTemplate=customPageCell navTemplate=customNavCell/>
                 </:tab>
-                <:tab title="Disabled" [disabled]=true>
+                <:tab title="Disabled" disabled=true>
                     <p>Raw denim you probably haven't heard of them jean shorts Austin. Nesciunt tofu stumptown aliqua, retro synth
                     master cleanse. Mustache cliche tempor, williamsburg carles vegan helvetica. Reprehenderit butcher retro keffiyeh
                     dreamcatcher synth. Cosby sweater eu banh mi, qui irure terry richardson ex squid. Aliquip placeat salvia cillum
                     iphone. Seitan aliquip quis cardigan american apparel, butcher voluptate nisi qui.</p>
                 </:tab>
+                <:tab title="Dynamic" contentTemplate=dynamicTab/>
             </c:tabset>
-            
-            
         </div>
     </div>
      ---`
@@ -93,6 +92,14 @@ function customNavCell(type, disabled, setTabIndex, action) {
             % }
         </a>
     </li>
+    ---`
+}
+
+function dynamicTab() {
+    `---
+    <p> The content of this tab has been generated on-demand </p>
+    <h5> Some sample </h5>
+    <c:pagination collectionSize=90 page=3 directionLinks=true/>
     ---`
 }
 

@@ -43,11 +43,15 @@ class BsTabSet {
             </ul>
             <div a:class="tab-content">
                 % for (let tab of tabs) {
-                    % let id = tab.props["id"],  isActive = id === p.activeId;
+                    % let id = tab.props["id"],  isActive = id === p.activeId, content;
                     % if (isActive || !p.destroyOnHide) {
                         <div a:role="tabpanel" [a:id]=(id+"-panel") a:class="tab-pane" [className.active]=isActive 
                             [a:aria-labelledby]=id [a:aria-expanded]=isActive>
-                            <ins:tab/>
+                            % if (content = tab.props["contentTemplate"]) {
+                                <c:content/> // call content function
+                            % } else {
+                                <ins:tab/>   // insert tab nodes (already generated)
+                            % }
                         </div>
                     % }
                 % }
@@ -75,8 +79,9 @@ class BsTabSet {
         for (let tab of tabs) {
             if (!tab.$initialized) {
                 $initProps(tab, {
-                    id: "ngb-tab-" + nextId++,
-                    disabled: false
+                    id: "ngb-tab-" + nextId++,  // unique tab identifier
+                    disabled: false,            // to disable the tab
+                    contentTemplate: null       // template function to use to generate the tab content
                 });
                 tab.$initialized = true;
             }

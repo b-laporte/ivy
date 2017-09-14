@@ -12,8 +12,8 @@ interface BsPaginationProps {
     page: number;                // Current page.
     pageSize: number;            // Number of items per page.
     size: 'sm' | 'lg';           // Pagination display size: small or large
-    pageTemplate: VdTemplate | null; // Template function to generate each page cell content
-    navTemplate: VdTemplate;         // Template function to generate the navigation cells
+    pageTemplate: VdTemplate;    // Template function to generate each page cell content
+    navTemplate: VdTemplate;     // Template function to generate the navigation cells
     // TODO onPageChange = new EventEmitter<number>(true);
 }
 
@@ -34,7 +34,7 @@ class BsPagination {
             page: 0,
             pageSize: 10,
             size: 'sm',
-            pageTemplate: null,
+            pageTemplate: pageCell,
             navTemplate: navigationCell
         });
     }
@@ -53,21 +53,8 @@ class BsPagination {
             % }
             % for (let pageNumber of this.pages) {
                 % let isEllipsis = this.isEllipsis(pageNumber);
-                <li a:class="page-item" [className.active]=(pageNumber === p.page) [class.disabled]=(p.disabled || isEllipsis)>
-                    % if (pageTpl) {
-                        <c:pageTpl [pageNumber]=pageNumber [ellipsis]=isEllipsis [isCurrentPage]=(pageNumber === p.page) action(e)=this.selectPage(pageNumber,e) />
-                    % } else {
-                        % if (isEllipsis) {
-                            <a a:class="page-link">...</a>
-                        % } else {
-                            <a a:class="page-link" a:href="" onclick(e)=this.selectPage(pageNumber,e)>
-                                {{pageNumber}}
-                                % if (pageNumber === p.page) {
-                                    <span a:class="sr-only">(current)</span>
-                                % }
-                            </a>
-                        % }
-                    % }
+                <li a:class="page-item" [className.active]=(pageNumber === p.page) [class.disabled]=(disabled || isEllipsis)>
+                    <c:pageTpl [pageNumber]=pageNumber [ellipsis]=isEllipsis [isCurrentPage]=(pageNumber === p.page) action(e)=this.selectPage(pageNumber,e) />
                 </li>
             % }
             % if (p.directionLinks) {
@@ -80,7 +67,7 @@ class BsPagination {
         ---`
     }
 
-    private selectPage(pageNumber: number, evt?): void { 
+    private selectPage(pageNumber: number, evt?): void {
         this.updatePages(pageNumber);
         if (evt) {
             evt.cancelBubble=true;
@@ -213,7 +200,7 @@ const defaultCellContent = {
     "Last":"\u00BB\u00BB"
 }
 
-export function navigationCell(type, disabled, setTabIndex, action) {
+function navigationCell(type, disabled, setTabIndex, action) {
     `---
     <li a:class="page-item" [className.disabled]=disabled>
         <a a:aria-label=type a:class="page-link" a:href="" onclick(e)=action(e) 
@@ -223,6 +210,21 @@ export function navigationCell(type, disabled, setTabIndex, action) {
             </span>
         </a>
     </li>
+    ---`
+}
+
+function pageCell(pageNumber, ellipsis, isCurrentPage, action) {
+    `---
+    % if (ellipsis) {
+        <a a:class="page-link">...</a>
+    % } else {
+        <a a:class="page-link" a:href="" onclick(e)=action(e)>
+            {{pageNumber}}
+            % if (isCurrentPage) {
+                <span a:class="sr-only">(current)</span>
+            % }
+        </a>
+    % }
     ---`
 }
 

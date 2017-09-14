@@ -634,13 +634,15 @@ export function $refreshTemplate(renderer, func: Function, rootNode, data, autoP
 
 export function $refreshSync(cpt: VdClassCptInstance) {
     if (cpt.$node && cpt.$renderer) {
-        let n1 = $iv.node, n2 = cpt.$node;
+        let n1 = $iv.node, n2 = cpt.$node, r1=$iv.renderer;
         $iv.node = <any>n2;
+        $iv.renderer = <any>cpt.$renderer;
         refreshCount++;
         cpt.render();
         n2.$lastRefresh = refreshCount;
         cpt.$renderer.processChanges(n2);
         $iv.node = n1;
+        $iv.renderer = r1;
     }
 }
 

@@ -1,5 +1,5 @@
 
-import { VdRenderer, VdGroupNode, VdNodeKind, VdFunctionCpt, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup, VdUpdatePropMap } from "./vdom";
+import { VdRenderer, VdGroupNode, VdNodeKind, VdTemplate, VdCreateGroup, VdChangeKind, VdChangeInstruction, VdNode, VdTextNode, VdElementNode, VdContainer, VdUpdateText, VdUpdateProp, VdDeleteGroup, VdUpdateAtt, VdDataNode, VdReplaceGroup, VdUpdatePropMap } from "./vdom";
 import { $dataNode, $dataNodes, $nextRef, $refreshTemplate, $iv } from './iv';
 
 export function htmlRenderer(htmlElement, func, doc?: HtmlDoc): HtmlRenderer {
@@ -23,7 +23,7 @@ class Renderer implements HtmlRenderer {
     vdom: VdGroupNode;
     doc: HtmlDoc;
 
-    constructor(public htmlElement, public vdFunction: VdFunctionCpt, doc?: HtmlDoc) {
+    constructor(public htmlElement, public vdFunction: VdTemplate, doc?: HtmlDoc) {
         // create the root group and its create instruction
         let vdom = this.vdom = <VdGroupNode>{
             kind: VdNodeKind.Group,
@@ -256,6 +256,13 @@ function createElementDomNode(nd: VdElementNode, domParent, doc: HtmlDoc, ns: st
                     // e.g. style.borderColor or className.myClassName
                     if (k === "className") {
                         let vals: string[] = [];
+                        if (atts) {
+                            if (atts["class"]) {
+                                vals.push(atts["class"]);
+                            } else if (atts["className"]) {
+                                vals.push(atts["className"]);
+                            }
+                        }
                         for (let key in val) {
                             if (val.hasOwnProperty(key) && key[0] !== "$") {
                                 if (val[key]) {

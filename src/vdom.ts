@@ -14,12 +14,13 @@ export interface VdClassCpt {
 export interface VdClassCptInstance {
     $node?: VdCptNode;
     $renderer?: VdRenderer;
+    props?: Object;
     init?(): void;
     shouldUpdate?(): boolean;
     render(): void;
 }
 
-export interface VdFunctionCpt {
+export interface VdTemplate {
     ($d?: any): void;
     $isClassCpt?: false;
 }
@@ -62,14 +63,14 @@ export interface VdGroupNode extends VdContainer, VdChangeContainer {
 
 export interface VdCptNode extends VdGroupNode {
     cpt: VdClassCptInstance | null;
-    render: VdFunctionCpt | null;
+    render: VdTemplate | null;
     sdGroup: VdCptNode | null;               // shadow group = group containing the shadow dom or null if there is no light dom
     ltGroup: VdCptNode | null;               // light group = group containing the light dom or null if there is not light dom
 }
 
 export interface VdFuncCptNode extends VdCptNode {
     cpt: null;
-    render: VdFunctionCpt;
+    render: VdTemplate;
 }
 
 export interface VdTextNode extends VdNode {

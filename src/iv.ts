@@ -1,6 +1,6 @@
 
 import {
-    VdNodeKind, VdFunctionCpt, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
+    VdNodeKind, VdTemplate, VdNode, VdContainer, VdElementNode, VdTextNode, VdCptNode,
     VdElementWithProps, VdGroupNode, VdChangeKind, VdChangeInstruction, VdUpdateProp, VdCreateGroup, VdDeleteGroup, VdUpdateText, VdUpdateAtt, VdElementWithAtts, VdDataNode, VdChangeContainer, VdParent, VdReplaceGroup, VdClassCpt, VdClassCptInstance, VdFuncCptNode, VdUpdatePropMap
 } from "./vdom";
 
@@ -184,14 +184,14 @@ export function $ri(parent: VdContainer, childPosition: number, content: any, ch
  * and call the component function
  * Use in creation mode only
  */
-export function $cc(parent: VdContainer, index: number, props: {}, cpt: VdFunctionCpt | VdClassCpt, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
+export function $cc(parent: VdContainer, index: number, props: {}, cpt: VdTemplate | VdClassCpt, hasLightDom: 0 | 1, needRef: 0 | 1): VdGroupNode {
     let isClassCpt = cpt.$isClassCpt === true;
     let g: VdCptNode = {
         kind: VdNodeKind.Group,
         index: index,
         cm: 1,
         cpt: isClassCpt ? new (<VdClassCpt>cpt)() : null,
-        render: isClassCpt ? null : <VdFunctionCpt>cpt,
+        render: isClassCpt ? null : <VdTemplate>cpt,
         props: props,
         changes: null,
         ref: needRef ? ++refCount : 0,
@@ -689,6 +689,23 @@ export async function $refresh(cpt?: VdClassCptInstance) {
             }, 0);
         }
     });
+}
+
+/**
+ * Helper function to initialize the properties of a component from a default prop object
+ * @param cpt the component object 
+ * @param props the default properties
+ */
+export function $initProps(cpt: VdClassCptInstance, props: Object) {
+    let p = cpt.props;
+    if (!p) return;
+    for (let k in props) {
+        if (props.hasOwnProperty(k)) {
+            if (p[k] === undefined) {
+                p[k] = props[k];
+            }
+        }
+    }
 }
 
 function createEltOrDataNode(parent, kind: VdNodeKind, index: number, name: string, props, needRef?: 0 | 1) {

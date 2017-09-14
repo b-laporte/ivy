@@ -77,7 +77,7 @@ describe('Maps in props', () => {
     it('should be supported on element className', () => {
         function test(nbr) {
             `---
-            <div className.foo=(nbr===1) [className.bar]=(nbr===2) className.baz=1> 
+            <div a:class="test" className.foo=(nbr===1) [className.bar]=(nbr===2) className.baz=1> 
                 hello
             </div>
              ---`
@@ -88,7 +88,7 @@ describe('Maps in props', () => {
         r.refresh({ nbr: 1 });
         assert.equal(div.stringify(OPTIONS), `
             <div>
-                <div class="foo baz">
+                <div CLASS="test" class="test foo baz">
                     <#text> hello </#text>
                 </div>
             </div>
@@ -97,7 +97,7 @@ describe('Maps in props', () => {
         r.refresh({ nbr: 2 });
         assert.equal(div.stringify(OPTIONS), `
             <div>
-                <div class="foo baz bar">
+                <div CLASS="test" class="test foo baz bar">
                     <#text> hello </#text>
                 </div>
             </div>
@@ -106,7 +106,7 @@ describe('Maps in props', () => {
         r.refresh({ nbr: 3 });
         assert.equal(div.stringify(OPTIONS), `
             <div>
-                <div class="foo baz">
+                <div CLASS="test" class="test foo baz">
                     <#text> hello </#text>
                 </div>
             </div>

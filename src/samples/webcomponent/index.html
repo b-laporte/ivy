@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title> Web Component </title>
+</head>
+
+<body>
+    <div id="root"> </div>
+    <iv-web-component name="from index" foo="12">
+        <div>To be slotted</div>
+    </iv-web-component>
+    <button id="foo">Increment Foo via attribute</button>
+    <button id="bar">Increment Bar via property</button>
+</body>
+<script type="text/javascript" src="webcomponent.js"></script>
+<script type="text/javascript">
+    const ivWC = document.querySelector('iv-web-component');
+
+    const foo = document.getElementById('foo');
+    foo.addEventListener('click', () => {
+      ivWC.setAttribute('foo', parseInt(ivWC.getAttribute('foo')) + 1);
+    });
+
+    const bar = document.getElementById('bar');
+    bar.addEventListener('click', () => {
+      ivWC.bar = (ivWC.bar || 2) + 1;
+    });
+</script>
+</body>
+
+</html>

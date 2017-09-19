@@ -8,6 +8,7 @@ import todoMVCConfig from './src/samples/todomvc/rollup.config';
 import hwConfig from './src/samples/helloworld/rollup.config';
 import triangleConfig from './src/samples/triangle/rollup.config';
 import bootstrapConfig from './src/samples/bootstrap/rollup.config';
+import webComponentConfig from './src/samples/webcomponent/rollup.config';
 
 export default [
   hwConfig,
@@ -19,5 +20,6 @@ export default [
   svgConfig,
   todoMVCConfig,
   triangleConfig,
-  bootstrapConfig
+  bootstrapConfig,
+  webComponentConfig
 ];

@@ -1,4 +1,36 @@
 
+
+
+.yellow {
+    color:#fcbd02;
+}
+
+.highlight {
+    padding:0px 4px;
+    color:white;
+    font-style:italic;
+}
+
+.yellowBkg {
+    background-color:#fcbd02;
+}
+
+.blue {
+    color:#007bff;
+}
+
+.greenBkg {
+    background-color:#2ca94f;
+}
+
+.green {
+    color:#2ca94f;
+}
+
+ul.nav {
+    margin-bottom: 15px;
+}
+
 .demo .jumbotron {
     color:#ffffff;
     background-color: #0143a3;
@@ -187,7 +219,7 @@ h1,h2,h3,h4,h5,h6 {
 
 p {
     margin-top: 0;
-    margin-bottom: 1rem
+    margin-bottom: 0.8rem
 }
 
 abbr[data-original-title],abbr[title] {

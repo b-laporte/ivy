@@ -646,6 +646,17 @@ export function $refreshSync(cpt: VdClassCptInstance) {
     }
 }
 
+/**
+ * Default event hander to use when no handler is defined
+ * Will call preventDefault() on the event object if provided
+ * @param e the event associated to the event handler
+ */
+export function $eventSink(e?:Event) {
+    if (e) {
+        e.preventDefault();
+    }
+}
+
 function processRefreshQueue() {
     let rr;
     while (rr = refreshQueue.pop()) {

@@ -1,8 +1,9 @@
 import { htmlRenderer } from "../../htmlrenderer";
 import { tabset } from "./tabset";
 import { pagination } from "./pagination";
+import { helloWorld, hello, hello2, hello3, hello4, hello5, hello6, hello7, btn, btn2, button } from "./samples";
 
-function demo(name) {
+function demo(name, value1) {
     `---
     <div a:class="demo">
         <div a:class="jumbotron">
@@ -46,6 +47,35 @@ function demo(name) {
                     iphone. Seitan aliquip quis cardigan american apparel, butcher voluptate nisi qui.</p>
                 </:tab>
                 <:tab title="Dynamic" contentTemplate=dynamicTab/>
+                <:tab title="Misc. Samples">
+                    <div a:class="card-body"> 
+                        <c:tabset type="pills">
+                            <:tab title="Hellos">
+                                <h1> <c:helloWorld/> </h1>
+                                <c:hello name="World" className="green"/>
+                                <c:hello2 name="World" className="blue"/>
+                                <c:hello3 name="World" className="blue"/>
+                                <c:hello4 name="World" className="blue"/>
+                                <c:hello5 nameOrMsg="World" className="green"/>
+                                <c:hello5 nameOrMsg="Hello brave new world!" className="blue"/>
+                                <c:hello6 names=["Arthur","Slartibartfast"] className="blue"/>
+                                <c:hello7 names=(["<Hello HTML/>", "<Hello SVG/>"]) className2="blue"/>
+                            </:tab>
+                            <:tab title="Buttons">
+                                <p> <c:btn/> </p>
+                                <p><c:btn2 value="Button"/></p>
+                                <p>
+                                    <c:btn2 value="Click me!" onclick()=update1()/> - 
+                                    <c:button value="or me" onclick()=update1()/> - 
+                                    <c:button onclick()=update1()>... or 
+                                        <span a:class="green" a:style="font-weight:bold"> me </span> !
+                                    </c:button>  
+                                    counter: {{value1}}
+                                </p>
+                            </:tab>
+                        </c:tabset>
+                    </div>
+                </:tab>
             </c:tabset>
         </div>
     </div>
@@ -68,8 +98,8 @@ function customPageCell(pageNumber, ellipsis, isCurrentPage, action) {
 }
 
 function getStyle(pageNumber, isCurrentPage) {
-    let colors = ["#3d82", "#ec412c", "#fcbd02", "#3d82", "#2ca94f", "#ec412c"], 
-        color=colors[pageNumber % colors.length];
+    let colors = ["#3d82", "#ec412c", "#fcbd02", "#3d82", "#2ca94f", "#ec412c"],
+        color = colors[pageNumber % colors.length];
     if (isCurrentPage) {
         return `color:white;background-color:${color}`;
     } else {
@@ -103,5 +133,11 @@ function dynamicTab() {
     ---`
 }
 
-let r = htmlRenderer(document.getElementById("main"), demo);
-r.refresh({ name: "Bootstrap" });
+let r = htmlRenderer(document.getElementById("main"), demo),
+    data = { name: "Bootstrap", value1: 0 };
+r.refresh(data);
+
+function update1() {
+    data.value1++;
+    r.refresh(data);
+}

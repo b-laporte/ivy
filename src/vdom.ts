@@ -21,7 +21,7 @@ export interface VdClassCptInstance {
 }
 
 export interface VdTemplate {
-    ($d?: any): void;
+    (...args: any[]): void;
     $isClassCpt?: false;
 }
 

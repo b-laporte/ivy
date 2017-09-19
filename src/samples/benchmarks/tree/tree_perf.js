@@ -1,12 +1,12 @@
 const util = require('../../util');
 const runner = util.getRunner();
 
-beforeEach(() => {
-  browser.ignoreSynchronization = true;
-  browser.get('http://localhost:5000/benchmarks/tree/?depth=11');
-});
-
 describe('tree benchmark perf', function() {
+  beforeEach(() => {
+    browser.ignoreSynchronization = true;
+    browser.get('http://localhost:5000/benchmarks/tree/?depth=11');
+  });
+
   it('should work for createOnly', function(done) {
     runner.sample({
       id: 'tree.iv.createOnly',

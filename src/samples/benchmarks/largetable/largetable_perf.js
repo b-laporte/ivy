@@ -1,12 +1,12 @@
 const util = require('../../util');
 const runner = util.getRunner();
 
-beforeEach(() => {
-  browser.ignoreSynchronization = true;
-  browser.get('http://localhost:5000/benchmarks/largetable/?cols=40&rows=200');
-});
-
 describe('largeTable benchmark perf', function() {
+  beforeEach(() => {
+    browser.ignoreSynchronization = true;
+    browser.get('http://localhost:5000/benchmarks/largetable/?cols=40&rows=200');
+  });
+
   it('should work for createOnly', function(done) {
     runner.sample({
       id: 'largeTable.iv.createOnly',

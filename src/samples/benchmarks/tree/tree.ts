@@ -30,7 +30,7 @@ function getColor(row: number) { return row % 2 ? '' : 'grey'; }
 function tree(data) {
   `---
   <tree>
-    <span style=("background-color:"+getColor(data.depth))>{{data.value}}</span>
+    <span a:style=("background-color:"+getColor(data.depth))>{{data.value}}</span>
     % if (data.right != null) {
       <c:tree [data]=data.right></c:tree>
     % }

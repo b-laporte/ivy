@@ -29,7 +29,7 @@ function largeTable(data) {
       <tr>
       % for (let j = 0; j < row.length; j++) {
         % const cell = row[j];
-        <td style=("background-color:"+getColor(cell.row))>
+        <td a:style=("background-color:"+getColor(cell.row))>
           {{cell.value}}
         </td>
       % } 

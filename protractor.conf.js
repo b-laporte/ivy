@@ -16,7 +16,7 @@ exports.config = {
       'perfLoggingPrefs': {
         'traceCategories': 'v8,blink.console,devtools.timeline'
       },
-      'binary': '/Applications/Google\ Chrome\ Canary.app/Contents/MacOS/Google\ Chrome\ Canary'
+      //'binary': '/Applications/Google\ Chrome\ Canary.app/Contents/MacOS/Google\ Chrome\ Canary'
     },
     loggingPrefs: {
       performance: 'ALL'

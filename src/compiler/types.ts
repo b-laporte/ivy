@@ -44,6 +44,7 @@ export interface JsBlock extends CodeBlock {
     endStatement: string;       // e.g. "}" - can be empty if followed by another JsBlock - e.g. if/else
     blocks: CodeBlock[];        // must always start and end with a NodeBlock (even if there is no node to Generate)
     initLines: CodeLine[];      // code lines corresponding to the block initialization (group check, etc.)
+    endLines: CodeLine[];       // code lines at the end of the block (e.g. $lg)
 }
 
 export interface FunctionBlock extends JsBlock {
@@ -85,14 +86,16 @@ export const enum CodeLineKind {
     ResetIdx = 15,
     JsExpression = 16,
     FuncDef = 17,
-    SwapLtGroup = 18,
+    EnterLtGroup = 18,
     Insert = 19,
     RefreshInsert = 20,
     SetIndexes = 21,
     CreateDataNode = 22,
     CreatePropMap = 23,
     UpdatePropMap = 24,
-    RefreshDataNode = 25
+    RefreshDataNode = 25,
+    EnterDataNode = 26,
+    LeaveGroup = 27
 }
 
 export interface ClCreateNode extends CodeLine {
@@ -218,6 +221,13 @@ export interface ClCheckGroup extends CodeLine {
     parentGroupLevel: number;   // 0 in this case (4th position)
 }
 
+export interface ClLeaveGroup extends CodeLine {
+    // e.g. $lg($a2, $a0);
+    kind: CodeLineKind.LeaveGroup;
+    groupLevel: number;         // 2 in this example (for $a2)
+    changeCtnIdx: number;       // 0 in this example (for $a0)
+}
+
 export interface ClDeleteGroups extends CodeLine {
     // e.g. $dg($i1, $a1, $a0, 8);
     kind: CodeLineKind.DeleteGroups;
@@ -258,6 +268,12 @@ export interface ClRefreshCpt extends CodeLine {
     changeCtnIdx: number;       // 0 in this example
 }
 
+export interface ClEnterDn extends CodeLine {
+    // $ed($a2);
+    kind: CodeLineKind.EnterDataNode;
+    cptLevel: number;           // 2 in this example
+}
+
 export interface ClRefreshDn extends CodeLine {
     // e.g. $rd(r, $a2, $a0);
     kind: CodeLineKind.RefreshDataNode;
@@ -284,9 +300,9 @@ export interface ClRefreshInsert extends CodeLine {
     changeCtnIdx: number;       // 0 in this example
 }
 
-export interface ClSwapLtGroup extends CodeLine {
-    // $a2 = $a2.ltGroup;
-    kind: CodeLineKind.SwapLtGroup;
+export interface ClEnterLtGroup extends CodeLine {
+    // $a2 = $ec($a2);
+    kind: CodeLineKind.EnterLtGroup;
     cptLevel: number;           // 2 in this example
 }
 

@@ -1,6 +1,6 @@
 
 import { assert, createTestRenderer } from "./common";
-import { $el, $tx, $up, $cg, $dg, $cc, $uc, $rc, $iv } from "../iv";
+import { $el, $tx, $up, $cg, $dg, $cc, $uc, $rc, $iv, $lg } from "../iv";
 import { VdChangeContainer } from "../vdom";
 
 describe('IV runtime', () => {
@@ -106,7 +106,7 @@ describe('IV runtime', () => {
             }
             $i1 = 1;
             if (nbr === 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                $a2 = $cg($i1, $a1, $a0, 3);
                 $i1++;
                 if ($a2.cm) {
                     $a3 = $el($a2, 4, "span");
@@ -115,6 +115,7 @@ describe('IV runtime', () => {
                     $tx($a3, 7, " World ");
                     $a2.cm = 0;
                 }
+                $lg($a2, $a0);
             }
             if ($a0.cm) {
                 $a2 = $el($a1, 8, "span", 1);
@@ -250,20 +251,22 @@ describe('IV runtime', () => {
             }
             $i1 = 0;
             if (nbr === 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i1, $a1, $a0, $a0, 2);
+                $a2 = $cg($i1, $a1, $a0, 2);
                 $i1++;
                 if ($a2.cm) {
                     $tx($a2, 3, " Case 42 ");
                     $a2.cm = 0;
                 }
+                $lg($a2, $a0);
             } else if (nbr === 142) { // parent elt: $a1, parent group: $a0
                 $dg($i1, $a1, $a0, 4);
-                $a2 = $cg($i1, $a1, $a0, $a0, 4);
+                $a2 = $cg($i1, $a1, $a0, 4);
                 $i1++;
                 if ($a2.cm) {
                     $tx($a2, 5, " Case 142 ");
                     $a2.cm = 0;
                 }
+                $lg($a2, $a0);
             }
             if ($a0.cm) {
                 $a0.cm = 0;
@@ -310,6 +313,7 @@ describe('IV runtime', () => {
                 </div>
             </#group>
         `, "update with nbr=142");
+
         assert.equal(r.changes(), `
             DeleteGroup #2 in #1 at position 0
             CreateGroup #3 in #1 at position 0
@@ -383,12 +387,13 @@ describe('IV runtime', () => {
             }
             $i1 = 1;
             if (nbr > 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                $a2 = $cg($i1, $a1, $a0, 3);
                 $i1++;
                 if ($a2.cm) {
                     $tx($a2, 4, " ++ ");
                     $a2.cm = 0;
                 }
+                $lg($a2, $a0);
             }
             if ($a0.cm) {
                 $a2 = $el($a1, 5, "span", 1);
@@ -399,12 +404,13 @@ describe('IV runtime', () => {
             }
             $i1 += 1; // because we created one element in the previous section
             if (nbr > 142) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i1, $a1, $a0, $a0, 6);
+                $a2 = $cg($i1, $a1, $a0, 6);
                 $i1++;
                 if ($a2.cm) {
                     $tx($a2, 7, " ++++ ");
                     $a2.cm = 0;
                 }
+                $lg($a2, $a0);
             }
             if ($a0.cm) {
                 $tx($a1, 8, " DEF ");
@@ -467,8 +473,8 @@ describe('IV runtime', () => {
             </#group>
         `, "update 150");
         assert.equal(r.changes(), `
-            UpdateProp "title"=150 in #2
             CreateGroup #4 in #1 at position 3
+            UpdateProp "title"=150 in #2
         `, "update changes 150");
 
         // update 3
@@ -484,8 +490,8 @@ describe('IV runtime', () => {
         `, "update 9");
         assert.equal(r.changes(), `
             DeleteGroup #3 in #1 at position 1
-            UpdateProp "title"=9 in #2
             DeleteGroup #4 in #1 at position 2
+            UpdateProp "title"=9 in #2
         `, "update changes 9");
     });
 
@@ -516,25 +522,26 @@ describe('IV runtime', () => {
             }
             $i1 = 1;   // shift for the ABC node
             if (nbr > 42) { // parent elt: $a1, parent group: $a0
-                $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                $a2 = $cg($i1, $a1, $a0, 3);
                 $i1++;
                 if ($a2.cm) {
                     $a3 = $el($a2, 4, "span", 1);
                     $a3.props = { "title": nbr };
                 } else {
-                    $a3 = $a2.children[0]; $up("title", nbr, $a3, $a0);
+                    $a3 = $a2.children[0]; $up("title", nbr, $a3, $a2);
                 }
                 $i2 = 1;
                 if (nbr > 142) {
-                    $a3 = $cg($i2, $a2, $a0, $a2, 5);
+                    $a3 = $cg($i2, $a2, $a2, 5);
                     $i2++;
                     if ($a3.cm) {
                         $a4 = $el($a3, 6, "span", 1);
                         $a4.props = { "title": nbr + 10 };
                         $a3.cm = 0;
                     } else {
-                        $a4 = $a3.children[0]; $up("title", nbr + 10, $a4, $a0);
+                        $a4 = $a3.children[0]; $up("title", nbr + 10, $a4, $a3);
                     }
+                    $lg($a3, $a2);
                 }
                 if ($a2.cm) {
                     $a3 = $el($a2, 7, "span", 1);
@@ -542,8 +549,9 @@ describe('IV runtime', () => {
                     $a2.cm = 0;
                 } else {
                     $dg($i2, $a2, $a0, 7);
-                    $a3 = $a2.children[$i2]; $up("title", nbr + 20, $a3, $a0);
+                    $a3 = $a2.children[$i2]; $up("title", nbr + 20, $a3, $a2);
                 }
+                $lg($a2, $a0);
             }
             if ($a0.cm) {
                 $tx($a1, 8, " DEF ");
@@ -604,8 +612,8 @@ describe('IV runtime', () => {
             </#group>
         `, "update 145");
         assert.equal(r.changes(), `
-            UpdateProp "title"=145 in #3
             CreateGroup #5 in #2 at position 1
+            UpdateProp "title"=145 in #3
             UpdateProp "title"=165 in #4
         `, "update changes 145");
 
@@ -627,8 +635,8 @@ describe('IV runtime', () => {
             </#group>
         `, "update 200");
         assert.equal(r.changes(), `
-            UpdateProp "title"=200 in #3
             UpdateProp "title"=210 in #6
+            UpdateProp "title"=200 in #3
             UpdateProp "title"=220 in #4
         `, "update changes 200");
 
@@ -647,8 +655,8 @@ describe('IV runtime', () => {
             </#group>
         `, "update 50");
         assert.equal(r.changes(), `
-            UpdateProp "title"=50 in #3
             DeleteGroup #5 in #2 at position 1
+            UpdateProp "title"=50 in #3
             UpdateProp "title"=70 in #4
         `, "update changes 50");
 
@@ -726,13 +734,14 @@ describe('IV runtime', () => {
             }
             $i1 = 1;
             if (value === 45) {
-                $a1 = $cg($i1, $a0, $a0, $a0, 2);
+                $a1 = $cg($i1, $a0, $a0, 2);
                 $i1++;
                 if ($a1.cm) {
                     $a2 = $el($a1, 3, "span");
                     $tx($a2, 4, " Hello 45! ");
                     $a1.cm = 0;
                 }
+                $lg($a1, $a0);
             }
             if ($a0.cm) {
                 $a0.cm = 0;
@@ -802,8 +811,8 @@ describe('IV runtime', () => {
         `, "update 42");
         assert.equal(r.changes(), `
             UpdateProp "title"="43 m1:9" in #2
-            UpdateProp "title"="45 m2:9" in #4
             CreateGroup #5 in #3 at position 1
+            UpdateProp "title"="45 m2:9" in #4
         `, "update changes 42");
         assert.equal(cpt(1).$lastRefresh, refreshCount1+2, "cpt1 refresh 2");
         assert.equal(cpt(1).$lastChange, refreshCount1+2, "cpt1 change 2");
@@ -830,8 +839,8 @@ describe('IV runtime', () => {
         `, "update 9");
         assert.equal(r.changes(), `
             UpdateProp "title"="10 m1:9" in #2
-            UpdateProp "title"="12 m2:9" in #4
             DeleteGroup #5 in #3 at position 1
+            UpdateProp "title"="12 m2:9" in #4
         `, "update changes 9");
         assert.equal(cpt(1).$lastRefresh, refreshCount1+3, "cpt1 refresh 3");
         assert.equal(cpt(1).$lastChange, refreshCount1+3, "cpt1 change 3");
@@ -881,7 +890,7 @@ describe('IV runtime', () => {
             }
             $i0 = 1;
             for (let i = 0; list.length > i; i++) {
-                $a1 = $cg($i0, $a0, $a0, $a0, 2);
+                $a1 = $cg($i0, $a0, $a0, 2);
                 $i0++;
                 if ($a1.cm) {
                     $a2 = $el($a1, 3, "div", 1);
@@ -889,8 +898,9 @@ describe('IV runtime', () => {
                     $a1.cm = 0;
                 } else {
                     $a2 = $a1.children[0];
-                    $up("title", ("Hello " + list[i].name), $a2, $a0);
+                    $up("title", ("Hello " + list[i].name), $a2, $a1);
                 }
+                $lg($a1, $a0);
             }
             if ($a0.cm) {
                 $a1 = $el($a0, 4, "div", 1);

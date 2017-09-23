@@ -71,6 +71,7 @@ export function $dn(parent: VdParent | null = null, index: number, name: string,
         children: [],
         props: EMPTY_PROPS,
         changes: null,
+        childChanges: null,
         domNode: null,
         $lastChange: refreshCount,
         $lastRefresh: refreshCount
@@ -84,6 +85,7 @@ export function $dn(parent: VdParent | null = null, index: number, name: string,
 /**
  * Insert
  * Create an insert group and insert the content node or text passed as argument
+ * Used in creation mode only
  */
 export function $in(parent: VdContainer, index: number, content: any, changeCtn: VdChangeContainer, append = true): VdGroupNode {
     let g: VdGroupNode = {
@@ -92,6 +94,7 @@ export function $in(parent: VdContainer, index: number, content: any, changeCtn:
         cm: 0,
         props: { $content_ref: content },
         changes: null,
+        childChanges: null,
         ref: ++refCount,
         children: [],
         domNode: null,
@@ -102,7 +105,7 @@ export function $in(parent: VdContainer, index: number, content: any, changeCtn:
     if (content && (content.kind === VdNodeKind.Group || content.kind === VdNodeKind.Data)) {
         // content is a node list
         g.children = content.children
-        moveChangeInstructions(content, changeCtn);
+        addChildChanges(content, changeCtn);
     } else if (typeof content === "string") {
         // create a text node
         $dt(g, -1, content);
@@ -122,20 +125,21 @@ export function $ri(parent: VdContainer, childPosition: number, content: any, ch
     let insertGroup = <VdGroupNode>parent.children[childPosition],
         contentA: any = insertGroup.props ? insertGroup.props["$content_ref"] : "",
         contentB = content;
-
     if (contentA === contentB) {
         // contentB instructions will reference parent node that are in the light dom
         let chge;
-        if (contentB.changes) {
-            for (let i = 0; contentB.changes.length > i; i++) {
-                chge = contentB.changes[i];
+        if (contentB.changes || contentB.childChanges) {
+            let changes = [];
+            retrieveChanges(contentB, changes, false);
+            for (let i = 0; changes.length > i; i++) {
+                chge = changes[i];
                 if (chge.parent && !chge.parent.domNode) {
                     // chge.parent was the lightDom group associated to the component
                     chge.parent = parent;
                 }
             }
             // push back changes
-            moveChangeInstructions(contentB, changeCtn);
+            addChildChanges(contentB, changeCtn);
         }
     } else {
         let typeA = getInsertContentType(contentA),
@@ -173,7 +177,7 @@ export function $ri(parent: VdContainer, childPosition: number, content: any, ch
                 insertGroup.props = { $content_ref: contentB };
             }
         }
-        moveChangeInstructions(contentB, changeCtn);
+        addChildChanges(contentB, changeCtn);
     }
     // todo handle error cases where typeA or typeB are "invalid"
 }
@@ -194,6 +198,7 @@ export function $cc(parent: VdContainer, index: number, props: {}, cpt: VdTempla
         render: isClassCpt ? null : <VdTemplate>cpt,
         props: props,
         changes: null,
+        childChanges: null,
         ref: needRef ? ++refCount : 0,
         children: [],
         domNode: null,
@@ -226,6 +231,7 @@ export function $cc(parent: VdContainer, index: number, props: {}, cpt: VdTempla
             render: g.render,
             props: g.props,
             changes: null,
+            childChanges: null,
             ref: 0,
             children: [],
             domNode: null,
@@ -248,9 +254,10 @@ export function $cc(parent: VdContainer, index: number, props: {}, cpt: VdTempla
  * Check that a group with the right index exists in the parent children at childPosition and create it if not
  * Used in creation and update mode
  */
-export function $cg(childPosition: number, parent: VdContainer, changeCtn: VdChangeContainer, parentGroup: VdGroupNode, index: number): VdGroupNode {
+export function $cg(childPosition: number, parent: VdContainer, parentGroup: VdGroupNode, index: number): VdGroupNode {
     let nd: VdNode | undefined = parent.children[childPosition];
     if (nd && nd.index === index) {
+        (<VdGroupNode>nd).childChanges = null;
         return <VdGroupNode>nd;
     } else {
         // create and insert the new group
@@ -260,6 +267,7 @@ export function $cg(childPosition: number, parent: VdContainer, changeCtn: VdCha
             cm: 1,
             props: {},
             changes: null,
+            childChanges: null,
             ref: ++refCount,
             children: [],
             domNode: null,
@@ -278,10 +286,18 @@ export function $cg(childPosition: number, parent: VdContainer, changeCtn: VdCha
                 position: childPosition,
                 nextSibling: findNextDomSibling(parent, childPosition)
             }
-            addChangeInstruction(changeCtn, chge);
+            addChangeInstruction(g, chge); // add change to self - will be pushed to parent group childChanges in lg
         }
         return g;
     }
+}
+
+/**
+ * Leave Group
+ * Used in both create and update mode
+ */
+export function $lg(group: VdGroupNode, changeCtn: VdChangeContainer) {
+    addChildChanges(group, changeCtn);
 }
 
 /**
@@ -291,6 +307,7 @@ export function $cg(childPosition: number, parent: VdContainer, changeCtn: VdCha
  */
 export function $dg(childPosition: number, parent: VdContainer, changeCtn: VdChangeContainer, targetIndex: number) {
     let nd: VdNode | undefined = parent.children[childPosition];
+    // delete all next groups that don't fit the targetIndex
     while (nd && nd.index < targetIndex) {
         // delete this group
         let chge: VdDeleteGroup = {
@@ -303,7 +320,8 @@ export function $dg(childPosition: number, parent: VdContainer, changeCtn: VdCha
         // mutate the children collection in order to keep the same array reference
         parent.children.splice(childPosition, 1);
 
-        addChangeInstruction(changeCtn, chge);
+        addChangeInstruction(<VdGroupNode>nd, chge);
+        addChildChanges(<VdGroupNode>nd, changeCtn);
         nd = parent.children[childPosition];
     }
 }
@@ -508,6 +526,16 @@ export function $uc(name: string, value: any, cpt: VdElementWithProps): void {
 }
 
 /**
+ * Enter Component
+ * Used in refresh mode only
+ */
+export function $ec(cptGroup: VdGroupNode): VdGroupNode | null {
+    let g = (<VdCptNode>cptGroup);
+    g.childChanges = null;
+    return g.ltGroup;
+}
+
+/**
  * Refresh component
  * Used in update mode only for component with no $content - otherwise used in update and creation mode
  */
@@ -523,11 +551,22 @@ export function $rc(cptGroup: VdGroupNode, changeCtn: VdChangeContainer): void {
             c.props = {};
         }
         c.props["$content"] = ltGroup;
+    } else {
+        // child change has not been reset in $ec
+        c.childChanges = null;
     }
     renderCpt(c);
 
     // move changes from cptGroup to change container
-    moveChangeInstructions(c, changeCtn);
+    addChildChanges(c, changeCtn);
+}
+
+/**
+ * Enter data node
+ * Used in refresh mode only when data node contains child nodes - otherwise only $rd is called
+ */
+export function $ed(cptGroup: VdGroupNode): void {
+
 }
 
 /**
@@ -617,32 +656,57 @@ function renderCpt(g: VdCptNode) {
     $iv.node = n1;
 }
 
-export function $refreshTemplate(renderer, func: Function, rootNode, data, autoProcessChanges = true) {
+export function $refreshTemplate(renderer, func: Function, rootNode, data) {
     let n1 = $iv.node, r1 = $iv.renderer;
 
     refreshCount++;
+    rootNode.childChanges = null;
     $iv.node = rootNode;
     $iv.renderer = renderer;
     func(data);
     rootNode.$lastRefresh = refreshCount;
     $iv.node = n1;
     $iv.renderer = r1;
-    if (autoProcessChanges) {
-        renderer.processChanges(rootNode);
-    }
+    let changes:VdChangeInstruction[] = [];
+    retrieveChanges(rootNode, changes);
+    renderer.processChanges(changes);
 }
 
 export function $refreshSync(cpt: VdClassCptInstance) {
     if (cpt.$node && cpt.$renderer) {
-        let n1 = $iv.node, n2 = cpt.$node, r1=$iv.renderer;
-        $iv.node = <any>n2;
+        let n1 = $iv.node, n2 = <any>(cpt.$node), r1 = $iv.renderer, changes:VdChangeInstruction[] = [];
+        $iv.node = n2;
+        n2.childChanges = null;
         $iv.renderer = <any>cpt.$renderer;
         refreshCount++;
         cpt.render();
         n2.$lastRefresh = refreshCount;
-        cpt.$renderer.processChanges(n2);
+        retrieveChanges(n2, changes);
+        cpt.$renderer.processChanges(changes);
         $iv.node = n1;
         $iv.renderer = r1;
+    }
+}
+
+function retrieveChanges(node, changeList, resetNodes = true) {
+    let chges = node.changes, cc;
+    // child changes first to put group creation/deletion first
+    if (cc = node.childChanges) {
+        for (let i = 0; cc.length > i; i++) {
+            retrieveChanges(cc[i], changeList, resetNodes);
+        }
+        if (resetNodes) {
+            node.childChanges = null;
+        }
+    }
+    if (chges && chges.length) {
+        let len = changeList.length;
+        for (let i = 0; chges.length > i; i++ , len++) {
+            changeList[len] = chges[i];
+        }
+        if (resetNodes) {
+            node.changes = null;
+        }
     }
 }
 
@@ -651,7 +715,7 @@ export function $refreshSync(cpt: VdClassCptInstance) {
  * Will call preventDefault() on the event object if provided
  * @param e the event associated to the event handler
  */
-export function $eventSink(e?:Event) {
+export function $eventSink(e?: Event) {
     if (e) {
         e.preventDefault();
     }
@@ -661,7 +725,7 @@ function processRefreshQueue() {
     let rr;
     while (rr = refreshQueue.pop()) {
         let cpt = rr.cpt;
-        if (cpt.$node.$lastRefresh <= rr.tStamp) {
+        if (cpt.$node.$lastRefresh < rr.tStamp) {
             $refreshSync(cpt);
         }
     }
@@ -676,7 +740,7 @@ function processRefreshQueue() {
  */
 export async function $refresh(cpt?: VdClassCptInstance) {
     if (cpt) {
-        let newTStamp = refreshCount, found = false;
+        let newTStamp = refreshCount + 1, found = false;
         // check if there is no request already in the queue
         for (let rr of refreshQueue) {
             if (rr.cpt === cpt) {
@@ -794,15 +858,14 @@ function addChangeInstruction(changeCtn: VdChangeContainer, instruction: VdChang
     changeCtn.$lastChange = refreshCount;
 }
 
-function moveChangeInstructions(changeCtn1: VdChangeContainer, changeCtn2: VdChangeContainer) {
-    if (changeCtn1.changes) {
-        if (changeCtn2.changes) {
-            changeCtn2.changes = changeCtn2.changes.concat(changeCtn1.changes);
+function addChildChanges(group: VdGroupNode, changeCtn: VdChangeContainer) {
+    if (group.changes || group.childChanges) {
+        if (!changeCtn.childChanges) {
+            changeCtn.childChanges = [group];
         } else {
-            changeCtn2.changes = changeCtn1.changes;
+            changeCtn.childChanges.push(group);
         }
-        changeCtn2.$lastChange = refreshCount;
-        changeCtn1.changes = null;
+        changeCtn.$lastChange = refreshCount;
     }
 }
 

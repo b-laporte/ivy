@@ -1,5 +1,5 @@
 import { NacNode, NacNodeType, NacAttributeNature } from "./nac";
-import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClSwapLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn } from "./types";
+import { ClCheckGroup, CodeLine, ClJsExpression, CodeLineKind, ClCreateElement, ClIncrementIdx, ClResetIdx, ClDeleteGroups, ClCreateNode, ClCreateComponent, ClInsert, ClRefreshInsert, ClFuncDef, ClSetProps, ClSetAtts, ClUpdateCptProp, ClUpdateAtt, ClUpdateProp, ClRefreshCpt, ClEnterLtGroup, ClSetIndexes, ClCreateTextNode, ClCreateDynTextNode, ClUpdateText, ClSetNodeRef, CodeBlockKind, FunctionBlock, JsBlock, LevelCtxt, NodeBlock, CodeBlock, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn, ClEnterDn, ClLeaveGroup } from "./types";
 
 const ATT_NS = "a", XMLNS = "xmlns", RX_HTML = /html/i, RX_DOTS = /\./;
 
@@ -29,8 +29,8 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
             endLines: []
         };
     if (nd) {
-        let lastLevel = levels[levels.length - 1];
-        levels.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, changeCtnIdx: b.changeCtnIdx, isHtmlNS: lastLevel ? lastLevel.isHtmlNS : true });
+        let lastLevelIdx = levels.length - 1, lastLevel = levels[lastLevelIdx];
+        levels.push({ nbrOfCreations: 0, relative: false, refGenerated: false, idxGenerated: false, changeCtnIdx: lastLevelIdx+1, isHtmlNS: lastLevel ? lastLevel.isHtmlNS : true });
     }
     // always start with a node block
     appendNodeBlock();
@@ -87,13 +87,15 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
                 endStatement: ("" + nd.nodeValue.endBlockExpression).trim(),
                 parentGroupIdx: level + 1,
                 changeCtnIdx: getChangeCtnIdx(level),
-                initLines: []
+                initLines: [],
+                endLines: []
             }
             if (currentBlock && currentBlock.kind === CodeBlockKind.JsBlock) {
                 deleteGroups(jsb.initLines, level);
             }
             b.blocks.push(jsb);
             currentBlock = jsb;
+
             // init lines
             let cg: ClCheckGroup = {
                 kind: CodeLineKind.CheckGroup,
@@ -116,6 +118,13 @@ export function scanBlocks(nac: NacNode, b: JsBlock, levels: LevelCtxt[] = []) {
                 idxLevel: level + 1
             }
             jsb.initLines.push(ri);
+
+            let lg: ClLeaveGroup = {
+                kind: CodeLineKind.LeaveGroup,
+                groupLevel: level + 1,
+                changeCtnIdx: jsb.changeCtnIdx,
+            }
+            jsb.endLines.push(lg);
 
             // recursively scan child blocks
             if (nd.firstChild) {
@@ -374,6 +383,12 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
                 levels[level].changeCtnIdx = level + 1;
                 generateNodeBlockRefsLine(nb, levels);
 
+                let ed = <ClEnterDn>{
+                    kind: CodeLineKind.EnterDataNode,
+                    cptLevel: level + 1
+                };
+                nb.umLines.push(ed);
+
                 levels[level].ondelete = (cb: CodeBlock, nextNb: NodeBlock) => {
                     // set back changeCtnIdx
                     levels[level].changeCtnIdx = currentChangeCtnIdx;
@@ -559,8 +574,8 @@ function generateNodeBlockCodeLines(nb: NodeBlock, nd: NacNode, level: number, l
 
         if (cc && cc.hasLightDom) {
             generateNodeBlockRefsLine(nb, levels);
-            nb.umLines.push(<ClSwapLtGroup>{
-                kind: CodeLineKind.SwapLtGroup,
+            nb.umLines.push(<ClEnterLtGroup>{
+                kind: CodeLineKind.EnterLtGroup,
                 cptLevel: level + 1
             });
 

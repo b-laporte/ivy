@@ -31,6 +31,7 @@ class Renderer implements HtmlRenderer {
             ref: $nextRef(),
             cm: 1,
             changes: null,
+            childChanges: null,
             children: [],
             domNode: null,
             parent: null,
@@ -67,21 +68,17 @@ class Renderer implements HtmlRenderer {
         $refreshTemplate(this, this.vdFunction, this.vdom, $d);
     }
 
-    processChanges(vdNode: VdGroupNode) {
+    processChanges(changes: VdChangeInstruction[]) {
         // update the HTML DOM from the change list
-        processChanges(vdNode, this.htmlElement, this.doc);
+        processChanges(changes, this.htmlElement, this.doc);
     }
 }
 
 /**
  * Process refresh instructions after each vdom refresh
  */
-function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
-    if (!vdom || !vdom.changes || !vdom.changes.length) {
-        return;
-    }
-
-    for (let chge of vdom.changes as VdChangeInstruction[]) {
+function processChanges(changes: VdChangeInstruction[], rootDomContainer, doc: HtmlDoc) {
+    for (let chge of changes) {
         if (chge.kind === VdChangeKind.CreateGroup) {
             let cg = chge as VdCreateGroup;
             if (!cg.parent) {
@@ -139,7 +136,6 @@ function processChanges(vdom, rootDomContainer, doc: HtmlDoc) {
             console.error("[iv html renderer] Unsupported change kind: " + chge.kind);
         }
     }
-    vdom.changes = null;
 }
 
 function updateMapValue(domNode, rootName, propName, value) {

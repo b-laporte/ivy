@@ -3,7 +3,7 @@ export interface VdRenderer {
     /**
      * Process the changes associated to a given node
      */
-    processChanges: (vdNode: VdGroupNode) => void;
+    processChanges: (changes: VdChangeInstruction[]) => void;
 }
 
 export interface VdClassCpt {
@@ -50,9 +50,10 @@ export interface VdContainer extends VdNode {
 }
 
 export interface VdChangeContainer {
-    changes: VdChangeInstruction[] | null;  // list of change instructions
-    $lastRefresh: number;                   // value of the iv refresh counter when the last refresh occured (set after the refresh)
-    $lastChange: number;                    // value of the iv refresh counter when the last change occured (<= $lastRefresh)
+    changes: VdChangeInstruction[] | null;    // list of change instructions
+    childChanges: VdChangeContainer[] | null; // list of child change containers that contain changes
+    $lastRefresh: number;                     // value of the iv refresh counter when the last refresh occured (set after the refresh)
+    $lastChange: number;                      // value of the iv refresh counter when the last change occured (<= $lastRefresh)
 }
 
 export interface VdGroupNode extends VdContainer, VdChangeContainer {

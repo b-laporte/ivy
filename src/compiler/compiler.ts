@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { parse } from "./parser";
-import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClSwapLtGroup, ClCreateDataNode, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn } from "./types";
+import { CodeBlockKind, FunctionBlock, JsBlock, NodeBlock, CodeLine, CodeLineKind, ClCreateElement, ClInsert, ClCreateComponent, ClCreateTextNode, ClCreateDynTextNode, ClSetProps, ClSetAtts, ClUpdateProp, ClUpdateAtt, ClUpdateText, ClUpdateCptProp, ClRefreshCpt, ClRefreshInsert, ClSetNodeRef, ClCheckGroup, ClDeleteGroups, ClIncrementIdx, ClResetIdx, ClSetIndexes, ClJsExpression, ClFuncDef, ClEnterLtGroup, ClCreateDataNode, ClCreatePropMap, ClUpdatePropMap, ClRefreshDn, ClEnterDn, ClLeaveGroup } from "./types";
 import { scanBlocks, checkMaxLevelIndex } from "./blocks";
 
 const CR = "\n", VD_RENDERER_TYPE = "VdRenderer";
@@ -371,6 +371,9 @@ function generateCode(parentBlock: JsBlock, lines: string[]): void {
                 lines.push(stringifyCodeLine(cl, jsb.baseIndent, fc));
             }
             generateCode(jsb, lines);
+            for (let cl of jsb.endLines) {
+                lines.push(stringifyCodeLine(cl, jsb.baseIndent, fc));
+            }
             lines.push(`${parentBlock.baseIndent}${jsb.endStatement}`);
         }
         blockIdx++;
@@ -504,7 +507,12 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             if (fc.maxLevel < cg.parentLevel + 1) {
                 fc.maxLevel = cg.parentLevel + 1;
             }
-            return `${indent}$a${cg.parentLevel + 1} = $cg($i${cg.parentLevel}, $a${cg.parentLevel}, $a${cg.changeCtnIdx}, $a${cg.parentGroupLevel}, ${cg.groupIdx});`;
+            return `${indent}$a${cg.parentLevel + 1} = $cg($i${cg.parentLevel}, $a${cg.parentLevel}, $a${cg.parentGroupLevel}, ${cg.groupIdx});`;
+        case CodeLineKind.LeaveGroup:
+            let lg = cl as ClLeaveGroup;
+            // e.g. $lg($a2, $a0)
+            fc.headDeclarations.ivImports["$lg"] = 1;
+            return `${indent}$lg($a${lg.groupLevel}, $a${lg.changeCtnIdx});`;
         case CodeLineKind.DeleteGroups:
             let dg = cl as ClDeleteGroups;
             // e.g. $dg($i1, $a1, $a0, 8);
@@ -539,11 +547,16 @@ function stringifyCodeLine(cl: CodeLine, indent: string, fc: FunctionBlock): str
             let fd = cl as ClFuncDef;
             // e.g. $f2=function() {doSomething()};
             return `${indent}$f${fd.index}=${fd.expr};`;
-        case CodeLineKind.SwapLtGroup:
-            let sw = cl as ClSwapLtGroup;
-            // $a2 = $a2.ltGroup;
-            return `${indent}$a${sw.cptLevel} = $a${sw.cptLevel}.ltGroup;`;
-
+        case CodeLineKind.EnterLtGroup:
+            let sw = cl as ClEnterLtGroup;
+            // $a2 = $ec($a2);
+            fc.headDeclarations.ivImports["$ec"] = 1;
+            return `${indent}$a${sw.cptLevel} = $ec($a${sw.cptLevel});`;
+        case CodeLineKind.EnterDataNode:
+            let ed = cl as ClEnterDn;
+            // $ed($a2);
+            fc.headDeclarations.ivImports["$ed"] = 1;
+            return `${indent}$ed($a${ed.cptLevel});`;
     }
     return "// invalid code kind: " + cl.kind;
 }

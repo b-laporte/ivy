@@ -1,11 +1,9 @@
+
 import { htmlRenderer } from "../../htmlrenderer";
 
-let r = htmlRenderer(document.getElementById("root"), hello);
-
-function hello(name) {
-    `---
+function hello(name) {`
      <div> Hello {{name}}! </div>
-     ---`
-}
+`}
 
+let r = htmlRenderer(document.getElementById("root"), hello);
 r.refresh({ name: "World" });

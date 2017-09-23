@@ -193,6 +193,7 @@ function checkArrayProperty(name, att1, att2) {
 
 interface TestRenderer extends VdRenderer {
     root?: VdGroupNode;
+    lastChanges: VdChangeInstruction[];
     func: (...any) => void;
     vdom: () => string;
     changes: () => string;
@@ -209,6 +210,7 @@ export function createTestRenderer(func: (...any) => void, options?: { baseInden
         ref: -1,
         cm: 1,
         changes: null,
+        childChanges: null,
         children: [],
         domNode: null,
         parent: null,
@@ -217,22 +219,26 @@ export function createTestRenderer(func: (...any) => void, options?: { baseInden
     }
 
     let r: TestRenderer = {
+        lastChanges: [],
         func: func,
         root: undefined,
         vdom: () => serializeGroup(rootGroup, options ? options.baseIndent : "    "),
-        changes: () => serializeChanges(rootGroup, options ? options.baseIndent : "    "),
+        changes: function () {
+            let r = serializeChanges (this.lastChanges, options ? options.baseIndent : "    ");
+            return r;
+        },
         refresh: function ($d) {
             if (!this.root) {
                 this.root = rootGroup;
             } else {
                 this.root.changes = null;
             }
-            $refreshTemplate(this, this.func, this.root, $d, false);
+            $refreshTemplate(this, this.func, this.root, $d);
         },
-        processChanges(vdNode: VdGroupNode) {
+        processChanges(changes: VdChangeInstruction[]) {
             // update the HTML DOM from the change list
             // ignored here
-            vdNode.changes = null;
+            this.lastChanges = changes;
         }
     }
 
@@ -331,12 +337,12 @@ function stringifyIdxAndRef(nd: VdNode) {
     return res;
 }
 
-function serializeChanges(nd: VdGroupNode, indent: string) {
+function serializeChanges(changes: VdChangeInstruction[], indent: string) {
     let lines: string[] = [];
-    if (!nd.changes || nd.changes.length === 0) {
+    if (!changes || changes.length === 0) {
         return CR + indent;;
     } else {
-        for (let chge of nd.changes) {
+        for (let chge of changes) {
             switch (chge.kind) {
                 case VdChangeKind.CreateGroup:
                     let cg = chge as VdCreateGroup,
@@ -565,7 +571,7 @@ class ElementNode {
 
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
-                && k !== "namespaceURI" && k !== "$uid" && k !== "parentNode" 
+                && k !== "namespaceURI" && k !== "$uid" && k !== "parentNode"
                 && k !== "style" && k !== "classList") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);

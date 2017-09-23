@@ -283,7 +283,6 @@ describe('Class Components', () => {
                 </div>
             </div>
         `, "initial refresh");
-
         r.refresh({ ok: false });
         assert.equal(div.stringify(OPTIONS_UID), `
             <div::E1>

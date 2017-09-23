@@ -76,8 +76,8 @@ describe('Rollup output', () => {
             </#group>
         `, "update 145");
         assert.equal(r.changes(), `
-            UpdateProp "title"=145 in #3
             CreateGroup #5 in #2 at position 1
+            UpdateProp "title"=145 in #3
             UpdateProp "title"=165 in #4
         `, "update changes 145");
 
@@ -99,8 +99,8 @@ describe('Rollup output', () => {
             </#group>
         `, "update 200");
         assert.equal(r.changes(), `
-            UpdateProp "title"=200 in #3
             UpdateProp "title"=210 in #6
+            UpdateProp "title"=200 in #3
             UpdateProp "title"=220 in #4
         `, "update changes 200");
 
@@ -119,8 +119,8 @@ describe('Rollup output', () => {
             </#group>
         `, "update 50");
         assert.equal(r.changes(), `
-            UpdateProp "title"=50 in #3
             DeleteGroup #5 in #2 at position 1
+            UpdateProp "title"=50 in #3
             UpdateProp "title"=70 in #4
         `, "update changes 50");
 
@@ -221,8 +221,8 @@ describe('Rollup output', () => {
         `, "update 42");
         assert.equal(r.changes(), `
             UpdateProp "title"="43 m1:9" in #2
-            UpdateProp "title"="45 m2:9" in #4
             CreateGroup #5 in #3 at position 1
+            UpdateProp "title"="45 m2:9" in #4
         `, "update changes 42");
 
         // update 1
@@ -247,8 +247,8 @@ describe('Rollup output', () => {
         `, "update 9");
         assert.equal(r.changes(), `
             UpdateProp "title"="10 m1:9" in #2
-            UpdateProp "title"="12 m2:9" in #4
             DeleteGroup #5 in #3 at position 1
+            UpdateProp "title"="12 m2:9" in #4
         `, "update changes 9");
     });
 

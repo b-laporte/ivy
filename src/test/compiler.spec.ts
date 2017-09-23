@@ -233,7 +233,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1;
                 if (nbr===42) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                    $a2 = $cg($i1, $a1, $a0, 3);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
@@ -243,6 +243,7 @@ describe('Iv compiler', () => {
                         $tx($a3, 7, " World ");
                         $a2.cm = 0;
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $a2 = $el($a1, 8, "span", 1);
@@ -283,23 +284,25 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 0;
                 if (nbr===42) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 2);
+                    $a2 = $cg($i1, $a1, $a0, 2);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 3, " Case 42 ");
                         $a2.cm = 0;
                     }
+                    $lg($a2, $a0);
                 }
                 else if (nbr===142) {
                     $dg($i1, $a1, $a0, 4);
-                    $a2 = $cg($i1, $a1, $a0, $a0, 4);
+                    $a2 = $cg($i1, $a1, $a0, 4);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 5, " Case 142 ");
                         $a2.cm = 0;
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $a0.cm = 0;
@@ -341,13 +344,14 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1;
                 if (nbr>42) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                    $a2 = $cg($i1, $a1, $a0, 3);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 4, " ++ ");
                         $a2.cm = 0;
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $a2 = $el($a1, 5, "span", 1);
@@ -359,13 +363,14 @@ describe('Iv compiler', () => {
                 }
                 $i1 += 1;
                 if (nbr>142) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 6);
+                    $a2 = $cg($i1, $a1, $a0, 6);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 7, " ++++ ");
                         $a2.cm = 0;
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $tx($a1, 8, " DEF ");
@@ -400,7 +405,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1;
                 for (let i=0;list.length>i;i++) {
-                    $a1 = $cg($i0, $a0, $a0, $a0, 2);
+                    $a1 = $cg($i0, $a0, $a0, 2);
                     $i0++;
                     $i1 = 0;
                     if ($a1.cm) {
@@ -409,8 +414,9 @@ describe('Iv compiler', () => {
                         $a1.cm = 0;
                     } else {
                         $a2 = $a1.children[0];
-                        $up("title", ("Hello " + list[i].name), $a2, $a0);
+                        $up("title", ("Hello " + list[i].name), $a2, $a1);
                     }
+                    $lg($a1, $a0);
                 }
                 if ($a0.cm) {
                     $a1 = $el($a0, 4, "div", 1);
@@ -457,7 +463,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1;
                 if (nbr>42) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 3);
+                    $a2 = $cg($i1, $a1, $a0, 3);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
@@ -465,11 +471,11 @@ describe('Iv compiler', () => {
                         $a3.props = { "title": nbr };
                     } else {
                         $a3 = $a2.children[0];
-                        $up("title", nbr, $a3, $a0);
+                        $up("title", nbr, $a3, $a2);
                     }
                     $i2 = 1;
                     if (nbr>142) {
-                        $a3 = $cg($i2, $a2, $a0, $a2, 5);
+                        $a3 = $cg($i2, $a2, $a2, 5);
                         $i2++;
                         $i3 = 0;
                         if ($a3.cm) {
@@ -478,8 +484,9 @@ describe('Iv compiler', () => {
                             $a3.cm = 0;
                         } else {
                             $a4 = $a3.children[0];
-                            $up("title", nbr+10, $a4, $a0);
+                            $up("title", nbr+10, $a4, $a3);
                         }
+                        $lg($a3, $a2);
                     }
                     if ($a2.cm) {
                         $a3 = $el($a2, 7, "div", 0);
@@ -487,11 +494,12 @@ describe('Iv compiler', () => {
                         $a4.props = { "title": nbr+20 };
                         $a2.cm = 0;
                     } else {
-                        $dg($i2, $a2, $a0, 7);
+                        $dg($i2, $a2, $a2, 7);
                         $a3 = $a2.children[$i2];
                         $a4 = $a3.children[0];
-                        $up("title", nbr+20, $a4, $a0);
+                        $up("title", nbr+20, $a4, $a2);
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $tx($a1, 9, " DEF ");
@@ -530,7 +538,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1;
                 if (nbr===42) {
-                    $a1 = $cg($i0, $a0, $a0, $a0, 2);
+                    $a1 = $cg($i0, $a0, $a0, 2);
                     $i0++;
                     $i1 = 0;
                     nbr += 3;
@@ -539,6 +547,7 @@ describe('Iv compiler', () => {
                         $tx($a2, 4, " Hello ");
                         $a1.cm = 0;
                     }
+                    $lg($a1, $a0);
                 }
                 let w=9;
                 if ($a0.cm) {
@@ -655,7 +664,7 @@ describe('Iv compiler', () => {
                 let visible = $d["visible"], nbr = $d["nbr"];
                 visibile = visible || true;
                 if (visible) {
-                    $a1 = $cg($i0, $a0, $a0, $a0, 1);
+                    $a1 = $cg($i0, $a0, $a0, 1);
                     $i0++;
                     $i1 = 0;
                     if ($a1.cm) {
@@ -665,8 +674,9 @@ describe('Iv compiler', () => {
                     } else {
                         $a2 = $a1.children[0];
                         $a3 = $a2.children[0];
-                        $ut("" + $ct(nbr), $a3, $a0);
+                        $ut("" + $ct(nbr), $a3, $a1);
                     }
+                    $lg($a1, $a0);
                 }
                 if ($a0.cm) {
                     $a0.cm = 0;
@@ -712,11 +722,11 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 0;
                 if (visible) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 2);
+                    $a2 = $cg($i1, $a1, $a0, 2);
                     $i1++;
                     $i2 = 0;
                     if (nbr === 42) {
-                        $a3 = $cg($i2, $a2, $a0, $a2, 3);
+                        $a3 = $cg($i2, $a2, $a2, 3);
                         $i2++;
                         $i3 = 0;
                         if ($a3.cm) {
@@ -726,14 +736,16 @@ describe('Iv compiler', () => {
                         } else {
                             $a4 = $a3.children[0];
                             $a5 = $a4.children[0];
-                            $ut("" + $ct(nbr), $a5, $a0);
+                            $ut("" + $ct(nbr), $a5, $a3);
                         }
+                        $lg($a3, $a2);
                     }
                     if ($a2.cm) {
                         $a2.cm = 0;
                     } else {
-                        $dg($i2, $a2, $a0, 6);
+                        $dg($i2, $a2, $a2, 6);
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $a0.cm = 0;
@@ -777,7 +789,7 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1;
                 if (bar === 42) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 4);
+                    $a2 = $cg($i1, $a1, $a0, 4);
                     $i1++;
                     $i2 = 0;
                     $f1=function(evt) {console.log(evt.srcElement)};
@@ -788,8 +800,9 @@ describe('Iv compiler', () => {
                         $a2.cm = 0;
                     } else {
                         $a3 = $a2.children[0];
-                        $up("onmouseover", $f1, $a3, $a0);
+                        $up("onmouseover", $f1, $a3, $a2);
                     }
+                    $lg($a2, $a0);
                 }
                 $f2=function() {blah(123)};
                 if ($a0.cm) {
@@ -875,7 +888,7 @@ describe('Iv compiler', () => {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[0];
                     $uc("value", nbr, $a2);
-                    $a2 = $a2.ltGroup;
+                    $a2 = $ec($a2);
                     $a3 = $a2.children[0];
                     $a4 = $a3.children[0];
                     $ut("" + $ct(nbr+1), $a4, $a2);
@@ -917,13 +930,13 @@ describe('Iv compiler', () => {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[0];
                     $uc("value", nbr, $a2);
-                    $a2 = $a2.ltGroup;
+                    $a2 = $ec($a2);
                     $a3 = $a2.children[0];
                     $ut("" + $ct(nbr+1), $a3, $a2);
                 }
                 $i0 = 1; $i1 = 1; $i2 = 1;
                 if (nbr===42) {
-                    $a3 = $cg($i2, $a2, $a2, $a0, 4);
+                    $a3 = $cg($i2, $a2, $a0, 4);
                     $i2++;
                     $i3 = 0;
                     if ($a3.cm) {
@@ -931,8 +944,9 @@ describe('Iv compiler', () => {
                         $a3.cm = 0;
                     } else {
                         $a4 = $a3.children[0];
-                        $ut("" + $ct(nbr+2), $a4, $a2);
+                        $ut("" + $ct(nbr+2), $a4, $a3);
                     }
+                    $lg($a3, $a2);
                 }
                 if ($a0.cm) {
                     $dt($a2, 6, "" + $ct(nbr+3));
@@ -974,11 +988,11 @@ describe('Iv compiler', () => {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[0];
                     $uc("value", nbr, $a2);
-                    $a2 = $a2.ltGroup;
+                    $a2 = $ec($a2);
                 }
                 $i0 = 1; $i1 = 1; $i2 = 0;
                 if (nbr===42) {
-                    $a3 = $cg($i2, $a2, $a2, $a0, 3);
+                    $a3 = $cg($i2, $a2, $a0, 3);
                     $i2++;
                     $i3 = 0;
                     if ($a3.cm) {
@@ -986,8 +1000,9 @@ describe('Iv compiler', () => {
                         $a3.cm = 0;
                     } else {
                         $a4 = $a3.children[0];
-                        $ut("" + $ct(nbr+2), $a4, $a2);
+                        $ut("" + $ct(nbr+2), $a4, $a3);
                     }
+                    $lg($a3, $a2);
                 }
                 if ($a0.cm) {
                     $rc($a2, $a0);
@@ -1026,7 +1041,7 @@ describe('Iv compiler', () => {
                 } else {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[0];
-                    $a2 = $a2.ltGroup;
+                    $a2 = $ec($a2);
                     $a3 = $a2.children[0];
                     $a4 = $a3.children[0];
                     $ut("" + $ct(nbr+1), $a4, $a2);
@@ -1094,13 +1109,14 @@ describe('Iv compiler', () => {
                 }
                 $i0 = 1; $i1 = 1; $i2 = 0;
                 if (true) {
-                    $a3 = $cg($i2, $a2, $a0, $a0, 3);
+                    $a3 = $cg($i2, $a2, $a0, 3);
                     $i2++;
                     $i3 = 0;
                     if ($a3.cm) {
                         $tx($a3, 4, " OK ");
                         $a3.cm = 0;
                     }
+                    $lg($a3, $a0);
                 }
                 if ($a0.cm) {
                     $a1 = $el($a0, 5, "div", 1);
@@ -1110,13 +1126,14 @@ describe('Iv compiler', () => {
                 }
                 $i0 += 1; $i1 = 0;
                 if (nbr>0) {
-                    $a2 = $cg($i1, $a1, $a0, $a0, 6);
+                    $a2 = $cg($i1, $a1, $a0, 6);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
                         $tx($a2, 7, " Clear ");
                         $a2.cm = 0;
                     }
+                    $lg($a2, $a0);
                 }
                 if ($a0.cm) {
                     $a0.cm = 0;
@@ -1157,6 +1174,7 @@ describe('Iv compiler', () => {
                 } else {
                     $a1 = $a0.children[0];
                     $a2 = $a1.children[0];
+                    $ed($a2);
                     $up("type", foo, $a2, $a2);
                     $a3 = $a2.children[0];
                     $ut($t0 + $ct(bar), $a3, $a2);
@@ -1164,6 +1182,7 @@ describe('Iv compiler', () => {
                     $a2 = $a1.children[1];
                     $ut($t1 + $ct(bar+"..."), $a2, $a0);
                     $a2 = $a1.children[2];
+                    $ed($a2);
                     $rd($a2, $a0);
                 }
             }
@@ -1197,13 +1216,13 @@ describe('Iv compiler', () => {
                     $dt($a1, 2, "" + $ct(showFirst && showLast));
                 } else {
                     $a1 = $a0.children[0];
-                    $a1 = $a1.ltGroup;
+                    $a1 = $ec($a1);
                     $a2 = $a1.children[0];
                     $ut("" + $ct(showFirst && showLast), $a2, $a1);
                 }
                 $i0 = 1; $i1 = 1;
                 if (showFirst) {
-                    $a2 = $cg($i1, $a1, $a1, $a0, 3);
+                    $a2 = $cg($i1, $a1, $a0, 3);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
@@ -1213,12 +1232,14 @@ describe('Iv compiler', () => {
                         $a2.cm = 0;
                     } else {
                         $a3 = $a2.children[0];
-                        $rd($a3, $a1);
+                        $ed($a3);
+                        $rd($a3, $a2);
                     }
+                    $lg($a2, $a1);
                 }
                 if (showLast) {
                     $dg($i1, $a1, $a1, 6);
-                    $a2 = $cg($i1, $a1, $a1, $a0, 6);
+                    $a2 = $cg($i1, $a1, $a0, 6);
                     $i1++;
                     $i2 = 0;
                     if ($a2.cm) {
@@ -1228,10 +1249,12 @@ describe('Iv compiler', () => {
                         $a2.cm = 0;
                     } else {
                         $a3 = $a2.children[0];
+                        $ed($a3);
                         $a4 = $a3.children[0];
                         $ut($t0 + $ct(showFirst), $a4, $a3);
-                        $rd($a3, $a1);
+                        $rd($a3, $a2);
                     }
+                    $lg($a2, $a1);
                 }
                 if ($a0.cm) {
                     $rc($a1, $a0);

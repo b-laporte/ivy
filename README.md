@@ -1,6 +1,10 @@
 # IV
 IV ("ivy") is a lightweight JS template engine mixing concepts from ReactJS, Angular2 and Incremental DOM.
 
+High level presentations:
+- [paradigm and mental model](https://docs.google.com/presentation/d/1Pwq-qAtUDp-234csg4LqPu7lbfd9VCxPJN9b-nbM6xs/edit#slide=id.p)
+- [technical insight & code generation](https://docs.google.com/presentation/d/1Tx0kVw79GMqv1xUYqxWR_qQ9t17DkQrc5UsYhrXNFpk/edit?usp=sharing)
+
 ## Running scripts
 - `yarn` to prepare your environment
 

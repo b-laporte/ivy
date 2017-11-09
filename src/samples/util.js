@@ -8,5 +8,5 @@ exports.getRunner = () => new benchpress.Runner([
   {provide: benchpress.RegressionSlopeValidator.SAMPLE_SIZE, useValue: 20},
   //use the script metric to calculate slope regression
   {provide: benchpress.RegressionSlopeValidator.METRIC, useValue: 'scriptTime'},
-  {provide: benchpress.Options.FORCE_GC, useValue: true}
+  {provide: benchpress.Options.FORCE_GC, useValue: false}
 ]);

@@ -1,8 +1,9 @@
 import { htmlRenderer } from "../../../htmlrenderer";
 import {bindAction, profile} from '../util';
-import {buildTable, emptyTable} from './util';
+import {buildTable, emptyTable, TableCell} from './util';
 
 let renderer;
+let data: TableCell[][];
 
 function refresh(data) {
   if (!renderer) {
@@ -16,7 +17,13 @@ function destroyDom() {
 }
 
 function createDom() {
-  refresh(buildTable());
+  refresh(data = buildTable());
+}
+
+function detectChanges() {
+  for (let i = 0; i < 10; i++) {
+    refresh(data);
+  }
 }
 
 function getColor(row: number) { return row % 2 ? '' : 'grey'; }
@@ -43,5 +50,6 @@ function noop() {}
 
 bindAction('#destroyDom', destroyDom);
 bindAction('#createDom', createDom);
+bindAction('#detectChanges', detectChanges);
 bindAction('#updateDomProfile', profile(createDom, noop, 'update'));
 bindAction('#createDomProfile', profile(createDom, destroyDom, 'create'));

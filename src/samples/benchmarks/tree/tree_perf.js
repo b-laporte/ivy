@@ -12,10 +12,10 @@ describe('tree benchmark perf', function() {
       id: 'tree.iv.createOnly',
       prepare: function() {
         // weird order, but the same as in Angular's benchmarks
-        $('#createDom').click();
+        $('#destroyDom').click();
       },
       execute: function() {
-        $('#destroyDom').click()
+        $('#createDom').click()
       }
     }).then(done, done.fail);
   });
@@ -24,9 +24,8 @@ describe('tree benchmark perf', function() {
     runner.sample({
       id: 'tree.iv.createDestroy',
       execute: function() {
-        // weird order, but the same as in Angular's benchmarks
-        $('#destroyDom').click();
         $('#createDom').click();
+        $('#destroyDom').click();
       }
     }).then(done, done.fail);
   });
@@ -44,10 +43,10 @@ describe('tree benchmark perf', function() {
     runner.sample({
       id: 'tree.iv.detectChanges',
       prepare: function() {
-        $('#detectChanges').click();
+        $('#createDom').click();
       },
       execute: function() {
-        $('#destroyDom').click()
+        $('#detectChanges').click()
       }
     }).then(done, done.fail);
   });

@@ -38,4 +38,15 @@ describe('largeTable benchmark perf', function() {
     }).then(done, done.fail);
   });
 
+  it('should work for detectChanges', (done) => {
+    runner.sample({
+      id: 'largeTable.iv.detectChanges',
+      prepare: function() {
+        $('#createDom').click();
+      },
+      execute: function() {
+        $('#detectChanges').click()
+      }
+    }).then(done, done.fail);
+  });
 });

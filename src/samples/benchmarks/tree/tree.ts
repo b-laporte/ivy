@@ -3,7 +3,10 @@ import {bindAction, profile} from '../util';
 import {buildTree, emptyTree, TreeNode} from './util';
 
 let renderer;
-let data: TreeNode;
+let data: TreeNode = emptyTree;
+
+const numberOfChecksEl = document.getElementById('numberOfChecks') !;
+let detectChangesRuns = 0;
 
 function refresh(data) {
   if (!renderer) {
@@ -24,6 +27,8 @@ function detectChanges() {
   for (let i = 0; i < 10; i++) {
     refresh(data);
   }
+  detectChangesRuns += 10;
+  numberOfChecksEl.textContent = `${detectChangesRuns}`;
 }
 
 function getColor(row: number) { return row % 2 ? '' : 'grey'; }

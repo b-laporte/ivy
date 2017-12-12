@@ -20,12 +20,6 @@ function createDom() {
   refresh(data = buildTable());
 }
 
-function detectChanges() {
-  for (let i = 0; i < 10; i++) {
-    refresh(data);
-  }
-}
-
 function getColor(row: number) { return row % 2 ? '' : 'grey'; }
 
 function largeTable(data) {
@@ -50,6 +44,5 @@ function noop() {}
 
 bindAction('#destroyDom', destroyDom);
 bindAction('#createDom', createDom);
-bindAction('#detectChanges', detectChanges);
 bindAction('#updateDomProfile', profile(createDom, noop, 'update'));
 bindAction('#createDomProfile', profile(createDom, destroyDom, 'create'));

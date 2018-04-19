@@ -1,5 +1,6 @@
 
 import "mocha";
+import "./dstore.spec";
 import "./nac.spec";
 import "./parser.spec";
 import "./compiler.spec";

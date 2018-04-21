@@ -1,11 +1,11 @@
 import { htmlRenderer } from "../../htmlrenderer";
-import { TodoApp, TodoAppData, TodoData } from "../../test/dstore/tododata";
+import { TodoAppDef, TodoApp, Todo } from "../../test/dstore/tododata";
 import { watch, DataList, processingDone } from "../../dstore/dstore";
 
 const ENTER_KEY = 13;
 const ESCAPE_KEY = 27;
 
-let todoApp = TodoApp.create(), renderer;
+let todoApp = TodoAppDef.create(), renderer;
 
 window.addEventListener("hashchange", handleHashChange, false);
 function handleHashChange() {
@@ -21,7 +21,7 @@ function handleHashChange() {
 
 // processors
 let counter=0;
-TodoApp.setProcessor("/itemsLeft", function (list: DataList<TodoData>) {
+TodoAppDef.setProcessor("/itemsLeft", function (list: DataList<Todo>) {
   let itemsLeft = 0;
   list.forEach(item => {
     itemsLeft += item.complete ? 0 : 1;
@@ -29,7 +29,7 @@ TodoApp.setProcessor("/itemsLeft", function (list: DataList<TodoData>) {
   return itemsLeft;
 });
 
-TodoApp.setProcessor("/listView", function (filter: string, list: DataList<TodoData>) {
+TodoAppDef.setProcessor("/listView", function (filter: string, list: DataList<Todo>) {
   if (filter === "ALL") {
     return list;
   } else {
@@ -38,7 +38,7 @@ TodoApp.setProcessor("/listView", function (filter: string, list: DataList<TodoD
   }
 });
 
-function render(app) {
+function render(app:TodoApp) {
   todoApp = app || todoApp;
   if (!renderer) {
     renderer = htmlRenderer(document.getElementById("root"), todoMvc);
@@ -48,7 +48,7 @@ function render(app) {
 
 watch(todoApp, render);
 
-function todoMvc(todoApp: TodoAppData) {
+function todoMvc(todoApp: TodoApp) {
   `---
   % let todos = todoApp.list;
   //% console.log("new Entry: '"+todoApp.newEntry+"'");
@@ -104,7 +104,7 @@ function todoMvc(todoApp: TodoAppData) {
 }
 
 // actions
-function addTodoOnEnter(event: any, app: TodoAppData) {
+function addTodoOnEnter(event: any, app: TodoApp) {
   if (event.keyCode == ENTER_KEY) {
     app.newEntry = event.target.value; // iv doesn't support 2-way binding
     event.target.value = "";
@@ -112,7 +112,7 @@ function addTodoOnEnter(event: any, app: TodoAppData) {
   }
 }
 
-function createNewTodo(app: TodoAppData) {
+function createNewTodo(app: TodoApp) {
   let todoDesc = app.newEntry.trim();
   if (todoDesc.length) {
     let item = app.list.newItem();
@@ -121,21 +121,21 @@ function createNewTodo(app: TodoAppData) {
   }
 }
 
-function toggleTodo(todo: TodoData) {
+function toggleTodo(todo: Todo) {
   todo.complete = !todo.complete;
 }
 
-function deleteTodo(app: TodoAppData, todo: TodoData) {
+function deleteTodo(app: TodoApp, todo: Todo) {
   const index = app.list.indexOf(todo);
   app.list.splice(index, 1);
 }
 
-function clearCompleted(app: TodoAppData) {
+function clearCompleted(app: TodoApp) {
   let newList = app.list.filter((todo) => !todo.complete)
   app.list = newList;
 }
 
-function editTodo(event, app: TodoAppData, todo: TodoData) {
+function editTodo(event, app: TodoApp, todo: Todo) {
   if (event.keyCode == ENTER_KEY) {
     if (event.target.value.length) {
       todo.description = event.target.value.trim();
@@ -148,7 +148,7 @@ function editTodo(event, app: TodoAppData, todo: TodoData) {
   }
 }
 
-async function startEditing(event, app: TodoAppData, todo: TodoData | null) {
+async function startEditing(event, app: TodoApp, todo: Todo | null) {
   // called when an item is clicked
   app.list.forEach((item) => {
     item.editing = (item === todo);
@@ -158,17 +158,17 @@ async function startEditing(event, app: TodoAppData, todo: TodoData | null) {
   event.target.parentElement.parentElement.children[1].focus();
 };
 
-function cancelEditing(event, todo: TodoData) {
+function cancelEditing(event, todo: Todo) {
   todo.editing = false;
   event.target.value = todo.description;
 }
 
-function stopEditing(event, todo: TodoData) {
+function stopEditing(event, todo: Todo) {
   todo.editing = false;
   event.target.value = todo.description;
 }
 
-function markAll(app: TodoAppData) {
+function markAll(app: TodoApp) {
   const toBeCompleted = app.list.filter((todo) => !todo.complete).length > 0;
   app.list.forEach((todo) => { todo.complete = toBeCompleted });
 }

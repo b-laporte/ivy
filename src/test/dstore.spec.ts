@@ -6,14 +6,14 @@ import { TestNode, TestNodeDef, ArrTestNodeDef, ArrTestNode, DepNode, DepNodeDef
 describe('DStore', () => {
 
     it('should have correct init values', () => {
-        let todo = td.Todo.create();
+        let todo = td.TodoDef.create();
         assert.equal(todo.description, "", "init value string");
         assert.equal(todo.complete, false, "init value bool");
         assert.equal(isBeingChanged(todo), false, "initially pristine");
     });
 
     it('should handle changes on simple datasets', async function () {
-        let todo = td.Todo.create();
+        let todo = td.TodoDef.create();
 
         // mutate todo
         assert.equal(isBeingChanged(todo), false, "initially pristine");
@@ -531,7 +531,7 @@ describe('DStore', () => {
 
     // TODO raise error when setting an invalid processor on an object
 
-    td.TodoApp.setProcessor("/itemsLeft", function (list: DataList<td.TodoData>) {
+    td.TodoAppDef.setProcessor("/itemsLeft", function (list: DataList<td.Todo>) {
         let itemsLeft = 0;
         list.forEach(item => {
             itemsLeft += item.complete ? 0 : 1;
@@ -539,7 +539,7 @@ describe('DStore', () => {
         return itemsLeft;
     });
 
-    td.TodoApp.setProcessor("/listView", function (filter: string, list: DataList<td.TodoData>) {
+    td.TodoAppDef.setProcessor("/listView", function (filter: string, list: DataList<td.Todo>) {
         if (filter === "ALL") {
             return list;
         } else {
@@ -550,9 +550,9 @@ describe('DStore', () => {
 
     it('should work for TodoMVC', async function () {
         let watchCalls = 0,
-            todoApp = td.TodoApp.create();
+            todoApp = td.TodoAppDef.create();
 
-        let wRef = watch(todoApp, (app: td.TodoAppData) => {
+        let wRef = watch(todoApp, (app: td.TodoApp) => {
             watchCalls++;
             todoApp = app;
         });

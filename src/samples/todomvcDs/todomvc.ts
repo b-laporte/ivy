@@ -7,8 +7,7 @@ const ESCAPE_KEY = 27;
 
 let todoApp = TodoAppDef.create(), renderer;
 
-window.addEventListener("hashchange", handleHashChange, false);
-function handleHashChange() {
+window.addEventListener("hashchange", () => {
   const hash = window.location.hash;
   if (hash === '#/completed') {
     todoApp.filter = "COMPLETED";
@@ -17,10 +16,8 @@ function handleHashChange() {
   } else {
     todoApp.filter = "ALL";
   }
-}
+}, false);
 
-// processors
-let counter=0;
 TodoAppDef.setProcessor("/itemsLeft", function (list: DataList<Todo>) {
   let itemsLeft = 0;
   list.forEach(item => {
@@ -38,16 +35,13 @@ TodoAppDef.setProcessor("/listView", function (filter: string, list: DataList<To
   }
 });
 
-function render(app:TodoApp) {
+watch(todoApp, (app:TodoApp) => {
   todoApp = app || todoApp;
-  if (!renderer) {
-    renderer = htmlRenderer(document.getElementById("root"), todoMvc);
-  }
+  renderer = renderer || htmlRenderer(document.getElementById("root"), todoMvc);
   renderer.refresh({ todoApp: todoApp });
-}
+});
 
-watch(todoApp, render);
-
+// template
 function todoMvc(todoApp: TodoApp) {
   `---
   % let todos = todoApp.list;

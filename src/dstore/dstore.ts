@@ -738,7 +738,7 @@ class RefreshList {
         rn.list = this;
         if (!this.first) {
             this.first = this.last = rn;
-            setTimeout(processRefreshList, 0); // todo: use RAF when possible
+            Promise.resolve().then(processRefreshList);
         } else {
             // add last
             let last = this.last!;

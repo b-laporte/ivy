@@ -249,11 +249,13 @@ describe('DStore', () => {
         assert.equal(node11.node!.value, "v2", "v2 value on node11");
         assert.equal(node12.node!.value, "v21", "v21 value on node12");
 
+        debugger
         // change, set to null and set back
         node12.node!.value = "v22";
         let n = node12.node;
         node12.node = null;
         node12.node = n;
+
         let node13 = <TestNodeDef>await processingDone(node12);
         assert.equal(node12.node!.value, "v21", "still v21 value on node12");
         assert.equal(node13.node!.value, "v22", "v22 value on node13");
@@ -405,6 +407,7 @@ describe('DStore', () => {
         assert.equal(ls.toString(), "TestNodeImpl i1,TestNodeImpl i3", "ls content");
         assert.equal((ls as any).$dmd.parents.length, 0, "ls has no parents");
         assert.equal((ls11 as any).$dmd.parents.length, 1, "ls11 has one parent");
+        assert.equal((ls.get(0) as any).$dmd.parents.length, 2, "list items have now 2 parents");
 
         node11.list = ls;
 
@@ -558,7 +561,7 @@ describe('DStore', () => {
         assert.equal(watchCalls, 1, "1 watch call");
         assert.equal(todoApp.list.length, 0, "no items at init");
         assert.equal(todoApp.itemsLeft, 0, "0 items left");
-
+        
         // add a first item
         let item= todoApp.list.newItem();
         item.description = "item A";
@@ -569,17 +572,21 @@ describe('DStore', () => {
         assert.equal(todoApp.itemsLeft, 1, "1 item left");
         assert.equal(todoApp.list.get(0)!.description, "item A", "list.get(0) = item A");
         assert.equal(todoApp.listView.get(0)!.description, "item A", "listView.get(0) = item A");
+        //assert.equal((todoApp.list as any).$dmd!.parents.length, 2, "todoApp list has 2 parents");
 
+        debugger
         // add a 2nd item
         item= todoApp.list.newItem();
         item.description = "item B";
+        debugger
         
         await processingDone(todoApp);
         assert.equal(watchCalls, 3, "3 watch calls");
-        assert.equal(todoApp.list.length, 2, "2 items in list");
-        assert.equal(todoApp.itemsLeft, 2, "2 items left");
-        assert.equal(todoApp.list.get(1)!.description, "item B", "list.get(1) = item B");
-        assert.equal(todoApp.listView.get(1)!.description, "item B", "listView.get(1) = item B");
+        debugger
+        assert.equal(todoApp.list.length, 2, "2 items in list - 3");
+        assert.equal(todoApp.itemsLeft, 2, "2 items left - 3");
+        assert.equal(todoApp.list.get(1)!.description, "item B", "list.get(1) = item B - 3");
+        assert.equal(todoApp.listView.get(1)!.description, "item B", "listView.get(1) = item B - 3");
 
         // set first item complete
         todoApp.list.get(0)!.complete = true;

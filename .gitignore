@@ -6,3 +6,4 @@ old/
 ._.DS_STORE
 .yarnclean
 .rpt2_cache
+yarn-error.log

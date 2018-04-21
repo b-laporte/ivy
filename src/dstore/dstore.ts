@@ -107,64 +107,54 @@ function updateSubDataNodeRef(dataNode: DataNode, currentValue: DataSet | null, 
     disconnectChildFromParent(dataNode, currentValue);
     // add parent ref to new ref
     connectChildToParent(dataNode, newValue);
-    // sync dmd refreshDependencies and refreshNode
-    updateRefreshNode(dataNode);
 }
 
 function disconnectChildFromParent(parent: DataNode, child: DataNode | null) {
     if (child) {
-        let d = lastVersion(child);
-        let p = d.$dmd!.parents, idx = p.indexOf(parent);
+        // if child is frozen, it last version still holds the reference to the current parent
+        child = lastVersion(child);
+        let p = child.$dmd!.parents, idx = p.indexOf(parent);
         if (idx > -1) {
             p.splice(idx, 1);
         }
-        if (d.$dmd!.changed) {
-            parent.$dmd!.refreshPriority--;
+        if (child.$dmd!.changed) {
+            decreaseRefreshPriority(parent);
         }
         if (!p.length) {
             // no more parent -> we have a new global root
-            refreshList.addGlobalRoot(d);
+            refreshList.addGlobalRoot(child);
+            // todo if changed, make sure it will be refreshed
         }
     }
 }
 
 function connectChildToParent(parent: DataNode, child: DataNode | null) {
     if (child) {
-        let d = lastVersion(child);
-        d.$dmd!.parents.push(parent);
-        if (d.$dmd!.changed) {
-            // will already be refreshed
-            parent.$dmd!.refreshPriority++;
-        }
+        child = lastVersion(child);
+        child.$dmd!.parents.push(parent);
         // if d was a global root, it needs to be removed from the list
-        refreshList.removeGlobalRoot(d);
+        refreshList.removeGlobalRoot(child);
+
+        if (child.$dmd!.changed) {
+            // will already be refreshed
+            increaseRefreshPriority(parent, refreshList);
+        }
     }
 }
 
-function updateRefreshNode(dataNode: DataNode) {
-    let dmd = dataNode.$dmd!, rd = dmd.refreshPriority, rn = dmd.refreshNode;
-    if (rd === 0 && rn === null) {
-        // reference item to be refreshed in next cycle
-        dataNode.$dmd!.refreshNode = refreshList.add(dataNode);
-    } else if (rd > 0 && rn) {
-        // release current node
-        rn.list!.release(rn);
-    }
-}
-
-export function setNewVersionRef(newRef: DataNode | null, item: DataNode, newItem: DataNode) {
-    if (!newRef) {
+export function setNewVersionRef(newValue: DataNode | null, currentParent: DataNode, newParent: DataNode) {
+    if (!newValue) {
         return null;
     } else {
-        newRef = newRef.$next || newRef;
-        if (newRef) {
+        newValue = newValue.$next || newValue;
+        if (newValue) {
             // replace one parent ref with new ref
-            let p = newRef.$dmd!.parents, idx = p.indexOf(item);
+            let p = newValue.$dmd!.parents, idx = p.indexOf(currentParent);
             if (idx > -1) {
-                p.splice(idx, 1, newItem);
+                p.splice(idx, 1, newParent);
             }
         }
-        return newRef;
+        return newValue;
     }
 }
 
@@ -182,18 +172,10 @@ function touch(d: DataNode, selfChange: boolean): boolean {
     dmd.changed = true;
 
     if (selfChange) {
-        if (dmd.refreshPriority === 0) {
-            if (!dmd.refreshNode) {
-                dmd.refreshNode = refreshList.add(d);
-            }
-        }
+        ensureRefresh(d);
     } else {
         // change is triggered by a child reference that will hold the refreshNode
-        dmd.refreshPriority++;
-        if (dmd.refreshNode) {
-            dmd.refreshNode.list!.release(dmd.refreshNode);
-            dmd.refreshNode = null;
-        }
+        increaseRefreshPriority(d, refreshList);
     }
     if (firstTimeTouch) {
         // recursively touch on parent nodes
@@ -234,11 +216,12 @@ class DnMetaData implements DataNodeMetaData {
                 path = pArgs[0];
                 processor = this.cfg.processors ? this.cfg.processors[path] : null;
                 if (processor) {
-                    let args = pArgs.slice(2).map((item) => item? item.$next || item : item);
+                    let args = pArgs.slice(2).map((item) => lastVersion(item));
                     result = processor.apply(null, args);
                     if (typeof pArgs[1] === "string") {
                         // the target is a direct property of the dmdOwner
-                        dmdOwner["$_" + pArgs[1]] = result;
+                        result = result ? result.$next || result : result;
+                        setProp(dmdOwner, pArgs[1], result, result.$dmd !== undefined && result.$dmd !== null);
                     }
                 }
             }
@@ -332,7 +315,9 @@ class DnMetaData implements DataNodeMetaData {
                         if (isDataStore) {
                             d = dep[i] as DataNode;
                             d = d.$next || d; // $next should be null, just in case
-                            if (d && (!d.$dmd || d.$dmd.changed || d.$dmd.refreshPriority > 0)) {
+                            if (d && (!d.$dmd || d.$dmd.changed)) {
+                                // dependency has changed
+                                ensureRefresh(d);
                                 changed = true;
 
                                 dmd = d.$dmd!;
@@ -343,19 +328,14 @@ class DnMetaData implements DataNodeMetaData {
                                     } else {
                                         dmd.dependencies = [target];
                                     }
-                                    target.$dmd!.refreshPriority++;
-                                }
-                                // ensure d will be refreshed (d could be unchanged and still not part of the refresh queue)
-                                if (dmd.refreshPriority === 0 && !dmd.refreshNode) {
-                                    dmd.refreshNode = refreshList.add(d);
+                                    increaseRefreshPriority(target, refreshList);
                                 }
                             }
                         }
                     }
                     // if changed, make sure target will be updated
-                    dmd = target.$dmd!;
-                    if (dmd.refreshPriority === 0 && !dmd.refreshNode) {
-                        dmd.refreshNode = refreshList.add(target);
+                    if (changed) {
+                        ensureRefresh(target);
                     }
                 }
             }
@@ -493,11 +473,17 @@ export abstract class DataListImpl<T extends DataNode> implements DataNode, Data
     }
 
     filter(cb: (item: T, index?: number, dataList?: DataList<T>) => boolean, cbThis?): DataList<T> {
-        let res = this.$newInstance(true),
+        let res = this.$newInstance(true), item,
             lsFiltered = this.$_list.filter((item, index, arr) => {
                 return cb.call(cbThis, item, index, this);
             }, cbThis);
         (res as any).$_list = (res as any).$__list = lsFiltered;
+        for (let i=0, sz=lsFiltered.length; sz>i;i++) {
+            item=lsFiltered[i];
+            if (item.$dmd) {
+                item.$dmd.parents.push(res);
+            }
+        }
         return res;
     }
 
@@ -545,7 +531,6 @@ export abstract class DataListImpl<T extends DataNode> implements DataNode, Data
         }
         // update list
         list.splice(start, deleteCount, ...items);
-        updateRefreshNode(this);
     }
 
     $createNewVersion() {
@@ -773,7 +758,7 @@ class RefreshList {
         if (rn.list !== this) {
             return;
         }
-        let dn = rn.dataNode!.$next || rn.dataNode, dmd = dn!.$dmd!;
+        let dn = rn.dataNode!.$next || rn.dataNode, dmd = dn!.$dmd!; // lastVersion(rn.dataNode)
         dmd.refreshNode = null;
         // warning: refreshDependencies may be > 0 when node is removed from list when a child takes precedence
         rn.dataNode = null;
@@ -813,7 +798,6 @@ interface DnWatcher {
 }
 
 function processRefreshList() {
-    debugger
     let rList = refreshList;
     // scan global root to process dependencies
     rList.processDependencies();
@@ -835,8 +819,8 @@ function processRefreshList() {
             d = d.$next || d;
             processNode(d, instanceWatchers, tempWatchers);
             d = d.$next!;
-            decreaseRefreshPriority(d.$dmd!.parents, rList);
-            decreaseRefreshPriority(d.$dmd!.dependencies, rList);
+            decreaseListRefreshPriority(d.$dmd!.parents, rList);
+            decreaseListRefreshPriority(d.$dmd!.dependencies, rList);
             d.$dmd!.dependencies = null;
             nextNext = next.next;
             rList.release(next);
@@ -872,17 +856,51 @@ function callWatchers(watchers: DnWatcher[]) {
     }
 }
 
-function decreaseRefreshPriority(list: DataNode[] | null, rList: RefreshList) {
+function decreaseRefreshPriority(d: DataNode, rList?: RefreshList) {
+    let dmd = d.$dmd;
+    if (dmd) {
+        let rd = --dmd.refreshPriority;
+        if (rd == 0) {
+            // add to refresh list
+            rList = rList || refreshList;
+            dmd.refreshNode = rList.add(d);
+
+            if (dmd.parents.length === 0) {
+                // this is a new global root
+                rList.addGlobalRoot(d);
+            }
+        }
+    }
+}
+
+function increaseRefreshPriority(d: DataNode, rList?: RefreshList) {
+    let dmd = d.$dmd;
+    if (dmd) {
+        if (dmd.refreshPriority === 0 && dmd.parents.length === 0) {
+            rList = rList || refreshList;
+            rList.removeGlobalRoot(d);
+        }
+        dmd.refreshPriority++;
+        if (dmd.refreshNode) {
+            // priority is no more 0 so if node was in the refresh list we should remove it
+            dmd.refreshNode.list!.release(dmd.refreshNode);
+            dmd.refreshNode = null;
+        }
+    }
+}
+
+function ensureRefresh(d: DataNode, rList?: RefreshList) {
+    let dmd = d.$dmd;
+    if (dmd && dmd.refreshPriority === 0 && !dmd.refreshNode) {
+        rList = rList || refreshList;
+        dmd.refreshNode = rList.add(d);
+    }
+}
+
+function decreaseListRefreshPriority(list: DataNode[] | null, rList: RefreshList) {
     if (list) {
         for (let d of list) {
-            if (d.$dmd) {
-                // this node hasn't been refreshed yet
-                let rd = --d.$dmd!.refreshPriority;
-                if (rd == 0) {
-                    // add to refresh list
-                    rList.add(d);
-                }
-            }
+            decreaseRefreshPriority(d, rList);
         }
     }
 }

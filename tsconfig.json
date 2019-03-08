@@ -1,29 +1,31 @@
 {
 	"compilerOptions": {
-		"module": "es6",
+		"declaration": true,
 		"target": "es5",
+		"lib": [
+			"es2015",
+			"dom"
+		],
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"outDir": "./dist",
+		"baseUrl": "./node_modules",
 		"noImplicitAny": false,
 		"sourceMap": true,
 		"noUnusedParameters": false,
 		"noImplicitThis": true,
-		"diagnostics": true,
-		"listFiles": true,
 		"pretty": true,
-		"moduleResolution": "node",
-		"noEmitOnError": false,
 		"strictNullChecks": true,
 		"forceConsistentCasingInFileNames": true,
 		"noImplicitReturns": true,
 		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
 		"allowUnusedLabels": true,
-		"lib":[
-			"es2015", "dom"
-		]
+		"importHelpers": true,
+		"noEmitHelpers": true,
+		"noEmitOnError": true
 	},
 	"include": [
 		"src/**/*.ts"
-  	],
-	"exclude": [
-		"src/test/diffmatchpatch.js"
 	]
 }

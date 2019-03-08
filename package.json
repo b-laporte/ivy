@@ -1,57 +1,28 @@
 {
   "name": "iv",
-  "version": "0.0.3-SNAPSHOT",
-  "description": "JS template engine mixing JS and NG2 concepts",
+  "version": "0.2.0",
+  "description": "JS template engine",
   "repository": {
     "type": "git"
   },
-  "main": "dist/rollup-plugin-iv.cjs.js",
-  "module": "dist/rollup-plugin-iv.es.js",
   "author": "Bertrand Laporte",
   "scripts": {
-    "postinstall": "webdriver-manager update",
-    "clean": "rm -rf dist/",
-    "build-compiler": "yarn run clean && rollup --config rollup.compiler.config.js",
-    "build-test": "rollup -c rollup.test.config.js",
-    "build": "yarn run build-compiler && yarn run build-test",
-    "mocha": "mocha dist/test.js --reporter dot",
-    "test": "yarn run build && yarn run mocha",
-    "dev": "yarn run clean && concurrently -r \"rollup -w -c rollup.compiler.config.js\" \"chokidar --silent 'src/test/*' 'dist/rollup-plugin-iv.es.js' -c 'echo Building and running tests... && yarn run build-test'\" \"chokidar --silent 'dist/test.js' -c 'yarn run mocha'\"",
-    "build-samples": "yarn run build-compiler && cpx 'src/samples/**/*.{html,js,css,svg,png,json}' dist && rollup -c rollup.samples.config.js",
-    "watch-samples": "yarn run build-compiler && concurrently -r \"yarn start\" \"cpx -w 'src/samples/**/*.{html,js,css,svg,png,json}' dist\" \"rollup -w -c rollup.samples.config.js\"",
-    "start": "serve dist",
-    "e2e": "yarn build-samples && concurrently -r -k -s first \"yarn start\" \"protractor protractor.conf.js\"",
-    "benchmarks": "yarn build-samples && concurrently -r -k -s first \"yarn start\" \"protractor protractor.conf.js --perf --disableChecks\""
+    "build": "rm -rf dist/ && tsc",
+    "test": "yarn run build && yarn run mocha -r ts-node/register src/**/*.spec.ts --reporter dot"
   },
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "Apache-2.0",
   "bugs": {},
-  "homepage": "",
   "devDependencies": {
-    "rollup": "^0.45.1",
-    "rollup-watch": "^4.0.0",
-    "rollup-plugin-typescript2": "^0.4.3",
-    "rollup-plugin-node-resolve": "^3.0.0",
-    "rollup-plugin-node-builtins": "^2.1.2",
-    "rollup-plugin-uglify": "^2.0.1",
-    "rollup-plugin-gzip": "^1.2.0",
-    "uglify-es": "^3.1.0",
-    "tslib": "^1.7.1",
-    "typescript": ">=2.3.4",
-    "mocha": "^3.4.2",
-    "cpx": "1.5.0",
-    "@types/node": "^8.0.7",
-    "@types/mocha": "^2.2.41",
-    "chokidar-cli": "^1.2.0",
-    "concurrently": "^3.5.0",
-    "serve": "^6.0.1",
-    "@angular/benchpress": "0.1.0",
-    "protractor": "5.1.2"
+    "@types/node": "^11.10.4",
+    "@types/mocha": "^5.2.6",
+    "typescript": "^3.3.3333",
+    "mocha": "^6.0.2",
+    "ts-node": "^8.0.2",
+    "tslib": "^1.9.3",
+
+    "vscode-textmate": "^4.0.1"
   },
   "dependencies": {
-    "typescript": ">=2.3.4"
-  },
-  "engines": {
-    "node": ">=7.0.31"
+    "typescript": "^3.3.3333"
   }
 }

@@ -52,7 +52,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
             res.statics = statics;
         }
         if (options.function) {
-            res.function = templateStart(tf.indent, tf.arguments) + res.body + templateEnd(tf.arguments);
+            res.function = templateStart(tf.indent, tf) + res.body + templateEnd(tf);
         }
         if (options.imports) {
             res.importMap = imports;
@@ -503,26 +503,43 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         return indent;
     }
 
-    function templateStart(indent: string, args: XjsTplArgument[] | undefined) {
-        let lines: string[] = [], argNames = "", classDef = "";
+    function templateStart(indent: string, tf: XjsTplFunction) {
+        let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [];
         indent = reduceIndent(indent);
 
         if (args && args.length) {
-            let names: string[] = [""], classProps: string[] = [];
+            let classProps: string[] = [], arg: XjsTplArgument;
             imports["ζv"] = 1;
-            for (let arg of args) {
-                names.push(arg.name);
-                classProps.push((indent + INDENT) + "@ζv " + arg.name + ";")
+            argNames = ", $";
+            for (let i = 0; args.length > i; i++) {
+                arg = args[i];
+                if (i === 0 && arg.name === "$") {
+                    argClassName = arg.typeRef!;
+                    if (!argClassName) {
+                        error("Undefined $ argument type");
+                    }
+                }
+                if (!argClassName) {
+                    argInit.push(arg.name + ' = $["' + arg.name + '"]')
+                    classProps.push((indent + INDENT) + "@ζv " + arg.name + ";")
+                    imports["ζv"] = 1;
+                } else if (i > 0) {
+                    argInit.push(arg.name + ' = $["' + arg.name + '"]');
+                }
             }
-            argNames = names.join(", ");
-            imports["ζd"] = 1;
-            // sample parameter class:
-            // @ζd class ζParams { 
-            //     @ζv options;
-            // }
-            classDef = [indent, "@ζd class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
+            if (!argClassName) {
+                // default argument class definition
+                argClassName = "ζParams";
+                imports["ζd"] = 1;
+                // sample parameter class:
+                // @ζd class ζParams { 
+                //     @ζv options;
+                // }
+                classDef = [indent, "@ζd class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
+            }
         }
 
+        tf["argClassName"] = argClassName;
         lines.push('(function () {');
         if (statics.length) {
             lines.push(`${indent}const ${statics.join(", ")};`);
@@ -532,12 +549,16 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         }
         imports["ζt"] = 1;
         lines.push(`${indent}return ζt(function (ζ${argNames}) {`);
+        if (argInit.length) {
+            lines.push(`${indent + INDENT}let ${argInit.join(", ")};`);
+        }
         return lines.join("\n");
     }
 
-    function templateEnd(args: XjsTplArgument[] | undefined) {
-        if (args && args.length) {
-            return '}, 0, ζParams)\n})();';
+    function templateEnd(tf: XjsTplFunction) {
+        let argClassName = tf["argClassName"];
+        if (argClassName) {
+            return '}, 0, ' + argClassName + ')\n})();';
         }
         return '})\n})();';
     }

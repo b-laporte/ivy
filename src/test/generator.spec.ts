@@ -646,7 +646,8 @@ describe('Code generator', () => {
         @ζd class ζParams {
             @ζv name;
         }
-        return ζt(function (ζ, name) {
+        return ζt(function (ζ, $) {
+            let name = $["name"];
             let ζc1;
             if (ζc1 = ζcheck(ζ, 1, 0)) {
                 ζelt(ζ, 1, 1, 0, "div", ζs0);
@@ -671,7 +672,8 @@ describe('Code generator', () => {
             @ζv firstName;
             @ζv lastName;
         }
-        return ζt(function (ζ, firstName, lastName) {
+        return ζt(function (ζ, $) {
+            let firstName = $["firstName"], lastName = $["lastName"];
             let ζc1;
             if (ζc1 = ζcheck(ζ, 1, 0)) {
                 ζtxt(ζ, 1, 1, 0);
@@ -704,6 +706,40 @@ describe('Code generator', () => {
         }, "t2 imports");
     });
 
+    it("should support external Param class definition", async function () {
+        let t1 = await test.template(`($:MyParamClass) => {
+            # Hello {$.name} #
+        }`);
+        assert.equal(t1.function, `\
+(function () {
+        const ζs0 = [" Hello ", " "];
+        return ζt(function (ζ, $) {
+            let ζc1;
+            if (ζc1 = ζcheck(ζ, 1, 0)) {
+                ζtxt(ζ, 1, 1, 0);
+            }
+            ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, 1, $.name));
+            ζend(ζ, 1);
+        }, 0, MyParamClass)
+})();`, 'simple param class');
+
+        let t2 = await test.template(`($:MyParamClass, name) => {
+            # Hello {$.name} #
+        }`);
+        assert.equal(t2.function, `\
+(function () {
+        const ζs0 = [" Hello ", " "];
+        return ζt(function (ζ, $) {
+            let name = $["name"];
+            let ζc1;
+            if (ζc1 = ζcheck(ζ, 1, 0)) {
+                ζtxt(ζ, 1, 1, 0);
+            }
+            ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, 1, $.name));
+            ζend(ζ, 1);
+        }, 0, MyParamClass)
+})();`, 'param class + local variables initialization');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
-    // todo support external param class through ($params:MyParamClass) => { }
 });

@@ -1,7 +1,6 @@
+// iv:ignore
 import { body, statics, test } from './utils';
 import * as assert from 'assert';
-import { PARAM } from '../xjs/parser/scopes';
-
 
 describe('Code generator', () => {
 
@@ -612,8 +611,7 @@ describe('Code generator', () => {
             </>
         }`);
 
-        assert.equal(t1.function, `\
-(function () {
+        assert.equal(t1.function, `(function () {
         const ζs0 = ["class", "main"], ζs1 = ["type", "important"], ζs2 = ["class", "content"];
         return ζt(function (ζ) {
             let ζc1;
@@ -629,8 +627,8 @@ describe('Code generator', () => {
             ζcpt(ζ, 2, 0, ζe(ζ, 0, 1, b.section), 3, 0, ζs1);
             ζcall(ζ, 2, 0);
             ζend(ζ, 1);
-        })
-})();` , 'f1');
+        });
+        })()` , 'f1');
         assert.deepEqual(t1.importMap, {
             "ζelt": 1, "ζfrag": 1, "ζpnode": 1, "ζtxt": 1, "ζcheck": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζt": 1
         }, 'imports 1');
@@ -640,8 +638,7 @@ describe('Code generator', () => {
                 # Hello {name} #
             </>
         }`);
-        assert.equal(t2.function, `\
-(function () {
+        assert.equal(t2.function, `(function () {
         const ζs0 = ["class", "msg"], ζs1 = [" Hello ", " "];
         @ζd class ζParams {
             @ζv name;
@@ -656,8 +653,8 @@ describe('Code generator', () => {
             ζprop(ζ, 1, 0, "title", ζe(ζ, 0, 1, "Message for " + name));
             ζtxtval(ζ, 2, 0, ζs1, 1, ζe(ζ, 1, 1, name));
             ζend(ζ, 1);
-        }, 0, ζParams)
-})();` , 'f2');
+        }, 0, ζParams);
+        })()` , 'f2');
         assert.deepEqual(t2.importMap, {
             "ζelt": 1, "ζtxt": 1, "ζcheck": 1, "ζe": 1, "ζtxtval": 1, "ζend": 1, "ζv": 1, "ζd": 1, "ζt": 1
         }, 'imports 2');
@@ -665,8 +662,7 @@ describe('Code generator', () => {
         let t3 = await test.template(`(firstName, lastName) => {
             # Hello {firstName} {::lastName} #
         }`);
-        assert.equal(t3.function, `\
-(function () {
+        assert.equal(t3.function, `(function () {
         const ζs0 = [" Hello ", " ", " "];
         @ζd class ζParams {
             @ζv firstName;
@@ -680,8 +676,8 @@ describe('Code generator', () => {
             }
             ζtxtval(ζ, 1, 0, ζs0, 2, ζe(ζ, 0, 1, firstName), ζc1 ? lastName : ζu);
             ζend(ζ, 1);
-        }, 0, ζParams)
-})();` , 'f3');
+        }, 0, ζParams);
+        })()` , 'f3');
         assert.deepEqual(t3.importMap, {
             "ζtxt": 1, "ζcheck": 1, "ζtxtval": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζv": 1, "ζd": 1, "ζt": 1
         }, 'imports 3');
@@ -710,8 +706,7 @@ describe('Code generator', () => {
         let t1 = await test.template(`($:MyParamClass) => {
             # Hello {$.name} #
         }`);
-        assert.equal(t1.function, `\
-(function () {
+        assert.equal(t1.function, `(function () {
         const ζs0 = [" Hello ", " "];
         return ζt(function (ζ, $) {
             let ζc1;
@@ -720,14 +715,13 @@ describe('Code generator', () => {
             }
             ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, 1, $.name));
             ζend(ζ, 1);
-        }, 0, MyParamClass)
-})();`, 'simple param class');
+        }, 0, MyParamClass);
+        })()`, 'simple param class');
 
         let t2 = await test.template(`($:MyParamClass, name) => {
             # Hello {$.name} #
         }`);
-        assert.equal(t2.function, `\
-(function () {
+        assert.equal(t2.function, `(function () {
         const ζs0 = [" Hello ", " "];
         return ζt(function (ζ, $) {
             let name = $["name"];
@@ -737,8 +731,8 @@ describe('Code generator', () => {
             }
             ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, 1, $.name));
             ζend(ζ, 1);
-        }, 0, MyParamClass)
-})();`, 'param class + local variables initialization');
+        }, 0, MyParamClass);
+        })()`, 'param class + local variables initialization');
     });
 
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes

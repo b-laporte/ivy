@@ -16,7 +16,7 @@ export async function compile(source: string, filePath: string): Promise<string>
 
     scan(srcFile);
 
-    return await generateNewFile();
+    return await generateNewFile(filePath);
 
     function error(msg) {
         throw new Error("IV compilation error: " + msg);
@@ -39,8 +39,12 @@ export async function compile(source: string, filePath: string): Promise<string>
                     if (nd.kind === SK.ImportSpecifier && (nd as ts.ImportSpecifier).name.getText() === TEMPLATE) {
                         isTemplateImport = true;
                     }
-                    importIds[nd.getText()] = 1;
                 });
+                if (isTemplateImport) {
+                    id.importClause.namedBindings!.forEachChild((nd: ts.Node) => {
+                        importIds[nd.getText()] = 1;
+                    });
+                }
             }
             if (isTemplateImport) {
                 let txt = id.importClause!.getFullText(), offset = 0;;
@@ -67,7 +71,10 @@ export async function compile(source: string, filePath: string): Promise<string>
         }
     }
 
-    async function generateNewFile(): Promise<string> {
+    async function generateNewFile(filePath: string): Promise<string> {
+        if (!templates.length) {
+            return source;
+        }
         if (!importStart) {
             error("Missing 'template' import statement");
         }
@@ -84,7 +91,7 @@ export async function compile(source: string, filePath: string): Promise<string>
             let tpl = templates[i];
 
             slices.push(source.substring(pos, tpl.start + 1));
-            let r = await compileTemplate(tpl.src, { function: true, importMap: importIds });
+            let r = await compileTemplate(tpl.src, { function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1 });
             slices.push(r.function!);
             pos = tpl.end;
         }
@@ -100,6 +107,11 @@ export async function compile(source: string, filePath: string): Promise<string>
         slices[1] = '{ ' + imp.join(", ") + ' }';
 
         return slices.join("");
+    }
+
+    function getLineNumber(pos: number) {
+        let src2 = source.substring(0, pos);
+        return src2.split("\n").length;
     }
 }
 

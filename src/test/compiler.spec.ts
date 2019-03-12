@@ -97,4 +97,39 @@ describe('Template compiler', () => {
         assert.equal(r, src, "test 3");
     });
 
+    it("should not change files that don't contain templates", async function () {
+        let src = `let x=123;`;
+        let r = await compile(src, "test3")
+        assert.equal(r, src, "test 3");
+    });
+
+    it("should raise errors with file name and line numbers", async function () {
+        let errMsg = "";
+        try {
+            await compile(` import{ template } from "../iv";
+    
+                            let t = template(\`(a) => {
+                                # T1 
+                            }\`);
+                            `, "file-name.ts")
+        } catch (e) {
+            errMsg = e.message
+        }
+        assert.equal(errMsg, 'Invalid text node - Unexpected end of template at line #5 in file-name.ts', "error 1");
+
+        try {
+            await compile(` import{ template } from "../iv";
+    
+                            let t = template(\`(a) => {
+                                <! foo="bar">
+                                    # Hello #
+                                </>
+                            }\`);
+                            `, "file-name.ts")
+        } catch (e) {
+            errMsg = e.message
+        }
+        assert.equal(errMsg, 'Invalid fragment - Params cannot be used on fragments at line #4 in file-name.ts', "error 2");
+    });
+
 });

@@ -7,6 +7,8 @@ export interface CompilationOptions {
     function?: boolean;                 // if true the js function will be in the result
     imports?: boolean;                  // if true the imports will be added as comment to the js function
     importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
+    filePath?: string;                  // file name - used for error reporting
+    lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
 }
 
 export interface CompilationResult {
@@ -17,11 +19,46 @@ export interface CompilationResult {
 }
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
-    let root = await parse(template);
-    return generate(root, options);
+    try {
+        options.lineOffset = options.lineOffset || 0;
+        let root = await parse(template, options.filePath || "", options.lineOffset || 0);
+        return generate(root, options);
+    } catch (e) {
+        let fileInfo = "";
+        // if (options.filePath) {
+        //     if (e.lineNumber) {
+        //         fileInfo = `\n>> line #${e.lineNumber + options.lineOffset} in ${options.filePath}`;
+        //     } else {
+        //         fileInfo = `\n>> file: ${options.filePath}`;
+        //     }
+        //     throw new Error(e.message + fileInfo);
+        // }
+        throw e;
+    }
 }
 
-const RX_DOUBLE_QUOTE = /\"/g;
+const RX_DOUBLE_QUOTE = /\"/g,
+    NODE_NAMES = {
+        "#tplFunction": "template function",
+        "#tplArgument": "template argument",
+        "#jsStatements": "javascript statements",
+        "#jsBlock": "javascript block",
+        "#fragment": "fragment",
+        "#element": "element",
+        "#component": "component",
+        "#paramNode": "param node",
+        "#decoratorNode": "decorator node",
+        "#textNode": "text node",
+        "#param": "param",
+        "#property": "property",
+        "#decorator": "decorator",
+        "#reference": "reference",
+        "#expression": "expression",
+        "#number": "number",
+        "#boolean": "boolean",
+        "#string": "string",
+        "#eventListener": "event listener"
+    }
 
 function generate(tf: XjsTplFunction, options: CompilationOptions) {
     const INDENT = "    ";
@@ -75,8 +112,10 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         return "\n" + parts.join("") + reduceIndent(tf.indent);
     }
 
-    function error(msg) {
-        throw new Error(msg);
+    function error(msg, nd: XjsNode) {
+        let fileInfo = options.filePath ? " in " + options.filePath : "",
+            lineOffset = options.lineOffset || 0;
+        throw new Error(`Invalid ${NODE_NAMES[nd.kind]} - ${msg} at line #${nd.lineNumber + lineOffset}${fileInfo}`);
     }
 
     function generateBlock(xjsNodes: XjsContentNode[], parentIdx: number, indent: string, instructionContainer: number, blockInstance: string) {
@@ -164,13 +203,13 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 break;
             case "#fragment":
                 if (nd.params && nd.params.length) {
-                    error("Params cannot be used on fragments");
+                    error("Params cannot be used on fragments", nd);
                 }
                 if (nd.properties && nd.properties.length) {
-                    error("Properties cannot be used on fragments");
+                    error("Properties cannot be used on fragments", nd);
                 }
                 if (nd.listeners && nd.listeners.length) {
-                    error("Event listeners cannot be used on fragments");
+                    error("Event listeners cannot be used on fragments", nd);
                 }
 
                 body.push(`${indent}ζfrag(ζ, ${idx}, ${parentIdx}, ${instructionContainer});\n`);
@@ -180,7 +219,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
             case "#component":
                 let c = nd as XjsComponent;
                 if (c.properties && c.properties.length) {
-                    error("Properties cannot be used on components");
+                    error("Properties cannot be used on components", nd);
                 }
                 nd["staticParamsIdx"] = i1;
                 body.push(`${indent}ζfrag(ζ, ${idx}, ${parentIdx}, ${instructionContainer}, 1);\n`);
@@ -192,7 +231,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 // e.g. ζelt(ζ, 3, 1, 0, "span");
                 let e = nd as XjsElement;
                 if (e.nameExpression) {
-                    error("Element with name expressions are not yet supported");
+                    error("Name expressions are not yet supported", nd);
                 }
                 body.push(`${indent}ζelt(ζ, ${idx}, ${parentIdx}, ${instructionContainer}, "${e.name}"${stParams});\n`);
                 imports['ζelt'] = 1;
@@ -202,7 +241,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 // e.g. ζpnode(ζ, 3, 1, 0, "header");
                 let pn = nd as XjsParamNode;
                 if (pn.nameExpression) {
-                    error("Param node with name expressions are not yet supported");
+                    error("Name expressions are not yet supported", nd);
                 }
                 // determine instruction container
                 let parent = nodes[parentIdx], ic = parent ? parent["instructionContainer"] : instructionContainer;
@@ -220,7 +259,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 imports['ζfrag'] = 1;
                 break;
             default:
-                error("Invalid node type: " + nd.kind);
+                error("Invalid node type: " + nd.kind, nd);
         }
 
         if (content) {
@@ -516,7 +555,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 if (i === 0 && arg.name === "$") {
                     argClassName = arg.typeRef!;
                     if (!argClassName) {
-                        error("Undefined $ argument type");
+                        error("Undefined $ argument type", arg);
                     }
                 }
                 if (!argClassName) {

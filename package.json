@@ -8,18 +8,26 @@
   "author": "Bertrand Laporte",
   "scripts": {
     "build": "rm -rf dist/ && tsc",
-    "test": "yarn run build && yarn run mocha -r ts-node/register src/**/*.spec.ts --reporter dot"
+    "package": "yarn build && webpack",
+    "test": "yarn package && yarn mocha -r ts-node/register src/**/*.spec.ts --reporter dot && yarn mocha dist/mocha.specs.js --reporter dot",
+    "wp-tests": "yarn package && yarn mocha dist/mocha.specs.js --reporter dot",
+    "ts-tests": "yarn build && yarn mocha -r ts-node/register src/**/*.spec.ts --reporter dot",
+    "mochapack": "yarn mochapack --watch src/test/testapp.ts"
   },
   "license": "Apache-2.0",
   "bugs": {},
   "devDependencies": {
     "@types/node": "^11.10.4",
     "@types/mocha": "^5.2.6",
+    "@types/webpack": "^4.4.25",
     "typescript": "^3.3.3333",
     "mocha": "^6.0.2",
+    "mochapack": "^1.1.0",
     "ts-node": "^8.0.2",
     "tslib": "^1.9.3",
-
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3",
+    "ts-loader": "^5.3.3",
     "vscode-textmate": "^4.0.1"
   },
   "dependencies": {

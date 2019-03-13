@@ -234,13 +234,13 @@ describe('Code generator', () => {
             if (test) {
                 # Hello {name} #
             }
-            # \(end) #
+            # \\(end) #
         }`), `
             let ζc1, ζi4 = 0, ζc4;
             if (ζc1 = ζcheck(ζ, 1, 0)) {
                 ζfrag(ζ, 1, 1, 0);
                 ζfrag(ζ, 2, 1, 0, 1);
-                ζtxt(ζ, 3, 1, 0, " ");
+                ζtxt(ζ, 3, 1, 0, " \\(end) ");
             }
             if (test) {
                 ζi4++;

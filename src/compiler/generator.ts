@@ -19,22 +19,9 @@ export interface CompilationResult {
 }
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
-    try {
-        options.lineOffset = options.lineOffset || 0;
-        let root = await parse(template, options.filePath || "", options.lineOffset || 0);
-        return generate(root, options);
-    } catch (e) {
-        let fileInfo = "";
-        // if (options.filePath) {
-        //     if (e.lineNumber) {
-        //         fileInfo = `\n>> line #${e.lineNumber + options.lineOffset} in ${options.filePath}`;
-        //     } else {
-        //         fileInfo = `\n>> file: ${options.filePath}`;
-        //     }
-        //     throw new Error(e.message + fileInfo);
-        // }
-        throw e;
-    }
+    options.lineOffset = options.lineOffset || 0;
+    let root = await parse(template, options.filePath || "", options.lineOffset || 0);
+    return generate(root, options);
 }
 
 const RX_DOUBLE_QUOTE = /\"/g,
@@ -443,6 +430,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
     }
 
     function encodeText(t: string) {
+        // todo replace double \\ with single \
         return '"' + t.replace(RX_DOUBLE_QUOTE, '\\"') + '"';
     }
 

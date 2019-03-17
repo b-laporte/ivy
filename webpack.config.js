@@ -4,7 +4,7 @@ module.exports = {
     mode: 'development',
     target: 'node',
     entry: {
-        "mocha.specs": "./src/test/testapp.ts"
+        "mocha.specs": "./src/test/runtime/testapp.ts"
     },
     // devtool: "inline-source-map",
     module: {

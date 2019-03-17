@@ -20,11 +20,22 @@ export interface CompilationResult {
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
     options.lineOffset = options.lineOffset || 0;
+    let log = false;
+    if (template.match(RX_LOG)) {
+        log = true;
+        template = template.replace(RX_LOG, "");
+    }
     let root = await parse(template, options.filePath || "", options.lineOffset || 0);
-    return generate(root, options);
+    let res = generate(root, options);
+    if (log) {
+        const separator = "-------------------------------------------------------------------------------"
+        console.log(separator + "\n" + "Generated template:\n" + res.function + "\n" + separator);
+    }
+    return res;
 }
 
 const RX_DOUBLE_QUOTE = /\"/g,
+    RX_LOG = /\/\/\s*log\s*/,
     NODE_NAMES = {
         "#tplFunction": "template function",
         "#tplArgument": "template argument",
@@ -141,7 +152,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         generateCleanInstructions(xjsNodes, instructionContainer, indent);
 
         imports['ζend'] = 1;
-        body.push(`${indent}ζend(ζ, ${blockIdx});\n`);
+        body.push(`${indent}ζend(ζ, ${blockIdx}, ζc${blockIdx});\n`);
     }
 
     function insertLocalVars(bodyPos: number, indent: string) {
@@ -180,10 +191,23 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
             case "#textNode":
                 // e.g. ζtxt(ζ, 5, 3, 0, " Hello World ");
                 // or ζtxt(ζ, 5, 3, 0);
-                let val = '';
-                if (nd.textFragments.length <= 1) {
+                let val = '', eLength = nd.expressions ? nd.expressions.length : 0;
+                if (nd.textFragments.length <= 1 && eLength === 0) {
                     // static version
                     val = nd.textFragments.length === 0 ? ', ""' : ', ' + encodeText(nd.textFragments[0]);
+                } else {
+                    // create static resource
+                    let staticsIdx = statics.length, pieces: string[] = [], fLength = nd.textFragments.length, eCount = 0;
+                    for (let i = 0; fLength > i; i++) {
+                        // todo eLength
+                        pieces.push(encodeText(nd.textFragments[i]));
+                        if (eCount < eLength) {
+                            pieces.push('""');
+                            eCount++;
+                        }
+                    }
+                    statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
+                    val = ', ζs' + staticsIdx;
                 }
                 body.push(`${indent}ζtxt(ζ, ${idx}, ${parentIdx}, ${instructionContainer}${val});\n`);
                 imports['ζtxt'] = 1;
@@ -308,14 +332,8 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
             case "#textNode":
                 if (nd.expressions && nd.expressions.length) {
                     // this text is dynamic
-                    // e.g. ζtxtval(ζ, 6, 0, ζs2, 2, ζe(ζ, 3, 1, expr(1)), ζe(ζ, 4, 1, expr(2)));
-                    let staticsIdx = statics.length, staticParts: string[] = [];
-                    for (let i = 0; nd.textFragments.length > i; i++) {
-                        staticParts.push(encodeText(nd.textFragments[i]));
-                    }
-                    statics.push("ζs" + staticsIdx + " = [" + staticParts.join(", ") + "]");
-
-                    body.push(`${indent}ζtxtval(ζ, ${idx}, ${instructionContainer}, ζs${staticsIdx}, ${nd.expressions.length}, `);
+                    // e.g. ζtxtval(ζ, 6, 0, 2, ζe(ζ, 3, 1, expr(1)), ζe(ζ, 4, 1, expr(2)));
+                    body.push(`${indent}ζtxtval(ζ, ${idx}, ${instructionContainer}, ${nd.expressions.length}, `);
                     imports['ζtxtval'] = 1;
                     let eLength = nd.expressions.length;
                     for (let i = 0; eLength > i; i++) {
@@ -338,6 +356,9 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 generateContentUpdate(c, expBlockIdx, instructionContainer, false);
                 imports['ζcall'] = 1;
                 body.push(`${indent}ζcall(ζ, ${idx}, ${instructionContainer});\n`);
+                break;
+            case "#fragment":
+                generateContentUpdate(nd as XjsFragment, expBlockIdx, instructionContainer, true);
                 break;
             case "#element":
                 // scan params and properties
@@ -376,7 +397,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 break;
         }
 
-        function generateContentUpdate(nd: XjsComponent | XjsElement, blockIdx: number, instructionContainer: number, useAttributes: boolean) {
+        function generateContentUpdate(nd: XjsComponent | XjsElement | XjsFragment, blockIdx: number, instructionContainer: number, useAttributes: boolean) {
             generateParamUpdate(nd, expBlockIdx, instructionContainer, indent, useAttributes);
             let cNode = nd["contentNodeIdx"];
             if (cNode) {

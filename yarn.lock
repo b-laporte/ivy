@@ -1224,6 +1224,12 @@ he@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/he/-/he-1.2.0.tgz#84ae65fa7eafb165fddb61566ae14baf05664f0f"
 
+hibe@>=0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/hibe/-/hibe-0.0.5.tgz#3a4543ad193e2bd28431b2b091735902b382fa54"
+  dependencies:
+    tslib "^1.9.3"
+
 hmac-drbg@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/hmac-drbg/-/hmac-drbg-1.0.1.tgz#d2745701025a6c775a6c545793ed502fc0c649a1"

@@ -11,8 +11,8 @@
     "package": "yarn build && webpack",
     "test": "yarn package && yarn mocha -r ts-node/register src/**/*.spec.ts --reporter dot && yarn mocha dist/mocha.specs.js --reporter dot",
     "wp-tests": "yarn package && yarn mocha dist/mocha.specs.js --reporter dot",
-    "ts-tests": "yarn build && yarn mocha -r ts-node/register src/**/*.spec.ts --reporter dot",
-    "mochapack": "yarn mochapack --watch src/test/testapp.ts"
+    "ts-tests": "yarn build && yarn mocha -r ts-node/register src/test/*.spec.ts --reporter dot",
+    "mochawatch": "yarn mochapack --watch src/test/testapp.ts"
   },
   "license": "Apache-2.0",
   "bugs": {},
@@ -31,6 +31,7 @@
     "vscode-textmate": "^4.0.1"
   },
   "dependencies": {
-    "typescript": "^3.3.3333"
+    "typescript": "^3.3.3333",
+    "hibe": ">=0.0.5"
   }
 }

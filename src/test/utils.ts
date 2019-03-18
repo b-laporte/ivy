@@ -94,7 +94,7 @@ class TextNode {
         let indent = options.indent || "",
             showUid = options.showUid === true,
             uid = showUid ? "::" + this.$uid : "",
-            chg = this.changeCount === 0 ? "" : " (changes:" + this.changeCount + ")";
+            chg = this.changeCount === 0 ? "" : " (" + this.changeCount + ")";
 
         return `${indent}#${uid}${this._textContent}#${chg}`;
     }
@@ -129,6 +129,14 @@ class ElementClassList {
     }
 }
 
+function incrementChanges(e, name) {
+    if (e.$changes[name] === undefined) {
+        e.$changes[name] = 0;
+    } else {
+        e.$changes[name]++;
+    }
+}
+
 export class ElementNode {
     $uid: string;
     childNodes: any[] = [];
@@ -136,6 +144,7 @@ export class ElementNode {
     parentNode = null;
     classList: ElementClassList;
     style = {};
+    $changes: any = {}
 
     constructor(public nodeName: string, namespace?: string) {
         this.$uid = ((nodeName === "#doc-fragment") ? "F" : "E") + (++UID_COUNT);
@@ -146,7 +155,14 @@ export class ElementNode {
     }
 
     setAttribute(key: string, value: string) {
-        this[key.toUpperCase()] = value; // toUpperCase: to test that value has been set through setAttribute
+        let k = "a:" + key
+        this[k] = value; // toUpperCase: to test that value has been set through setAttribute
+        incrementChanges(this, k);
+    }
+
+    set className(v: string) {
+        this["$className"] = v;
+        incrementChanges(this, "$className");
     }
 
     appendChild(node) {
@@ -238,15 +254,19 @@ export class ElementNode {
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
                 && k !== "namespaceURI" && k !== "$uid" && k !== "parentNode"
-                && k !== "style" && k !== "classList") {
+                && k !== "style" && k !== "classList" && k !== "$changes") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);
-                } else if (k === "className") {
-                    if (this["className"]) {
-                        atts.push(`class="${this[k]}"`);
-                    }
                 } else {
-                    atts.push(`${k}="${this[k]}"`);
+                    let chge = "";
+                    if (this.$changes[k]) {
+                        chge = "(" + this.$changes[k] + ")";
+                    }
+                    if (k === "$className") {
+                        atts.push(`className="${this[k]}"${chge}`);
+                    } else {
+                        atts.push(`${k}="${this[k]}"${chge}`);
+                    }
                 }
             }
         }

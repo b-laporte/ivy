@@ -679,7 +679,7 @@ describe('Code generator', () => {
         }, 0, ζParams);
         })()` , 'f2');
         assert.deepEqual(t2.importMap, {
-            "ζelt": 1, "ζtxt": 1, "ζcheck": 1, "ζe": 1, "ζtxtval": 1, "ζend": 1, "ζv": 1, "ζd": 1, "ζt": 1
+            "ζelt": 1, "ζtxt": 1, "ζcheck": 1, "ζe": 1, "ζtxtval": 1, "ζend": 1, "ζprop": 1, "ζv": 1, "ζd": 1, "ζt": 1
         }, 'imports 2');
 
         let t3 = await test.template(`(firstName, lastName) => {

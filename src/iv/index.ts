@@ -215,7 +215,7 @@ function createElt(c: IvNodes, idx: number, parentIdx: number, instIdx: number, 
     if (staticProperties) {
         let len = staticProperties.length;
         for (let j = 0; len > j; j += 2) {
-            e.setAttribute(staticProperties[j], staticProperties[j + 1]);
+            e[staticProperties[j]] = staticProperties[j + 1];
         }
     }
     let nd: IvElement = {
@@ -323,14 +323,24 @@ export function ζe(c: IvNodes, idx: number, blockIdx: number, value: any) {
  * Dynamic attribute update
  */
 export function ζatt(c: IvNodes, eltIdx: number, instIdx: number, name: string, value: any) {
-
+    if (value === ζu) return;
+    if (instIdx === 0) {
+        (c[eltIdx] as IvNode)!.domNode.setAttribute(name, value);
+    } else {
+        console.log("TODO ζatt")
+    }
 }
 
 /**
  * Dynamic property update
  */
 export function ζprop(c: IvNodes, eltIdx: number, instIdx: number, name: string, value: any) {
-
+    if (value === ζu) return;
+    if (instIdx === 0) {
+        (c[eltIdx] as IvNode)!.domNode[name] = value;
+    } else {
+        console.log("TODO ζprop")
+    }
 }
 
 /**

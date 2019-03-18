@@ -527,6 +527,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                     body.push(`${indent}${funcName}(ζ, ${f["index"]}, ${instructionContainer}, "${p.name}", `);
                     generateExpression(p.value, blockIdx);
                     body.push(');\n');
+                    imports[funcName] = 1;
                 }
             }
         }
@@ -539,6 +540,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                     body.push(`${indent}ζprop(ζ, ${f["index"]}, ${instructionContainer}, "${p.name}", `);
                     generateExpression(p.value, blockIdx);
                     body.push(');\n');
+                    imports["ζprop"] = 1;
                 }
             }
         }

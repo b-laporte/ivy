@@ -98,7 +98,7 @@ describe('Iv Runtime', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E2>
-                    #::T3 Hello World # (changes:1)
+                    #::T3 Hello World # (1)
                 </div>
             </body>
         `, '2');
@@ -107,7 +107,7 @@ describe('Iv Runtime', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E2>
-                    #::T3 Hello World # (changes:1)
+                    #::T3 Hello World # (1)
                 </div>
             </body>
         `, '3 - no changes');
@@ -139,7 +139,7 @@ describe('Iv Runtime', () => {
                 <div::E2>
                     #::T4 1-time: Homer #
                     <span::E3>
-                        #::T5 name:World, name+123:World123# (changes:1)
+                        #::T5 name:World, name+123:World123# (1)
                     </span>
                 </div>
             </body>
@@ -151,7 +151,7 @@ describe('Iv Runtime', () => {
                 <div::E2>
                     #::T4 1-time: Homer #
                     <span::E3>
-                        #::T5 name:World, name+123:World123# (changes:1)
+                        #::T5 name:World, name+123:World123# (1)
                     </span>
                 </div>
             </body>
@@ -186,7 +186,7 @@ describe('Iv Runtime', () => {
                 <div::E2>
                     #::T3 Hello #
                     <span::E4>
-                        #::T5 World # (changes:1)
+                        #::T5 World # (1)
                     </span>
                 </div>
             </body>
@@ -198,7 +198,7 @@ describe('Iv Runtime', () => {
                 <div::E2>
                     #::T3 Hello #
                     <span::E4>
-                        #::T5 World # (changes:1)
+                        #::T5 World # (1)
                     </span>
                 </div>
             </body>
@@ -230,13 +230,80 @@ describe('Iv Runtime', () => {
             <body::E1>
                 <div::E2>
                     <span::E3>
-                        #::T4Homer# (changes:1)
+                        #::T4Homer# (1)
                     </span>
                 </div>
-                #::T5 Hello Homer # (changes:1)
+                #::T5 Hello Homer # (1)
             </body>
         `, '2');
     });
 
+    it("should support element attributes", function () {
+        let tpl = template(`(msg) => {
+            <div class="main" title={::msg}>
+                <span class="sub" title={msg}> # ... # </span>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl).refresh({ msg: "hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E2 a:class="main" a:title="hello">
+                    <span::E3 a:class="sub" a:title="hello">
+                        #::T4 ... #
+                    </span>
+                </div>
+            </body>
+        `, '1');
+
+        t.refresh({ msg: "hi" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E2 a:class="main" a:title="hello">
+                    <span::E3 a:class="sub" a:title="hi"(1)>
+                        #::T4 ... #
+                    </span>
+                </div>
+            </body>
+        `, '2');
+    });
+
+    it("should support element properties", function () {
+        let tpl = template(`(msg) => {
+            <div [className]="main" [title]={::msg}>
+                <span [className]={msg} [title]="sub"> # ... # </span>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl).refresh({ msg: "hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E2 className="main" title="hello">
+                    <span::E3 title="sub" className="hello">
+                        #::T4 ... #
+                    </span>
+                </div>
+            </body>
+        `, '1');
+
+        t.refresh({ msg: "hi" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E2 className="main" title="hello">
+                    <span::E3 title="sub" className="hi"(1)>
+                        #::T4 ... #
+                    </span>
+                </div>
+            </body>
+        `, '2');
+    });
+
+    // post mail!!!
+
+    // js statements
+    // js blocks
+    // cpt
+    // properties
     // todo error if refresh before attach
+    // todo validate argument names
 });

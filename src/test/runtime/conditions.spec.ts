@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 
-describe('Iv Js Blocks', () => {
+describe('Conditional Blocks', () => {
     let body: ElementNode;
 
     beforeEach(() => {
@@ -512,7 +512,6 @@ describe('Iv Js Blocks', () => {
 
     it("should work for if/else statements (init true)", function () {
         let tpl = template(`(condition, msg) => {
-            // log
             <div>
                 <div>
                     if (condition) {

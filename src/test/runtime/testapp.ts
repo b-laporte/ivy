@@ -1,4 +1,5 @@
 
 import "./runtime.spec";
-import "./jsblocks.spec";
+import "./conditions.spec";
 import "./fragments.spec";
+import "./loops.spec";

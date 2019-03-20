@@ -1,36 +1,13 @@
 import * as assert from 'assert';
-import { template, ζd, ζv, ζt, ζcheck, ζelt, ζtxt, ζe, ζtxtval, ζend } from '../../iv';
-import { ElementNode, doc, resetIdCount } from '../utils';
-import { IvTemplate } from '../../iv/types';
+import { template } from '../../iv';
+import { ElementNode, reset, getTemplate, stringify } from '../utils';
 
 describe('Iv Runtime', () => {
-    let o = { indent: '        ', showUid: true, isRoot: true }, body: ElementNode;
+    let body: ElementNode;
 
     beforeEach(() => {
-        reset();
+        body = reset();
     });
-
-    function reset() {
-        resetIdCount();
-        body = doc.createElement("body");
-    }
-
-    function getTemplate(f: () => IvTemplate) {
-        let t = f().attach(body);
-        t.document = doc;
-        return t;
-    }
-
-    function stringify(t: IvTemplate, log = false) {
-        let r = t["context"].domNode.stringify(o)
-        if (log) {
-            let sep = "-------------------------------------------------------------------------------";
-            console.log(sep);
-            console.log(r);
-            console.log(sep);
-        }
-        return r;
-    }
 
     it("should support text and elements", function () {
         let foo = template(`() => {
@@ -39,41 +16,43 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(foo).refresh();
+        let t = getTemplate(foo, body).refresh();
 
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello World #
+                <div::E3>
+                    #::T4 Hello World #
                 </div>
+                //::C2 template anchor
             </body>
         `, '1');
 
         let bar = template(`() => {
             <div>
                 <span> # abc # </>
-                # Hello #
-                # World
-                  (!) #
+                    # Hello #
+                    # World
+                      (!) #
                 <span/>
                 <div/>
             </div>
         }`);
 
-        reset();
-        let t2 = getTemplate(bar).refresh();
+        body = reset();
+        let t2 = getTemplate(bar, body).refresh();
 
         assert.equal(stringify(t2), `
             <body::E1>
-                <div::E2>
-                    <span::E3>
-                        #::T4 abc #
+                <div::E3>
+                    <span::E4>
+                        #::T5 abc #
                     </span>
-                    #::T5 Hello #
-                    #::T6 World                  (!) #
-                    <span::E7/>
-                    <div::E8/>
+                    #::T6 Hello #
+                    #::T7 World                      (!) #
+                    <span::E8/>
+                    <div::E9/>
                 </div>
+                //::C2 template anchor
             </body>
         `, '2');
     });
@@ -85,30 +64,33 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(foo).refresh({ name: "Homer" });
+        let t = getTemplate(foo, body).refresh({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello Homer #
+                <div::E3>
+                    #::T4 Hello Homer #
                 </div>
+                //::C2 template anchor
             </body>
         `, '1');
 
         t.refresh({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello World # (1)
+                <div::E3>
+                    #::T4 Hello World # (1)
                 </div>
+                //::C2 template anchor
             </body>
         `, '2');
 
         t.refresh({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello World # (1)
+                <div::E3>
+                    #::T4 Hello World # (1)
                 </div>
+                //::C2 template anchor
             </body>
         `, '3 - no changes');
     });
@@ -121,39 +103,42 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl).refresh({ name: "Homer" });
+        let t = getTemplate(tpl, body).refresh({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T4 1-time: Homer #
-                    <span::E3>
-                        #::T5 name:Homer, name+123:Homer123#
+                <div::E3>
+                    #::T5 1-time: Homer #
+                    <span::E4>
+                        #::T6 name:Homer, name+123:Homer123#
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '1');
 
         t.refresh({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T4 1-time: Homer #
-                    <span::E3>
-                        #::T5 name:World, name+123:World123# (1)
+                <div::E3>
+                    #::T5 1-time: Homer #
+                    <span::E4>
+                        #::T6 name:World, name+123:World123# (1)
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '2');
 
         t.refresh({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T4 1-time: Homer #
-                    <span::E3>
-                        #::T5 name:World, name+123:World123# (1)
+                <div::E3>
+                    #::T5 1-time: Homer #
+                    <span::E4>
+                        #::T6 name:World, name+123:World123# (1)
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '3 - no changes');
     });
@@ -168,39 +153,42 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl).refresh({ name: "Homer" });
+        let t = getTemplate(tpl, body).refresh({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello #
-                    <span::E4>
-                        #::T5 Homer #
+                <div::E3>
+                    #::T4 Hello #
+                    <span::E5>
+                        #::T6 Homer #
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '1');
 
         t.refresh({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello #
-                    <span::E4>
-                        #::T5 World # (1)
+                <div::E3>
+                    #::T4 Hello #
+                    <span::E5>
+                        #::T6 World # (1)
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '2');
 
         t.refresh({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    #::T3 Hello #
-                    <span::E4>
-                        #::T5 World # (1)
+                <div::E3>
+                    #::T4 Hello #
+                    <span::E5>
+                        #::T6 World # (1)
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '3');
     });
@@ -213,27 +201,29 @@ describe('Iv Runtime', () => {
             # Hello {name} #
         }`);
 
-        let t = getTemplate(tpl).refresh({ name: "Marge" });
+        let t = getTemplate(tpl, body).refresh({ name: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    <span::E3>
-                        #::T4Marge#
+                <div::E3>
+                    <span::E4>
+                        #::T5Marge#
                     </span>
                 </div>
-                #::T5 Hello Marge #
+                #::T6 Hello Marge #
+                //::C2 template anchor
             </body>
         `, '1');
 
         t.refresh({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2>
-                    <span::E3>
-                        #::T4Homer# (1)
+                <div::E3>
+                    <span::E4>
+                        #::T5Homer# (1)
                     </span>
                 </div>
-                #::T5 Hello Homer # (1)
+                #::T6 Hello Homer # (1)
+                //::C2 template anchor
             </body>
         `, '2');
     });
@@ -245,25 +235,27 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl).refresh({ msg: "hello" });
+        let t = getTemplate(tpl, body).refresh({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2 a:class="main" a:title="hello">
-                    <span::E3 a:class="sub" a:title="hello">
-                        #::T4 ... #
+                <div::E3 a:class="main" a:title="hello">
+                    <span::E4 a:class="sub" a:title="hello">
+                        #::T5 ... #
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '1');
 
         t.refresh({ msg: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2 a:class="main" a:title="hello">
-                    <span::E3 a:class="sub" a:title="hi"(1)>
-                        #::T4 ... #
+                <div::E3 a:class="main" a:title="hello">
+                    <span::E4 a:class="sub" a:title="hi"(1)>
+                        #::T5 ... #
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '2');
     });
@@ -275,35 +267,62 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl).refresh({ msg: "hello" });
+        let t = getTemplate(tpl, body).refresh({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2 className="main" title="hello">
-                    <span::E3 title="sub" className="hello">
-                        #::T4 ... #
+                <div::E3 className="main" title="hello">
+                    <span::E4 title="sub" className="hello">
+                        #::T5 ... #
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '1');
 
         t.refresh({ msg: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E2 className="main" title="hello">
-                    <span::E3 title="sub" className="hi"(1)>
-                        #::T4 ... #
+                <div::E3 className="main" title="hello">
+                    <span::E4 title="sub" className="hi"(1)>
+                        #::T5 ... #
                     </span>
                 </div>
+                //::C2 template anchor
             </body>
         `, '2');
     });
 
-    // post mail!!!
+    it("should support js statements", function () {
+        let tpl = template(`(msg) => {
+            let m2 = msg + "!";
+            <div>
+                m2 += "!";
+                # Hello {m2} #
+            </div>
+        }`);
 
-    // js statements
-    // js blocks
+        let t = getTemplate(tpl, body).refresh({ msg: "Bart" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello Bart!! #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ msg: "Marge" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello Marge!! # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+    });
+
     // cpt
-    // properties
     // todo error if refresh before attach
     // todo validate argument names
 });

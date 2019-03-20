@@ -13,12 +13,15 @@ export interface IvDocument {
     createDocFragment(): any;
     createElement(name: string): any;
     createElementNS(ns: string, name: string): any;
+    createComment(data: string): any;
 }
 
 export interface IvContext {
     kind: "#context";
     doc: IvDocument;
     domNode: any;           // associated domNode
+    refreshCount: number;
+    anchorNode: any;        // dom node used as anchor in the domNode (content will be inserted before this anchor)
 }
 
 export interface IvNode {
@@ -27,9 +30,10 @@ export interface IvNode {
     parentIdx: number;      // parent index in the template function
     attached: boolean;      // true if domNode is attached to its parent
     domNode: any;           // associated domNode
-    //childIdx: number;       // -1 if not part of a children list, index in the parent children otherwise
-    nextSiblingIdx: number; // 0 if last child in its parent, 1 if undetermined or useless (e.g. for decorators or if the node is part of the content of block)
+    childPos: number;       // -1 if not part of a children list, index in the parent children otherwise
     expressions: any[] | undefined;
+    lastRefresh: number;    // used for js block container elements. 0 if not used, last refresh count otherwise (starts at 1)
+    isContainer: boolean;   // only true for container fragments used by components and js blocks
     // instruction list
     // key -> if part of a collection
 }
@@ -52,7 +56,6 @@ export interface IvParentNode extends IvNode {
  */
 export interface IvFragment extends IvParentNode {
     kind: "#fragment";
-    isContainer: boolean;
 }
 
 /**

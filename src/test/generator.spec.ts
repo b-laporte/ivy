@@ -436,6 +436,71 @@ describe('Code generator', () => {
         `, 'embedded & multiple child nodes');
     });
 
+    it("should support js blocks in elements and fragments", async function () {
+        assert.equal(await body.template(`() => {
+            <div>
+                # first #
+                if (condition) {
+                    <span/>
+                }
+            </div>
+        }`), `
+            let ζc1, ζi4 = 0, ζc4;
+            if (ζc1 = ζcheck(ζ, 1, 0)) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζtxt(ζ, 2, 1, 0, " first ");
+                ζfrag(ζ, 3, 1, 0, 1);
+            }
+            if (condition) {
+                ζi4++;
+                if (ζc4 = ζcheck(ζ, 4, ζi4)) {
+                    ζelt(ζ, 4, 3, 0, "span");
+                }
+                ζend(ζ, 4, ζc4);
+            }
+            ζclean(ζ, 4, 0);
+            ζend(ζ, 1, ζc1);
+        `, '1');
+
+        assert.equal(await body.template(`() => {
+            <div>
+                <!>
+                    if (condition) {
+                        <span/>
+                    }
+                </>
+                if (condition) {
+                    <span/>
+                }
+            </div>
+        }`), `
+            let ζc1, ζi5 = 0, ζc5, ζi6 = 0, ζc6;
+            if (ζc1 = ζcheck(ζ, 1, 0)) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1, 0);
+                ζfrag(ζ, 3, 2, 0, 1);
+                ζfrag(ζ, 4, 1, 0, 1);
+            }
+            if (condition) {
+                ζi5++;
+                if (ζc5 = ζcheck(ζ, 5, ζi5)) {
+                    ζelt(ζ, 5, 3, 0, "span");
+                }
+                ζend(ζ, 5, ζc5);
+            }
+            ζclean(ζ, 5, 0);
+            if (condition) {
+                ζi6++;
+                if (ζc6 = ζcheck(ζ, 6, ζi6)) {
+                    ζelt(ζ, 6, 4, 0, "span");
+                }
+                ζend(ζ, 6, ζc6);
+            }
+            ζclean(ζ, 6, 0);
+            ζend(ζ, 1, ζc1);
+        `, '2');
+    });
+
     it("should support components with no content", async function () {
         let t1 = await test.template(`() => {
             <$alert class="important" position="bottom"/>

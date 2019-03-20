@@ -67,7 +67,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         localVars = {},                    // map of creation mode vars
         exprCounts: number[] = [],         // array of expression counters
         nextNodeIsContainer = false,       // true when the next node to create will be a container (cf. blocks and fragments)
-        body: (string | XjsExpression | XjsJsStatements | XjsJsBlock)[] = [];
+        body: (string | XjsExpression | XjsJsStatements | XjsJsBlock)[] = []; // parts composing the function body (generated strings + included expressions/statements)
 
     imports = options.importMap || {};
 
@@ -407,7 +407,6 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
             if (nd.content) {
                 let len = nd.content.length, pKind = "", nKind = "";
                 for (let i = 0; len > i; i++) {
-                    nodeCount++;
                     nKind = (i < len - 1) ? nd.content[i + 1].kind : "";
                     generateUpdateInstruction(nd.content[i], blockIdx, instructionContainer, indent, pKind, nKind);
                     pKind = nd.content[i].kind;
@@ -416,8 +415,8 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         }
     }
 
-    function generateCleanInstructions(xjsNodes: XjsContentNode[], instructionContainer: number, indent: string) {
-        let len = xjsNodes.length, nd: XjsContentNode, insert: { idx: number, endPos: number }[] | undefined = undefined, endPos = 0;;
+    function generateCleanInstructions(xjsNodes: XjsContentNode[], instructionContainer: number, indent: string): number {
+        let len = xjsNodes.length, nd: XjsContentNode, insert: { idx: number, endPos: number }[] | undefined = undefined, endPos = 0, shift = 0;
         for (let i = 0; len > i; i++) {
             nd = xjsNodes[i];
             if (insert && (nd.kind !== "#jsBlock" && nd.kind !== "#jsStatements")) {
@@ -429,6 +428,8 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 }
                 insert.push({ idx: nd["cleanIdx"], endPos: nd["endPos"] });
                 endPos = nd["endPos"];
+            } else if (nd["content"]) {
+                shift += generateCleanInstructions(nd["content"] as XjsContentNode[], instructionContainer, indent);
             }
             if (insert && nd.kind === "#jsStatements") {
                 endPos = nd["endPos"];
@@ -437,14 +438,16 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
                 clean(nd["index"], endPos);
             }
         }
+        return shift;
 
         function clean(afterIdx: number, endPos: number) {
             if (insert && insert!.length) {
                 let len = insert!.length;
-                for (let j = 0; insert!.length > j; j++) {
-                    body.splice(endPos + j, 0, `${indent}ζclean(ζ, ${insert[j].idx}, ${instructionContainer});\n`)
+                for (let j = 0; len > j; j++) {
+                    body.splice(endPos + j + shift, 0, `${indent}ζclean(ζ, ${insert[j].idx}, ${instructionContainer});\n`)
                     imports['ζclean'] = 1;
                 }
+                shift += len; // insertions are shifting the nd["endPos"] values stored before before insertion
                 insert = undefined;
             }
         }

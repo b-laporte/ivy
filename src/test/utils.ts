@@ -1,5 +1,6 @@
 import { CompilationResult } from '../compiler/generator';
 import { compileTemplate } from '../compiler/generator';
+import { IvTemplate, IvNode } from '../iv/types';
 
 export let body = {
     async template(tpl: string, log = false) {
@@ -27,6 +28,54 @@ export let test = {
 
         return r;
     }
+}
+
+
+// ------------------------------------------------------------------------------------------------
+let o = { indent: '        ', showUid: true, isRoot: true };
+
+export function reset() {
+    resetIdCount();
+    return doc.createElement("body");
+}
+
+export function getTemplate(f: () => IvTemplate, body:any) {
+    let t = f();
+    t.document = doc;
+    t.attach(body);
+    return t;
+}
+
+const SEP = "-------------------------------------------------------------------------------";
+
+export function logNodes(t: IvTemplate, label = "") {
+    let nodes: IvNode[] = t["nodes"];
+    console.log(SEP);
+    if (!nodes) {
+        console.log(label + "\nEmpty template")
+        return;
+    }
+    console.log(label)
+    let len = nodes.length, nd: IvNode;
+    for (let i = 1; len > i; i++) {
+        nd = nodes[i];
+        if (!nd) {
+            console.log(`[${i}] XX`)
+        } else {
+            let dn = nd.domNode ? nd.domNode.$uid : "XX";
+            console.log(`[${nd.idx}] parent:${nd.parentIdx} domNode:${dn} attached:${nd.attached ? 1 : 0} lastRefresh:${nd.lastRefresh} ${nd.kind}`)
+        }
+    }
+}
+
+export function stringify(t: IvTemplate, log = false) {
+    let r = t["context"].domNode.stringify(o)
+    if (log) {
+        console.log(SEP);
+        console.log(r);
+        console.log(SEP);
+    }
+    return r;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -67,6 +116,10 @@ export const doc = {
 
     createElementNS(ns: string, name: string): any {
         return new ElementNode(name, ns);
+    },
+
+    createComment(data: string) {
+        return new CommentNode(data);
     }
 }
 
@@ -74,6 +127,22 @@ interface StringOptions {
     indent?: string;
     isRoot?: boolean;
     showUid?: boolean;
+}
+
+class CommentNode {
+    $uid: string;
+
+    constructor(public data: string) {
+        this.$uid = "C" + (++UID_COUNT);
+    }
+
+    stringify(options: StringOptions): string {
+        let indent = options.indent || "",
+            showUid = options.showUid === true,
+            uid = showUid ? "::" + this.$uid : "";
+
+        return `${indent}//${uid} ${this.data}`;
+    }
 }
 
 class TextNode {
@@ -219,8 +288,11 @@ export class ElementNode {
                 break;
             }
         }
-        if (idx < 0 || !node) {
-            return;
+        if (idx < 0) {
+            throw new Error("insertBefore: ref node not found");
+        }
+        if (!node) {
+            throw new Error("insertBefore: invalid node");
         }
         if (node.nodeName && node.nodeName === "#doc-fragment") {
             let nch = node.childNodes;

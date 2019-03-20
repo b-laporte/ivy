@@ -22,7 +22,9 @@ class Template implements IvTemplate {
         this.context = {
             kind: "#context",
             doc: (typeof document !== "undefined") ? document as any : null as any,
-            domNode: undefined
+            domNode: undefined,
+            refreshCount: 0,
+            anchorNode: undefined
         }
     }
 
@@ -36,7 +38,11 @@ class Template implements IvTemplate {
 
     attach(element: any) {
         if (!this.context.domNode) {
-            this.context.domNode = element;
+            let ctxt = this.context;
+            if (!ctxt.doc) throw new Error("[iv] Template.document must be defined before calling Template.attach()");
+            ctxt.domNode = element;
+            ctxt.anchorNode = ctxt.doc.createComment("template anchor"); // used as anchor in the parent domNode
+            element.appendChild(ctxt.anchorNode);
         } else {
             error("template host cannot be changed yet"); // todo
         }
@@ -47,7 +53,11 @@ class Template implements IvTemplate {
         if (!this.nodes) {
             this.nodes = [this.context];
         }
+        if (!this.context.domNode) {
+            throw new Error("[iv] Template must be attached to a DOM node before begin refreshed");
+        }
         if (this.refreshFn) {
+            this.context.refreshCount++;
             this.refreshFn(this.nodes, data);
         }
         return this;
@@ -118,9 +128,10 @@ function createFrag(c: IvNodes, idx: number, parentIdx: number, instIdx: number,
         idx: idx,
         parentIdx: parentIdx,
         ns: "",
-        nextSiblingIdx: -1,   // will be determined after first render
+        childPos: -1, // will be determined after first render
         children: undefined,
-        expressions: undefined
+        expressions: undefined,
+        lastRefresh: 0
     }
     connectChild(c, nd, idx);
 }
@@ -131,21 +142,108 @@ function createFrag(c: IvNodes, idx: number, parentIdx: number, instIdx: number,
  * @param idx 
  */
 export function ζcheck(c: IvNodes, idx: number, pos: number, keyExpr?: any): number {
-    if (pos > 0) {
+    if (pos > 2) {
         console.log("TODO: support block content")
     }
     if (keyExpr !== undefined) {
         console.log("TODO: support @key")
     }
-    if (!c[idx]) return 1 // creation mode as the root object doesn't exist
+    let nd = c[idx] as IvNode;
+    if (!nd) return 1 // creation mode as the root object doesn't exist
+    nd.lastRefresh = (c[0] as IvContext).refreshCount;
     return 0;
 }
 
 /**
  * Second check to delete element if not previously checked (cf. if {...} block)
  */
-export function ζclean(c: IvNodes, idx: number, instIdx: number): number {
-    return 1;
+export function ζclean(c: IvNodes, idx: number, instIdx: number) {
+    let nd = c[idx] as IvNode;
+    if (!nd) return; // happens when block condition has never been true
+    let lastRefresh = nd.lastRefresh;
+    if (lastRefresh !== 0 && lastRefresh !== (c[0] as IvContext).refreshCount) {
+        deleteNode(c, nd as IvNode);
+    }
+}
+
+function deleteNode(c: IvNodes, nd: IvNode) {
+    if (nd.kind === "#text" || nd.kind === "#element") {
+        nd.attached = false;
+        let p = c[nd.parentIdx];
+        // console.log("before remove", nd.domNode.$uid);
+        if (p.domNode) {
+            // console.log("remove", nd.domNode.$uid, "from", p.domNode.$uid)
+            p.domNode.removeChild(nd.domNode);
+        }
+    } else if (nd.kind === "#fragment") {
+        let f = nd as IvFragment;
+        f.attached = false;
+        if (f.children) {
+            let ch = f.children, len = ch.length;
+            for (let i = 0; len > i; i++) {
+                deleteNode(c, c[ch[i]] as IvNode);
+            }
+        }
+        // console.log("c["+f.idx+"].domNode = undefined")
+        f.domNode = undefined;
+    } else {
+        console.log("TODO deleteNode")
+    }
+}
+
+function appendChildren(c: IvNodes, nd: IvNode, hostDomNd: any) {
+    if (!nd || nd.attached) return;
+    let p = (c[nd.parentIdx] as IvNode), domNode = nd.domNode, rCount = (c[0] as IvContext).refreshCount;
+    if (p.domNode === hostDomNd) {
+        // we cannot append in the host dom node as we have to insert before the anchor node instead
+        let ctxt = c[0] as IvContext;
+        insertChildrenBefore(c, ctxt.domNode, nd, ctxt.anchorNode);
+        return
+    }
+    if (p.domNode && domNode && domNode !== p.domNode) {
+        // console.log("appendChild", domNode.$uid, "to", p.domNode.$uid);
+        p.domNode.appendChild(domNode);
+        nd.attached = true;
+        nd.lastRefresh = rCount;
+    }
+    if (nd.kind === "#fragment" && p.domNode) {
+        nd.domNode = p.domNode;
+        nd.attached = true;
+        
+        nd.lastRefresh = rCount;
+        if ((nd as IvFragment).children) {
+            let f = nd as IvFragment, ch = f.children!, len = ch.length, chNd: IvNode;
+            for (let i = 0; len > i; i++) {
+                chNd = c[ch[i]] as IvNode;
+                appendChildren(c, chNd, hostDomNd);
+                chNd.lastRefresh = rCount;
+            }
+        }
+    }
+}
+
+function insertChildrenBefore(c: IvNodes, parentDomNd: any, nd: IvNode, nextDomNd: any) {
+    if (nd.attached) return;
+    let domNode = nd.domNode, rCount = (c[0] as IvContext).refreshCount;
+    if (domNode && domNode !== parentDomNd) {
+        // console.log("insert", domNode.$uid, "before", nextDomNd.$uid);
+        parentDomNd.insertBefore(domNode, nextDomNd);
+        nd.attached = true;
+        nd.lastRefresh = rCount;
+    }
+    if (nd.kind === "#fragment") {
+        nd.domNode = parentDomNd;
+        nd.attached = true;
+        nd.lastRefresh = rCount;
+        if ((nd as IvFragment).children) {
+            let f = nd as IvFragment, ch = f.children!, len = ch.length, chNd: IvNode;
+            for (let i = 0; len > i; i++) {
+                chNd = c[ch[i]] as IvNode;
+                insertChildrenBefore(c, parentDomNd, chNd, nextDomNd);
+                chNd.lastRefresh = rCount;
+            }
+        }
+    }
 }
 
 /**
@@ -154,40 +252,88 @@ export function ζclean(c: IvNodes, idx: number, instIdx: number): number {
  * @param idx 
  */
 export function ζend(c: IvNodes, idx: number, creationMode: number) {
-    if (!creationMode) return;
     // go through all nodes and attach them together
-    let len = c.length, nd: IvNode, startIdx = idx === 1 ? 2 : idx, domNode2: any;
+    if (!creationMode && (c[idx] as IvNode).attached) return;
+
+    let len = c.length, nd = c[idx] as IvNode, startIdx = idx === 1 ? 2 : idx + 1, ctxt = c[0] as IvContext, hostDomNd = ctxt.domNode;
     if (idx === 1) {
-        let ctxt = c[0] as IvContext, nd = c[1] as IvNode;
         // if root node is fragment, we need to define its domNode first
         if (nd.kind === "#fragment") {
-            nd.domNode = ctxt.domNode;
+            nd.domNode = hostDomNd;
             nd.attached = true;
+            nd.lastRefresh = ctxt.refreshCount;
         }
     }
     for (let i = startIdx; len > i; i++) {
-        nd = c[i] as IvNode;
-        if (!nd.attached) {
-            let p = (c[nd.parentIdx] as IvNode);
-            domNode2 = nd.domNode;
-            if (domNode2 !== p.domNode) {
-                p.domNode.appendChild(domNode2);
-            }
-            nd.attached = true;
-            if (nd.kind === "#fragment") {
-                nd.domNode = p.domNode;
+        appendChildren(c, c[i] as IvNode, hostDomNd);
+    }
+
+    if (idx === 1) {
+        // root node, attach to parent container
+        insertChildrenBefore(c, ctxt.domNode, nd, ctxt.anchorNode);
+    } else {
+        // if we are running first refresh, simply append through ζend(ζ, 1, ζc1);
+        // otherwise insert idx before next sibling
+        if (ctxt.refreshCount > 1) {
+            // if sub-block is displayed on first refresh, no need to insert before next sibling
+            let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, c[idx] as IvNode);
+            if (position === "beforeChild") {
+                insertChildrenBefore(c, parentDomNd, nd, nextDomNd);
+            } else if (position === "lastChild") {
+                appendChildren(c, nd, hostDomNd);
+            } else if (position === "lastOnRoot") {
+                insertChildrenBefore(c, ctxt.domNode, nd, ctxt.anchorNode);
             }
         }
     }
-    if (idx === 1) {
-        // root node, attach to parent container
-        let ctxt = c[0] as IvContext, nd = c[1] as IvNode;
-        if (ctxt.domNode) {
-            domNode2 = nd.domNode;
-            if (ctxt.domNode !== domNode2) {
-                ctxt.domNode.appendChild(domNode2);
+}
+
+interface SiblingDomPosition {
+    position: "lastChild" | "beforeChild" | "lastOnRoot";
+    nextDomNd?: any;
+    parentDomNd: any;
+}
+function findNextSiblingDomNd(c: IvNodes, node: IvNode): SiblingDomPosition {
+    let nd = node, pos: number, parent: IvParentNode;
+    while (true) {
+        parent = c[nd.parentIdx] as IvParentNode;
+        pos = nd.childPos;
+
+        if (nd.idx === 1) {
+            return { position: "lastOnRoot", parentDomNd: c[0].domNode }; // root node has no sibling
+        }
+
+        if (pos !== parent.children!.length - 1) {
+            let nextNode = c[parent.children![pos + 1]] as IvNode,
+                sdp = findFirstDomNd(c, nextNode, parent.domNode);
+            if (sdp) return sdp;
+            // if not found we shift by 1
+            nd = nextNode;
+        } else {
+            // nd is last sibling
+            if (parent.kind === "#element") {
+                return { position: "lastChild", parentDomNd: parent.domNode };
             }
-            nd.attached = true;
+            // nd is a fragment (or variant)
+            nd = parent;
+        }
+    }
+
+    function findFirstDomNd(c: IvNodes, nd: IvNode, parentDomNd: any): SiblingDomPosition | null {
+        if (nd.kind === "#element" || nd.kind === "#text") {
+            return { position: "beforeChild", nextDomNd: nd.domNode, parentDomNd: parentDomNd };
+        } else if (nd.kind === "#fragment" || nd.kind === "#component") {
+            let ch = (nd as IvParentNode).children, len = ch ? ch.length : 0, sdp: SiblingDomPosition | null;
+            for (let i = 0; len > i; i++) {
+                sdp = findFirstDomNd(c, c[ch![i]] as IvNode, parentDomNd);
+                if (sdp) {
+                    return sdp;
+                }
+            }
+            // not found
+            return null;
+        } else {
+            throw new Error("TODO findFirstDomNd");
         }
     }
 }
@@ -225,9 +371,11 @@ function createElt(c: IvNodes, idx: number, parentIdx: number, instIdx: number, 
         idx: idx,
         parentIdx: parentIdx,
         ns: "",
-        nextSiblingIdx: -1,   // will be determined after first render
+        childPos: -1,   // will be determined after first render
         children: undefined,
-        expressions: undefined
+        expressions: undefined,
+        lastRefresh: 0,
+        isContainer: false
     }
     connectChild(c, nd, idx);
 }
@@ -238,8 +386,11 @@ function connectChild(c: IvNodes, child: IvNode, childIdx: number) {
     if (!p) return; // will happen on root node as childIdx === parentIdx
     if (!p.children) {
         p.children = [childIdx];
+        child.childPos = 0;
     } else {
-        p.children.push(childIdx);
+        let len = p.children.length;
+        p.children[len] = childIdx;
+        child.childPos = len;
     }
 }
 
@@ -268,9 +419,11 @@ function createTxt(c: IvNodes, idx: number, parentIdx: number, instIdx: number, 
         attached: false,
         idx: idx,
         parentIdx: parentIdx,
-        nextSiblingIdx: -1,
+        childPos: -1,
         pieces: pieces,
-        expressions: undefined
+        expressions: undefined,
+        lastRefresh: 0,
+        isContainer: false
     }
     connectChild(c, nd, idx);
 }

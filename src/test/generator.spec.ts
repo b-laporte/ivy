@@ -8,24 +8,22 @@ describe('Code generator', () => {
         assert.equal(await body.template(`() => {
             # Hello World #
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζtxt(ζ, 1, 1, 0, " Hello World ");
+            if (ζ1[0].cm) {
+                ζtxt(ζ1, 1, 1, 0, " Hello World ");
             }
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, '1');
 
         assert.equal(await body.template(`() => {
             # Hello #
             # World #
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " Hello ");
-                ζtxt(ζ, 3, 1, 0, " World ");
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " Hello ");
+                ζtxt(ζ1, 3, 1, 0, " World ");
             }
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, '2');
     });
 
@@ -33,12 +31,11 @@ describe('Code generator', () => {
         assert.equal(await body.template(`(name) => {
             # Hello {name} #
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+            if (ζ1[0].cm) {
+                ζtxt(ζ1, 1, 1, 0, ζs0);
             }
-            ζtxtval(ζ, 1, 0, 1, ζe(ζ, 0, 1, name));
-            ζend(ζ, 1, ζc1);
+            ζtxtval(ζ1, 1, 0, 1, ζe(ζ1, 0, name));
+            ζend(ζ1);
         `, '1');
 
         assert.deepEqual(await statics.template(`(name) => {
@@ -51,15 +48,14 @@ describe('Code generator', () => {
             # Hello {name} #
             # {name+1} {::name+2} #
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, ζs0);
-                ζtxt(ζ, 3, 1, 0, ζs1);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, ζs0);
+                ζtxt(ζ1, 3, 1, 0, ζs1);
             }
-            ζtxtval(ζ, 2, 0, 1, ζe(ζ, 0, 1, name));
-            ζtxtval(ζ, 3, 0, 2, ζe(ζ, 1, 1, name+1), ζc1 ? name+2 : ζu);
-            ζend(ζ, 1, ζc1);
+            ζtxtval(ζ1, 2, 0, 1, ζe(ζ1, 0, name));
+            ζtxtval(ζ1, 3, 0, 2, ζe(ζ1, 1, name+1), ζo(ζ1, 0)? name+2 : ζu);
+            ζend(ζ1);
         `, '3');
 
         assert.deepEqual(await statics.template(`(name) => {
@@ -80,17 +76,16 @@ describe('Code generator', () => {
                 </!>
             </div>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div");
-                ζfrag(ζ, 2, 1, 0);
-                ζtxt(ζ, 3, 2, 0, ζs0);
-                ζelt(ζ, 4, 2, 0, "span");
-                ζtxt(ζ, 5, 4, 0, ζs1);
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div");
+                ζfrag(ζ1, 2, 1);
+                ζtxt(ζ1, 3, 2, 0, ζs0);
+                ζelt(ζ1, 4, 2, 0, "span");
+                ζtxt(ζ1, 5, 4, 0, ζs1);
             }
-            ζtxtval(ζ, 3, 0, 1, ζe(ζ, 0, 1, name));
-            ζtxtval(ζ, 5, 0, 1, ζe(ζ, 1, 1, name));
-            ζend(ζ, 1, ζc1);
+            ζtxtval(ζ1, 3, 0, 1, ζe(ζ1, 0, name));
+            ζtxtval(ζ1, 5, 0, 1, ζe(ζ1, 1, name));
+            ζend(ζ1);
         `, '1');
     });
 
@@ -102,15 +97,14 @@ describe('Code generator', () => {
             </>
         }`);
         assert.equal(t1.body, `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
-                ζelt(ζ, 2, 1, 0, "span", ζs1);
-                ζtxt(ζ, 3, 2, 0, " Hello ");
-                ζelt(ζ, 4, 1, 0, "span");
-                ζtxt(ζ, 5, 4, 0, " World ");
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div", ζs0);
+                ζelt(ζ1, 2, 1, 0, "span", ζs1);
+                ζtxt(ζ1, 3, 2, 0, " Hello ");
+                ζelt(ζ1, 4, 1, 0, "span");
+                ζtxt(ζ1, 5, 4, 0, " World ");
             }
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, '1a');
         assert.deepEqual(t1.statics, [
             'ζs0 = ["class", "main"]',
@@ -124,15 +118,14 @@ describe('Code generator', () => {
             </>
         }`);
         assert.equal(t2.body, `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div", ζu, ζs0);
-                ζelt(ζ, 2, 1, 0, "span", ζs1, ζs2);
-                ζtxt(ζ, 3, 2, 0, " Hello ");
-                ζelt(ζ, 4, 1, 0, "section");
-                ζtxt(ζ, 5, 4, 0, " World ");
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div", ζu, ζs0);
+                ζelt(ζ1, 2, 1, 0, "span", ζs1, ζs2);
+                ζtxt(ζ1, 3, 2, 0, " Hello ");
+                ζelt(ζ1, 4, 1, 0, "section");
+                ζtxt(ζ1, 5, 4, 0, " World ");
             }
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, '2a');
         assert.deepEqual(t2.statics, [
             'ζs0 = ["className", "main"]',
@@ -146,11 +139,10 @@ describe('Code generator', () => {
             <div disabled/>
         }`);
         assert.equal(t1.body, `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div", ζs0);
             }
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, '1a');
         assert.deepEqual(t1.statics, [
             'ζs0 = ["disabled", true]'
@@ -164,14 +156,13 @@ describe('Code generator', () => {
                 <span class={getClass()}/>
             </div>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div");
-                ζelt(ζ, 2, 1, 0, "span");
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div");
+                ζelt(ζ1, 2, 1, 0, "span");
             }
-            ζatt(ζ, 1, 0, "title", ζe(ζ, 0, 1, exp()+123));
-            ζatt(ζ, 2, 0, "class", ζe(ζ, 1, 1, getClass()));
-            ζend(ζ, 1, ζc1);
+            ζatt(ζ1, 1, 0, "title", ζe(ζ1, 0, exp()+123));
+            ζatt(ζ1, 2, 0, "class", ζe(ζ1, 1, getClass()));
+            ζend(ζ1);
         `, '1');
     });
 
@@ -181,14 +172,13 @@ describe('Code generator', () => {
                 <span [className]={::getClass()}/>
             </div>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div");
-                ζelt(ζ, 2, 1, 0, "span");
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div");
+                ζelt(ζ1, 2, 1, 0, "span");
             }
-            ζprop(ζ, 1, 0, "title", ζe(ζ, 0, 1, exp()+123));
-            ζprop(ζ, 2, 0, "className", ζc1 ? getClass() : ζu);
-            ζend(ζ, 1, ζc1);
+            ζprop(ζ1, 1, 0, "title", ζe(ζ1, 0, exp()+123));
+            ζprop(ζ1, 2, 0, "className", ζo(ζ1, 0)? getClass() : ζu);
+            ζend(ζ1);
         `, '1');
     });
 
@@ -202,15 +192,14 @@ describe('Code generator', () => {
             </>
         }`);
         assert.equal(t.body, `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " fragment 1 ");
-                ζfrag(ζ, 3, 1, 0);
-                ζelt(ζ, 4, 3, 0, "div");
-                ζtxt(ζ, 5, 4, 0, " fragment 2 ");
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " fragment 1 ");
+                ζfrag(ζ1, 3, 1);
+                ζelt(ζ1, 4, 3, 0, "div");
+                ζtxt(ζ1, 5, 4, 0, " fragment 2 ");
             }
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, '1');
     });
 
@@ -222,16 +211,15 @@ describe('Code generator', () => {
             let bar = { a:"xyz"};
             # Something else #
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " Something ");
-                ζtxt(ζ, 3, 1, 0, " Something else ");
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " Something ");
+                ζtxt(ζ1, 3, 1, 0, " Something else ");
             }
             let x = 42;
             x++;
             let bar = { a:"xyz"};
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, 'statements first and embedded');
 
         assert.equal(await body.template(`() => {
@@ -240,15 +228,14 @@ describe('Code generator', () => {
                 callSomething();
             } while (test);
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " Something ");
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " Something ");
             }
             do {
                 callSomething();
             } while (test);
-            ζend(ζ, 1, ζc1);
+            ζend(ζ1);
         `, 'statements last');
     });
 
@@ -259,22 +246,22 @@ describe('Code generator', () => {
             }
             # \\(end) #
         }`), `
-            let ζc1, ζi4 = 0, ζc4;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζfrag(ζ, 2, 1, 0, 1);
-                ζtxt(ζ, 3, 1, 0, " \\(end) ");
+            let ζi2 = 0, ζ2;
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζfrag(ζ1, 2, 1, 0, 1);
+                ζtxt(ζ1, 3, 1, 0, " \\(end) ");
             }
             if (test) {
-                ζi4++;
-                if (ζc4 = ζcheck(ζ, 4, ζi4)) {
-                    ζtxt(ζ, 4, 2, 0, ζs0);
+                ζ2 = ζcc(ζ1, 2, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζtxt(ζ2, 1, 1, 0, ζs0);
                 }
-                ζtxtval(ζ, 4, 0, 1, ζe(ζ, 0, 4, name));
-                ζend(ζ, 4, ζc4);
+                ζtxtval(ζ2, 1, 0, 1, ζe(ζ2, 0, name));
+                ζend(ζ2);
             }
-            ζclean(ζ, 4, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 2, 0);
+            ζend(ζ1);
         `, 'first position');
 
         assert.equal(await body.template(`(name) => {
@@ -284,30 +271,30 @@ describe('Code generator', () => {
                 # B {name} #
             }
         }`), `
-            let ζc1, ζi4 = 0, ζc4, ζi5 = 0, ζc5;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζfrag(ζ, 2, 1, 0, 1);
-                ζfrag(ζ, 3, 1, 0, 1);
+            let ζi2 = 0, ζ2, ζi3 = 0, ζ3;
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζfrag(ζ1, 2, 1, 0, 1);
+                ζfrag(ζ1, 3, 1, 0, 1);
             }
             if (test) {
-                ζi4++;
-                if (ζc4 = ζcheck(ζ, 4, ζi4)) {
-                    ζtxt(ζ, 4, 2, 0, ζs0);
+                ζ2 = ζcc(ζ1, 2, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζtxt(ζ2, 1, 1, 0, ζs0);
                 }
-                ζtxtval(ζ, 4, 0, 1, ζe(ζ, 0, 4, name));
-                ζend(ζ, 4, ζc4);
+                ζtxtval(ζ2, 1, 0, 1, ζe(ζ2, 0, name));
+                ζend(ζ2);
             } else {
-                ζi5++;
-                if (ζc5 = ζcheck(ζ, 5, ζi5)) {
-                    ζtxt(ζ, 5, 3, 0, ζs1);
+                ζ3 = ζcc(ζ1, 3, ++ζi3);
+                if (ζ3[0].cm) {
+                    ζtxt(ζ3, 1, 1, 0, ζs1);
                 }
-                ζtxtval(ζ, 5, 0, 1, ζe(ζ, 0, 5, name));
-                ζend(ζ, 5, ζc5);
+                ζtxtval(ζ3, 1, 0, 1, ζe(ζ3, 0, name));
+                ζend(ζ3);
             }
-            ζclean(ζ, 4, 0);
-            ζclean(ζ, 5, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 2, 0);
+            ζclean(ζ1, 3, 0);
+            ζend(ζ1);
         `, 'all / if+else');
 
         assert.equal(await body.template(`(name) => {
@@ -317,24 +304,24 @@ describe('Code generator', () => {
                 # A {name} #
             } while (test)
         }`), `
-            let ζc1, ζi4 = 0, ζc4;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " hello ");
-                ζfrag(ζ, 3, 1, 0, 1);
+            let ζi2 = 0, ζ2;
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " hello ");
+                ζfrag(ζ1, 3, 1, 0, 1);
             }
             do {
-                ζi4++;
-                if (ζc4 = ζcheck(ζ, 4, ζi4)) {
-                    ζfrag(ζ, 4, 3, 0);
-                    ζtxt(ζ, 5, 4, 0, ζs0);
+                ζ2 = ζcc(ζ1, 3, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζfrag(ζ2, 1, 1);
+                    ζtxt(ζ2, 2, 1, 0, ζs0);
                 }
                 let x=123;
-                ζtxtval(ζ, 5, 0, 1, ζe(ζ, 0, 4, name));
-                ζend(ζ, 4, ζc4);
+                ζtxtval(ζ2, 2, 0, 1, ζe(ζ2, 0, name));
+                ζend(ζ2);
             } while (test)
-            ζclean(ζ, 4, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 3, 0);
+            ζend(ζ1);
         `, 'last + js Statements first & last');
 
         assert.equal(await body.template(`(name) => {
@@ -346,31 +333,31 @@ describe('Code generator', () => {
                 # B {name} #
             }
         }`), `
-            let ζc1, ζi4 = 0, ζc4, ζi5 = 0, ζc5;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζfrag(ζ, 2, 1, 0, 1);
-                ζfrag(ζ, 3, 1, 0, 1);
+            let ζi2 = 0, ζ2, ζi3 = 0, ζ3;
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζfrag(ζ1, 2, 1, 0, 1);
+                ζfrag(ζ1, 3, 1, 0, 1);
             }
             if (a) {
-                ζi4++;
-                if (ζc4 = ζcheck(ζ, 4, ζi4)) {
-                    ζtxt(ζ, 4, 2, 0, ζs0);
+                ζ2 = ζcc(ζ1, 2, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζtxt(ζ2, 1, 1, 0, ζs0);
                 }
-                ζtxtval(ζ, 4, 0, 1, ζe(ζ, 0, 4, name));
-                ζend(ζ, 4, ζc4);
+                ζtxtval(ζ2, 1, 0, 1, ζe(ζ2, 0, name));
+                ζend(ζ2);
             } let x=1;
             if (b) {
-                ζi5++;
-                if (ζc5 = ζcheck(ζ, 5, ζi5)) {
-                    ζtxt(ζ, 5, 3, 0, ζs1);
+                ζ3 = ζcc(ζ1, 3, ++ζi3);
+                if (ζ3[0].cm) {
+                    ζtxt(ζ3, 1, 1, 0, ζs1);
                 }
-                ζtxtval(ζ, 5, 0, 1, ζe(ζ, 0, 5, name));
-                ζend(ζ, 5, ζc5);
+                ζtxtval(ζ3, 1, 0, 1, ζe(ζ3, 0, name));
+                ζend(ζ3);
             }
-            ζclean(ζ, 4, 0);
-            ζclean(ζ, 5, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 2, 0);
+            ζclean(ζ1, 3, 0);
+            ζend(ζ1);
         `, 'series of block & statements');
 
         assert.equal(await body.template(`(name) => {
@@ -381,25 +368,25 @@ describe('Code generator', () => {
             }
             <section/>
         }`), `
-            let ζc1, ζi5 = 0, ζc5;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζelt(ζ, 2, 1, 0, "span");
-                ζfrag(ζ, 3, 1, 0, 1);
-                ζelt(ζ, 4, 1, 0, "section");
+            let ζi2 = 0, ζ2;
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζelt(ζ1, 2, 1, 0, "span");
+                ζfrag(ζ1, 3, 1, 0, 1);
+                ζelt(ζ1, 4, 1, 0, "section");
             }
             if (a) {
-                ζi5++;
-                if (ζc5 = ζcheck(ζ, 5, ζi5)) {
-                    ζfrag(ζ, 5, 3, 0);
-                    ζtxt(ζ, 6, 5, 0, ζs0);
-                    ζelt(ζ, 7, 5, 0, "div");
+                ζ2 = ζcc(ζ1, 3, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζfrag(ζ2, 1, 1);
+                    ζtxt(ζ2, 2, 1, 0, ζs0);
+                    ζelt(ζ2, 3, 1, 0, "div");
                 }
-                ζtxtval(ζ, 6, 0, 1, ζe(ζ, 0, 5, name));
-                ζend(ζ, 5, ζc5);
+                ζtxtval(ζ2, 2, 0, 1, ζe(ζ2, 0, name));
+                ζend(ζ2);
             }
-            ζclean(ζ, 5, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 3, 0);
+            ζend(ζ1);
         `, 'embedded & multiple child nodes');
 
         assert.equal(await body.template(`(name) => {
@@ -410,29 +397,29 @@ describe('Code generator', () => {
                 <div/>
             }
         }`), `
-            let ζc1, ζi2 = 0, ζc2, ζi5 = 0, ζc5;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0, 1);
+            let ζi2 = 0, ζ2, ζi3 = 0, ζ3;
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1, 0, 1);
             }
             if (a) {
-                ζi2++;
-                if (ζc2 = ζcheck(ζ, 2, ζi2)) {
-                    ζfrag(ζ, 2, 1, 0);
-                    ζfrag(ζ, 3, 2, 0, 1);
-                    ζelt(ζ, 4, 2, 0, "div");
+                ζ2 = ζcc(ζ1, 1, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζfrag(ζ2, 1, 1);
+                    ζfrag(ζ2, 2, 1, 0, 1);
+                    ζelt(ζ2, 3, 1, 0, "div");
                 }
                 if (b) {
-                    ζi5++;
-                    if (ζc5 = ζcheck(ζ, 5, ζi5)) {
-                        ζelt(ζ, 5, 3, 0, "span");
+                    ζ3 = ζcc(ζ2, 2, ++ζi3);
+                    if (ζ3[0].cm) {
+                        ζelt(ζ3, 1, 1, 0, "span");
                     }
-                    ζend(ζ, 5, ζc5);
+                    ζend(ζ3);
                 }
-                ζclean(ζ, 5, 0);
-                ζend(ζ, 2, ζc2);
+                ζclean(ζ2, 2, 0);
+                ζend(ζ2);
             }
-            ζclean(ζ, 2, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 1, 0);
+            ζend(ζ1);
         `, 'embedded & multiple child nodes');
     });
 
@@ -445,21 +432,21 @@ describe('Code generator', () => {
                 }
             </div>
         }`), `
-            let ζc1, ζi4 = 0, ζc4;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div");
-                ζtxt(ζ, 2, 1, 0, " first ");
-                ζfrag(ζ, 3, 1, 0, 1);
+            let ζi2 = 0, ζ2;
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div");
+                ζtxt(ζ1, 2, 1, 0, " first ");
+                ζfrag(ζ1, 3, 1, 0, 1);
             }
             if (condition) {
-                ζi4++;
-                if (ζc4 = ζcheck(ζ, 4, ζi4)) {
-                    ζelt(ζ, 4, 3, 0, "span");
+                ζ2 = ζcc(ζ1, 3, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζelt(ζ2, 1, 1, 0, "span");
                 }
-                ζend(ζ, 4, ζc4);
+                ζend(ζ2);
             }
-            ζclean(ζ, 4, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 3, 0);
+            ζend(ζ1);
         `, '1');
 
         assert.equal(await body.template(`() => {
@@ -474,30 +461,30 @@ describe('Code generator', () => {
                 }
             </div>
         }`), `
-            let ζc1, ζi5 = 0, ζc5, ζi6 = 0, ζc6;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div");
-                ζfrag(ζ, 2, 1, 0);
-                ζfrag(ζ, 3, 2, 0, 1);
-                ζfrag(ζ, 4, 1, 0, 1);
+            let ζi2 = 0, ζ2, ζi3 = 0, ζ3;
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div");
+                ζfrag(ζ1, 2, 1);
+                ζfrag(ζ1, 3, 2, 0, 1);
+                ζfrag(ζ1, 4, 1, 0, 1);
             }
             if (condition) {
-                ζi5++;
-                if (ζc5 = ζcheck(ζ, 5, ζi5)) {
-                    ζelt(ζ, 5, 3, 0, "span");
+                ζ2 = ζcc(ζ1, 3, ++ζi2);
+                if (ζ2[0].cm) {
+                    ζelt(ζ2, 1, 1, 0, "span");
                 }
-                ζend(ζ, 5, ζc5);
+                ζend(ζ2);
             }
-            ζclean(ζ, 5, 0);
             if (condition) {
-                ζi6++;
-                if (ζc6 = ζcheck(ζ, 6, ζi6)) {
-                    ζelt(ζ, 6, 4, 0, "span");
+                ζ3 = ζcc(ζ1, 4, ++ζi3);
+                if (ζ3[0].cm) {
+                    ζelt(ζ3, 1, 1, 0, "span");
                 }
-                ζend(ζ, 6, ζc6);
+                ζend(ζ3);
             }
-            ζclean(ζ, 6, 0);
-            ζend(ζ, 1, ζc1);
+            ζclean(ζ1, 3, 0);
+            ζclean(ζ1, 4, 0);
+            ζend(ζ1);
         `, '2');
     });
 
@@ -507,13 +494,12 @@ describe('Code generator', () => {
         }`);
 
         assert.equal(t1.body, `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0, 1);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1, 0, 1);
             }
-            ζcpt(ζ, 1, 0, ζe(ζ, 0, 1, alert), 0, 0, ζs0);
-            ζcall(ζ, 1, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 1, 0, ζe(ζ1, 0, alert), 0, 0, ζs0);
+            ζcall(ζ1, 1);
+            ζend(ζ1);
         `, '1a');
 
         assert.deepEqual(t1.statics, [
@@ -525,15 +511,14 @@ describe('Code generator', () => {
             <$b.section position={getPosition()} msg={myMessage} type="big" important/>
         }`);
         assert.equal(t2.body, `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0, 1);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1, 0, 1);
             }
-            ζcpt(ζ, 1, 0, ζe(ζ, 0, 1, b.section), 0, 0, ζs0);
-            ζparam(ζ, 1, 0, "position", ζe(ζ, 1, 1, getPosition()));
-            ζparam(ζ, 1, 0, "msg", ζe(ζ, 2, 1, myMessage));
-            ζcall(ζ, 1, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 1, 0, ζe(ζ1, 0, b.section), 0, 0, ζs0);
+            ζparam(ζ1, 1, 0, "position", ζe(ζ1, 1, getPosition()));
+            ζparam(ζ1, 1, 0, "msg", ζe(ζ1, 2, myMessage));
+            ζcall(ζ1, 1);
+            ζend(ζ1);
         `, '2a');
         assert.deepEqual(t2.statics, [
             'ζs0 = ["type", "big", "important", true]'
@@ -546,15 +531,14 @@ describe('Code generator', () => {
                 <span title={getTitle()}/>
             </>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0, 1);
-                ζelt(ζ, 2, 1, 2, "span");
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1, 0, 1);
+                ζelt(ζ1, 2, 1, 2, "span");
             }
-            ζcpt(ζ, 1, 0, ζe(ζ, 0, 1, myComponent), 2, 0);
-            ζatt(ζ, 2, 2, "title", ζe(ζ, 0, 2, getTitle()));
-            ζcall(ζ, 1, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 1, 0, ζe(ζ1, 0, myComponent), 2, 0);
+            ζatt(ζ1, 2, 2, "title", ζe(ζ1, 0, getTitle(), 2));
+            ζcall(ζ1, 1);
+            ζend(ζ1);
         `, 'single node + dynamic param');
 
         assert.equal(await body.template(`() => {
@@ -565,22 +549,21 @@ describe('Code generator', () => {
                 </>
             </>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0, 1);
-                ζfrag(ζ, 2, 1, 2);
-                ζtxt(ζ, 3, 2, 2, ζs0);
-                ζfrag(ζ, 4, 2, 2, 1);
-                ζtxt(ζ, 5, 4, 5, ζs1);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1, 0, 1);
+                ζfrag(ζ1, 2, 1, 2);
+                ζtxt(ζ1, 3, 2, 2, ζs0);
+                ζfrag(ζ1, 4, 2, 2, 1);
+                ζtxt(ζ1, 5, 4, 5, ζs1);
             }
-            ζcpt(ζ, 1, 0, ζe(ζ, 0, 1, myComponent), 2, 0);
-            ζtxtval(ζ, 3, 2, 1, ζe(ζ, 0, 2, name1));
-            ζcpt(ζ, 4, 2, ζe(ζ, 1, 2, otherComponent), 5, 0);
-            ζparam(ζ, 4, 2, "p1", ζe(ζ, 2, 2, expr()));
-            ζtxtval(ζ, 5, 5, 1, ζe(ζ, 0, 5, name2));
-            ζcall(ζ, 4, 2);
-            ζcall(ζ, 1, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 1, 0, ζe(ζ1, 0, myComponent), 2, 0);
+            ζtxtval(ζ1, 3, 2, 1, ζe(ζ1, 0, name1, 2));
+            ζcpt(ζ1, 4, 2, ζe(ζ1, 1, otherComponent, 2), 5, 0);
+            ζparam(ζ1, 4, 2, "p1", ζe(ζ1, 2, expr(), 2));
+            ζtxtval(ζ1, 5, 5, 1, ζe(ζ1, 0, name2, 5));
+            ζcall(ζ1, 4, 2);
+            ζcall(ζ1, 1);
+            ζend(ζ1);
         `, 'multiple nodes & sub-component');
     });
 
@@ -593,21 +576,20 @@ describe('Code generator', () => {
                 <.footer type="small"/>
             </>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " first ");
-                ζfrag(ζ, 3, 1, 0, 1);
-                ζfrag(ζ, 4, 3, 4);
-                ζpnode(ζ, 5, 4, 0, "header", ζs0);
-                ζtxt(ζ, 6, 4, 4, ζs1);
-                ζpnode(ζ, 7, 4, 0, "footer", ζs2);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " first ");
+                ζfrag(ζ1, 3, 1, 0, 1);
+                ζfrag(ζ1, 4, 3, 4);
+                ζpnode(ζ1, 5, 4, 0, "header", ζs0);
+                ζtxt(ζ1, 6, 4, 4, ζs1);
+                ζpnode(ζ1, 7, 4, 0, "footer", ζs2);
             }
-            ζcpt(ζ, 3, 0, ζe(ζ, 0, 1, myComponent), 4, 0);
-            ζparam(ζ, 5, 0, "foo", ζe(ζ, 0, 4, bar()));
-            ζtxtval(ζ, 6, 4, 1, ζe(ζ, 1, 4, baz()));
-            ζcall(ζ, 3, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 3, 0, ζe(ζ1, 0, myComponent), 4, 0);
+            ζparam(ζ1, 5, 0, "foo", ζe(ζ1, 1, bar()));
+            ζtxtval(ζ1, 6, 4, 1, ζe(ζ1, 0, baz(), 4));
+            ζcall(ζ1, 3);
+            ζend(ζ1);
         `, '1');
 
         assert.equal(await body.template(`() => {
@@ -620,26 +602,25 @@ describe('Code generator', () => {
                 # cpt content {foo()} #
             </>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζtxt(ζ, 2, 1, 0, " first ");
-                ζfrag(ζ, 3, 1, 0, 1);
-                ζfrag(ζ, 4, 3, 4);
-                ζpnode(ζ, 5, 4, 0, "header", ζs0);
-                ζfrag(ζ, 6, 5, 6);
-                ζpnode(ζ, 7, 6, 5, "title");
-                ζelt(ζ, 8, 7, 8, "b");
-                ζtxt(ζ, 9, 8, 8, ζs1);
-                ζtxt(ζ, 10, 6, 6, " header content ");
-                ζtxt(ζ, 11, 4, 4, ζs2);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζtxt(ζ1, 2, 1, 0, " first ");
+                ζfrag(ζ1, 3, 1, 0, 1);
+                ζfrag(ζ1, 4, 3, 4);
+                ζpnode(ζ1, 5, 4, 0, "header", ζs0);
+                ζfrag(ζ1, 6, 5, 6);
+                ζpnode(ζ1, 7, 6, 4, "title");
+                ζelt(ζ1, 8, 7, 8, "b");
+                ζtxt(ζ1, 9, 8, 8, ζs1);
+                ζtxt(ζ1, 10, 6, 6, " header content ");
+                ζtxt(ζ1, 11, 4, 4, ζs2);
             }
-            ζcpt(ζ, 3, 0, ζe(ζ, 0, 1, myComponent), 4, 0);
-            ζparam(ζ, 5, 0, "foo", ζe(ζ, 0, 4, bar()));
-            ζtxtval(ζ, 9, 8, 1, ζe(ζ, 0, 8, exp()));
-            ζtxtval(ζ, 11, 4, 1, ζe(ζ, 1, 4, foo()));
-            ζcall(ζ, 3, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 3, 0, ζe(ζ1, 0, myComponent), 4, 0);
+            ζparam(ζ1, 5, 0, "foo", ζe(ζ1, 1, bar()));
+            ζtxtval(ζ1, 9, 8, 1, ζe(ζ1, 0, exp(), 8));
+            ζtxtval(ζ1, 11, 4, 1, ζe(ζ1, 0, foo(), 4));
+            ζcall(ζ1, 3);
+            ζend(ζ1);
         `, '2');
 
     });
@@ -653,17 +634,16 @@ describe('Code generator', () => {
                 let bar=foo;
             </>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0);
-                ζelt(ζ, 2, 1, 0, "span");
-                ζfrag(ζ, 3, 1, 0, 1);
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1);
+                ζelt(ζ1, 2, 1, 0, "span");
+                ζfrag(ζ1, 3, 1, 0, 1);
             }
             let x=123;
-            ζcpt(ζ, 3, 0, ζe(ζ, 0, 1, foo), 0, 0);
+            ζcpt(ζ1, 3, 0, ζe(ζ1, 0, foo), 0, 0);
             let bar=foo;
-            ζcall(ζ, 3, 0);
-            ζend(ζ, 1, ζc1);
+            ζcall(ζ1, 3);
+            ζend(ζ1);
         `, '1');
     });
 
@@ -675,17 +655,16 @@ describe('Code generator', () => {
                 <.paramB value={exp(bar)}/>
             </>
         }`), `
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζfrag(ζ, 1, 1, 0, 1);
-                ζpnode(ζ, 2, 1, 0, "paramA", ζs0);
-                ζpnode(ζ, 3, 1, 0, "paramB");
+            if (ζ1[0].cm) {
+                ζfrag(ζ1, 1, 1, 0, 1);
+                ζpnode(ζ1, 2, 1, 0, "paramA", ζs0);
+                ζpnode(ζ1, 3, 1, 0, "paramB");
             }
-            ζcpt(ζ, 1, 0, ζe(ζ, 0, 1, foo), 0, 0);
+            ζcpt(ζ1, 1, 0, ζe(ζ1, 0, foo), 0, 0);
             let bar=foo;
-            ζparam(ζ, 3, 0, "value", ζe(ζ, 1, 1, exp(bar)));
-            ζcall(ζ, 1, 0);
-            ζend(ζ, 1, ζc1);
+            ζparam(ζ1, 3, 0, "value", ζe(ζ1, 1, exp(bar)));
+            ζcall(ζ1, 1);
+            ζend(ζ1);
         `, '1');
     });
 
@@ -701,24 +680,23 @@ describe('Code generator', () => {
 
         assert.equal(t1.function, `(function () {
         const ζs0 = ["class", "main"], ζs1 = ["type", "important"], ζs2 = ["class", "content"];
-        return ζt(function (ζ) {
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
-                ζfrag(ζ, 2, 1, 0, 1);
-                ζfrag(ζ, 3, 2, 3);
-                ζpnode(ζ, 4, 3, 0, "header");
-                ζtxt(ζ, 5, 4, 5, " The big title ");
-                ζelt(ζ, 6, 3, 3, "span", ζs2);
-                ζtxt(ζ, 7, 6, 3, " Section content ");
+        return ζt(function (ζ1) {
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div", ζs0);
+                ζfrag(ζ1, 2, 1, 0, 1);
+                ζfrag(ζ1, 3, 2, 3);
+                ζpnode(ζ1, 4, 3, 0, "header");
+                ζtxt(ζ1, 5, 4, 5, " The big title ");
+                ζelt(ζ1, 6, 3, 3, "span", ζs2);
+                ζtxt(ζ1, 7, 6, 3, " Section content ");
             }
-            ζcpt(ζ, 2, 0, ζe(ζ, 0, 1, b.section), 3, 0, ζs1);
-            ζcall(ζ, 2, 0);
-            ζend(ζ, 1, ζc1);
+            ζcpt(ζ1, 2, 0, ζe(ζ1, 0, b.section), 3, 0, ζs1);
+            ζcall(ζ1, 2);
+            ζend(ζ1);
         });
         })()` , 'f1');
         assert.deepEqual(t1.importMap, {
-            "ζelt": 1, "ζfrag": 1, "ζpnode": 1, "ζtxt": 1, "ζcheck": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζt": 1
+            "ζelt": 1, "ζfrag": 1, "ζpnode": 1, "ζtxt": 1, "ζcc": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζt": 1
         }, 'imports 1');
 
         let t2 = await test.template(`(name) => {
@@ -731,20 +709,19 @@ describe('Code generator', () => {
         @ζd class ζParams {
             @ζv name;
         }
-        return ζt(function (ζ, $) {
+        return ζt(function (ζ1, $) {
             let name = $["name"];
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
-                ζtxt(ζ, 2, 1, 0, ζs1);
+            if (ζ1[0].cm) {
+                ζelt(ζ1, 1, 1, 0, "div", ζs0);
+                ζtxt(ζ1, 2, 1, 0, ζs1);
             }
-            ζprop(ζ, 1, 0, "title", ζe(ζ, 0, 1, "Message for " + name));
-            ζtxtval(ζ, 2, 0, 1, ζe(ζ, 1, 1, name));
-            ζend(ζ, 1, ζc1);
+            ζprop(ζ1, 1, 0, "title", ζe(ζ1, 0, "Message for " + name));
+            ζtxtval(ζ1, 2, 0, 1, ζe(ζ1, 1, name));
+            ζend(ζ1);
         }, 0, ζParams);
         })()` , 'f2');
         assert.deepEqual(t2.importMap, {
-            "ζelt": 1, "ζtxt": 1, "ζcheck": 1, "ζe": 1, "ζtxtval": 1, "ζend": 1, "ζprop": 1, "ζv": 1, "ζd": 1, "ζt": 1
+            "ζelt": 1, "ζtxt": 1, "ζcc": 1, "ζe": 1, "ζtxtval": 1, "ζend": 1, "ζprop": 1, "ζv": 1, "ζd": 1, "ζt": 1
         }, 'imports 2');
 
         let t3 = await test.template(`(firstName, lastName) => {
@@ -756,18 +733,17 @@ describe('Code generator', () => {
             @ζv firstName;
             @ζv lastName;
         }
-        return ζt(function (ζ, $) {
+        return ζt(function (ζ1, $) {
             let firstName = $["firstName"], lastName = $["lastName"];
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+            if (ζ1[0].cm) {
+                ζtxt(ζ1, 1, 1, 0, ζs0);
             }
-            ζtxtval(ζ, 1, 0, 2, ζe(ζ, 0, 1, firstName), ζc1 ? lastName : ζu);
-            ζend(ζ, 1, ζc1);
+            ζtxtval(ζ1, 1, 0, 2, ζe(ζ1, 0, firstName), ζo(ζ1, 0)? lastName : ζu);
+            ζend(ζ1);
         }, 0, ζParams);
         })()` , 'f3');
         assert.deepEqual(t3.importMap, {
-            "ζtxt": 1, "ζcheck": 1, "ζtxtval": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζv": 1, "ζd": 1, "ζt": 1
+            "ζtxt": 1, "ζcc": 1, "ζtxtval": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζv": 1, "ζd": 1, "ζt": 1
         }, 'imports 3');
     });
 
@@ -779,14 +755,14 @@ describe('Code generator', () => {
             </>
         }`);
         assert.deepEqual(t1.importMap, {
-            "ζelt": 1, "ζtxt": 1, "ζcheck": 1, "ζtxtval": 1, "ζe": 1, "ζend": 1, "ζt": 1
+            "ζelt": 1, "ζtxt": 1, "ζcc": 1, "ζtxtval": 1, "ζe": 1, "ζend": 1, "ζt": 1
         }, "t1 imports");
 
         let t2 = await test.template(`(comp) => {
             <$comp/>
         }`, t1.importMap);
         assert.deepEqual(t2.importMap, {
-            "ζelt": 1, "ζtxt": 1, "ζcheck": 1, "ζtxtval": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζfrag": 1, "ζcpt": 1, "ζcall": 1, "ζv": 1, "ζd": 1
+            "ζelt": 1, "ζtxt": 1, "ζcc": 1, "ζtxtval": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζfrag": 1, "ζcpt": 1, "ζcall": 1, "ζv": 1, "ζd": 1
         }, "t2 imports");
     });
 
@@ -796,13 +772,12 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = [" Hello ", "", " "];
-        return ζt(function (ζ, $) {
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+        return ζt(function (ζ1, $) {
+            if (ζ1[0].cm) {
+                ζtxt(ζ1, 1, 1, 0, ζs0);
             }
-            ζtxtval(ζ, 1, 0, 1, ζe(ζ, 0, 1, $.name));
-            ζend(ζ, 1, ζc1);
+            ζtxtval(ζ1, 1, 0, 1, ζe(ζ1, 0, $.name));
+            ζend(ζ1);
         }, 0, MyParamClass);
         })()`, 'simple param class');
 
@@ -811,17 +786,19 @@ describe('Code generator', () => {
         }`);
         assert.equal(t2.function, `(function () {
         const ζs0 = [" Hello ", "", " "];
-        return ζt(function (ζ, $) {
+        return ζt(function (ζ1, $) {
             let name = $["name"];
-            let ζc1;
-            if (ζc1 = ζcheck(ζ, 1, 0)) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+            if (ζ1[0].cm) {
+                ζtxt(ζ1, 1, 1, 0, ζs0);
             }
-            ζtxtval(ζ, 1, 0, 1, ζe(ζ, 0, 1, $.name));
-            ζend(ζ, 1, ζc1);
+            ζtxtval(ζ1, 1, 0, 1, ζe(ζ1, 0, $.name));
+            ζend(ζ1);
         }, 0, MyParamClass);
         })()`, 'param class + local variables initialization');
     });
 
+    // todo: change 1 time expressions to ζo(ζ1, 0)? exp() : ζu
+    // todo merge clean() and end()
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });
+

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { template } from '../../iv';
-import { ElementNode, reset, getTemplate, stringify } from '../utils';
+import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 describe('Conditional Blocks', () => {
     let body: ElementNode;

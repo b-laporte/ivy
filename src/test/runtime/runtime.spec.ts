@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { template } from '../../iv';
-import { ElementNode, reset, getTemplate, stringify } from '../utils';
+import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 describe('Iv Runtime', () => {
     let body: ElementNode;
@@ -17,7 +17,6 @@ describe('Iv Runtime', () => {
         }`);
 
         let t = getTemplate(foo, body).refresh();
-
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -40,7 +39,6 @@ describe('Iv Runtime', () => {
 
         body = reset();
         let t2 = getTemplate(bar, body).refresh();
-
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3>

@@ -1,5 +1,6 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument } from '../xjs/parser/types';
+import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText } from '../xjs/parser/types';
 import { parse } from '../xjs/parser/xjs-parser';
+import { before } from 'mocha';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result
@@ -18,21 +19,8 @@ export interface CompilationResult {
     importMap?: { [key: string]: 1 },   // imports as a map
 }
 
-export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
-    options.lineOffset = options.lineOffset || 0;
-    let log = false;
-    if (template.match(RX_LOG)) {
-        log = true;
-        template = template.replace(RX_LOG, "");
-    }
-    let root = await parse(template, options.filePath || "", options.lineOffset || 0);
-    let res = generate(root, options);
-    if (log) {
-        const separator = "-------------------------------------------------------------------------------"
-        console.log(separator + "\n" + "Generated template:\n" + res.function + "\n" + separator);
-    }
-    return res;
-}
+type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock;
+type InstructionsHolder = XjsComponent | XjsParamNode | null;
 
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_LOG = /\/\/\s*log\s*/,
@@ -56,41 +44,57 @@ const RX_DOUBLE_QUOTE = /\"/g,
         "#boolean": "boolean",
         "#string": "string",
         "#eventListener": "event listener"
+    },
+    $INDEX = "$index",
+    $FRAGMENT_INDEX = "$fragmentIndex",
+    $STATIC_PARAMS_IDX = "$staticParamsIdx",
+    $PARENT_IDX = "$parentIdx",
+    $CONTENT_NODE_IDX = "$contentNodeIdx",
+    $PARENT_INS_HOLDER = "$parentIHolder";
+
+export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
+    options.lineOffset = options.lineOffset || 0;
+    let log = false;
+    if (template.match(RX_LOG)) {
+        log = true;
+        template = template.replace(RX_LOG, "");
     }
+    let root = await parse(template, options.filePath || "", options.lineOffset || 0);
+    let res = generate(root, options);
+    if (log) {
+        const separator = "-------------------------------------------------------------------------------"
+        console.log(separator + "\n" + "Generated template:\n" + res.function + "\n" + separator);
+    }
+    return res;
+}
 
 function generate(tf: XjsTplFunction, options: CompilationOptions) {
-    const INDENT = "    ";
-    let nodes: XjsNode[] = [],             // list of nodes that have been processed (index = generated index)
-        nodeCount = 0,                     // list of nodes that are generated (index 0 is reserved)
-        statics: string[] = [],            // list of static resources
-        imports: { [key: string]: 1 },     // map of required imports
-        localVars = {},                    // map of creation mode vars
-        exprCounts: number[] = [],         // array of expression counters
-        nextNodeIsContainer = false,       // true when the next node to create will be a container (cf. blocks and fragments)
-        body: (string | XjsExpression | XjsJsStatements | XjsJsBlock)[] = []; // parts composing the function body (generated strings + included expressions/statements)
-
-    imports = options.importMap || {};
+    let body: BodyContent[] = []; // parts composing the function body (generated strings + included expressions/statements)
+    let root: JsBlockUpdate;
 
     return generateAll();
 
     function generateAll() {
+        let gc = new GenerationCtxt(options);
+
         if (tf.content) {
-            generateBlock(tf.content, 1, tf.indent, 0, "0");
+            root = new JsBlockUpdate(tf, 1, null, null, gc, tf.indent);
+            root.scan();
+            root.pushCode(body);
         }
-        insertLocalVars(0, tf.indent);
 
         let res: CompilationResult = {};
         if (options.function || options.body) {
             res.body = generateBody();
         }
         if (options.statics) {
-            res.statics = statics;
+            res.statics = gc.statics;
         }
         if (options.function) {
-            res.function = templateStart(tf.indent, tf) + res.body + templateEnd(tf);
+            res.function = templateStart(tf.indent, tf, gc) + res.body + templateEnd(tf);
         }
         if (options.imports) {
-            res.importMap = imports;
+            res.importMap = gc.imports;
         }
         return res;
     }
@@ -109,75 +113,141 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
 
         return "\n" + parts.join("") + reduceIndent(tf.indent);
     }
+}
 
-    function error(msg, nd: XjsNode) {
-        let fileInfo = options.filePath ? " in " + options.filePath : "",
-            lineOffset = options.lineOffset || 0;
-        throw new Error(`Invalid ${NODE_NAMES[nd.kind]} - ${msg} at line #${nd.lineNumber + lineOffset}${fileInfo}`);
+function reduceIndent(indent: string) {
+    if (indent.length > 3) {
+        return indent.slice(0, -4);
+    }
+    return indent;
+}
+
+interface CreationInstruction {
+    pushCode(body: BodyContent[]);
+}
+
+interface UpdateInstruction {
+    isJsBlock?: true;
+    idx?: number;
+    pushCode(body: BodyContent[]);
+}
+
+export interface CompilationOptions {
+    body?: boolean;                     // if true, will output the template function body in the result
+    statics?: boolean;                  // if true, the statics array will be in the result
+    function?: boolean;                 // if true the js function will be in the result
+    imports?: boolean;                  // if true the imports will be added as comment to the js function
+    importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
+    filePath?: string;                  // file name - used for error reporting
+    lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
+}
+
+export class GenerationCtxt {
+    indentIncrement = "    ";
+    imports: { [key: string]: 1 };      // map of required imports
+    statics: string[] = [];             // list of static resources
+    localVars = {};                     // map of creation mode vars
+    blockCount = 0;                     // number of js blocks - used to increment block variable suffixes
+
+    constructor(public options: CompilationOptions) {
+        this.imports = options.importMap || {};
     }
 
-    function generateBlock(xjsNodes: XjsContentNode[], parentIdx: number, indent: string, instructionContainer: number, blockInstance: string) {
-        let len = xjsNodes.length, nd: XjsContentNode;
+    error(msg, nd: XjsNode) {
+        let fileInfo = this.options.filePath ? " in " + this.options.filePath : "",
+            lineOffset = this.options.lineOffset || 0;
+        throw new Error(`Invalid ${NODE_NAMES[nd.kind]} - ${msg} at line #${nd.lineNumber + lineOffset}${fileInfo}`);
+    }
+}
+
+export class JsBlockUpdate implements UpdateInstruction {
+    gc: GenerationCtxt;
+    isJsBlock: (true | undefined) = true;
+    instructionFlag = false;
+    createInstructions: CreationInstruction[] = [];
+    updateInstructions: UpdateInstruction[] = [];
+    nodeCount = 0;
+    exprCount = 0;                  // binding expressions count
+    expr1Count = 0;                 // one-time expressions count
+    blockIdx = 0;
+    indent = '';
+    indent2 = '';                   // 2nd level of indentation
+    nextNodeIsContainer = false;    // true when the next node to create will be a container (cf. blocks and fragments)
+    prevKind = '';                  // kind of the previous sibling
+    nextKind = '';                  // kind of the next sibling
+    instanceCounterVar = '';        // e.g. ζi2 -> used to count sub-block instances
+    dExpressions: number[] = [];    // list of counters for deferred expressions (cf. ζexp)
+
+    constructor(public nd: XjsTplFunction | XjsJsBlock, public idx: number, public parentBlock: JsBlockUpdate | null, public iHolder: InstructionsHolder, generationCtxt?: GenerationCtxt, indent?: string) {
+        if (parentBlock) {
+            this.gc = parentBlock.gc;
+            this.indent = parentBlock.indent;
+            this.instructionFlag = parentBlock.instructionFlag;
+            this.blockIdx = ++this.gc.blockCount;
+            this.instanceCounterVar = 'ζi' + this.blockIdx;
+            this.gc.localVars[`${this.instanceCounterVar} = 0`] = 1;
+        } else if (generationCtxt) {
+            this.indent = indent || '';
+            this.gc = generationCtxt;
+            this.blockIdx = ++this.gc.blockCount;
+        } else {
+            throw new Error("JsBlockUpdate: either parentBlock or generationCtxt must be provided");
+        }
+        let gc = this.gc;
+        gc.imports['ζcc'] = 1;
+        gc.imports['ζend'] = 1;
+        if (this.blockIdx > 1) {
+            // root block (idx 1) is passed as function argument
+            gc.localVars["ζ" + this.blockIdx] = 1;
+        }
+
+        this.indent2 = this.indent + this.gc.indentIncrement;
+    }
+
+    scan() {
+        let content = this.nd.content, len = content ? content.length : 0, nd: XjsContentNode;
         if (len === 0) return;
 
-        let initCount = nodeCount, startPos = body.length, blockIdx = initCount + 1;
         // creation mode
-        let indent2 = indent + INDENT, idx: number;
         if (len > 1) {
             // need container fragment
-            ++nodeCount;
-            imports['ζfrag'] = 1;
-            body.push(`${indent2}ζfrag(ζ, ${nodeCount}, ${parentIdx}, ${instructionContainer});\n`);
-            parentIdx = nodeCount;
+            this.nodeCount = 1;
+            this.createInstructions.push(new FragmentCreation(null, 1, 1, this, this.iHolder)); // root fragment -> parentIdx = 1
         }
         for (let i = 0; len > i; i++) {
-            generateCmInstruction(xjsNodes[i], parentIdx, instructionContainer, indent2);
-        }
-        if (nodeCount !== initCount) {
-            // creation mode instructions have been added, let's wrap them into an if block
-            // e.g. if (ζc1 = ζcheck(ζ, 1, 0)) {
-            localVars["ζc" + (blockIdx)] = 1;
-            imports["ζcheck"] = 1;
-            body.splice(startPos, 0, `${indent}if (ζc${blockIdx} = ζcheck(ζ, ${blockIdx}, ${blockInstance})) {\n`);
-            body.push(`${indent}}\n`);
+            this.generateCmInstruction(content![i], 1, this.iHolder);
         }
 
         // update mode
         let pKind = "", nKind = "";
         for (let i = 0; len > i; i++) {
-            nKind = (i < len - 1) ? xjsNodes[i + 1].kind : "";
-            generateUpdateInstruction(xjsNodes[i], blockIdx, instructionContainer, indent, pKind, nKind);
-            pKind = xjsNodes[i].kind;
+            nKind = (i < len - 1) ? content![i + 1].kind : "";
+            this.generateUpdateInstruction(content![i], this.iHolder, pKind, nKind);
+            pKind = content![i].kind;
         }
-        generateCleanInstructions(xjsNodes, instructionContainer, indent);
 
-        imports['ζend'] = 1;
-        body.push(`${indent}ζend(ζ, ${blockIdx}, ζc${blockIdx});\n`);
+        // clean instructions
+        let uInstructions = this.updateInstructions, ui: UpdateInstruction;
+        len = uInstructions.length;
+        for (let i = 0; len > i; i++) {
+            ui = this.updateInstructions[i];
+            if (ui.isJsBlock) {
+                this.updateInstructions.push(new CleanUpdate(ui.idx!, this, this.iHolder));
+            }
+        }
     }
 
-    function insertLocalVars(bodyPos: number, indent: string) {
-        // creation mode vars
-        let arr: string[] = [];
-        for (let k in localVars) if (localVars.hasOwnProperty(k)) {
-            arr.push(k);
-        }
-        body.splice(bodyPos, 0, `${indent}let ${arr.join(", ")};\n`);
-    }
-
-    function generateCmInstruction(nd: XjsContentNode, parentIdx: number, instructionContainer: number, indent: string) {
-        let content: XjsContentNode[] | undefined = undefined, idx = nodeCount;
+    generateCmInstruction(nd: XjsContentNode, parentIdx: number, iHolder: InstructionsHolder) {
+        let content: XjsContentNode[] | undefined = undefined, idx = this.nodeCount;
         if (nd.kind !== "#jsStatements") {
-            idx = ++nodeCount;
+            idx = ++this.nodeCount;
         }
-        nd["index"] = idx;
-        nd["instructionContainer"] = instructionContainer;
-        nodes[idx] = nd;
+        nd[$INDEX] = idx;
 
         let stParams = "", i1 = -1, i2 = -1;
-
         if (nd.kind === "#element" || nd.kind === "#component" || nd.kind === "#paramNode") {
-            i1 = registerStatics(nd.params);
-            i2 = registerStatics(nd.properties);
+            i1 = this.registerStatics(nd.params);
+            i2 = this.registerStatics(nd.properties);
             if (i1 > -1 && i2 > -1) {
                 stParams = `, ζs${i1}, ζs${i2}`;
             } else if (i1 > -1) {
@@ -189,304 +259,182 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
 
         switch (nd.kind) {
             case "#textNode":
-                // e.g. ζtxt(ζ, 5, 3, 0, " Hello World ");
-                // or ζtxt(ζ, 5, 3, 0);
-                let val = '', eLength = nd.expressions ? nd.expressions.length : 0;
-                if (nd.textFragments.length <= 1 && eLength === 0) {
-                    // static version
-                    val = nd.textFragments.length === 0 ? ', ""' : ', ' + encodeText(nd.textFragments[0]);
-                } else {
-                    // create static resource
-                    let staticsIdx = statics.length, pieces: string[] = [], fLength = nd.textFragments.length, eCount = 0;
-                    for (let i = 0; fLength > i; i++) {
-                        // todo eLength
-                        pieces.push(encodeText(nd.textFragments[i]));
-                        if (eCount < eLength) {
-                            pieces.push('""');
-                            eCount++;
-                        }
-                    }
-                    statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
-                    val = ', ζs' + staticsIdx;
-                }
-                body.push(`${indent}ζtxt(ζ, ${idx}, ${parentIdx}, ${instructionContainer}${val});\n`);
-                imports['ζtxt'] = 1;
+                this.createInstructions.push(new TextCreation(nd, idx, parentIdx, this, iHolder));
                 break;
             case "#fragment":
-                if (nd.params && nd.params.length) {
-                    error("Params cannot be used on fragments", nd);
-                }
-                if (nd.properties && nd.properties.length) {
-                    error("Properties cannot be used on fragments", nd);
-                }
-                if (nd.listeners && nd.listeners.length) {
-                    error("Event listeners cannot be used on fragments", nd);
-                }
-
-                body.push(`${indent}ζfrag(ζ, ${idx}, ${parentIdx}, ${instructionContainer});\n`);
-                imports['ζfrag'] = 1;
+                this.createInstructions.push(new FragmentCreation(nd, idx, parentIdx, this, iHolder));
                 content = nd.content;
                 break;
             case "#component":
-                let c = nd as XjsComponent;
-                if (c.properties && c.properties.length) {
-                    error("Properties cannot be used on components", nd);
-                }
-                nd["staticParamsIdx"] = i1;
-                body.push(`${indent}ζfrag(ζ, ${idx}, ${parentIdx}, ${instructionContainer}, 1);\n`);
-                imports['ζfrag'] = 1;
+                // create a container block
+                this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
+                nd[$FRAGMENT_INDEX] = idx;
+                nd[$STATIC_PARAMS_IDX] = i1;
+                nd[$PARENT_IDX] = parentIdx;
+                nd[$PARENT_INS_HOLDER] = iHolder;
                 content = nd.content;
-                createContentFragment(content, instructionContainer);
+                this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
                 break;
             case "#element":
-                // e.g. ζelt(ζ, 3, 1, 0, "span");
-                let e = nd as XjsElement;
-                if (e.nameExpression) {
-                    error("Name expressions are not yet supported", nd);
-                }
-                body.push(`${indent}ζelt(ζ, ${idx}, ${parentIdx}, ${instructionContainer}, "${e.name}"${stParams});\n`);
-                imports['ζelt'] = 1;
-                content = e.content;
+                this.createInstructions.push(new EltCreation(nd as XjsElement, idx, parentIdx, this, iHolder, stParams));
+                content = nd.content;
                 break;
             case "#paramNode":
                 // e.g. ζpnode(ζ, 3, 1, 0, "header");
-                let pn = nd as XjsParamNode;
-                if (pn.nameExpression) {
-                    error("Name expressions are not yet supported", nd);
-                }
-                // determine instruction container
-                let parent = nodes[parentIdx], ic = parent ? parent["instructionContainer"] : instructionContainer;
-                body.push(`${indent}ζpnode(ζ, ${idx}, ${parentIdx}, ${ic}, "${pn.name}"${stParams});\n`);
-                imports['ζpnode'] = 1;
+                this.createInstructions.push(new PNodeCreation(nd as XjsParamNode, idx, parentIdx, this, iHolder, stParams));
+                nd[$PARENT_INS_HOLDER] = iHolder;
                 content = nd.content;
-                nd["instructionContainer"] = ic;
-                createContentFragment(content, idx);
+                this.createContentFragment(nd as XjsParamNode, nd as XjsParamNode);
                 break;
             case "#jsStatements":
                 break;
             case "#jsBlock":
                 // create a container block
-                body.push(`${indent}ζfrag(ζ, ${idx}, ${parentIdx}, ${instructionContainer}, 1);\n`);
-                imports['ζfrag'] = 1;
+                this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
+                nd[$FRAGMENT_INDEX] = idx;
                 break;
             default:
-                error("Invalid node type: " + nd.kind, nd);
+                this.gc.error("Invalid node type: " + nd.kind, nd);
         }
 
         if (content) {
             let len = content.length,
-                cNode = nd["contentNodeIdx"],
+                cNode = nd[$CONTENT_NODE_IDX],
                 pIdx = cNode ? cNode : idx;
 
-            if (nextNodeIsContainer && len === 1) {
-                // when length is 1 and node is not jsStatement we use the node as content (no need for extra fragment)
-                nextNodeIsContainer = false;
-                generateCmInstruction(content[0], nodeCount, nodeCount + 1, indent);
-            } else {
-                let ic = cNode ? cNode : instructionContainer;
-                for (let i = 0; len > i; i++) {
-                    generateCmInstruction(content[i], pIdx, ic, indent);
-                }
+            if (nd.kind === "#component") {
+                iHolder = nd as XjsComponent;
+            } else if (nd.kind === "#paramNode") {
+                iHolder = nd as XjsParamNode;
             }
-        }
 
-        function createContentFragment(content: XjsContentNode[] | undefined, instructionContainer) {
-            if (content && content.length) {
-                // create a fragment if content has something more than jsStatements and 
-                let len = content.length, count = 0;
-                for (let i = 0; len > i; i++) {
-                    if (content[i].kind !== "#jsStatements" && content[i].kind !== "#paramNode") {
-                        count++;
-                    }
-                }
-
-                if (count && len > 1) {
-                    // create a fragment to hold content nodes
-                    nodeCount++;
-                    nodes[nodeCount] = {
-                        kind: "#fragment",
-                        index: nodeCount,
-                        instructionContainer: instructionContainer,
-                        isContentFragment: true
-                    } as any;
-
-                    body.push(`${indent}ζfrag(ζ, ${nodeCount}, ${idx}, ${nodeCount});\n`);
-                    nd["contentNodeIdx"] = nodeCount;
-                } else {
-                    if (count && len === 1) {
-                        nd["contentNodeIdx"] = nodeCount + 1;
-                        nextNodeIsContainer = true;
-                    } else {
-                        nd["contentNodeIdx"] = 0;
-                    }
-                }
+            if (this.nextNodeIsContainer && len === 1) {
+                // when length is 1 and node is not jsStatement we use the node as content (no need for extra fragment)
+                this.nextNodeIsContainer = false;
+                this.generateCmInstruction(content[0], this.nodeCount, iHolder);
             } else {
-                nd["contentNodeIdx"] = 0;
+                for (let i = 0; len > i; i++) {
+                    this.generateCmInstruction(content[i], pIdx, iHolder);
+                }
             }
         }
     }
 
-    function generateUpdateInstruction(nd: XjsContentNode, expBlockIdx: number, instructionContainer: number, indent: string, prevKind: string, nextKind: string) {
-        let idx = nd["index"];
+    createContentFragment(nd: XjsComponent | XjsParamNode, iHolder: InstructionsHolder) {
+        let content = nd.content;
+        if (content && content.length) {
+            // create a fragment if content has something more than jsStatements and 
+            let len = content.length, count = 0;
+            for (let i = 0; len > i; i++) {
+                if (content[i].kind !== "#jsStatements" && content[i].kind !== "#paramNode") {
+                    count++;
+                }
+            }
+            if (count && len > 1) {
+                // create a fragment to hold content nodes
+                let parentIdx = this.nodeCount, newIdx = ++this.nodeCount;
+                nd[$CONTENT_NODE_IDX] = newIdx;
+                this.createInstructions.push(new FragmentCreation(null, newIdx, parentIdx, this, iHolder));
+            } else {
+                if (count && len === 1) {
+                    nd[$CONTENT_NODE_IDX] = this.nodeCount + 1;
+                    this.nextNodeIsContainer = true;
+                } else {
+                    nd[$CONTENT_NODE_IDX] = 0;
+                }
+            }
+        } else {
+            nd[$CONTENT_NODE_IDX] = 0;
+        }
+    }
+
+    generateUpdateInstruction(nd: XjsContentNode, iHolder: InstructionsHolder, prevKind: string, nextKind: string) {
+        let idx = nd[$INDEX];
         switch (nd.kind) {
             case "#textNode":
                 if (nd.expressions && nd.expressions.length) {
-                    // this text is dynamic
-                    // e.g. ζtxtval(ζ, 6, 0, 2, ζe(ζ, 3, 1, expr(1)), ζe(ζ, 4, 1, expr(2)));
-                    body.push(`${indent}ζtxtval(ζ, ${idx}, ${instructionContainer}, ${nd.expressions.length}, `);
-                    imports['ζtxtval'] = 1;
-                    let eLength = nd.expressions.length;
-                    for (let i = 0; eLength > i; i++) {
-                        generateExpression(nd.expressions[i], expBlockIdx);
-                        if (i < eLength - 1) {
-                            body.push(', ');
-                        }
-                    }
-                    body.push(');\n');
+                    this.updateInstructions.push(new TextUpdate(nd, idx, this, iHolder));
                 }
                 break;
             case "#component":
-                let c = nd as XjsComponent,
-                    cNode = nd["contentNodeIdx"],
-                    stParams = (nd["staticParamsIdx"] === -1) ? '' : ', ζs' + nd["staticParamsIdx"];
-                imports['ζcpt'] = 1;
-                body.push(`${indent}ζcpt(ζ, ${idx}, ${instructionContainer}, `);
-                generateExpression(c.ref, expBlockIdx);
-                body.push(`, ${cNode}, 0${stParams});\n`);
-                generateContentUpdate(c, expBlockIdx, instructionContainer, false);
-                imports['ζcall'] = 1;
-                body.push(`${indent}ζcall(ζ, ${idx}, ${instructionContainer});\n`);
+                this.updateInstructions.push(new CptUpdate(nd as XjsComponent, nd[$FRAGMENT_INDEX], nd[$PARENT_IDX], this, iHolder, nd[$STATIC_PARAMS_IDX]));
+                this.generateContentUpdate(nd, iHolder, false);
+                this.updateInstructions.push(new CptCallUpdate(nd[$FRAGMENT_INDEX], this, iHolder));
                 break;
             case "#fragment":
-                generateContentUpdate(nd as XjsFragment, expBlockIdx, instructionContainer, true);
+                this.generateContentUpdate(nd as XjsFragment, iHolder, false);
                 break;
             case "#element":
-                // scan params and properties
-                generateContentUpdate(nd as XjsElement, expBlockIdx, instructionContainer, true);
+                this.generateContentUpdate(nd as XjsElement, iHolder, true);
                 break;
             case "#paramNode":
-                generateContentUpdate(nd as XjsParamNode, expBlockIdx, instructionContainer, false);
+                this.generateContentUpdate(nd as XjsParamNode, iHolder, false);
                 break;
             case "#jsStatements":
-                body.push((prevKind !== "#jsBlock") ? indent : " ");
-                body.push(nd);
-                if (!nd.code.match(/\n$/)) {
-                    body.push("\n");
-                }
-                nd["endPos"] = body.length;
+                this.updateInstructions.push(new JsStatementsUpdate(nd, this, iHolder, prevKind));
                 break;
             case "#jsBlock":
-                body.push((prevKind !== "#jsBlock" && prevKind !== "#jsStatements") ? indent : " ");
-                body.push(nd);
-                if (!nd.startCode.match(/\n$/)) {
-                    body.push("\n");
-                }
-                if (nd.content && nd.content.length) {
-                    let instanceRef = 'ζi' + (nodeCount + 1);
-                    nd["cleanIdx"] = nodeCount + 1;
-                    body.push(`${indent + INDENT}${instanceRef}++;\n`);
-                    localVars[`${instanceRef} = 0`] = 1;
-                    generateBlock(nd.content, nd["index"], indent + INDENT, instructionContainer, instanceRef);
-                }
-                body.push(indent);
-                body.push(nd.endCode);
-                if (!nd.endCode.match(/\n$/) && nextKind !== "#jsBlock" && nextKind !== "#jsStatements") {
-                    body.push("\n");
-                }
-                nd["endPos"] = body.length;
+                let jsb = new JsBlockUpdate(nd, nd[$FRAGMENT_INDEX], this, iHolder);
+                jsb.prevKind = prevKind;
+                jsb.nextKind = nextKind;
+                this.updateInstructions.push(jsb);
+                jsb.scan();
                 break;
         }
+    }
 
-        function generateContentUpdate(nd: XjsComponent | XjsElement | XjsFragment, blockIdx: number, instructionContainer: number, useAttributes: boolean) {
-            generateParamUpdate(nd, expBlockIdx, instructionContainer, indent, useAttributes);
-            let cNode = nd["contentNodeIdx"];
-            if (cNode) {
-                blockIdx = cNode;
-                instructionContainer = cNode;
+    generateContentUpdate(nd: XjsComponent | XjsElement | XjsFragment, iHolder: InstructionsHolder, useAttributes: boolean) {
+        this.generateParamUpdate(nd, iHolder, useAttributes);
+        if (nd.content) {
+            if (nd.kind === "#component") {
+                iHolder = nd as XjsComponent;
+            } else if (nd.kind === "#paramNode") {
+                iHolder = nd as XjsParamNode;
             }
-            if (nd.content) {
-                let len = nd.content.length, pKind = "", nKind = "";
-                for (let i = 0; len > i; i++) {
-                    nKind = (i < len - 1) ? nd.content[i + 1].kind : "";
-                    generateUpdateInstruction(nd.content[i], blockIdx, instructionContainer, indent, pKind, nKind);
-                    pKind = nd.content[i].kind;
+            let len = nd.content!.length, pKind = "", nKind = "";
+            for (let i = 0; len > i; i++) {
+                nKind = (i < len - 1) ? nd.content![i + 1].kind : "";
+                this.generateUpdateInstruction(nd.content![i], iHolder, pKind, nKind);
+                pKind = nd.content![i].kind;
+            }
+        }
+    }
+
+    generateParamUpdate(f: XjsFragment, iHolder: InstructionsHolder, isAttribute: boolean) {
+        if (f.kind === "#paramNode") {
+            iHolder = iHolder ? iHolder[$PARENT_INS_HOLDER] : null;
+        }
+
+        // dynamic params / attributes
+        if (f.params && f.params.length) {
+            let len = f.params.length, p: XjsParam;
+            for (let i = 0; len > i; i++) {
+                p = f.params[i];
+                if (p.value && p.value.kind === "#expression") {
+                    this.updateInstructions.push(new ParamUpdate(p, f[$INDEX], this, iHolder, isAttribute));
+                }
+            }
+        }
+        // dynamic properties
+        if (f.properties && f.properties.length) {
+            let len = f.properties.length, p: XjsProperty;
+            for (let i = 0; len > i; i++) {
+                p = f.properties[i];
+                if (p.value && p.value.kind === "#expression") {
+                    this.updateInstructions.push(new ParamUpdate(p, f[$INDEX], this, iHolder, isAttribute));
                 }
             }
         }
     }
 
-    function generateCleanInstructions(xjsNodes: XjsContentNode[], instructionContainer: number, indent: string): number {
-        let len = xjsNodes.length, nd: XjsContentNode, insert: { idx: number, endPos: number }[] | undefined = undefined, endPos = 0, shift = 0;
-        for (let i = 0; len > i; i++) {
-            nd = xjsNodes[i];
-            if (insert && (nd.kind !== "#jsBlock" && nd.kind !== "#jsStatements")) {
-                clean(nd["index"], endPos);
-            }
-            if (nd.kind === "#jsBlock" && nd["cleanIdx"]) {
-                if (!insert) {
-                    insert = [];
-                }
-                insert.push({ idx: nd["cleanIdx"], endPos: nd["endPos"] });
-                endPos = nd["endPos"];
-            } else if (nd["content"]) {
-                shift += generateCleanInstructions(nd["content"] as XjsContentNode[], instructionContainer, indent);
-            }
-            if (insert && nd.kind === "#jsStatements") {
-                endPos = nd["endPos"];
-            }
-            if (insert && i === len - 1) {
-                clean(nd["index"], endPos);
-            }
-        }
-        return shift;
-
-        function clean(afterIdx: number, endPos: number) {
-            if (insert && insert!.length) {
-                let len = insert!.length;
-                for (let j = 0; len > j; j++) {
-                    body.splice(endPos + j + shift, 0, `${indent}ζclean(ζ, ${insert[j].idx}, ${instructionContainer});\n`)
-                    imports['ζclean'] = 1;
-                }
-                shift += len; // insertions are shifting the nd["endPos"] values stored before before insertion
-                insert = undefined;
-            }
-        }
-    }
-
-    function encodeText(t: string) {
-        // todo replace double \\ with single \
-        return '"' + t.replace(RX_DOUBLE_QUOTE, '\\"') + '"';
-    }
-
-    function generateExpression(exp: XjsExpression, blockIdx: number) {
-        if (exp.oneTime) {
-            // e.g. ζc1 ? expr(0) : ζu
-            body.push(`ζc${blockIdx} ? `);
-            body.push(exp); // to generate source map
-            body.push(' : ζu');
-            imports['ζu'] = 1;
-        } else {
-            // e.g. ζe(ζ, 2, 1, expr())
-            if (exprCounts[blockIdx] === undefined) {
-                exprCounts[blockIdx] = 0
-            } else {
-                exprCounts[blockIdx] += 1;
-            }
-
-            body.push(`ζe(ζ, ${exprCounts[blockIdx]}, ${blockIdx}, `);
-            body.push(exp); // to generate source map
-            body.push(')');
-            imports['ζe'] = 1;
-        }
-    }
-
-    function registerStatics(params: XjsParam[] | XjsProperty[] | undefined): number {
+    registerStatics(params: XjsParam[] | XjsProperty[] | undefined): number {
         // return the index of the static resource or -1 if none
         if (!params || !params.length) return -1;
         let v: XjsNumber | XjsBoolean | XjsString | XjsExpression | undefined,
             sIdx = -1, val: string[] | undefined = undefined,
             p: XjsParam | XjsProperty,
-            sVal = "";
+            sVal = "",
+            statics = this.gc.statics;
         for (let i = 0; params.length > i; i++) {
             p = params[i];
             v = p.value;
@@ -515,104 +463,363 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         return sIdx;
     }
 
-    function generateParamUpdate(f: XjsFragment, blockIdx: number, instructionContainer: number, indent: string, isAttribute: boolean) {
-        if (f.kind === "#paramNode") {
-            instructionContainer = f["instructionContainer"];
+    pushCode(body: BodyContent[]) {
+        // e.g. 
+        // let ζ1;
+        // ζ1 = ζcc(ζ, 1, ++ζi1);
+        // if (ζ1.cm) {
+        //     ζtxt(ζ1, 1, 1, 0, " Hello World ");
+        // }
+        // ζend(ζ1);
+        let isJsBlock = this.nd.kind === "#jsBlock", _indent = this.indent, _indent2 = this.indent2;
+        if (isJsBlock) {
+            let p = this.parentBlock!;
+            let nd = this.nd as XjsJsBlock;
+            _indent = this.indent = p.indent;
+            _indent2 = this.indent2 = p.indent2;
+
+            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.indent : " ");
+            body.push(nd);
+            if (!nd.startCode.match(/\n$/)) {
+                body.push("\n");
+            }
+            // increment indents
+            this.indent = p.indent + this.gc.indentIncrement;
+            this.indent2 = p.indent2 + this.gc.indentIncrement;
         }
 
-        // dynamic params / attributes
-        if (f.params && f.params.length) {
-            let len = f.params.length, p: XjsParam, funcName = isAttribute ? "ζatt" : "ζparam";
-            for (let i = 0; len > i; i++) {
-                p = f.params[i];
-                if (p.value && p.value.kind === "#expression") {
-                    // e.g. ζatt(ζ, 2, 0, "title", ζe(ζ, 0, 0, expr(x)));
-                    body.push(`${indent}${funcName}(ζ, ${f["index"]}, ${instructionContainer}, "${p.name}", `);
-                    generateExpression(p.value, blockIdx);
-                    body.push(');\n');
-                    imports[funcName] = 1;
+        if (this.createInstructions.length) {
+            let instanceArgs = "", parentBlockIdx = 0;
+            if (!this.parentBlock) {
+                // root block: insert local variables
+                let arr: string[] = [], localVars = this.gc.localVars;
+                for (let k in localVars) if (localVars.hasOwnProperty(k)) {
+                    arr.push(k);
                 }
+                if (arr.length) {
+                    body.push(`${this.indent}let ${arr.join(", ")};\n`);
+                }
+            } else {
+                instanceArgs = ", ++" + this.instanceCounterVar;
+                parentBlockIdx = this.parentBlock.blockIdx;
             }
+            if (this.blockIdx > 1) {
+                // first block is initialized in the ζ1 definition
+                body.push(`${this.indent}ζ${this.blockIdx} = ζcc(ζ${parentBlockIdx}, ${this.idx}${instanceArgs});\n`); // todo instruction flag ??
+            }
+            body.push(`${this.indent}if (ζ${this.blockIdx}[0].cm) {\n`);
+
+            for (let ci of this.createInstructions) {
+                ci.pushCode(body);
+            }
+            body.push(`${this.indent}}\n`);
+
+            for (let ui of this.updateInstructions) {
+                ui.pushCode(body);
+            }
+
+            body.push(`${this.indent}ζend(ζ${this.blockIdx});\n`);
         }
-        // dynamic properties
-        if (f.properties && f.properties.length) {
-            let len = f.properties.length, p: XjsProperty;
-            for (let i = 0; len > i; i++) {
-                p = f.properties[i];
-                if (p.value && p.value.kind === "#expression") {
-                    body.push(`${indent}ζprop(ζ, ${f["index"]}, ${instructionContainer}, "${p.name}", `);
-                    generateExpression(p.value, blockIdx);
-                    body.push(');\n');
-                    imports["ζprop"] = 1;
-                }
+
+        if (isJsBlock) {
+            let nd = this.nd as XjsJsBlock;
+            this.indent = _indent;
+            this.indent2 = _indent2;
+            body.push(this.indent);
+            body.push(nd.endCode);
+            if (!nd.endCode.match(/\n$/) && this.nextKind !== "#jsBlock" && this.nextKind !== "#jsStatements") {
+                body.push("\n");
             }
         }
     }
+}
 
-    function reduceIndent(indent: string) {
-        if (indent.length > 3) {
-            return indent.slice(0, -4);
+class FragmentCreation implements UpdateInstruction {
+    constructor(nd: XjsFragment | null, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isContainer = false) {
+        let gc = this.block.gc;
+        if (nd && nd.params && nd.params.length) {
+            gc.error("Params cannot be used on fragments", nd);
         }
-        return indent;
+        if (nd && nd.properties && nd.properties.length) {
+            gc.error("Properties cannot be used on fragments", nd);
+        }
+        if (nd && nd.listeners && nd.listeners.length) {
+            gc.error("Event listeners cannot be used on fragments", nd);
+        }
+        gc.imports['ζfrag'] = 1;
     }
 
-    function templateStart(indent: string, tf: XjsTplFunction) {
-        let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [];
-        indent = reduceIndent(indent);
+    pushCode(body: BodyContent[]) {
+        let b = this.block, ih = instructionsHolder(this.iHolder), lastArgs = (ih === 0) ? "" : ", " + ih;
+        if (this.isContainer) {
+            lastArgs = ", " + ih + ", 1";
+        }
+        body.push(`${b.indent2}ζfrag(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}${lastArgs});\n`);
+    }
+}
 
-        if (args && args.length) {
-            let classProps: string[] = [], arg: XjsTplArgument;
-            imports["ζv"] = 1;
-            argNames = ", $";
-            for (let i = 0; args.length > i; i++) {
-                arg = args[i];
-                if (i === 0 && arg.name === "$") {
-                    argClassName = arg.typeRef!;
-                    if (!argClassName) {
-                        error("Undefined $ argument type", arg);
-                    }
+class TextCreation implements CreationInstruction {
+    lastParam = "";
+    constructor(public nd: XjsText, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        let gc = this.block.gc;
+        gc.imports['ζtxt'] = 1;
+
+        let eLength = nd.expressions ? nd.expressions.length : 0;
+        if (nd.textFragments.length <= 1 && eLength === 0) {
+            // static version
+            this.lastParam = nd.textFragments.length === 0 ? '""' : encodeText(nd.textFragments[0]);
+        } else {
+            // create static resource
+            let staticsIdx = gc.statics.length, pieces: string[] = [], fLength = nd.textFragments.length, eCount = 0;
+            for (let i = 0; fLength > i; i++) {
+                // todo eLength
+                pieces.push(encodeText(nd.textFragments[i]));
+                if (eCount < eLength) {
+                    pieces.push('""');
+                    eCount++;
                 }
+            }
+            gc.statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
+            this.lastParam = 'ζs' + staticsIdx;
+        }
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζtxt(ζ, 5, 3, 0, " Hello World ");
+        // or ζtxt(ζ, 5, 3, 0, ζs0);
+        let b = this.block;
+        body.push(`${b.indent2}ζtxt(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, ${this.lastParam});\n`);
+    }
+}
+
+class TextUpdate implements UpdateInstruction {
+    lastParam = "";
+    constructor(public nd: XjsText, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        this.block.gc.imports['ζtxtval'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζtxtval(ζ1, 1, 0, 1, ζe(ζ, 0, 1, name));
+        let b = this.block, ih = instructionsHolder(this.iHolder);
+        body.push(`${b.indent}ζtxtval(ζ${b.blockIdx}, ${this.idx}, ${ih}, ${this.nd.expressions!.length}, `);
+        let eLength = this.nd.expressions!.length;
+        for (let i = 0; eLength > i; i++) {
+            generateExpression(body, this.nd.expressions![i], this.block, ih);
+            if (i < eLength - 1) {
+                body.push(', ');
+            }
+        }
+        body.push(');\n');
+    }
+}
+
+class EltCreation implements CreationInstruction {
+    lastParam = "";
+    constructor(public nd: XjsElement, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
+        let gc = this.block.gc;
+        gc.imports['ζelt'] = 1;
+
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζelt(ζ1, 3, 1, 0, "span");
+        let b = this.block;
+        if (this.nd.nameExpression) {
+            b.gc.error("Name expressions are not yet supported", this.nd);
+        }
+        body.push(`${b.indent2}ζelt(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}"${this.staticArgs});\n`);
+    }
+}
+
+class CptUpdate implements UpdateInstruction {
+    constructor(public nd: XjsComponent, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticParamIdx: number) {
+        let gc = this.block.gc;
+        gc.imports['ζcpt'] = 1;
+        if (nd.properties && nd.properties.length) {
+            gc.error("Properties cannot be used on components", nd);
+        }
+    }
+
+    pushCode(body: BodyContent[]) {
+        let b = this.block;
+
+        let stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx, ih = instructionsHolder(this.iHolder);
+        body.push(`${b.indent}ζcpt(ζ${b.blockIdx}, ${this.idx}, ${ih}, `);
+        generateExpression(body, this.nd.ref as XjsExpression, this.block, ih);
+        body.push(`, ${this.nd[$CONTENT_NODE_IDX]}, 0${stParams});\n`);
+
+    }
+}
+
+class CptCallUpdate implements UpdateInstruction {
+    constructor(public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        block.gc.imports['ζcall'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        let b = this.block, ih = instructionsHolder(this.iHolder), lastArg = (ih === 0) ? "" : ", " + ih;
+        body.push(`${b.indent}ζcall(ζ${b.blockIdx}, ${this.idx}${lastArg});\n`);
+    }
+}
+
+class PNodeCreation implements CreationInstruction {
+    constructor(public nd: XjsParamNode, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
+        block.gc.imports['ζpnode'] = 1;
+    }
+    pushCode(body: BodyContent[]) {
+        let b = this.block;
+        if (this.nd.nameExpression) {
+            b.gc.error("Name expressions are not yet supported", this.nd);
+        }
+        let ih = 0;
+        if (this.iHolder) {
+            ih = instructionsHolder(this.iHolder[$PARENT_INS_HOLDER]);
+        }
+        body.push(`${b.indent2}ζpnode(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}, ${ih}, "${this.nd.name}"${this.staticArgs});\n`);
+    }
+}
+
+class ParamUpdate implements UpdateInstruction {
+    funcName: "ζatt" | "ζparam" | "ζprop";
+
+    constructor(public nd: XjsParam | XjsProperty, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isAttribute: boolean) {
+        this.funcName = isAttribute ? "ζatt" : "ζparam"
+        if (nd.kind === "#property") {
+            this.funcName = "ζprop";
+        }
+        this.block.gc.imports[this.funcName] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζatt(ζ, 2, 0, "title", ζe(ζ, 0, 0, expr(x)));
+        let b = this.block, ih = instructionsHolder(this.iHolder);
+        body.push(`${b.indent}${this.funcName}(ζ${b.blockIdx}, ${this.idx}, ${ih}, "${this.nd.name}", `);
+        generateExpression(body, this.nd.value as XjsExpression, this.block, ih);
+        body.push(');\n');
+    }
+}
+
+class JsStatementsUpdate implements UpdateInstruction {
+    constructor(public nd: XjsJsStatements, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public prevKind: string) { }
+
+    pushCode(body: BodyContent[]) {
+        let b = this.block;
+        body.push((this.prevKind !== "#jsBlock") ? b.indent : " ");
+        body.push(this.nd);
+        if (!this.nd.code.match(/\n$/)) {
+            body.push("\n");
+        }
+        // nd["endPos"] = body.length;
+    }
+}
+
+class CleanUpdate implements UpdateInstruction {
+    constructor(public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        this.block.gc.imports['ζclean'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        let b = this.block;
+        body.push(`${b.indent}ζclean(ζ${b.blockIdx}, ${this.idx}, ${instructionsHolder(this.iHolder)});\n`);
+    }
+}
+
+function encodeText(t: string) {
+    // todo replace double \\ with single \
+    return '"' + t.replace(RX_DOUBLE_QUOTE, '\\"') + '"';
+}
+
+function instructionsHolder(iHolder: InstructionsHolder) {
+    if (!iHolder) return 0;
+    return iHolder[$CONTENT_NODE_IDX];
+}
+
+function generateExpression(body: BodyContent[], exp: XjsExpression, block: JsBlockUpdate, instructionsHolder: number) {
+    if (exp.oneTime) {
+        // e.g. ζo(ζ1, 0)? exp() : ζu
+        body.push(`ζo(ζ${block.blockIdx}, ${block.expr1Count++})? `);
+        body.push(exp); // to generate source map
+        body.push(' : ζu');
+        block.gc.imports['ζo'] = 1;
+        block.gc.imports['ζu'] = 1;
+    } else {
+        // e.g. ζe(ζ1, 2, expr())
+        if (instructionsHolder === 0) {
+            body.push(`ζe(ζ${block.blockIdx}, ${block.exprCount++}, `);
+            body.push(exp); // to generate source map
+            body.push(')');
+        } else {
+            // expression has to be partially deferred
+            // i.e. ζe(ζ1, 0, getTitle(), 2) will be stored in ζ1[2].dValues[0] where 2 is instructionsHolder
+            if (block.dExpressions[instructionsHolder] === undefined) {
+                block.dExpressions[instructionsHolder] = 0;
+            } else {
+                block.dExpressions[instructionsHolder]++;
+            }
+            body.push(`ζe(ζ${block.blockIdx}, ${block.dExpressions[instructionsHolder]}, `);
+            body.push(exp); // to generate source map
+            body.push(`, ${instructionsHolder})`);
+        }
+        block.gc.imports['ζe'] = 1;
+    }
+}
+
+function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
+    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [];
+    indent = reduceIndent(indent);
+
+    if (args && args.length) {
+        let classProps: string[] = [], arg: XjsTplArgument;
+        gc.imports["ζv"] = 1;
+        argNames = ", $";
+        for (let i = 0; args.length > i; i++) {
+            arg = args[i];
+            if (i === 0 && arg.name === "$") {
+                argClassName = arg.typeRef!;
                 if (!argClassName) {
-                    argInit.push(arg.name + ' = $["' + arg.name + '"]')
-                    classProps.push((indent + INDENT) + "@ζv " + arg.name + ";")
-                    imports["ζv"] = 1;
-                } else if (i > 0) {
-                    argInit.push(arg.name + ' = $["' + arg.name + '"]');
+                    gc.error("Undefined $ argument type", arg);
                 }
             }
             if (!argClassName) {
-                // default argument class definition
-                argClassName = "ζParams";
-                imports["ζd"] = 1;
-                // sample parameter class:
-                // @ζd class ζParams { 
-                //     @ζv options;
-                // }
-                classDef = [indent, "@ζd class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
+                argInit.push(arg.name + ' = $["' + arg.name + '"]')
+                classProps.push((indent + gc.indentIncrement) + "@ζv " + arg.name + ";")
+                gc.imports["ζv"] = 1;
+            } else if (i > 0) {
+                argInit.push(arg.name + ' = $["' + arg.name + '"]');
             }
         }
-
-        tf["argClassName"] = argClassName;
-        lines.push('(function () {');
-        if (statics.length) {
-            lines.push(`${indent}const ${statics.join(", ")};`);
+        if (!argClassName) {
+            // default argument class definition
+            argClassName = "ζParams";
+            gc.imports["ζd"] = 1;
+            // sample parameter class:
+            // @ζd class ζParams { 
+            //     @ζv options;
+            // }
+            classDef = [indent, "@ζd class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
         }
-        if (classDef) {
-            lines.push(classDef);
-        }
-        imports["ζt"] = 1;
-        lines.push(`${indent}return ζt(function (ζ${argNames}) {`);
-        if (argInit.length) {
-            lines.push(`${indent + INDENT}let ${argInit.join(", ")};`);
-        }
-        return lines.join("\n");
     }
 
-    function templateEnd(tf: XjsTplFunction) {
-        let argClassName = tf["argClassName"];
-        if (argClassName) {
-            return '}, 0, ' + argClassName + ');\n' + reduceIndent(tf.indent) + '})()';
-        }
-        return '});\n' + reduceIndent(tf.indent) + '})()';
+    tf["argClassName"] = argClassName;
+    lines.push('(function () {');
+    if (gc.statics.length) {
+        lines.push(`${indent}const ${gc.statics.join(", ")};`);
     }
+    if (classDef) {
+        lines.push(classDef);
+    }
+    gc.imports["ζt"] = 1;
+    lines.push(`${indent}return ζt(function (ζ1${argNames}) {`);
+    if (argInit.length) {
+        lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
+    }
+    return lines.join("\n");
+}
+
+function templateEnd(tf: XjsTplFunction) {
+    let argClassName = tf["argClassName"];
+    if (argClassName) {
+        return '}, 0, ' + argClassName + ');\n' + reduceIndent(tf.indent) + '})()';
+    }
+    return '});\n' + reduceIndent(tf.indent) + '})()';
 }

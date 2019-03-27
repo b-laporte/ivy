@@ -260,9 +260,17 @@ describe('Code generator', () => {
                 ζtxtval(ζ2, 1, 0, 1, ζe(ζ2, 0, name));
                 ζend(ζ2);
             }
-            ζclean(ζ1, 2, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs1);
         `, 'first position');
+        assert.deepEqual(await statics.template(`(name) => {
+            if (test) {
+                # Hello {name} #
+            }
+            # \\(end) #
+        }` ), [
+                'ζs0 = [" Hello ", "", " "]',
+                'ζs1 = [2, 0]'
+            ], 'first position statics');
 
         assert.equal(await body.template(`(name) => {
             if (test) {
@@ -292,10 +300,19 @@ describe('Code generator', () => {
                 ζtxtval(ζ3, 1, 0, 1, ζe(ζ3, 0, name));
                 ζend(ζ3);
             }
-            ζclean(ζ1, 2, 0);
-            ζclean(ζ1, 3, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs2);
         `, 'all / if+else');
+        assert.deepEqual(await statics.template(`(name) => {
+            if (test) {
+                # A {name} #
+            } else {
+                # B {name} #
+            }
+        }` ), [
+                'ζs0 = [" A ", "", " "]',
+                'ζs1 = [" B ", "", " "]',
+                'ζs2 = [2, 0, 3, 0]'
+            ], 'all / if+else statics');
 
         assert.equal(await body.template(`(name) => {
             # hello #
@@ -320,8 +337,7 @@ describe('Code generator', () => {
                 ζtxtval(ζ2, 2, 0, 1, ζe(ζ2, 0, name));
                 ζend(ζ2);
             } while (test)
-            ζclean(ζ1, 3, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs1);
         `, 'last + js Statements first & last');
 
         assert.equal(await body.template(`(name) => {
@@ -355,9 +371,7 @@ describe('Code generator', () => {
                 ζtxtval(ζ3, 1, 0, 1, ζe(ζ3, 0, name));
                 ζend(ζ3);
             }
-            ζclean(ζ1, 2, 0);
-            ζclean(ζ1, 3, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs2);
         `, 'series of block & statements');
 
         assert.equal(await body.template(`(name) => {
@@ -385,9 +399,19 @@ describe('Code generator', () => {
                 ζtxtval(ζ2, 2, 0, 1, ζe(ζ2, 0, name));
                 ζend(ζ2);
             }
-            ζclean(ζ1, 3, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs1);
         `, 'embedded & multiple child nodes');
+        assert.deepEqual(await statics.template(`(name) => {
+            <span/>
+            if (a) {
+                # A {name} #
+                <div/>
+            }
+            <section/>
+        }` ), [
+                'ζs0 = [" A ", "", " "]',
+                'ζs1 = [3, 0]'
+            ], 'embedded & multiple child nodes statics');
 
         assert.equal(await body.template(`(name) => {
             if (a) {
@@ -415,12 +439,21 @@ describe('Code generator', () => {
                     }
                     ζend(ζ3);
                 }
-                ζclean(ζ2, 2, 0);
-                ζend(ζ2);
+                ζend(ζ2, ζs1);
             }
-            ζclean(ζ1, 1, 0);
-            ζend(ζ1);
-        `, 'embedded & multiple child nodes');
+            ζend(ζ1, ζs0);
+        `, 'last');
+        assert.deepEqual(await statics.template(`(name) => {
+            if (a) {
+                if (b) {
+                    <span/>
+                }
+                <div/>
+            }
+        }` ), [
+                'ζs0 = [1, 0]',
+                'ζs1 = [2, 0]'
+            ], 'last statics');
     });
 
     it("should support js blocks in elements and fragments", async function () {
@@ -445,8 +478,7 @@ describe('Code generator', () => {
                 }
                 ζend(ζ2);
             }
-            ζclean(ζ1, 3, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs0);
         `, '1');
 
         assert.equal(await body.template(`() => {
@@ -482,9 +514,7 @@ describe('Code generator', () => {
                 }
                 ζend(ζ3);
             }
-            ζclean(ζ1, 3, 0);
-            ζclean(ζ1, 4, 0);
-            ζend(ζ1);
+            ζend(ζ1, ζs0);
         `, '2');
     });
 
@@ -798,7 +828,6 @@ describe('Code generator', () => {
     });
 
     // todo: change 1 time expressions to ζo(ζ1, 0)? exp() : ζu
-    // todo merge clean() and end()
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });
 

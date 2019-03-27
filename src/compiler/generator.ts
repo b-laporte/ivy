@@ -166,6 +166,7 @@ export class JsBlockUpdate implements UpdateInstruction {
     instructionFlag = false;
     createInstructions: CreationInstruction[] = [];
     updateInstructions: UpdateInstruction[] = [];
+    cleanIndexes: number[] = [];    // clean
     nodeCount = 0;
     exprCount = 0;                  // binding expressions count
     expr1Count = 0;                 // one-time expressions count
@@ -489,6 +490,14 @@ export class JsBlockUpdate implements UpdateInstruction {
         }
 
         if (this.createInstructions.length) {
+            // push cleanIndexes to statics
+            let cleanStaticsArg = ""; // or e.g. ", ζs3"
+            if (this.cleanIndexes.length) {
+                let statics = this.gc.statics, csIdx = statics.length;
+                statics.push("ζs" + csIdx + " = [" + this.cleanIndexes.join(", ") + "]");
+                cleanStaticsArg = ", ζs" + csIdx;
+            }
+
             let instanceArgs = "", parentBlockIdx = 0;
             if (!this.parentBlock) {
                 // root block: insert local variables
@@ -518,7 +527,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 ui.pushCode(body);
             }
 
-            body.push(`${this.indent}ζend(ζ${this.blockIdx});\n`);
+            body.push(`${this.indent}ζend(ζ${this.blockIdx}${cleanStaticsArg});\n`);
         }
 
         if (isJsBlock) {
@@ -715,12 +724,15 @@ class JsStatementsUpdate implements UpdateInstruction {
 
 class CleanUpdate implements UpdateInstruction {
     constructor(public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
-        this.block.gc.imports['ζclean'] = 1;
+        let b = this.block;
+        // b.gc.imports['ζclean'] = 1;
+        b.cleanIndexes.push(idx);
+        b.cleanIndexes.push(instructionsHolder(iHolder));
     }
 
     pushCode(body: BodyContent[]) {
-        let b = this.block;
-        body.push(`${b.indent}ζclean(ζ${b.blockIdx}, ${this.idx}, ${instructionsHolder(this.iHolder)});\n`);
+        // let b = this.block;
+        // body.push(`${b.indent}ζclean(ζ${b.blockIdx}, ${this.idx}, ${instructionsHolder(this.iHolder)});\n`);
     }
 }
 

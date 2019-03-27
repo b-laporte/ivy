@@ -194,47 +194,6 @@ export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: 
     return nodes;
 }
 
-/**
- * Second check to delete element if not previously checked (cf. if {...} block)
- */
-export function ζclean(c: BlockNodes, idx: number, instIdx: number) {
-    let container = c[idx] as IvContainer;
-    if (!container) return; // happens when block condition has never been true
-    let lastRefresh = container.lastRefresh;
-    if (lastRefresh !== 0 && lastRefresh !== (c[0] as IvContext).lastRefresh) {
-        removeFromDom(c, container as IvNode);
-    } else {
-        let blocks = container.contentBlocks, nbrOfBlocks = blocks.length;
-
-        if (container.contentLength < nbrOfBlocks && lastRefresh > 1) {
-            // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end() method
-
-            let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode), nodes: BlockNodes;
-            if (parentDomNd) {
-                // insert sub root nodes as other nodes have been attached in block end()
-                if (position === "beforeChild") {
-                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                        nodes = blocks[i];
-                        insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
-                    }
-                } else if (position === "lastChild") {
-                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                        nodes = blocks[i];
-                        appendToDom(nodes, nodes[1] as IvNode, parentDomNd);
-                    }
-                } else if (position === "lastOnRoot") {
-                    let ctxt = c[0] as IvContext;
-                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                        nodes = blocks[i];
-                        insertInDomBefore(nodes, ctxt.domNode, nodes[1] as IvNode, ctxt.anchorNode);
-                    }
-                }
-            }
-        }
-        container.contentLength = nbrOfBlocks;
-    }
-}
-
 function removeFromDom(c: BlockNodes, nd: IvNode) {
     if (!nd) return;
     if (nd.kind === "#text" || nd.kind === "#element") {
@@ -266,7 +225,7 @@ function removeFromDom(c: BlockNodes, nd: IvNode) {
         }
         f.domNode = undefined;
     } else {
-        console.log("TODO deleteNode")
+        console.log("TODO removeFromDom for " + nd.kind)
     }
 }
 
@@ -381,7 +340,13 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
  * @param c 
  * @param idx 
  */
-export function ζend(c: BlockNodes) {
+export function ζend(c: BlockNodes, containerIndexes?: number[]) {
+    if (containerIndexes) {
+        let len = containerIndexes.length;
+        for (let i = 0; len > i; i += 2) {
+            checkContainer(c, containerIndexes[i], containerIndexes[i + 1]);
+        }
+    }
     let ctxt = c[0] as IvContext;
     if (!ctxt.cm) return;
     ctxt.cm = false;
@@ -399,48 +364,52 @@ export function ζend(c: BlockNodes) {
         appendToDom(c, c[i] as IvNode, hostDomNd);
     }
 
-    // insert root node
+    // insert root node for root template
+    // sub-root nodes (i.e. in containers) will have already been inserted through checkContainer
     if (ctxt.isTemplateRoot) {
         // root node, attach to parent container
         insertInDomBefore(c, ctxt.domNode, root, ctxt.anchorNode);
     }
-    // else: ctxt is a child context, append will be done in the clean() function
 }
 
-export function ζend_old(c: BlockNodes, idx: number, creationMode: number) {
-    // go through all nodes and attach them together
-    if (!creationMode && (c[idx] as IvNode).attached) return;
-
-    let len = c.length, nd = c[idx] as IvNode, startIdx = idx === 1 ? 2 : idx + 1, ctxt = c[0] as IvContext, hostDomNd = ctxt.domNode;
-    if (idx === 1) {
-        // if root node is fragment, we need to define its domNode first
-        if (nd.kind === "#fragment") {
-            nd.domNode = hostDomNd;
-            nd.attached = true;
-            nd.lastRefresh = ctxt.lastRefresh;
-        }
-    }
-    for (let i = startIdx; len > i; i++) {
-        appendToDom(c, c[i] as IvNode, hostDomNd);
-    }
-
-    if (idx === 1) {
-        // root node, attach to parent container
-        insertInDomBefore(c, ctxt.domNode, nd, ctxt.anchorNode);
+/**
+ * Delete or attach container content
+ */
+function checkContainer(c: BlockNodes, idx: number, instIdx: number) {
+    let container = c[idx] as IvContainer;
+    if (!container) return; // happens when block condition has never been true
+    let lastRefresh = container.lastRefresh;
+    if (lastRefresh !== 0 && lastRefresh !== (c[0] as IvContext).lastRefresh) {
+        removeFromDom(c, container as IvNode);
     } else {
-        // if we are running first refresh, simply append through ζend(ζ, 1, ζc1);
-        // otherwise insert idx before next sibling
-        if (ctxt.lastRefresh > 1) {
-            // if sub-block is displayed on first refresh, no need to insert before next sibling
-            let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, c[idx] as IvNode);
-            if (position === "beforeChild") {
-                insertInDomBefore(c, parentDomNd, nd, nextDomNd);
-            } else if (position === "lastChild") {
-                appendToDom(c, nd, hostDomNd);
-            } else if (position === "lastOnRoot") {
-                insertInDomBefore(c, ctxt.domNode, nd, ctxt.anchorNode);
+        let blocks = container.contentBlocks, nbrOfBlocks = blocks.length;
+
+        if (container.contentLength < nbrOfBlocks && lastRefresh > 1) {
+            // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end() method
+
+            let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode), nodes: BlockNodes;
+            if (parentDomNd) {
+                // insert sub root nodes as other nodes have been attached in block end()
+                if (position === "beforeChild") {
+                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                        nodes = blocks[i];
+                        insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
+                    }
+                } else if (position === "lastChild") {
+                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                        nodes = blocks[i];
+                        appendToDom(nodes, nodes[1] as IvNode, parentDomNd);
+                    }
+                } else if (position === "lastOnRoot") {
+                    let ctxt = c[0] as IvContext;
+                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                        nodes = blocks[i];
+                        insertInDomBefore(nodes, ctxt.domNode, nodes[1] as IvNode, ctxt.anchorNode);
+                    }
+                }
             }
         }
+        container.contentLength = nbrOfBlocks;
     }
 }
 
@@ -449,6 +418,7 @@ interface SiblingDomPosition {
     nextDomNd?: any;
     parentDomNd: any;
 }
+
 function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
     let nd = node, pos: number, parent: IvParentNode, pdn: any;
     while (true) {

@@ -76,6 +76,10 @@ function logBlockNodes(list: BlockNodes, indent: string) {
             console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos} lastRefresh:${nd.lastRefresh}`)
             let len2 = cont.contentBlocks.length;
             for (let j = 0; len2 > j; j++) {
+                if (!cont.contentBlocks[j]) {
+                    console.log(`${indent + "  "}- block #${j} UNDEFINED`);
+                    continue;
+                }
                 let childContext = cont.contentBlocks[j][0] as IvContext;
                 dn = childContext.domNode ? childContext.domNode.$uid : "XX";
                 console.log(`${indent + "  "}- block #${j}`);

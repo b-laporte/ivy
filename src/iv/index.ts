@@ -176,26 +176,31 @@ function createFrag(c: BlockNodes, idx: number, parentIdx: number, instIdx: numb
  * @param instanceIdx instance index (if the block is run multiple times)
  * @param keyExpr value of the key expression (if any)
  */
-// ζcc(ζ1, 1, instanceIdx, 1, key?); (parentNodes, placeholderIndexInParent(or 1 if root), instanceIdx:number, instructionFlag?: 1 if delayed, 0 otherwise)
 export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: any): any {
     // f is a container fragment
     let f = c[idx] as IvContainer, pCtxt = c[0] as IvContext, nodes = f.contentBlocks[instanceIdx - 1];
-    if (!nodes) {
+    if (instanceIdx === 1 && f.contentBlocks.length > 1) {
+        // previous content blocks are moved to the block pool to be re-used if necessary
+        f.contentBlocks.shift();
+        if (f.blockPool.length) {
+            f.blockPool = f.contentBlocks.concat(f.blockPool);
+        } else {
+            f.blockPool = f.contentBlocks;
+        }
+        f.contentBlocks = [nodes];
+    } else if (!nodes) {
         if (f.blockPool.length > 0) {
             nodes = f.contentBlocks[instanceIdx - 1] = f.blockPool.shift()!;
         } else {
             nodes = f.contentBlocks[instanceIdx - 1] = [createContext(pCtxt, false, idx)];
         }
     }
-    if (instanceIdx > 1) {
-        console.log("TODO: support multiple block instances in container");
-    }
     f.lastRefresh = nodes[0].lastRefresh = pCtxt.lastRefresh;
     return nodes;
 }
 
 function removeFromDom(c: BlockNodes, nd: IvNode) {
-    if (!nd) return;
+    if (!nd || !nd.attached) return;
     if (nd.kind === "#text" || nd.kind === "#element") {
         nd.attached = false;
 
@@ -213,7 +218,8 @@ function removeFromDom(c: BlockNodes, nd: IvNode) {
         // move previous nodes to blockPool
         container.contentBlocks = [];
         container.contentLength = 0;
-        container.blockPool = container.blockPool.concat(blocks);
+        container.blockPool = blocks.concat(container.blockPool);
+        // note: we have to keep container attached
     } else if (nd.kind === "#fragment") {
         let f = nd as IvFragment;
         f.attached = false;
@@ -380,32 +386,43 @@ function checkContainer(c: BlockNodes, idx: number, instIdx: number) {
     if (!container) return; // happens when block condition has never been true
     let lastRefresh = container.lastRefresh;
     if (lastRefresh !== 0 && lastRefresh !== (c[0] as IvContext).lastRefresh) {
+        // remove all nodes from DOM
         removeFromDom(c, container as IvNode);
     } else {
         let blocks = container.contentBlocks, nbrOfBlocks = blocks.length;
 
-        if (container.contentLength < nbrOfBlocks && lastRefresh > 1) {
+        if (lastRefresh > 1) {
             // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end() method
 
-            let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode), nodes: BlockNodes;
-            if (parentDomNd) {
-                // insert sub root nodes as other nodes have been attached in block end()
-                if (position === "beforeChild") {
-                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                        nodes = blocks[i];
-                        insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
+            if (container.contentLength < nbrOfBlocks) {
+                // append new nodes
+                let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode), nodes: BlockNodes;
+                if (parentDomNd) {
+                    // insert sub root nodes as other nodes have been attached in block end()
+                    if (position === "beforeChild") {
+                        for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                            nodes = blocks[i];
+                            insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
+                        }
+                    } else if (position === "lastChild") {
+                        for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                            nodes = blocks[i];
+                            appendToDom(nodes, nodes[1] as IvNode, parentDomNd);
+                        }
+                    } else if (position === "lastOnRoot") {
+                        let ctxt = c[0] as IvContext;
+                        for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                            nodes = blocks[i];
+                            insertInDomBefore(nodes, ctxt.domNode, nodes[1] as IvNode, ctxt.anchorNode);
+                        }
                     }
-                } else if (position === "lastChild") {
-                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                        nodes = blocks[i];
-                        appendToDom(nodes, nodes[1] as IvNode, parentDomNd);
-                    }
-                } else if (position === "lastOnRoot") {
-                    let ctxt = c[0] as IvContext;
-                    for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                        nodes = blocks[i];
-                        insertInDomBefore(nodes, ctxt.domNode, nodes[1] as IvNode, ctxt.anchorNode);
-                    }
+                }
+            } else if (nbrOfBlocks < container.contentLength) {
+                // disconnect the nodes that are still attached in the pool
+                let pool = container.blockPool, len = pool.length, nodes: BlockNodes;
+                for (let i = 0; len > i; i++) {
+                    nodes = pool[i];
+                    removeFromDom(nodes, nodes[1] as IvNode)
                 }
             }
         }

@@ -171,6 +171,7 @@ export class JsBlockUpdate implements UpdateInstruction {
     exprCount = 0;                  // binding expressions count
     expr1Count = 0;                 // one-time expressions count
     blockIdx = 0;
+    jsVarName = "ζ";                // block variable name - e.g. ζ or ζ1
     indent = '';
     indent2 = '';                   // 2nd level of indentation
     nextNodeIsContainer = false;    // true when the next node to create will be a container (cf. blocks and fragments)
@@ -184,22 +185,26 @@ export class JsBlockUpdate implements UpdateInstruction {
             this.gc = parentBlock.gc;
             this.indent = parentBlock.indent;
             this.instructionFlag = parentBlock.instructionFlag;
-            this.blockIdx = ++this.gc.blockCount;
+            this.blockIdx = this.gc.blockCount++;
             this.instanceCounterVar = 'ζi' + this.blockIdx;
             this.gc.localVars[`${this.instanceCounterVar} = 0`] = 1;
         } else if (generationCtxt) {
             this.indent = indent || '';
             this.gc = generationCtxt;
-            this.blockIdx = ++this.gc.blockCount;
+            this.blockIdx = this.gc.blockCount++;
         } else {
             throw new Error("JsBlockUpdate: either parentBlock or generationCtxt must be provided");
         }
+        if (this.blockIdx > 0) {
+            this.jsVarName = "ζ" + this.blockIdx;
+        }
+
         let gc = this.gc;
         gc.imports['ζcc'] = 1;
         gc.imports['ζend'] = 1;
-        if (this.blockIdx > 1) {
+        if (this.blockIdx > 0) {
             // root block (idx 1) is passed as function argument
-            gc.localVars["ζ" + this.blockIdx] = 1;
+            gc.localVars[this.jsVarName] = 1;
         }
 
         this.indent2 = this.indent + this.gc.indentIncrement;
@@ -498,7 +503,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 cleanStaticsArg = ", ζs" + csIdx;
             }
 
-            let instanceArgs = "", parentBlockIdx = 0;
+            let instanceArgs = "", parentBlockVarName = "ζ";
             if (!this.parentBlock) {
                 // root block: insert local variables
                 let arr: string[] = [], localVars = this.gc.localVars;
@@ -510,13 +515,13 @@ export class JsBlockUpdate implements UpdateInstruction {
                 }
             } else {
                 instanceArgs = ", ++" + this.instanceCounterVar;
-                parentBlockIdx = this.parentBlock.blockIdx;
+                parentBlockVarName = this.parentBlock.jsVarName;
             }
-            if (this.blockIdx > 1) {
+            if (this.blockIdx > 0) {
                 // first block is initialized in the ζ1 definition
-                body.push(`${this.indent}ζ${this.blockIdx} = ζcc(ζ${parentBlockIdx}, ${this.idx}${instanceArgs});\n`); // todo instruction flag ??
+                body.push(`${this.indent}${this.jsVarName} = ζcc(${parentBlockVarName}, ${this.idx}${instanceArgs});\n`); // todo instruction flag ??
             }
-            body.push(`${this.indent}if (ζ${this.blockIdx}[0].cm) {\n`);
+            body.push(`${this.indent}if (${this.jsVarName}[0].cm) {\n`);
 
             for (let ci of this.createInstructions) {
                 ci.pushCode(body);
@@ -527,7 +532,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 ui.pushCode(body);
             }
 
-            body.push(`${this.indent}ζend(ζ${this.blockIdx}${cleanStaticsArg});\n`);
+            body.push(`${this.indent}ζend(${this.jsVarName}${cleanStaticsArg});\n`);
         }
 
         if (isJsBlock) {
@@ -563,7 +568,7 @@ class FragmentCreation implements UpdateInstruction {
         if (this.isContainer) {
             lastArgs = ", " + ih + ", 1";
         }
-        body.push(`${b.indent2}ζfrag(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}${lastArgs});\n`);
+        body.push(`${b.indent2}ζfrag(${b.jsVarName}, ${this.idx}, ${this.parentIdx}${lastArgs});\n`);
     }
 }
 
@@ -597,7 +602,7 @@ class TextCreation implements CreationInstruction {
         // e.g. ζtxt(ζ, 5, 3, 0, " Hello World ");
         // or ζtxt(ζ, 5, 3, 0, ζs0);
         let b = this.block;
-        body.push(`${b.indent2}ζtxt(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, ${this.lastParam});\n`);
+        body.push(`${b.indent2}ζtxt(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, ${this.lastParam});\n`);
     }
 }
 
@@ -610,7 +615,7 @@ class TextUpdate implements UpdateInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζtxtval(ζ1, 1, 0, 1, ζe(ζ, 0, 1, name));
         let b = this.block, ih = instructionsHolder(this.iHolder);
-        body.push(`${b.indent}ζtxtval(ζ${b.blockIdx}, ${this.idx}, ${ih}, ${this.nd.expressions!.length}, `);
+        body.push(`${b.indent}ζtxtval(${b.jsVarName}, ${this.idx}, ${ih}, ${this.nd.expressions!.length}, `);
         let eLength = this.nd.expressions!.length;
         for (let i = 0; eLength > i; i++) {
             generateExpression(body, this.nd.expressions![i], this.block, ih);
@@ -636,7 +641,7 @@ class EltCreation implements CreationInstruction {
         if (this.nd.nameExpression) {
             b.gc.error("Name expressions are not yet supported", this.nd);
         }
-        body.push(`${b.indent2}ζelt(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}"${this.staticArgs});\n`);
+        body.push(`${b.indent2}ζelt(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}"${this.staticArgs});\n`);
     }
 }
 
@@ -653,7 +658,7 @@ class CptUpdate implements UpdateInstruction {
         let b = this.block;
 
         let stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx, ih = instructionsHolder(this.iHolder);
-        body.push(`${b.indent}ζcpt(ζ${b.blockIdx}, ${this.idx}, ${ih}, `);
+        body.push(`${b.indent}ζcpt(${b.jsVarName}, ${this.idx}, ${ih}, `);
         generateExpression(body, this.nd.ref as XjsExpression, this.block, ih);
         body.push(`, ${this.nd[$CONTENT_NODE_IDX]}, 0${stParams});\n`);
 
@@ -667,7 +672,7 @@ class CptCallUpdate implements UpdateInstruction {
 
     pushCode(body: BodyContent[]) {
         let b = this.block, ih = instructionsHolder(this.iHolder), lastArg = (ih === 0) ? "" : ", " + ih;
-        body.push(`${b.indent}ζcall(ζ${b.blockIdx}, ${this.idx}${lastArg});\n`);
+        body.push(`${b.indent}ζcall(${b.jsVarName}, ${this.idx}${lastArg});\n`);
     }
 }
 
@@ -684,7 +689,7 @@ class PNodeCreation implements CreationInstruction {
         if (this.iHolder) {
             ih = instructionsHolder(this.iHolder[$PARENT_INS_HOLDER]);
         }
-        body.push(`${b.indent2}ζpnode(ζ${b.blockIdx}, ${this.idx}, ${this.parentIdx}, ${ih}, "${this.nd.name}"${this.staticArgs});\n`);
+        body.push(`${b.indent2}ζpnode(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${ih}, "${this.nd.name}"${this.staticArgs});\n`);
     }
 }
 
@@ -702,7 +707,7 @@ class ParamUpdate implements UpdateInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 2, 0, "title", ζe(ζ, 0, 0, expr(x)));
         let b = this.block, ih = instructionsHolder(this.iHolder);
-        body.push(`${b.indent}${this.funcName}(ζ${b.blockIdx}, ${this.idx}, ${ih}, "${this.nd.name}", `);
+        body.push(`${b.indent}${this.funcName}(${b.jsVarName}, ${this.idx}, ${ih}, "${this.nd.name}", `);
         generateExpression(body, this.nd.value as XjsExpression, this.block, ih);
         body.push(');\n');
     }
@@ -718,7 +723,6 @@ class JsStatementsUpdate implements UpdateInstruction {
         if (!this.nd.code.match(/\n$/)) {
             body.push("\n");
         }
-        // nd["endPos"] = body.length;
     }
 }
 
@@ -732,7 +736,7 @@ class CleanUpdate implements UpdateInstruction {
 
     pushCode(body: BodyContent[]) {
         // let b = this.block;
-        // body.push(`${b.indent}ζclean(ζ${b.blockIdx}, ${this.idx}, ${instructionsHolder(this.iHolder)});\n`);
+        // body.push(`${b.indent}ζclean(${b.jsVar}, ${this.idx}, ${instructionsHolder(this.iHolder)});\n`);
     }
 }
 
@@ -749,7 +753,7 @@ function instructionsHolder(iHolder: InstructionsHolder) {
 function generateExpression(body: BodyContent[], exp: XjsExpression, block: JsBlockUpdate, instructionsHolder: number) {
     if (exp.oneTime) {
         // e.g. ζo(ζ1, 0)? exp() : ζu
-        body.push(`ζo(ζ${block.blockIdx}, ${block.expr1Count++})? `);
+        body.push(`ζo(${block.jsVarName}, ${block.expr1Count++})? `);
         body.push(exp); // to generate source map
         body.push(' : ζu');
         block.gc.imports['ζo'] = 1;
@@ -757,7 +761,7 @@ function generateExpression(body: BodyContent[], exp: XjsExpression, block: JsBl
     } else {
         // e.g. ζe(ζ1, 2, expr())
         if (instructionsHolder === 0) {
-            body.push(`ζe(ζ${block.blockIdx}, ${block.exprCount++}, `);
+            body.push(`ζe(${block.jsVarName}, ${block.exprCount++}, `);
             body.push(exp); // to generate source map
             body.push(')');
         } else {
@@ -768,7 +772,7 @@ function generateExpression(body: BodyContent[], exp: XjsExpression, block: JsBl
             } else {
                 block.dExpressions[instructionsHolder]++;
             }
-            body.push(`ζe(ζ${block.blockIdx}, ${block.dExpressions[instructionsHolder]}, `);
+            body.push(`ζe(${block.jsVarName}, ${block.dExpressions[instructionsHolder]}, `);
             body.push(exp); // to generate source map
             body.push(`, ${instructionsHolder})`);
         }
@@ -821,7 +825,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         lines.push(classDef);
     }
     gc.imports["ζt"] = 1;
-    lines.push(`${indent}return ζt(function (ζ1${argNames}) {`);
+    lines.push(`${indent}return ζt(function (ζ${argNames}) {`);
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }

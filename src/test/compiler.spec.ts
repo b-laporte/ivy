@@ -19,11 +19,11 @@ describe('Template compiler', () => {
             import { template, ζcc, ζend, ζtxt, ζt } from "../iv";
 
             let x = (function () {
-            return ζt(function (ζ1) {
-                if (ζ1[0].cm) {
-                    ζtxt(ζ1, 1, 1, 0, " hello world ");
+            return ζt(function (ζ) {
+                if (ζ[0].cm) {
+                    ζtxt(ζ, 1, 1, 0, " hello world ");
                 }
-                ζend(ζ1);
+                ζend(ζ);
             });
             })();
 
@@ -52,12 +52,12 @@ describe('Template compiler', () => {
             @ζd class ζParams {
                 @ζv a;
             }
-            return ζt(function (ζ1, $) {
+            return ζt(function (ζ, $) {
                 let a = $["a"];
-                if (ζ1[0].cm) {
-                    ζtxt(ζ1, 1, 1, 0, " T1 ");
+                if (ζ[0].cm) {
+                    ζtxt(ζ, 1, 1, 0, " T1 ");
                 }
-                ζend(ζ1);
+                ζend(ζ);
             }, 0, ζParams);
             })();
             let x = 123, t2 = (function () {
@@ -65,12 +65,12 @@ describe('Template compiler', () => {
                 @ζv p1;
                 @ζv p2;
             }
-            return ζt(function (ζ1, $) {
+            return ζt(function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];
-                if (ζ1[0].cm) {
-                    ζtxt(ζ1, 1, 1, 0, " T1 ");
+                if (ζ[0].cm) {
+                    ζtxt(ζ, 1, 1, 0, " T1 ");
                 }
-                ζend(ζ1);
+                ζend(ζ);
             }, 0, ζParams);
             })();
             let z = "ABCD";

@@ -68,23 +68,20 @@ export class Template implements IvTemplate {
                 p[k] = data[k];
             }
         }
-        if (p) {
-            let nodes = this.context.nodes, forceRefresh = false;
-            if (!nodes[1] || !(nodes[1] as IvNode).attached) {
-                forceRefresh = true; // internal blocks have to be recreated
-            }
-            if (forceRefresh || isMutating(p)) {
-                commitMutations();
-                p = this.refreshArg = latestVersion(p);
-            } else if (this.context.lastRefresh > 0) {
-                // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH CANCELLED for ", this.context.nodes[0].uid)
-                // don't refresh if p didn't change and if refreshed at least once
-                return this;
-            }
+        let bypassRefresh = true, nodes = this.context.nodes;
+        if (!nodes[1] || !(nodes[1] as IvNode).attached) {
+            bypassRefresh = false; // internal blocks may have to be recreated if root is not attached
         }
-        // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH", this.context.nodes[0].uid)
-        this.context.lastRefresh++;
-        this.refreshFn(this.context.nodes, p);
+        if (p && (!bypassRefresh || isMutating(p))) {
+            commitMutations();
+            p = this.refreshArg = latestVersion(p);
+            bypassRefresh = false;
+        }
+        if (!bypassRefresh) {
+            // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH", this.context.nodes[0].uid)
+            this.context.lastRefresh++;
+            this.refreshFn(this.context.nodes, p);
+        }
         return this;
     }
 }
@@ -810,6 +807,13 @@ export function ζcall(c: BlockNodes, idx: number) {
             }
         }
     }
+}
+
+/**
+ * Content insertion (cf. @content)
+ */
+export function ζcont(c: BlockNodes, idx: number, instIdx: number, contentRef) {
+
 }
 
 /**

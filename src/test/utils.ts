@@ -31,6 +31,18 @@ export let test = {
     }
 }
 
+export let error = {
+    async template(tpl: string, log = false) {
+        let err = "NO ERROR";
+        try {
+            await compileTemplate(tpl, { body: true });
+        } catch (e) {
+            err = e.message;
+        }
+        return err;
+    }
+}
+
 
 // ------------------------------------------------------------------------------------------------
 let o = { indent: '        ', showUid: true, isRoot: true };

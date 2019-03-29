@@ -1,4 +1,4 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText } from '../xjs/parser/types';
+import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../xjs/parser/types';
 import { parse } from '../xjs/parser/xjs-parser';
 import { before } from 'mocha';
 
@@ -75,7 +75,12 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
     return generateAll();
 
     function generateAll() {
-        let gc = new GenerationCtxt(options);
+        let gc = new GenerationCtxt(options), args = tf.arguments;
+        if (args) {
+            for (let i = 0; args.length > i; i++) {
+                gc.templateArgs.push(args[i].name);
+            }
+        }
 
         if (tf.content) {
             root = new JsBlockUpdate(tf, 1, null, null, gc, tf.indent);
@@ -148,6 +153,7 @@ export class GenerationCtxt {
     statics: string[] = [];             // list of static resources
     localVars = {};                     // map of creation mode vars
     blockCount = 0;                     // number of js blocks - used to increment block variable suffixes
+    templateArgs: string[] = [];        // name of template arguments
 
     constructor(public options: CompilationOptions) {
         this.imports = options.importMap || {};
@@ -391,6 +397,8 @@ export class JsBlockUpdate implements UpdateInstruction {
 
     generateContentUpdate(nd: XjsComponent | XjsElement | XjsFragment, iHolder: InstructionsHolder, useAttributes: boolean) {
         this.generateParamUpdate(nd, iHolder, useAttributes);
+        this.generateBuiltInDecoratorsUpdate(nd, iHolder);
+
         if (nd.content) {
             if (nd.kind === "#component") {
                 iHolder = nd as XjsComponent;
@@ -428,6 +436,19 @@ export class JsBlockUpdate implements UpdateInstruction {
                 p = f.properties[i];
                 if (p.value && p.value.kind === "#expression") {
                     this.updateInstructions.push(new ParamUpdate(p, f[$INDEX], this, iHolder, isAttribute));
+                }
+            }
+        }
+    }
+
+    generateBuiltInDecoratorsUpdate(nd: XjsComponent | XjsElement | XjsFragment, iHolder: InstructionsHolder) {
+        let d = nd.decorators;
+        if (d) {
+            let len = d.length, deco: XjsDecorator;
+            for (let i = 0; len > i; i++) {
+                deco = d[i];
+                if (deco.ref && deco.ref.code === "content") {
+                    this.updateInstructions.push(new ContentUpdate(deco, nd, nd[$INDEX], this, iHolder));
                 }
             }
         }
@@ -676,6 +697,43 @@ class CptCallUpdate implements UpdateInstruction {
     }
 }
 
+class ContentUpdate implements UpdateInstruction {
+    constructor(public nd: XjsDecorator, parent: XjsComponent | XjsElement | XjsFragment, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        // manage @content built-in decorator
+        let gc = this.block.gc;
+        gc.imports['ζcont'] = 1;
+        if (parent.kind !== "#element" && parent.kind !== "#fragment") {
+            gc.error("@content can only be used on elements or fragments", nd);
+        }
+        if (parent.content && parent.content.length) {
+            gc.error("@content can only be used on empty elements or fragments", nd);
+        }
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζcont(ζ, 2, 0, ζe(ζ, 0, $content));
+        let b = this.block, ih = instructionsHolder(this.iHolder), d = this.nd, gc = this.block.gc;
+
+        if (d.isOrphan || !d.defaultPropValue) {
+            if (gc.templateArgs.indexOf("$content") < 0) {
+                gc.error("$content must be defined as template argument to use @content without expressions", d);
+            }
+        } else if (this.nd.defaultPropValue && this.nd.defaultPropValue.kind !== "#expression") {
+            gc.error("@content value cannot be a " + this.nd.defaultPropValue.kind, d);
+        } else if (this.nd.defaultPropValue && this.nd.defaultPropValue.kind === "#expression" && this.nd.defaultPropValue.oneTime) {
+            gc.error("@content expression cannot use one-time qualifier", d);
+        }
+
+        body.push(`${b.indent}ζcont(${b.jsVarName}, ${this.idx}, ${ih}, `);
+        if (d.isOrphan || !d.defaultPropValue) {
+            generateExpression(body, '$content', this.block, ih);
+        } else {
+            generateExpression(body, this.nd.defaultPropValue as XjsExpression, this.block, ih);
+        }
+        body.push(`);\n`);
+    }
+}
+
 class PNodeCreation implements CreationInstruction {
     constructor(public nd: XjsParamNode, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
         block.gc.imports['ζpnode'] = 1;
@@ -750,8 +808,8 @@ function instructionsHolder(iHolder: InstructionsHolder) {
     return iHolder[$CONTENT_NODE_IDX];
 }
 
-function generateExpression(body: BodyContent[], exp: XjsExpression, block: JsBlockUpdate, instructionsHolder: number) {
-    if (exp.oneTime) {
+function generateExpression(body: BodyContent[], exp: XjsExpression | string, block: JsBlockUpdate, instructionsHolder: number) {
+    if (typeof (exp) !== "string" && exp.oneTime) {
         // e.g. ζo(ζ1, 0)? exp() : ζu
         body.push(`ζo(${block.jsVarName}, ${block.expr1Count++})? `);
         body.push(exp); // to generate source map

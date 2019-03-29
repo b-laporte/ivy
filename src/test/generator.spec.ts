@@ -698,6 +698,33 @@ describe('Code generator', () => {
         `, '1');
     });
 
+    it("should support built-in @content with expression (+fragments))", async function () {
+        assert.equal(await body.template(`($content) => {
+            <div>
+                <! @content={$content}/>
+            </div>
+        }`), `
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1);
+            }
+            ζcont(ζ, 2, 0, ζe(ζ, 0, $content));
+            ζend(ζ);
+        `, '1');
+    });
+
+    it("should support built-in @content without expression (+fragments)", async function () {
+        assert.equal(await body.template(`($content) => {
+            <div class="foo" @content/>
+        }`), `
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div", ζs0);
+            }
+            ζcont(ζ, 1, 0, ζe(ζ, 0, $content));
+            ζend(ζ);
+        `, '1');
+    });
+
     it("should generate the full template function", async function () {
         let t1 = await test.template(`() => {
             <div class="main">

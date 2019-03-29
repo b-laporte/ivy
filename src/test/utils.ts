@@ -1,3 +1,4 @@
+import { Template } from './../iv/index';
 import { CompilationResult } from '../compiler/generator';
 import { compileTemplate } from '../compiler/generator';
 import { IvTemplate, IvNode, BlockNodes, IvContext, IvContainer } from '../iv/types';
@@ -73,25 +74,31 @@ function logBlockNodes(list: BlockNodes, indent: string) {
         } else if (nd.kind === "#container") {
             let cont = nd as IvContainer;
             let dn = cont.domNode ? cont.domNode.$uid : "XX";
-            console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos} lastRefresh:${nd.lastRefresh}`)
-            let len2 = cont.contentBlocks.length;
-            for (let j = 0; len2 > j; j++) {
-                if (!cont.contentBlocks[j]) {
-                    console.log(`${indent + "  "}- block #${j} UNDEFINED`);
-                    continue;
-                }
-                let childContext = cont.contentBlocks[j][0] as IvContext;
-                dn = childContext.domNode ? childContext.domNode.$uid : "XX";
-                console.log(`${indent + "  "}- block #${j}`);
-                if (!cont.contentBlocks[j]) {
-                    console.log(`${indent + "    "}XX`);
-                } else {
-                    logBlockNodes(cont.contentBlocks[j], "    " + indent);
+            console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
+            if (cont.cptTemplate) {
+                let tpl = cont.cptTemplate as Template;
+                console.log(`${indent + "  "}- shadow DOM:`);
+                logBlockNodes(tpl.context.nodes, "    " + indent);
+            } else {
+                let len2 = cont.contentBlocks.length;
+                for (let j = 0; len2 > j; j++) {
+                    if (!cont.contentBlocks[j]) {
+                        console.log(`${indent + "  "}- block #${j} UNDEFINED`);
+                        continue;
+                    }
+                    let childContext = cont.contentBlocks[j][0] as IvContext;
+                    dn = childContext.domNode ? childContext.domNode.$uid : "XX";
+                    console.log(`${indent + "  "}- block #${j}`);
+                    if (!cont.contentBlocks[j]) {
+                        console.log(`${indent + "    "}XX`);
+                    } else {
+                        logBlockNodes(cont.contentBlocks[j], "    " + indent);
+                    }
                 }
             }
         } else {
             let dn = nd.domNode ? nd.domNode.$uid : "XX";
-            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos} lastRefresh:${nd.lastRefresh}`)
+            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
         }
     }
 }

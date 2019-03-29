@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "typescript": "^3.3.3333",
-    "hibe": ">=0.0.5"
+    "hibe": ">=0.0.6"
   }
 }

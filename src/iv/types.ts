@@ -1,6 +1,8 @@
+import { IvComponent } from './types';
 
 export interface IvTemplate {
     document: IvDocument;
+    params: any | undefined;
     attach(element: any): IvTemplate;
     refresh(data?: any): IvTemplate;
 }
@@ -54,8 +56,8 @@ export interface IvText extends IvNode {
 }
 
 export interface IvParentNode extends IvNode {
-    ns: string;                      // namespace, default: ""
-    children: number[] | undefined;  // undefined if no children, list of child indexes otherwise
+    ns: string;                                  // namespace, default: ""
+    children: number[] | undefined;              // undefined if no children, list of child indexes otherwise
 }
 
 /**
@@ -67,9 +69,13 @@ export interface IvFragment extends IvParentNode {
 
 export interface IvContainer extends IvNode {
     kind: "#container";
-    contentBlocks: BlockNodes[];  // list of js blocks currently displayed
-    blockPool: BlockNodes[];      // list of js blocks previously displayed but temporarily detached
-    contentLength: number;        // number of items in contentBlocks after last refresh
+    contentBlocks: BlockNodes[];                 // list of js blocks currently displayed
+    blockPool: BlockNodes[];                     // list of js blocks previously displayed but temporarily detached
+    contentLength: number;                       // number of items in contentBlocks after last refresh
+
+    // component properties - only used when the container is used to display a component
+    cptTemplate: IvTemplate | undefined;         // current component template
+    cptParams: any | undefined;                  // shortcut to cptTemplate.params
 }
 
 /**

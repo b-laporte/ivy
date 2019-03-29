@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import { template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
+import { IvContext } from '../../iv/types';
 
 describe('Iv Runtime', () => {
     let body: ElementNode;
@@ -318,6 +319,34 @@ describe('Iv Runtime', () => {
                 //::C2 template anchor
             </body>
         `, '2');
+    });
+
+    it("should not refresh if params don't change", function () {
+        let tpl = template(`(name1, name2) => {
+            # {name1} # 
+            # {name2} # 
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ name1: "Bart", name2: "Lisa" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 Bart #
+                #::T4 Lisa #
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        assert.equal((t["context"] as IvContext).lastRefresh, 1, "refreshed #1");
+
+        t.refresh({ name1: "Bart", name2: "Lisa" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 Bart #
+                #::T4 Lisa #
+                //::C2 template anchor
+            </body>
+        `, '2');
+        assert.equal((t["context"] as IvContext).lastRefresh, 1, "no second refresh");
     });
 
     // cpt

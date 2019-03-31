@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { template, ζd, ζv } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvContext } from '../../iv/types';
 
@@ -347,6 +347,26 @@ describe('Iv Runtime', () => {
             </body>
         `, '2');
         assert.equal((t["context"] as IvContext).lastRefresh, 1, "no second refresh");
+    });
+
+    it("should use simple param classes", function () {
+        @ζd class Names {
+            @ζv firstName;
+            @ζv lastName;
+        }
+
+        let n = new Names();
+        assert.equal(n["$changed"], false, "unchanged when created");
+        n.firstName = "Homer";
+        assert.equal(n["$changed"], true, "changed (1)");
+        n.lastName = "Simpson";
+        assert.equal(n["$changed"], true, "changed (2)");
+        n["$reset"]();
+        assert.equal(n["$changed"], false, "unchanged after reset");
+        n.firstName = "Homer";
+        assert.equal(n["$changed"], false, "unchanged for identical value");
+        n.firstName = "Marge";
+        assert.equal(n["$changed"], true, "changed (3)");
     });
 
     // cpt

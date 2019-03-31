@@ -1,7 +1,7 @@
 import { XjsEvtListener } from './../xjs/parser/types';
 import { loader } from 'webpack';
 import { IvTemplate, BlockNodes, IvContext, IvDocument, IvElement, IvNode, IvParentNode, IvText, IvFragment, IvContainer, IvComponent } from './types';
-import { Data, value, isMutating, commitMutations, latestVersion } from 'hibe';
+// import { Data, value, isMutating, commitMutations, latestVersion } from 'hibe';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -72,14 +72,21 @@ export class Template implements IvTemplate {
         if (!nodes[1] || !(nodes[1] as IvNode).attached) {
             bypassRefresh = false; // internal blocks may have to be recreated if root is not attached
         }
-        if (p && (!bypassRefresh || isMutating(p))) {
-            commitMutations();
-            p = this.refreshArg = latestVersion(p);
+        if (p && bypassRefresh && p["$kind"] === PARAM && p["$changed"] === true) {
             bypassRefresh = false;
         }
+        // hibe
+        // if (p && (!bypassRefresh || isMutating(p))) {
+        //     commitMutations();
+        //     p = this.refreshArg = latestVersion(p);
+        //     bypassRefresh = false;
+        // }
         if (!bypassRefresh) {
             // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH", this.context.nodes[0].uid)
             this.context.lastRefresh++;
+            if (p && p["$kind"] === PARAM) {
+                p["$reset"]();
+            }
             this.refreshFn(this.context.nodes, p);
         }
         return this;
@@ -130,16 +137,6 @@ export function ζt(refreshFn: (ζ: any, ζa?: any) => void, hasHost?: number, a
         return new Template(refreshFn, argumentClass || undefined, hasHost === 1);
     }
 }
-
-/**
- * Class decorator for the parameter class
- */
-export let ζd = Data();
-
-/**
- * Class property decorator for the parameter class
- */
-export let ζv = value();
 
 /**
  * Unchanged symbol
@@ -773,7 +770,8 @@ export function ζcpt(c: BlockNodes, idx: number, instIdx: number, cptRef, conte
         }
     } else {
         let tpl = container.cptTemplate as Template;
-        container.cptParams = latestVersion(tpl.params);
+        // if hibe
+        // container.cptParams = latestVersion(tpl.params);
     }
 }
 
@@ -851,4 +849,73 @@ export function ζhandler(c: BlockNodes, idx: number, parentIdx: number, instIdx
  */
 export function ζlistener(c: BlockNodes, idx: number, instIdx: number, handler: Function) {
 
+}
+
+// ----------------------------------------------------------------------------------------------
+// Param class
+
+const PARAM = "PARAM";
+
+interface ParamObject {
+    $kind: "PARAM"
+    $changed: boolean;
+    $reset: () => void;
+}
+
+/**
+ * Class decorator for the parameter class
+ */
+// export let ζd = Data();
+export function ζd(c: any) {
+    let proto = c.prototype
+    proto.$kind = PARAM;
+    proto.$changed = false;
+    proto.$reset = $resetDataChanges;
+}
+
+function $resetDataChanges(this: ParamObject) {
+    this.$changed = false;
+}
+
+/**
+ * Class property decorator for the parameter class
+ */
+// export let ζv = value();
+export function ζv(proto, key: string) {
+    // proto = object prototype
+    // key = the property name (e.g. "value")
+    let $$key = "$$" + key;
+    addPropertyInfo(proto, key, false, {
+        get: function () { return this[$$key]; },
+        set: function (v) {
+            if (this[$$key] !== v) {
+                this[$$key] = v;
+                this["$changed"] = true;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+}
+
+function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc: PropertyDescriptor | undefined) {
+    // let nm1 = isDataNode ? "$dProps" : "$vProps",
+    //     nm2 = isDataNode ? "$dProps2" : "$vProps2";
+    // if (!proto[nm1]) {
+    //     proto[nm1] = [];
+    //     proto[nm2] = [];
+    //     proto["$pMap"] = {}; // property map
+    // } else if (!proto.hasOwnProperty(nm1)) {
+    //     // we are in a sub-class of a dataset -> copy the proto arrays
+    //     proto[nm1] = proto[nm1].slice(0);
+    //     proto[nm2] = proto[nm2].slice(0);
+    // }
+    // proto[nm1].push(propName);
+    // proto[nm2].push("$$" + propName);
+    // proto["$pMap"][propName] = 1;
+
+    // proto["$$" + propName] = defaultValue;
+    if (desc && delete proto[propName]) {
+        Object.defineProperty(proto, propName, desc);
+    }
 }

@@ -20,7 +20,7 @@ export interface CompilationResult {
 }
 
 type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock;
-type InstructionsHolder = XjsComponent | XjsParamNode | null;
+type InstructionsHolder = XjsComponent | XjsParamNode | XjsJsBlock | null;
 
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_LOG = /\/\/\s*log\s*/,
@@ -47,6 +47,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
     },
     $INDEX = "$index",
     $FRAGMENT_INDEX = "$fragmentIndex",
+    $FRAGMENT_INS_HOLDER = "$fragmentIHolder",
     $STATIC_PARAMS_IDX = "$staticParamsIdx",
     $PARENT_IDX = "$parentIdx",
     $CONTENT_NODE_IDX = "$contentNodeIdx",
@@ -204,6 +205,9 @@ export class JsBlockUpdate implements UpdateInstruction {
         if (this.blockIdx > 0) {
             this.jsVarName = "ζ" + this.blockIdx;
         }
+        if (iHolder && nd.kind === "#jsBlock") {
+            this.iHolder = nd;
+        }
 
         let gc = this.gc;
         gc.imports['ζcc'] = 1;
@@ -304,6 +308,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 // create a container block
                 this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
                 nd[$FRAGMENT_INDEX] = idx;
+                nd[$FRAGMENT_INS_HOLDER] = iHolder;
                 break;
             default:
                 this.gc.error("Invalid node type: " + nd.kind, nd);
@@ -517,7 +522,7 @@ export class JsBlockUpdate implements UpdateInstruction {
 
         if (this.createInstructions.length) {
             // push cleanIndexes to statics
-            let cleanStaticsArg = ""; // or e.g. ", ζs3"
+            let iHolderIdx = 0, cleanStaticsArg = ""; // or e.g. ", ζs3"
             if (this.cleanIndexes.length) {
                 let statics = this.gc.statics, csIdx = statics.length;
                 statics.push("ζs" + csIdx + " = [" + this.cleanIndexes.join(", ") + "]");
@@ -535,6 +540,9 @@ export class JsBlockUpdate implements UpdateInstruction {
                     body.push(`${this.indent}let ${arr.join(", ")};\n`);
                 }
             } else {
+                if (this.nd[$FRAGMENT_INS_HOLDER]) {
+                    iHolderIdx = instructionsHolder(this.nd[$FRAGMENT_INS_HOLDER]);
+                }
                 instanceArgs = ", ++" + this.instanceCounterVar;
                 parentBlockVarName = this.parentBlock.jsVarName;
             }
@@ -553,7 +561,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 ui.pushCode(body);
             }
 
-            body.push(`${this.indent}ζend(${this.jsVarName}${cleanStaticsArg});\n`);
+            body.push(`${this.indent}ζend(${this.jsVarName}, ${iHolderIdx ? 1 : 0}${cleanStaticsArg});\n`);
         }
 
         if (isJsBlock) {
@@ -615,7 +623,7 @@ class TextCreation implements CreationInstruction {
                 }
             }
             gc.statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
-            this.lastParam = 'ζs' + staticsIdx;
+            nd["staticsRef"] = this.lastParam = 'ζs' + staticsIdx;
         }
     }
 
@@ -634,9 +642,9 @@ class TextUpdate implements UpdateInstruction {
     }
 
     pushCode(body: BodyContent[]) {
-        // e.g. ζtxtval(ζ1, 1, 0, 1, ζe(ζ, 0, 1, name));
+        // e.g. ζtxtval(ζ1, 1, 0, ζs0, 1, ζe(ζ, 0, 1, name));
         let b = this.block, ih = instructionsHolder(this.iHolder);
-        body.push(`${b.indent}ζtxtval(${b.jsVarName}, ${this.idx}, ${ih}, ${this.nd.expressions!.length}, `);
+        body.push(`${b.indent}ζtxtval(${b.jsVarName}, ${this.idx}, ${ih}, ${this.nd["staticsRef"]}, ${this.nd.expressions!.length}, `);
         let eLength = this.nd.expressions!.length;
         for (let i = 0; eLength > i; i++) {
             generateExpression(body, this.nd.expressions![i], this.block, ih);
@@ -805,6 +813,7 @@ function encodeText(t: string) {
 
 function instructionsHolder(iHolder: InstructionsHolder) {
     if (!iHolder) return 0;
+    if (iHolder.kind === "#jsBlock") return 1;
     return iHolder[$CONTENT_NODE_IDX];
 }
 
@@ -823,16 +832,18 @@ function generateExpression(body: BodyContent[], exp: XjsExpression | string, bl
             body.push(exp); // to generate source map
             body.push(')');
         } else {
-            // expression has to be partially deferred
-            // i.e. ζe(ζ1, 0, getTitle(), 2) will be stored in ζ1[2].dValues[0] where 2 is instructionsHolder
+            // expression has to be deferred and cannot be immediately processed
+            // so will be passed as an array: [0, getTitle()]
+            // note: context nodes and instruction holder are already passed to the function
+            // where the expression is used, this is why they don't need to be passed in the expression array
             if (block.dExpressions[instructionsHolder] === undefined) {
                 block.dExpressions[instructionsHolder] = 0;
             } else {
                 block.dExpressions[instructionsHolder]++;
             }
-            body.push(`ζe(${block.jsVarName}, ${block.dExpressions[instructionsHolder]}, `);
+            body.push(`[${block.dExpressions[instructionsHolder]}, `);
             body.push(exp); // to generate source map
-            body.push(`, ${instructionsHolder})`);
+            body.push(`]`);
         }
         block.gc.imports['ζe'] = 1;
     }

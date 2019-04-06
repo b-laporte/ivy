@@ -23,7 +23,7 @@ describe('Template compiler', () => {
                 if (ζ[0].cm) {
                     ζtxt(ζ, 1, 1, 0, " hello world ");
                 }
-                ζend(ζ);
+                ζend(ζ, 0);
             });
             })();
 
@@ -57,7 +57,7 @@ describe('Template compiler', () => {
                 if (ζ[0].cm) {
                     ζtxt(ζ, 1, 1, 0, " T1 ");
                 }
-                ζend(ζ);
+                ζend(ζ, 0);
             }, 0, ζParams);
             })();
             let x = 123, t2 = (function () {
@@ -70,7 +70,7 @@ describe('Template compiler', () => {
                 if (ζ[0].cm) {
                     ζtxt(ζ, 1, 1, 0, " T1 ");
                 }
-                ζend(ζ);
+                ζend(ζ, 0);
             }, 0, ζParams);
             })();
             let z = "ABCD";

@@ -81,7 +81,7 @@ function logBlockNodes(list: BlockNodes, indent: string) {
         if (!nd) {
             console.log(`${indent}[${i}] XX`)
         } else if (nd.kind === "#context") {
-            let dn = nd.domNode ? nd.domNode.$uid : "XX";
+            let dn = nd.rootDomNode ? nd.rootDomNode.$uid : "XX";
             console.log(`${indent}[${i}] ${nd.uid} ${dn} containerIdx:${nd.containerIdx}`)
         } else if (nd.kind === "#container") {
             let cont = nd as IvContainer;
@@ -89,6 +89,7 @@ function logBlockNodes(list: BlockNodes, indent: string) {
             console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
             if (cont.cptTemplate) {
                 let tpl = cont.cptTemplate as Template;
+                console.log(`${indent + "  "}- light DOM children list: [${cont.children ? cont.children.join(",") : ""}]`);
                 console.log(`${indent + "  "}- shadow DOM:`);
                 logBlockNodes(tpl.context.nodes, "    " + indent);
             } else {
@@ -99,7 +100,7 @@ function logBlockNodes(list: BlockNodes, indent: string) {
                         continue;
                     }
                     let childContext = cont.contentBlocks[j][0] as IvContext;
-                    dn = childContext.domNode ? childContext.domNode.$uid : "XX";
+                    dn = childContext.rootDomNode ? childContext.rootDomNode.$uid : "XX";
                     console.log(`${indent + "  "}- block #${j}`);
                     if (!cont.contentBlocks[j]) {
                         console.log(`${indent + "    "}XX`);
@@ -116,7 +117,7 @@ function logBlockNodes(list: BlockNodes, indent: string) {
 }
 
 export function stringify(t: IvTemplate, log = false) {
-    let r = t["context"].domNode.stringify(o)
+    let r = t["context"].rootDomNode.stringify(o)
     if (log) {
         console.log(SEP);
         console.log(r);

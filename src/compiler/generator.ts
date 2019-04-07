@@ -499,7 +499,7 @@ export class JsBlockUpdate implements UpdateInstruction {
         // e.g. 
         // let ζ1;
         // ζ1 = ζcc(ζ, 1, ++ζi1);
-        // if (ζ1.cm) {
+        // if (ζ1[0].cm) {
         //     ζtxt(ζ1, 1, 1, 0, " Hello World ");
         // }
         // ζend(ζ1);
@@ -819,10 +819,11 @@ function instructionsHolder(iHolder: InstructionsHolder) {
 
 function generateExpression(body: BodyContent[], exp: XjsExpression | string, block: JsBlockUpdate, instructionsHolder: number) {
     if (typeof (exp) !== "string" && exp.oneTime) {
-        // e.g. ζo(ζ1, 0)? exp() : ζu
-        body.push(`ζo(${block.jsVarName}, ${block.expr1Count++})? `);
+        let ih = instructionsHolder ? ", " + instructionsHolder : "";
+        // e.g. ζo(ζ1, 0, ζ1[0].cm? exp() : ζu, 2)
+        body.push(`ζo(${block.jsVarName}, ${block.expr1Count++}, ${block.jsVarName}[0].cm? `);
         body.push(exp); // to generate source map
-        body.push(' : ζu');
+        body.push(` : ζu${ih})`);
         block.gc.imports['ζo'] = 1;
         block.gc.imports['ζu'] = 1;
     } else {

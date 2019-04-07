@@ -906,7 +906,21 @@ export function ζe(c: BlockNodes, idx: number, value: any, instHolderIdx?: numb
 
 function getExprValue(c: BlockNodes, instHolderIdx: number, exprValue: any) {
     // exprValue is an array if instHolderIdx>0 as expression was deferred
-    return instHolderIdx ? ζe(c, exprValue[0], exprValue[1], instHolderIdx) : exprValue;
+    if (instHolderIdx) {
+        if (exprValue[2]) {
+            let exprs = (c[0] as IvContext).oExpressions!;
+
+            // one-time expression
+            if (exprs[2 * exprValue[0]]) {
+                // already read
+                return ζu;
+            }
+            exprs[2 * exprValue[0]] = 1;
+            return exprValue[1];
+        }
+        return ζe(c, exprValue[0], exprValue[1], instHolderIdx);
+    }
+    return exprValue;
 }
 
 /**
@@ -914,16 +928,30 @@ function getExprValue(c: BlockNodes, instHolderIdx: number, exprValue: any) {
  * @param c the node array corresponding to the block context
  * @param idx the one-time expression index
  */
-export function ζo(c: BlockNodes, idx: number): boolean {
-    let ctxt = c[0] as IvContext, flags = ctxt.oExpressions;
-    if (!flags) {
-        flags = ctxt.oExpressions = [];
+export function ζo(c: BlockNodes, idx: number, value: any, instHolderIdx?: number): any {
+    let ctxt = c[0] as IvContext, exprs = ctxt.oExpressions;
+    if (!exprs) {
+        exprs = ctxt.oExpressions = [];
     }
-    if (!flags[idx]) {
-        flags[idx] = 1;
-        return true;
+    if (instHolderIdx) {
+        if (!exprs[2 * idx]) {
+            // list of read, result
+            // where read = 0 | 1
+            // and result = [idx, value, 1]
+            let res = [idx, value, 1]
+            exprs[2 * idx] = 0;
+            exprs[1 + 2 * idx] = res;
+            return res;
+        } else {
+            return exprs[1 + 2 * idx];
+        }
+    } else {
+        if (!exprs[2 * idx]) {
+            exprs[2 * idx] = 1;
+            return value;
+        }
+        return ζu;
     }
-    return false;
 }
 
 /**

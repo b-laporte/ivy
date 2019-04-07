@@ -50,7 +50,7 @@ export interface IvNode {
 
 export interface IvExpressionData {
     expressions: any[] | undefined;             // array of expression values
-    oExpressions: 1[] | undefined;              // array of one-time expression flags
+    oExpressions: any[] | undefined;            // array of one-time expression flags
 }
 
 export interface IvContentData {

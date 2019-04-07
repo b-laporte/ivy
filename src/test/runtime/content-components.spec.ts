@@ -1541,10 +1541,67 @@ describe('Content Components', () => {
             </body>
         `, '6');
     });
-    
-    // conditional content
-    // todo ζo in deferred content
-    // force template refresh if content changed (cf. last Refresh?) -> cf. instructions (no instruction = no refresh!)
+
+    it("should support one-time expressions in content", function () {
+        let tpl = template(`(text, open, message) => {
+            <$header2 text={text}>
+                # A: {message} #
+                if (open) {
+                    # B: {::message} #
+                }
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 :::: Info :::: #
+                #::T4 A: Hello #
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ text: "Info", open: true, message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 :::: Info :::: #
+                #::T4 A: Hello2 # (1)
+                #::T5 B: Hello2 #
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ text: "Info", open: true, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 :::: Info :::: #
+                #::T4 A: Hello3 # (2)
+                #::T5 B: Hello2 #
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ text: "Info", open: false, message: "Hello4" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 :::: Info :::: #
+                #::T4 A: Hello4 # (3)
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        t.refresh({ text: "Info", open: true, message: "Hello5" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 :::: Info :::: #
+                #::T4 A: Hello5 # (4)
+                #::T5 B: Hello2 #
+                //::C2 template anchor
+            </body>
+        `, '5');
+    });
+
+    // todo: in content: cpt/call, param, ζcont, ζo
     // todo: $content projected in 2 different placeholders depending on condition
     // content projected twice -> error
 

@@ -54,7 +54,7 @@ describe('Code generator', () => {
                 ζtxt(ζ, 3, 1, 0, ζs1);
             }
             ζtxtval(ζ, 2, 0, ζs0, 1, ζe(ζ, 0, name));
-            ζtxtval(ζ, 3, 0, ζs1, 2, ζe(ζ, 1, name+1), ζo(ζ, 0)? name+2 : ζu);
+            ζtxtval(ζ, 3, 0, ζs1, 2, ζe(ζ, 1, name+1), ζo(ζ, 0, ζ[0].cm? name+2 : ζu));
             ζend(ζ, 0);
         `, '3');
 
@@ -177,7 +177,7 @@ describe('Code generator', () => {
                 ζelt(ζ, 2, 1, 0, "span");
             }
             ζprop(ζ, 1, 0, "title", ζe(ζ, 0, exp()+123));
-            ζprop(ζ, 2, 0, "className", ζo(ζ, 0)? getClass() : ζu);
+            ζprop(ζ, 2, 0, "className", ζo(ζ, 0, ζ[0].cm? getClass() : ζu));
             ζend(ζ, 0);
         `, '1');
     });
@@ -825,7 +825,7 @@ describe('Code generator', () => {
             if (ζ[0].cm) {
                 ζtxt(ζ, 1, 1, 0, ζs0);
             }
-            ζtxtval(ζ, 1, 0, ζs0, 2, ζe(ζ, 0, firstName), ζo(ζ, 0)? lastName : ζu);
+            ζtxtval(ζ, 1, 0, ζs0, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζ[0].cm? lastName : ζu));
             ζend(ζ, 0);
         }, 0, ζParams);
         })()` , 'f3');

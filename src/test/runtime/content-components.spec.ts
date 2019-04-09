@@ -56,6 +56,17 @@ describe('Content Components', () => {
         </section>
     }`);
 
+    let section3 = template(`(text, open, $content) => {
+        if (open) {
+            <$section open=true text="Sub-Section">
+                # :::: Inner text {text} :::: #
+                <div @content={$content}/>
+            </>
+        } else {
+            # \(closed) #
+        }
+    }`);
+
     it("can project & update content (cpt host:element / content:element / projection host: element)", function () {
         let tpl = template(`(message) => {
             <div class="main">
@@ -584,8 +595,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info2 :::: #
-                #::T4 Message: Message2 #
+                #::T4 :::: Info2 :::: #
+                #::T5 Message: Message2 #
                 //::C2 template anchor
             </body>
         `, '2');
@@ -594,8 +605,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (1)
-                #::T4 Message: Message3 # (1)
+                #::T4 :::: Info3 :::: # (1)
+                #::T5 Message: Message3 # (1)
                 //::C2 template anchor
             </body>
         `, '3');
@@ -612,8 +623,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (1)
-                #::T4 Message: Message3 # (1)
+                #::T4 :::: Info3 :::: # (1)
+                #::T5 Message: Message3 # (1)
                 //::C2 template anchor
             </body>
         `, '5');
@@ -622,8 +633,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (1)
-                #::T4 Message: Message6 # (2)
+                #::T4 :::: Info3 :::: # (1)
+                #::T5 Message: Message6 # (2)
                 //::C2 template anchor
             </body>
         `, '6');
@@ -651,9 +662,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info2 :::: #
-                <div::E5>
-                    #::T4 Message: Message2 #
+                #::T5 :::: Info2 :::: #
+                <div::E4>
+                    #::T6 Message: Message2 #
                 </div>
                 //::C2 template anchor
             </body>
@@ -663,9 +674,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (1)
-                <div::E5>
-                    #::T4 Message: Message3 # (1)
+                #::T5 :::: Info3 :::: # (1)
+                <div::E4>
+                    #::T6 Message: Message3 # (1)
                 </div>
                 //::C2 template anchor
             </body>
@@ -683,9 +694,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (1)
-                <div::E5>
-                    #::T4 Message: Message3 # (1)
+                #::T5 :::: Info3 :::: # (1)
+                <div::E4>
+                    #::T6 Message: Message3 # (1)
                 </div>
                 //::C2 template anchor
             </body>
@@ -695,9 +706,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (1)
-                <div::E5>
-                    #::T4 Message: Message6 # (2)
+                #::T5 :::: Info3 :::: # (1)
+                <div::E4>
+                    #::T6 Message: Message6 # (2)
                 </div>
                 //::C2 template anchor
             </body>
@@ -718,8 +729,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info1 :::: #
-                #::T4 Message: Message1 #
+                #::T4 :::: Info1 :::: #
+                #::T5 Message: Message1 #
                 //::C2 template anchor
             </body>
         `, '2');
@@ -736,8 +747,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (1)
-                #::T4 Message: Message3 # (1)
+                #::T4 :::: Info3 :::: # (1)
+                #::T5 Message: Message3 # (1)
                 //::C2 template anchor
             </body>
         `, '3');
@@ -754,8 +765,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (1)
-                #::T4 Message: Message3 # (1)
+                #::T4 :::: Info3 :::: # (1)
+                #::T5 Message: Message3 # (1)
                 //::C2 template anchor
             </body>
         `, '5');
@@ -764,8 +775,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (1)
-                #::T4 Message: Message6 # (2)
+                #::T4 :::: Info3 :::: # (1)
+                #::T5 Message: Message6 # (2)
                 //::C2 template anchor
             </body>
         `, '6');
@@ -785,9 +796,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info1 :::: #
-                <div::E5>
-                    #::T4 Message: Message1 #
+                #::T5 :::: Info1 :::: #
+                <div::E4>
+                    #::T6 Message: Message1 #
                 </div>
                 //::C2 template anchor
             </body>
@@ -805,9 +816,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (1)
-                <div::E5>
-                    #::T4 Message: Message3 # (1)
+                #::T5 :::: Info3 :::: # (1)
+                <div::E4>
+                    #::T6 Message: Message3 # (1)
                 </div>
                 //::C2 template anchor
             </body>
@@ -825,9 +836,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (1)
-                <div::E5>
-                    #::T4 Message: Message3 # (1)
+                #::T5 :::: Info3 :::: # (1)
+                <div::E4>
+                    #::T6 Message: Message3 # (1)
                 </div>
                 //::C2 template anchor
             </body>
@@ -837,9 +848,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (1)
-                <div::E5>
-                    #::T4 Message: Message6 # (2)
+                #::T5 :::: Info3 :::: # (1)
+                <div::E4>
+                    #::T6 Message: Message6 # (2)
                 </div>
                 //::C2 template anchor
             </body>
@@ -1047,9 +1058,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info :::: #
-                #::T6 content #
-                #::T4 Message: Message Info #
+                #::T4 :::: Info :::: #
+                #::T5 content #
+                #::T6 Message: Message Info #
                 //::C2 template anchor
             </body>
         `, '1');
@@ -1058,8 +1069,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info2 :::: # (1)
-                #::T6 content #
+                #::T4 :::: Info2 :::: # (1)
+                #::T5 content #
                 //::C2 template anchor
             </body>
         `, '2');
@@ -1068,9 +1079,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (2)
-                #::T6 content #
-                #::T4 Message: Message3 Info3 # (1)
+                #::T4 :::: Info3 :::: # (2)
+                #::T5 content #
+                #::T6 Message: Message3 Info3 # (1)
                 //::C2 template anchor
             </body>
         `, '3');
@@ -1079,8 +1090,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (2)
-                #::T6 content #
+                #::T4 :::: Info3 :::: # (2)
+                #::T5 content #
                 //::C2 template anchor
             </body>
         `, '4');
@@ -1089,9 +1100,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info3 :::: # (2)
-                #::T6 content #
-                #::T4 Message: Message3 Info3 # (1)
+                #::T4 :::: Info3 :::: # (2)
+                #::T5 content #
+                #::T6 Message: Message3 Info3 # (1)
                 //::C2 template anchor
             </body>
         `, '5');
@@ -1100,8 +1111,8 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info6 :::: # (3)
-                #::T6 content #
+                #::T4 :::: Info6 :::: # (3)
+                #::T5 content #
                 //::C2 template anchor
             </body>
         `, '6');
@@ -1110,9 +1121,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T5 :::: Info7 :::: # (4)
-                #::T6 content #
-                #::T4 Message: Message7 Info7 # (2)
+                #::T4 :::: Info7 :::: # (4)
+                #::T5 content #
+                #::T6 Message: Message7 Info7 # (2)
                 //::C2 template anchor
             </body>
         `, '7');
@@ -1133,10 +1144,10 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info :::: #
-                <div::E5>
-                    #::T7 content #
-                    #::T4 Message: Message Info #
+                #::T5 :::: Info :::: #
+                <div::E4>
+                    #::T6 content #
+                    #::T7 Message: Message Info #
                 </div>
                 //::C2 template anchor
             </body>
@@ -1146,9 +1157,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info2 :::: # (1)
-                <div::E5>
-                    #::T7 content #
+                #::T5 :::: Info2 :::: # (1)
+                <div::E4>
+                    #::T6 content #
                 </div>
                 //::C2 template anchor
             </body>
@@ -1158,10 +1169,10 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (2)
-                <div::E5>
-                    #::T7 content #
-                    #::T4 Message: Message3 Info3 # (1)
+                #::T5 :::: Info3 :::: # (2)
+                <div::E4>
+                    #::T6 content #
+                    #::T7 Message: Message3 Info3 # (1)
                 </div>
                 //::C2 template anchor
             </body>
@@ -1171,9 +1182,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info4 :::: # (3)
-                <div::E5>
-                    #::T7 content #
+                #::T5 :::: Info4 :::: # (3)
+                <div::E4>
+                    #::T6 content #
                 </div>
                 //::C2 template anchor
             </body>
@@ -1183,10 +1194,10 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (4)
-                <div::E5>
-                    #::T7 content #
-                    #::T4 Message: Message3 Info3 # (1)
+                #::T5 :::: Info3 :::: # (4)
+                <div::E4>
+                    #::T6 content #
+                    #::T7 Message: Message3 Info3 # (1)
                 </div>
                 //::C2 template anchor
             </body>
@@ -1196,9 +1207,9 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info3 :::: # (4)
-                <div::E5>
-                    #::T7 content #
+                #::T5 :::: Info3 :::: # (4)
+                <div::E4>
+                    #::T6 content #
                 </div>
                 //::C2 template anchor
             </body>
@@ -1208,10 +1219,10 @@ describe('Content Components', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
-                #::T6 :::: Info7 :::: # (5)
-                <div::E5>
-                    #::T7 content #
-                    #::T4 Message: Message7 Info7 # (2)
+                #::T5 :::: Info7 :::: # (5)
+                <div::E4>
+                    #::T6 content #
+                    #::T7 Message: Message7 Info7 # (2)
                 </div>
                 //::C2 template anchor
             </body>
@@ -1601,7 +1612,143 @@ describe('Content Components', () => {
         `, '5');
     });
 
-    // todo: in content: cpt/call, param, ζcont, ζo
+    it("should support deferred content projection (init false)", function () {
+        let tpl = template(`(text, open, message) => {
+            <$section3 text={text} open={open}>
+                # Message: {message} #
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 (closed) #
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Sub-Section (open) :::: #
+                    <div::E6>
+                        #::T8 :::: Inner text Info2 :::: #
+                        <div::E7>
+                            #::T9 Message: Hello2 #
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Sub-Section (open) :::: #
+                    <div::E6>
+                        #::T8 :::: Inner text Info2 :::: #
+                        <div::E7>
+                            #::T9 Message: Hello3 # (1)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ text: "Info2", open: false, message: "Hello4" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 (closed) #
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Sub-Section (open) :::: #
+                    <div::E6>
+                        #::T8 :::: Inner text Info2 :::: #
+                        <div::E7>
+                            #::T9 Message: Hello3 # (1)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '5');
+    });
+
+    it("should support deferred content projection (init true)", function () {
+        let tpl = template(`(text, open, message) => {
+            <$section3 text={text} open={open}>
+                # Message: {message} #
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ text: "Info", open: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: Sub-Section (open) :::: #
+                    <div::E5>
+                        #::T7 :::: Inner text Info :::: #
+                        <div::E6>
+                            #::T8 Message: Hello #
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: Sub-Section (open) :::: #
+                    <div::E5>
+                        #::T7 :::: Inner text Info2 :::: # (1)
+                        <div::E6>
+                            #::T8 Message: Hello2 # (1)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ text: "Info3", open: false, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T9 (closed) #
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello4" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: Sub-Section (open) :::: #
+                    <div::E5>
+                        #::T7 :::: Inner text Info2 :::: # (1)
+                        <div::E6>
+                            #::T8 Message: Hello4 # (2)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
+
+    // todo: in content: cpt/call, param
     // todo: $content projected in 2 different placeholders depending on condition
     // content projected twice -> error
 

@@ -244,10 +244,12 @@ export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: 
 
 function removeFromDom(c: BlockNodes, nd: IvNode) {
     if (!nd || !nd.attached) return;
+    // console.log("removeFromDom", nd.uid);
     if (nd.kind === "#text" || nd.kind === "#element") {
         let pdn = getParentDomNd(c, nd);
         nd.attached = false;
         if (pdn) {
+            // console.log(nd.uid, nd.attached, nd.domNode.$uid, "in=", pdn ? pdn.$uid : "XX")
             pdn.removeChild(nd.domNode);
         }
     } else if (nd.kind === "#container") {
@@ -319,7 +321,10 @@ function getRootContext(ctxt: IvContext) {
 }
 
 function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false) {
+    //console.log("appendToDom ", nd.uid, "in", c[0].uid)
     if (!nd || nd.attached || (!projectRoot && nd.contentData)) return;
+    runInstructions(nd);
+
     let pdn = getParentDomNd(c, nd), domNode = nd.domNode, rCount = (c[0] as IvContext).lastRefresh;
     if (nd.contentData) {
         let cd = nd.contentData;
@@ -335,7 +340,7 @@ function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false) {
         return
     }
     if (domNode && domNode !== pdn) {
-        // console.log("appendChild", domNode.$uid, "to", pdn.$uid);
+        // console.log("A appendChild", domNode.$uid, "to", pdn.$uid);
         pdn.appendChild(domNode);
         nd.attached = true;
         nd.lastRefresh = rCount;
@@ -390,6 +395,7 @@ function projectHostContent(c: BlockNodes, host: IvParentNode) {
             // host is the host node: <div @content/> or <! @content/>
             if (content.kind === "#element" || content.kind === "#text") {
                 if (host.kind === "#element") {
+                    // console.log("B appendChild", content.domNode.$uid, "to", host.domNode.$uid);
                     host.domNode.appendChild(content.domNode)
                 } else if (host.kind === "#fragment") {
                     appendToDom(cd.rootNodes, content, true);
@@ -405,15 +411,18 @@ function projectHostContent(c: BlockNodes, host: IvParentNode) {
                     chNd.lastRefresh = rCount;
                 }
             } else {
-                console.log("TODO: unsupported content kind: " + content.kind)
+                console.log("TODO: unsupported content kind: ", content.kind, "in", host.uid)
             }
         }
     }
 }
 
 function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomNd: any, projectRoot = false) {
-    if (!nd || nd.attached || !parentDomNd || (!projectRoot && nd.contentData)) return;
+    // if (nd) console.log("insertInDomBefore - test", nd.uid, nd.attached, !parentDomNd, (!projectRoot && nd.contentData))
+    if (!nd || (nd.kind !== "#container" && nd.attached) || !parentDomNd || (!projectRoot && nd.contentData)) return;
     // console.log("insertInDomBefore", nd.uid, "parent", parentDomNd.$uid, "before", nextDomNd.$uid)
+    runInstructions(nd);
+
     let domNode = nd.domNode, rCount = (c[0] as IvContext).lastRefresh;
     if (domNode && domNode !== parentDomNd) {
         // console.log("-> insert", domNode.$uid, "before", nextDomNd.$uid);
@@ -512,17 +521,7 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
     if (!ctxt.parentCtxt) {
         // root node, attach to parent container
         insertInDomBefore(c, ctxt.rootDomNode, root, ctxt.anchorNode);
-    } else {
-        let root = c[1] as IvNode;
-        if (root && root.instructions) {
-            console.log("TODO: INSTRUCTIONS", ctxt.containerIdx, c.length, "no instructions:", root.instructions === undefined)
-        }
     }
-
-    // else if (!root.attached && ctxt.lastRefresh > 1) {
-    //     console.log("HERE HERE HERE HERE HERE HERE", ctxt.lastRefresh)
-    //     //appendToDom(c, root);
-    // }
 }
 
 /**
@@ -537,49 +536,56 @@ function checkContainer(c: BlockNodes, idx: number) {
         // remove all nodes from DOM
         removeFromDom(c, container as IvNode);
     } else {
-        let blocks = container.contentBlocks, nbrOfBlocks = blocks.length;
-
-        if (lastRefresh > 1) {
-            // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end method
-            if (container.contentLength < nbrOfBlocks) {
-                // append new nodes
-                let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode), nodes: BlockNodes;
-                if (parentDomNd) {
-                    // insert sub root nodes as other nodes have been attached in block end
-                    let projectRoot = false;
-
-                    if (position === "beforeChild") {
-                        for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                            nodes = blocks[i];
-                            insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
-                        }
-                    } else if (position === "lastChild") {
-                        for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                            nodes = blocks[i];
-                            appendToDom(nodes, nodes[1] as IvNode);
-                        }
-                    } else if (position === "lastOnRoot") {
-                        for (let i = container.contentLength; nbrOfBlocks > i; i++) {
-                            nodes = blocks[i];
-                            insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
+        let tpl = container.cptTemplate as Template;
+        if (tpl) {
+            console.log("Todo: checkContainer / runInstructions for sub-templates")
+        } else {
+            let blocks = container.contentBlocks, nbrOfBlocks = blocks.length, nodes: BlockNodes;
+            if (lastRefresh > 1) {
+                // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end method
+                if (container.contentLength < nbrOfBlocks) {
+                    // append new nodes
+                    let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode);
+                    // console.log(">> A next sibling result for", container.uid, "in", c[0].uid, "position=", position, "nextDomNd=", nextDomNd ? nextDomNd.$uid : "XX", "parentDomNd=", parentDomNd ? parentDomNd.$uid : "XX")
+                    if (parentDomNd) {
+                        // insert sub root nodes as other nodes have been attached in block end
+                        if (position === "beforeChild") {
+                            for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                                nodes = blocks[i];
+                                insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
+                            }
+                        } else if (position === "lastChild") {
+                            for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                                nodes = blocks[i];
+                                appendToDom(nodes, nodes[1] as IvNode);
+                            }
+                        } else if (position === "lastOnRoot") {
+                            for (let i = container.contentLength; nbrOfBlocks > i; i++) {
+                                nodes = blocks[i];
+                                insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
+                            }
                         }
                     }
-                }
-            } else if (nbrOfBlocks < container.contentLength) {
-                // disconnect the nodes that are still attached in the pool
-                let pool = container.blockPool, len = pool.length, nodes: BlockNodes;
-                for (let i = 0; len > i; i++) {
-                    nodes = pool[i];
-                    removeFromDom(nodes, nodes[1] as IvNode)
+                } else if (nbrOfBlocks < container.contentLength) {
+                    // disconnect the nodes that are still attached in the pool
+                    let pool = container.blockPool, len = pool.length, nodes: BlockNodes;
+                    for (let i = 0; len > i; i++) {
+                        nodes = pool[i];
+                        removeFromDom(nodes, nodes[1] as IvNode)
+                    }
                 }
             }
+            container.contentLength = nbrOfBlocks;
+            for (let i = 0; nbrOfBlocks > i; i++) {
+                nodes = blocks[i];
+                runInstructions(nodes[1] as IvNode);
+            }
         }
-        container.contentLength = nbrOfBlocks;
     }
 }
 
 interface SiblingDomPosition {
-    position: "lastChild" | "beforeChild" | "lastOnRoot";
+    position: "lastChild" | "beforeChild" | "lastOnRoot" | "defer";
     nextDomNd?: any;
     parentDomNd: any;
 }
@@ -591,12 +597,15 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
         if (nd.contentData) {
             // nd is the root of a light-dom projection
             let cd = nd.contentData, host = cd.contentHost;
+            // console.log("> has content data, host:", host ? host.uid : "XX")
             if (host) {
                 if (host.kind === "#element") {
                     return { position: "lastChild", parentDomNd: host.domNode };
                 } else {
                     return findNextSiblingDomNd(cd.contentHostNodes!, host);
                 }
+            } else {
+                return { position: "defer", parentDomNd: undefined };
             }
         }
         parent = c[nd.parentIdx] as IvParentNode;
@@ -605,6 +614,11 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
         // console.log("-> getParentDomNd", c[0].uid, nd.uid, "result", pdn ? pdn.$uid : "XX")
 
         if (nd.idx === 1) {
+            // console.log("> is root - is attached:", nd.attached)
+            if (!nd.attached) {
+                return { position: "defer", parentDomNd: undefined };
+            }
+
             // root node has no sibling
             let ctxt = c[0] as IvContext, pCtxt = ctxt.parentCtxt;
             if (!pCtxt) {
@@ -615,13 +629,16 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
             }
         }
 
+        // find next node that is attached
         if (pos !== parent.children!.length - 1) {
+            // console.log("> is not last")
             let nextNode = c[parent.children![pos + 1]] as IvNode,
                 sdp = findFirstDomNd(c, nextNode, pdn);
             if (sdp) return sdp;
-            // if not found we shift by 1
+            // if not found (e.g. node not attached) we shift by 1
             nd = nextNode;
         } else {
+            // console.log("> is last")
             // nd is last sibling
             if (parent.kind === "#element") {
                 return { position: "lastChild", parentDomNd: pdn };
@@ -632,7 +649,7 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
     }
 
     function findFirstDomNd(c: BlockNodes, nd: IvNode, parentDomNd: any): SiblingDomPosition | null {
-        if (!nd) return null;
+        if (!nd || !nd.attached) return null;
         if (nd.kind === "#element" || nd.kind === "#text") {
             return { position: "beforeChild", nextDomNd: nd.domNode, parentDomNd: parentDomNd };
         } else if (nd.kind === "#fragment" || nd.kind === "#component") {
@@ -665,22 +682,16 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
 }
 
 function addInstruction(creation: boolean, c: BlockNodes, targetIdx: number, instHolderIdx: number, func: Function, args: any[]) {
-    if (targetIdx === instHolderIdx) {
+    // console.log("addInstruction - creation=", creation, "ctxt=", c[0].uid, "targetIdx=", targetIdx, "instHolderIdx=", instHolderIdx);
+    if (targetIdx === instHolderIdx && !c[instHolderIdx]) {
         // this node is a content root node that has to be created but that will be considered as deferred
         func.apply(null, args);
         if (targetIdx < 2) {
             // targetIdx = 0: container (cf. ζend)
             // targetIdx = 1: root node
-
             // this is the root of a block
-            // let blockRoot = c[targetIdx] as IvNode;
-            // blockRoot.exprData = {
-            //     expressions: undefined,
-            //     oExpressions: undefined
-            // };
-            // reset instructions??
         } else {
-            // this is the light-dom root
+            // this is the light-dom root: instruction cannot be deferred
             let contentRoot = c[targetIdx] as IvNode;
             if (targetIdx !== 1 && !contentRoot.contentData) {
                 contentRoot.contentData = {
@@ -706,6 +717,7 @@ function addInstruction(creation: boolean, c: BlockNodes, targetIdx: number, ins
 }
 
 function runInstructions(nd: IvNode) {
+    // console.log("runInstructions", nd.uid, "hasInstructions=", nd.instructions !== undefined)
     if (nd.instructions) {
         let instr = nd.instructions, len = instr.length;
         for (let i = 0; len > i; i += 3) {
@@ -840,8 +852,10 @@ function createTxt(c: BlockNodes, idx: number, parentIdx: number, statics: strin
  */
 export function ζtxtval(c: BlockNodes, idx: number, instHolderIdx: number, statics: string[], nbrOfValues: number, ...values: any[]) {
     if (instHolderIdx === 0) {
+        // console.log("IMMEDIATE updateText idx=", idx, "instHolderIdx=", instHolderIdx)
         updateText(c, idx, instHolderIdx, nbrOfValues, values);
     } else {
+        // console.log("DEFER updateText in=", c[0].uid, " idx=", idx, "instHolderIdx=", instHolderIdx, "values=", values.join("*"))
         addInstruction(false, c, idx, instHolderIdx, updateText, [c, idx, instHolderIdx, nbrOfValues, values]);
     }
 }
@@ -863,9 +877,27 @@ function updateText(c: BlockNodes, idx: number, instHolderIdx: number, nbrOfValu
     }
     if (!changed) return;
     nd.pieces = pieces;
-    // console.log("updateText", idx, "value:" + pieces!.join(""), "first:", nd.domNode === undefined)
+    // console.log("updateText in", c[0].uid, "idx=", idx, "value=" + pieces!.join(""), "first=", nd.domNode === undefined)
     if (!nd.domNode) {
         nd.domNode = (c[0] as IvContext).doc.createTextNode(pieces!.join(""));
+        let lastRefresh = c[0].lastRefresh;
+        if (lastRefresh > 1) {
+            // console.log("create text node (updateText):", nd.domNode.$uid, "lastRefresh=", lastRefresh)
+            // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end method
+
+            // append new nodes
+            let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, nd as IvNode), nodes: BlockNodes;
+            // console.log(">> B next sibling result for", nd.uid, "in", c[0].uid, "position=", position, "nextDomNd=", nextDomNd ? nextDomNd.$uid : "XX", "parentDomNd=", parentDomNd ? parentDomNd.$uid : "XX")
+            if (parentDomNd) {
+                if (position === "beforeChild") {
+                    insertInDomBefore(c, parentDomNd, nd, nextDomNd);
+                } else if (position === "lastChild") {
+                    appendToDom(c, nd);
+                } else if (position === "lastOnRoot") {
+                    insertInDomBefore(c, parentDomNd, nd, nextDomNd);
+                }
+            }
+        }
     } else {
         nd.domNode.textContent = pieces!.join("");
     }
@@ -1086,25 +1118,26 @@ export function ζcall(c: BlockNodes, idx: number) {
  * Content insertion (cf. @content)
  */
 export function ζcont(c: BlockNodes, idx: number, instHolderIdx: number, contentRoot) {
-
-    if (instHolderIdx === 0) {
-        let contentHost = c[idx] as IvParentNode;
-
-        if (contentRoot !== ζu && contentRoot) {
-            let cd = contentRoot.contentData!;
-
-            // todo: if first time!?
-            runInstructions(contentRoot);
-
-            // store contentRoot in content data
-            cd.contentHost = contentHost;
-            contentHost.contentRoot = contentRoot;
-        } else {
-            // retrieve contentRoot
-            runInstructions(contentHost.contentRoot!); // todo -> change + contentRef = undefined
-        }
+    // console.log("ζcont", idx, "in", c[0].uid)
+    if (!instHolderIdx) {
+        projectContent(c, idx, instHolderIdx, contentRoot);
     } else {
-        console.log("TODO: deferred ζcont");
+        addInstruction(false, c, idx, instHolderIdx, projectContent, [c, idx, instHolderIdx, contentRoot]);
+    }
+}
+
+function projectContent(c: BlockNodes, idx: number, instHolderIdx: number, exprContentRoot) {
+    let contentHost = c[idx] as IvParentNode, contentRoot = getExprValue(c, instHolderIdx, exprContentRoot);
+    if (contentRoot !== ζu && contentRoot) {
+        // todo: if first time!?
+        runInstructions(contentRoot);
+
+        // store contentRoot in content data
+        contentRoot.contentData!.contentHost = contentHost;
+        contentHost.contentRoot = contentRoot;
+    } else {
+        // retrieve contentRoot
+        runInstructions(contentHost.contentRoot!); // todo -> change + contentRef = undefined
     }
 }
 

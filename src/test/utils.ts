@@ -299,6 +299,7 @@ export class ElementNode {
 
     removeChild(node) {
         // brute force... but simple and safe
+        // console.log("removeChild", node.$uid)
         let ch2: any[] = [], found = false;
         for (let nd of this.childNodes) {
             if (nd !== node) {

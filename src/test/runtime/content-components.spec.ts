@@ -1748,7 +1748,165 @@ describe('Content Components', () => {
         `, '4');
     });
 
-    // todo: in content: cpt/call, param
+    it("should support deferred component call (init false)", function () {
+        let tpl = template(`(text, open, message) => {
+            <$section2 text={text} open={open}>
+                # main content #
+                <$panel2 type="abc">
+                    <div>
+                        # Message in panel2: {message} #
+                    </div>
+                </>
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info (closed) :::: #
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info2 (open) :::: # (1)
+                    #::T6 main content #
+                    <div::E7 a:class="abc">
+                        #::T8 Panel #
+                        <div::E3>
+                            #::T9 Message in panel2: Hello2 #
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info2 (open) :::: # (1)
+                    #::T6 main content #
+                    <div::E7 a:class="abc">
+                        #::T8 Panel #
+                        <div::E3>
+                            #::T9 Message in panel2: Hello3 # (1)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ text: "Info2", open: false, message: "Hello4" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info2 (closed) :::: # (2)
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info2 (open) :::: # (3)
+                    #::T6 main content #
+                    <div::E7 a:class="abc">
+                        #::T8 Panel #
+                        <div::E3>
+                            #::T9 Message in panel2: Hello3 # (1)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '5');
+    });
+
+    it("should support deferred component call (init true)", function () {
+        let tpl = template(`(text, open, message) => {
+            <$section2 text={text} open={open}>
+                # main content #
+                <$panel2 type="abc">
+                    <div>
+                        # Message in panel2: {message} #
+                    </div>
+                </>
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ text: "Info", open: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info (open) :::: #
+                    #::T6 main content #
+                    <div::E7 a:class="abc">
+                        #::T8 Panel #
+                        <div::E3>
+                            #::T9 Message in panel2: Hello #
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info2 (open) :::: # (1)
+                    #::T6 main content #
+                    <div::E7 a:class="abc">
+                        #::T8 Panel #
+                        <div::E3>
+                            #::T9 Message in panel2: Hello2 # (1)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ text: "Info3", open: false, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info3 (closed) :::: # (2)
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ text: "Info4", open: true, message: "Hello4" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E4>
+                    #::T5 :::: Info4 (open) :::: # (3)
+                    #::T6 main content #
+                    <div::E7 a:class="abc">
+                        #::T8 Panel #
+                        <div::E3>
+                            #::T9 Message in panel2: Hello4 # (2)
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
+
+    // todo: in content: param
     // todo: $content projected in 2 different placeholders depending on condition
     // content projected twice -> error
 

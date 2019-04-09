@@ -110,8 +110,14 @@ function logBlockNodes(list: BlockNodes, indent: string) {
                 }
             }
         } else {
-            let dn = nd.domNode ? nd.domNode.$uid : "XX";
-            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
+            let dn = nd.domNode ? nd.domNode.$uid : "XX", lastArg = "";
+            if (nd.domNode && nd.kind === "#text") {
+                lastArg = " #" + nd.domNode["_textContent"] + "#";
+            }
+            if (nd.instructions) {
+                lastArg += " instructions:" + nd.instructions.length;
+            }
+            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}${lastArg}`)
         }
     }
 }

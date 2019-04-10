@@ -1022,17 +1022,17 @@ function setAttribute(c: BlockNodes, eltIdx: number, instHolderIdx: number, name
 /**
  * Dynamic property update
  */
-export function ζprop(c: BlockNodes, eltIdx: number, instHolderIdx: number, name: string, expr: any) {
-    if (expr === ζu) return;
+export function ζprop(c: BlockNodes, eltIdx: number, instHolderIdx: number, name: string, exprValue: any) {
+    if (exprValue === ζu) return;
     if (instHolderIdx === 0) {
-        setProperty(c, eltIdx, instHolderIdx, name, expr);
+        setProperty(c, eltIdx, instHolderIdx, name, exprValue);
     } else {
-        addInstruction(false, c, eltIdx, instHolderIdx, setProperty, [c, eltIdx, instHolderIdx, name, expr]);
+        addInstruction(false, c, eltIdx, instHolderIdx, setProperty, [c, eltIdx, instHolderIdx, name, exprValue]);
     }
 }
 
-function setProperty(c: BlockNodes, eltIdx: number, instHolderIdx: number, name, expr: any) {
-    let v = getExprValue(c, instHolderIdx, expr);
+function setProperty(c: BlockNodes, eltIdx: number, instHolderIdx: number, name: string, exprValue: any) {
+    let v = getExprValue(c, instHolderIdx, exprValue);
     if (v !== ζu) {
         (c[eltIdx] as IvNode).domNode[name] = v;
     }
@@ -1041,15 +1041,22 @@ function setProperty(c: BlockNodes, eltIdx: number, instHolderIdx: number, name,
 /**
  * Dynamic param update
  */
-export function ζparam(c: BlockNodes, cptIdx: number, instIdx: number, name: string, value: any) {
-    if (value === ζu) return;
-    if (instIdx === 0) {
-        let container = c[cptIdx] as IvContainer, p = container.cptParams;
-        if (p) {
-            p[name] = value;
-        }
+export function ζparam(c: BlockNodes, cptIdx: number, instHolderIdx: number, name: string, exprValue: any) {
+    if (exprValue === ζu) return;
+    if (instHolderIdx === 0) {
+        setParam(c, cptIdx, instHolderIdx, name, exprValue);
     } else {
-        console.log("TODO ζparam");
+        addInstruction(false, c, cptIdx, instHolderIdx, setParam, [c, cptIdx, instHolderIdx, name, exprValue]);
+    }
+}
+
+function setParam(c: BlockNodes, cptIdx: number, instHolderIdx: number, name: string, exprValue: any) {
+    let v = getExprValue(c, instHolderIdx, exprValue);
+    if (v !== ζu) {
+        let p = (c[cptIdx] as IvContainer).cptParams;
+        if (p) {
+            p[name] = v;
+        }
     }
 }
 

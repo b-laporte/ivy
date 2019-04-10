@@ -1906,7 +1906,128 @@ describe('Content Components', () => {
         `, '4');
     });
 
-    // todo: in content: param
+    it("should support param updates in deferred content", function () {
+        let tpl = template(`(type, open, message) => {
+            <$section text={"panel type: "+type} open={open}>
+                # main content #
+                <$panel type={type}>
+                    <div>
+                        # 1st Message in panel: {message} #
+                    </div>
+                    # 2nd Message in panel: {message} #
+                </>
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ type: "info", open: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: panel type: info (open) :::: #
+                    <div::E5>
+                        #::T6 main content #
+                        <div::E7 a:class="info">
+                            #::T8 Panel #
+                            <div::E9>
+                                <div::E10>
+                                    #::T11 1st Message in panel: Hello #
+                                </div>
+                                #::T12 2nd Message in panel: Hello #
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ type: "info2", open: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: panel type: info2 (open) :::: # (1)
+                    <div::E5>
+                        #::T6 main content #
+                        <div::E7 a:class="info2"(1)>
+                            #::T8 Panel #
+                            <div::E9>
+                                <div::E10>
+                                    #::T11 1st Message in panel: Hello #
+                                </div>
+                                #::T12 2nd Message in panel: Hello #
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ type: "info3", open: false, message: "Hello3" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: panel type: info3 (closed) :::: # (2)
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ type: "info2", open: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: panel type: info2 (open) :::: # (3)
+                    <div::E5>
+                        #::T6 main content #
+                        <div::E7 a:class="info2"(1)>
+                            #::T8 Panel #
+                            <div::E9>
+                                <div::E10>
+                                    #::T11 1st Message in panel: Hello #
+                                </div>
+                                #::T12 2nd Message in panel: Hello #
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        t.refresh({ type: "info5", open: false, message: "Hello5" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: panel type: info5 (closed) :::: # (4)
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '5');
+
+        t.refresh({ type: "info6", open: true, message: "Hello6" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <section::E3>
+                    #::T4 :::: panel type: info6 (open) :::: # (5)
+                    <div::E5>
+                        #::T6 main content #
+                        <div::E7 a:class="info6"(2)>
+                            #::T8 Panel #
+                            <div::E9>
+                                <div::E10>
+                                    #::T11 1st Message in panel: Hello6 # (1)
+                                </div>
+                                #::T12 2nd Message in panel: Hello6 # (1)
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                //::C2 template anchor
+            </body>
+        `, '6');
+    });
+
     // todo: $content projected in 2 different placeholders depending on condition
     // content projected twice -> error
 

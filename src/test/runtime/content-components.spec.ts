@@ -67,6 +67,18 @@ describe('Content Components', () => {
         }
     }`);
 
+    let sectionAB = template(`(first, $content) => {
+        <div>
+            if (first) {
+                # A #
+                <div class="a" @content={$content}/>
+            } else {
+                # B #
+                <div class="b" @content={$content}/>
+            }
+        </div>
+    }`);
+
     it("can project & update content (cpt host:element / content:element / projection host: element)", function () {
         let tpl = template(`(message) => {
             <div class="main">
@@ -2028,7 +2040,66 @@ describe('Content Components', () => {
         `, '6');
     });
 
-    // todo: $content projected in 2 different placeholders depending on condition
+    it("should support be able to project content in 2 different placeholders depending on condition", function () {
+        let tpl = template(`(message, showFirst) => {
+            <$sectionAB first={showFirst}>
+                # Message in panel: {message} #
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ showFirst: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 A #
+                    <div::E5 a:class="a">
+                        #::T6 Message in panel: Hello #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ showFirst: false, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T7 B #
+                    <div::E8 a:class="b">
+                        #::T6 Message in panel: Hello #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ showFirst: true, message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 A #
+                    <div::E5 a:class="a">
+                        #::T6 Message in panel: Hello #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+                t.refresh({ showFirst: false, message: "Hello4" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T7 B #
+                    <div::E8 a:class="b">
+                        #::T6 Message in panel: Hello4 # (1)
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
+
     // content projected twice -> error
 
 });

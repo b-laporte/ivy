@@ -1,5 +1,5 @@
 import { XjsEvtListener } from './../xjs/parser/types';
-import { IvTemplate, BlockNodes, IvContext, IvDocument, IvElement, IvNode, IvParentNode, IvText, IvFragment, IvContainer, IvComponent, IvExpressionData } from './types';
+import { IvTemplate, BlockNodes, IvContext, IvDocument, IvElement, IvNode, IvParentNode, IvText, IvFragment, IvContainer, IvComponent, IvExpressionData, IvContentData } from './types';
 // import { Data, value, isMutating, commitMutations, latestVersion } from 'hibe';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
@@ -416,6 +416,18 @@ function projectHostContent(c: BlockNodes, host: IvParentNode) {
                 console.log("TODO: unsupported content kind: ", content.kind, "in", host.uid)
             }
         }
+    }
+}
+
+function detachContentFromHost(c: BlockNodes, host: IvParentNode) {
+    if (host.contentRoot) {
+        let content = host.contentRoot!, cd = content.contentData!;
+        if (content.attached) {
+            removeFromDom(cd.rootNodes, content);
+            content.attached = false;
+        }
+        cd.contentHost = undefined;
+        cd.contentHostNodes = undefined;
     }
 }
 
@@ -1164,17 +1176,26 @@ export function ζcont(c: BlockNodes, idx: number, instHolderIdx: number, exprCo
 }
 
 function projectContent(c: BlockNodes, idx: number, instHolderIdx: number, exprContentRoot: any) {
-    let contentHost = c[idx] as IvParentNode, contentRoot = getExprValue(c, instHolderIdx, exprContentRoot);
-    if (contentRoot !== ζu && contentRoot) {
-        // todo: if first time!?
-        runInstructions(contentRoot);
+    let contentHost = c[idx] as IvParentNode, contentRoot = getExprValue(c, instHolderIdx, exprContentRoot), changed = false;
 
-        // store contentRoot in content data
-        contentRoot.contentData!.contentHost = contentHost;
-        contentHost.contentRoot = contentRoot;
+    if (contentRoot !== ζu && contentRoot) {
+        changed = true;
     } else {
-        // retrieve contentRoot
-        runInstructions(contentHost.contentRoot!); // todo -> change + contentRef = undefined
+        contentRoot = contentHost.contentRoot!
+    }
+
+    let cd = contentRoot.contentData! as IvContentData;
+    if (cd.contentHost && cd.contentHost !== contentHost) {
+        // node was already projected
+        detachContentFromHost(cd.contentHostNodes!, cd.contentHost);
+    }
+    // retrieve contentRoot
+    runInstructions(contentRoot);
+
+    if (changed) {
+        // store contentRoot in content data
+        cd.contentHost = contentHost;
+        contentHost.contentRoot = contentRoot;
     }
 }
 

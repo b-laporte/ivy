@@ -1,4 +1,4 @@
-import { Template } from './../iv/index';
+import { Template, logBlockNodes } from './../iv/index';
 import { CompilationResult } from '../compiler/generator';
 import { compileTemplate } from '../compiler/generator';
 import { IvTemplate, IvNode, BlockNodes, IvContext, IvContainer } from '../iv/types';
@@ -72,54 +72,6 @@ export function logNodes(t: IvTemplate, label = "") {
     if (label) console.log(label)
     logBlockNodes(nodes, "");
     console.log(SEP);
-}
-
-function logBlockNodes(list: BlockNodes, indent: string) {
-    let len = list.length, nd: IvNode | IvContext;
-    for (let i = 0; len > i; i++) {
-        nd = list[i];
-        if (!nd) {
-            console.log(`${indent}[${i}] XX`)
-        } else if (nd.kind === "#context") {
-            let dn = nd.rootDomNode ? nd.rootDomNode.$uid : "XX";
-            console.log(`${indent}[${i}] ${nd.uid} ${dn} containerIdx:${nd.containerIdx}`)
-        } else if (nd.kind === "#container") {
-            let cont = nd as IvContainer;
-            let dn = cont.domNode ? cont.domNode.$uid : "XX";
-            console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
-            if (cont.cptTemplate) {
-                let tpl = cont.cptTemplate as Template;
-                console.log(`${indent + "  "}- light DOM children list: [${cont.children ? cont.children.join(",") : ""}]`);
-                console.log(`${indent + "  "}- shadow DOM:`);
-                logBlockNodes(tpl.context.nodes, "    " + indent);
-            } else {
-                let len2 = cont.contentBlocks.length;
-                for (let j = 0; len2 > j; j++) {
-                    if (!cont.contentBlocks[j]) {
-                        console.log(`${indent + "  "}- block #${j} UNDEFINED`);
-                        continue;
-                    }
-                    let childContext = cont.contentBlocks[j][0] as IvContext;
-                    dn = childContext.rootDomNode ? childContext.rootDomNode.$uid : "XX";
-                    console.log(`${indent + "  "}- block #${j}`);
-                    if (!cont.contentBlocks[j]) {
-                        console.log(`${indent + "    "}XX`);
-                    } else {
-                        logBlockNodes(cont.contentBlocks[j], "    " + indent);
-                    }
-                }
-            }
-        } else {
-            let dn = nd.domNode ? nd.domNode.$uid : "XX", lastArg = "";
-            if (nd.domNode && nd.kind === "#text") {
-                lastArg = " #" + nd.domNode["_textContent"] + "#";
-            }
-            if (nd.instructions) {
-                lastArg += " instructions:" + nd.instructions.length;
-            }
-            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}${lastArg}`)
-        }
-    }
 }
 
 export function stringify(t: IvTemplate, log = false) {

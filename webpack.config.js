@@ -33,12 +33,13 @@ module.exports = [{
     }
 }, {
     name: 'samples',
-    mode: 'production',
+    mode: 'none',
     target: 'web',
     entry: {
         "hello": "./src/samples/hello/hello.ts",
         "greetings": "./src/samples/greetings/greetings.ts",
-        "triangles": "./src/samples/triangles/triangles.ts"
+        "triangles": "./src/samples/triangles/triangles.ts",
+        "flex": "./src/samples/flex/flex.ts"
     },
     module: {
         rules: [{
@@ -52,7 +53,7 @@ module.exports = [{
             test: /\.(ts|js)$/,
             loader: "./dist/webpack/loader.js"
         }, {
-            test: /\.(html)$/,
+            test: /\.(html|css|svg|data)$/,
             use: [{
                 loader: 'file-loader',
                 options: {

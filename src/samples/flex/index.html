@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title> Flex availability example </title>
+    <link href="styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <input type="button" id="show" onclick="show()" value="Show" />
+    <input type="button" id="hide" onclick="hide()" value="Hide" />
+    <div id="app" class="container availability"> </div>
+</body>
+<script type="text/javascript" src="response.data"></script>
+<script type="text/javascript" src="flex.js"></script>
+<script type="text/javascript">
+
+    function show() {
+        renderFlexResults(document.getElementById("app"), flexResponse, true);
+    }
+
+    function hide() {
+        renderFlexResults(document.getElementById("app"), flexResponse, false);
+    }
+
+    show();
+
+</script>
+</body>
+
+</html>

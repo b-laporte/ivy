@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "typescript": "^3.3.3333",
-    "hibe": ">=0.0.6"
+    "hibe": ">=0.0.6",
+    "tslib": "^1.9.3"
   }
 }

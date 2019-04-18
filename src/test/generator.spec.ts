@@ -426,6 +426,7 @@ describe('Code generator', () => {
                 ζfrag(ζ, 1, 1, 0, 1);
             }
             if (a) {
+                ζi2 = 0;
                 ζ1 = ζcc(ζ, 1, ++ζi1);
                 if (ζ1[0].cm) {
                     ζfrag(ζ1, 1, 1);
@@ -513,6 +514,91 @@ describe('Code generator', () => {
                     ζelt(ζ2, 1, 1, 0, "span");
                 }
                 ζend(ζ2, 0);
+            }
+            ζend(ζ, 0, ζs0);
+        `, '2');
+    });
+
+    it("should support js blocks in js blocks", async function () {
+        assert.equal(await body.template(`(condition1, condition2) => {
+            <div>
+                if (condition1) {
+                    <span/>
+                    if (condition2) {
+                        <div/>
+                    }
+                }
+            </div>
+        }`), `
+            let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1, 0, 1);
+            }
+            if (condition1) {
+                ζi2 = 0;
+                ζ1 = ζcc(ζ, 2, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζfrag(ζ1, 1, 1);
+                    ζelt(ζ1, 2, 1, 0, "span");
+                    ζfrag(ζ1, 3, 1, 0, 1);
+                }
+                
+if (condition2) {
+                    ζ2 = ζcc(ζ1, 3, ++ζi2);
+                    if (ζ2[0].cm) {
+                        ζelt(ζ2, 1, 1, 0, "div");
+                    }
+                    ζend(ζ2, 0);
+                }
+                ζend(ζ1, 0, ζs1);
+            }
+            ζend(ζ, 0, ζs0);
+        `, '1');
+
+        assert.equal(await body.template(`(condition1, condition2, condition3) => {
+            <div>
+                if (condition1) {
+                    <span/>
+                    if (condition2) {
+                        <div/>
+                    }
+                    if (condition3) {
+                        <div/>
+                    }
+                }
+            </div>
+        }`), `
+            let ζi1 = 0, ζ1, ζi2 = 0, ζ2, ζi3 = 0, ζ3;
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1, 0, 1);
+            }
+            if (condition1) {
+                ζi2 = ζi3 = 0;
+                ζ1 = ζcc(ζ, 2, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζfrag(ζ1, 1, 1);
+                    ζelt(ζ1, 2, 1, 0, "span");
+                    ζfrag(ζ1, 3, 1, 0, 1);
+                    ζfrag(ζ1, 4, 1, 0, 1);
+                }
+                
+if (condition2) {
+                    ζ2 = ζcc(ζ1, 3, ++ζi2);
+                    if (ζ2[0].cm) {
+                        ζelt(ζ2, 1, 1, 0, "div");
+                    }
+                    ζend(ζ2, 0);
+                } 
+if (condition3) {
+                    ζ3 = ζcc(ζ1, 4, ++ζi3);
+                    if (ζ3[0].cm) {
+                        ζelt(ζ3, 1, 1, 0, "div");
+                    }
+                    ζend(ζ3, 0);
+                }
+                ζend(ζ1, 0, ζs1);
             }
             ζend(ζ, 0, ζs0);
         `, '2');

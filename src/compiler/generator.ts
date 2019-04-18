@@ -186,6 +186,7 @@ export class JsBlockUpdate implements UpdateInstruction {
     nextKind = '';                  // kind of the next sibling
     instanceCounterVar = '';        // e.g. ζi2 -> used to count sub-block instances
     dExpressions: number[] = [];    // list of counters for deferred expressions (cf. ζexp)
+    childBlockIndexes: number[] = [];
 
     constructor(public nd: XjsTplFunction | XjsJsBlock, public idx: number, public parentBlock: JsBlockUpdate | null, public iHolder: InstructionsHolder, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentBlock) {
@@ -195,6 +196,7 @@ export class JsBlockUpdate implements UpdateInstruction {
             this.blockIdx = this.gc.blockCount++;
             this.instanceCounterVar = 'ζi' + this.blockIdx;
             this.gc.localVars[`${this.instanceCounterVar} = 0`] = 1;
+            parentBlock.childBlockIndexes.push(this.blockIdx);
         } else if (generationCtxt) {
             this.indent = indent || '';
             this.gc = generationCtxt;
@@ -542,6 +544,9 @@ export class JsBlockUpdate implements UpdateInstruction {
             } else {
                 if (this.nd[$FRAGMENT_INS_HOLDER]) {
                     iHolderIdx = instructionsHolder(this.nd[$FRAGMENT_INS_HOLDER]);
+                }
+                if (this.childBlockIndexes.length) {
+                    body.push(`${this.indent}ζi${this.childBlockIndexes.join(" = ζi")} = 0;\n`);
                 }
                 instanceArgs = ", ++" + this.instanceCounterVar;
                 parentBlockVarName = this.parentBlock.jsVarName;

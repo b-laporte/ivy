@@ -221,6 +221,7 @@ function createFrag(c: BlockNodes, idx: number, parentIdx: number, isContainer: 
  */
 export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: any): any {
     // f is a container fragment
+    // console.log("cc for container", c[idx].uid, "in", c[0].uid, "instance", instanceIdx)
     let f = c[idx] as IvContainer, pCtxt = c[0] as IvContext, nodes = f.contentBlocks[instanceIdx - 1];
     if (instanceIdx === 1 && f.contentBlocks.length > 1) {
         // previous content blocks are moved to the block pool to be re-used if necessary
@@ -241,6 +242,7 @@ export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: 
     }
     f.lastRefresh = nodes[0].lastRefresh = pCtxt.lastRefresh;
     cleanInstructions(nodes);
+    // logNodes(nodes, "cc result")
     return nodes;
 }
 
@@ -506,6 +508,7 @@ export function ζend(c: BlockNodes, instHolderIdx: number, containerIndexes?: n
 }
 
 export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
+    // console.log("endBlock", c[0].uid, containerIndexes);
     if (containerIndexes) {
         let len = containerIndexes.length;
         for (let i = 0; len > i; i += 2) {
@@ -1286,5 +1289,69 @@ export function ζv(proto, key: string) {
 function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc: PropertyDescriptor | undefined) {
     if (desc && delete proto[propName]) {
         Object.defineProperty(proto, propName, desc);
+    }
+}
+
+// ----------------------------------------------------------------------------------------------
+// Debug function
+
+const SEP = "-------------------------------------------------------------------------------";
+
+function logNodes(c: BlockNodes, label = "", rootId?: string) {
+    if (!rootId || (c[0] && c[0].uid === rootId)) {
+        console.log("");
+        console.log(SEP);
+        if (label) {
+            console.log(label + ":")
+        }
+        logBlockNodes(c);
+    }
+}
+
+export function logBlockNodes(list: BlockNodes, indent: string = "") {
+    let len = list.length, nd: IvNode | IvContext;
+    for (let i = 0; len > i; i++) {
+        nd = list[i];
+        if (!nd) {
+            console.log(`${indent}[${i}] XX`)
+        } else if (nd.kind === "#context") {
+            let dn = nd.rootDomNode ? nd.rootDomNode.$uid : "XX";
+            console.log(`${indent}[${i}] ${nd.uid} ${dn} containerIdx:${nd.containerIdx}`)
+        } else if (nd.kind === "#container") {
+            let cont = nd as IvContainer;
+            let dn = cont.domNode ? cont.domNode.$uid : "XX";
+            console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
+            if (cont.cptTemplate) {
+                let tpl = cont.cptTemplate as Template;
+                console.log(`${indent + "  "}- light DOM children list: [${cont.children ? cont.children.join(",") : ""}]`);
+                console.log(`${indent + "  "}- shadow DOM:`);
+                logBlockNodes(tpl.context.nodes, "    " + indent);
+            } else {
+                let len2 = cont.contentBlocks.length;
+                for (let j = 0; len2 > j; j++) {
+                    if (!cont.contentBlocks[j]) {
+                        console.log(`${indent + "  "}- block #${j} UNDEFINED`);
+                        continue;
+                    }
+                    let childContext = cont.contentBlocks[j][0] as IvContext;
+                    dn = childContext.rootDomNode ? childContext.rootDomNode.$uid : "XX";
+                    console.log(`${indent + "  "}- block #${j}`);
+                    if (!cont.contentBlocks[j]) {
+                        console.log(`${indent + "    "}XX`);
+                    } else {
+                        logBlockNodes(cont.contentBlocks[j], "    " + indent);
+                    }
+                }
+            }
+        } else {
+            let dn = nd.domNode ? nd.domNode.$uid : "XX", lastArg = "";
+            if (nd.domNode && nd.kind === "#text") {
+                lastArg = " #" + nd.domNode["_textContent"] + "#";
+            }
+            if (nd.instructions) {
+                lastArg += " instructions:" + nd.instructions.length;
+            }
+            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}${lastArg}`)
+        }
     }
 }

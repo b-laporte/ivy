@@ -269,4 +269,30 @@ describe('Loops', () => {
             </body>
         `, '4');
     });
+
+    it("should work with conditional child blocks", function () {
+        let tpl = template(`(visible, list) => {
+            for (let item of list) {
+                <div>
+                    if (item.first) {
+                        # First name: {item.first} #
+                    }
+                </div>
+            }
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ visible:true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 First name: Homer #
+                </div>
+                <div::E5>
+                    #::T6 First name: Mickey #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+    });
+
 });

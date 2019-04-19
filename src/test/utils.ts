@@ -219,7 +219,8 @@ export class ElementNode {
     parentNode = null;
     classList: ElementClassList;
     style = {};
-    $changes: any = {}
+    $changes: any = {};
+    eListeners: any[];
 
     constructor(public nodeName: string, namespace?: string) {
         this.$uid = ((nodeName === "#doc-fragment") ? "F" : "E") + (++UID_COUNT);
@@ -372,7 +373,25 @@ export class ElementNode {
     }
 
     addEventListener(evtName, func) {
-        this[evtName] = func;
+        if (!this.eListeners) {
+            this.eListeners = [];
+        }
+        this.eListeners.push({ name: evtName, func: func });
+    }
+
+    click() {
+        if (this.eListeners) {
+            for (let listener of this.eListeners) {
+                if (listener.name === "click") {
+                    try {
+                        let evt = { type: "click" };
+                        listener.func(evt);
+                    } catch (ex) {
+                        console.log("ERROR in Event Listener: " + listener.name, ex);
+                    }
+                }
+            }
+        }
     }
 }
 

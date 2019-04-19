@@ -19,7 +19,7 @@ export interface CompilationResult {
     importMap?: { [key: string]: 1 },   // imports as a map
 }
 
-type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock;
+type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock | XjsEvtListener;
 type InstructionsHolder = XjsComponent | XjsParamNode | XjsJsBlock | null;
 
 const RX_DOUBLE_QUOTE = /\"/g,
@@ -110,7 +110,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         for (let part of body) {
             if (typeof part === 'string') {
                 parts.push(part);
-            } else if (part.kind === "#expression" || part.kind === "#jsStatements") {
+            } else if (part.kind === "#expression" || part.kind === "#jsStatements" || part.kind === "#eventListener") {
                 parts.push(part.code);
             } else if (part.kind === "#jsBlock") {
                 parts.push(part.startCode);
@@ -292,9 +292,13 @@ export class JsBlockUpdate implements UpdateInstruction {
                 nd[$PARENT_INS_HOLDER] = iHolder;
                 content = nd.content;
                 this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
+                if (nd.listeners && nd.listeners.length) {
+                    this.gc.error("Event listeners are not supported on components (yet)", nd);
+                }
                 break;
             case "#element":
                 this.createInstructions.push(new EltCreation(nd as XjsElement, idx, parentIdx, this, iHolder, stParams));
+                this.createListeners(nd as XjsElement, idx, iHolder);
                 content = nd.content;
                 break;
             case "#paramNode":
@@ -367,6 +371,25 @@ export class JsBlockUpdate implements UpdateInstruction {
         }
     }
 
+    createListeners(nd: XjsElement, parentIdx: number, iHolder: InstructionsHolder) {
+        if (nd.listeners && nd.listeners.length) {
+            let newIdx = 0;
+            for (let listener of nd.listeners) {
+                newIdx = ++this.nodeCount
+                listener[$INDEX] = newIdx;
+                this.createInstructions.push(new ListenerCreation(listener, newIdx, parentIdx, this, iHolder));
+            }
+        }
+    }
+
+    updateHandlers(nd: XjsElement, iHolder: InstructionsHolder) {
+        if (nd.listeners && nd.listeners.length) {
+            for (let listener of nd.listeners) {
+                this.updateInstructions.push(new HandlerUpdate(listener, this, iHolder));
+            }
+        }
+    }
+
     generateUpdateInstruction(nd: XjsContentNode, iHolder: InstructionsHolder, prevKind: string, nextKind: string) {
         let idx = nd[$INDEX];
         switch (nd.kind) {
@@ -384,6 +407,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 this.generateContentUpdate(nd as XjsFragment, iHolder, false);
                 break;
             case "#element":
+                this.updateHandlers(nd as XjsElement, iHolder);
                 this.generateContentUpdate(nd as XjsElement, iHolder, true);
                 break;
             case "#paramNode":
@@ -666,7 +690,6 @@ class EltCreation implements CreationInstruction {
     constructor(public nd: XjsElement, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
         let gc = this.block.gc;
         gc.imports['ζelt'] = 1;
-
     }
 
     pushCode(body: BodyContent[]) {
@@ -676,6 +699,36 @@ class EltCreation implements CreationInstruction {
             b.gc.error("Name expressions are not yet supported", this.nd);
         }
         body.push(`${b.indent2}ζelt(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}"${this.staticArgs});\n`);
+    }
+}
+
+class ListenerCreation implements CreationInstruction {
+    constructor(public nd: XjsEvtListener, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        let gc = this.block.gc;
+        gc.imports['ζlistener'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζlistener(ζ, 2, 1, 0, "click");
+        let b = this.block;
+        body.push(`${b.indent2}ζlistener(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}");\n`);
+    }
+}
+
+class HandlerUpdate implements UpdateInstruction {
+    constructor(public listener: XjsEvtListener, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+        block.gc.imports['ζhandler'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζhandler(ζ, 2, 0, function (e) { doSomething(e.name); });
+        let b = this.block, listener = this.listener, idx = listener[$INDEX], ih = instructionsHolder(this.iHolder), args = "";
+        if (listener.argumentNames) {
+            args = listener.argumentNames.join(",");
+        }
+        body.push(`${b.indent}ζhandler(${b.jsVarName}, ${idx}, ${ih}, function (${args}) {`);
+        body.push(listener);
+        body.push(`});\n`);
     }
 }
 

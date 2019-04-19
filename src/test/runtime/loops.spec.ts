@@ -281,7 +281,7 @@ describe('Loops', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ visible:true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        let t = getTemplate(tpl, body).refresh({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -295,4 +295,139 @@ describe('Loops', () => {
         `, '1');
     });
 
+    it("should work with conditional parent blocks (init false)", function () {
+        const tpl = template(`(visible, list) => {
+            <div>
+                if (visible) {
+                    <div>
+                        <div>
+                            # First #
+                        </div>
+                        for (let item of list) {
+                            <div>
+                                # {item.first} #
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ visible: false, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3/>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ visible: true });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    <div::E4>
+                        <div::E5>
+                            #::T6 First #
+                        </div>
+                        <div::E7>
+                            #::T8 Homer #
+                        </div>
+                        <div::E9>
+                            #::T10 Mickey #
+                        </div>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ visible: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3/>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ visible: true, list: [{ first: "Marge", last: "Simpson" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    <div::E4>
+                        <div::E5>
+                            #::T6 First #
+                        </div>
+                        <div::E7>
+                            #::T8 Marge # (1)
+                        </div>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
+
+    it("should work with conditional parent blocks (init true)", function () {
+        const tpl = template(`(visible, list) => {
+            <div>
+                if (visible) {
+                    <div>
+                        <div>
+                            # First #
+                        </div>
+                        for (let item of list) {
+                            <div>
+                                # {item.first} #
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    <div::E4>
+                        <div::E5>
+                            #::T6 First #
+                        </div>
+                        <div::E7>
+                            #::T8 Homer #
+                        </div>
+                        <div::E9>
+                            #::T10 Mickey #
+                        </div>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ visible: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3/>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ visible: true, list: [{ first: "Marge", last: "Simpson" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    <div::E4>
+                        <div::E5>
+                            #::T6 First #
+                        </div>
+                        <div::E7>
+                            #::T8 Marge # (1)
+                        </div>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+    });
 });

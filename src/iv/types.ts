@@ -34,7 +34,7 @@ export interface IvContext extends IvExpressionData {
 }
 
 export interface IvNode {
-    kind: "#container" | "#fragment" | "#element" | "#component" | "#decorator" | "#text";
+    kind: "#container" | "#fragment" | "#element" | "#component" | "#decorator" | "#text" | "#listener";
     uid: string;                             // unique id (debug)
     idx: number;                             // node index in the template function
     parentIdx: number;                       // parent index in the template function
@@ -57,6 +57,11 @@ export interface IvContentData {
     contentHost: IvParentNode | undefined;      // reference the host node where the node is projected (host is <xxx @content/> or <! @content/>) - host is a IvParentNode
     contentHostNodes: BlockNodes | undefined;   // nodes associated to contentHost
     rootNodes: BlockNodes;                      // nodes associated to the node that holds contentData
+}
+
+export interface IvEltListener extends IvNode {
+    kind: "#listener";
+    callback: ((e: any) => void) | undefined;
 }
 
 /**

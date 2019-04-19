@@ -1,5 +1,5 @@
 import { XjsEvtListener } from './../xjs/parser/types';
-import { IvTemplate, BlockNodes, IvContext, IvDocument, IvElement, IvNode, IvParentNode, IvText, IvFragment, IvContainer, IvComponent, IvExpressionData, IvContentData } from './types';
+import { IvTemplate, BlockNodes, IvContext, IvDocument, IvElement, IvNode, IvParentNode, IvText, IvFragment, IvContainer, IvComponent, IvExpressionData, IvContentData, IvEltListener } from './types';
 // import { Data, value, isMutating, commitMutations, latestVersion } from 'hibe';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
@@ -508,14 +508,14 @@ export function ζend(c: BlockNodes, instHolderIdx: number, containerIndexes?: n
 }
 
 export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
-    // console.log("endBlock", c[0].uid, containerIndexes);
+    let ctxt = c[0] as IvContext;
+    // console.log("endBlock", ctxt.uid, containerIndexes, ctxt.initialized);
     if (containerIndexes) {
         let len = containerIndexes.length;
         for (let i = 0; len > i; i += 2) {
-            checkContainer(c, containerIndexes[i]); // containerIndexes[i + 1] is instruction holder
+            checkContainer(c, containerIndexes[i], !ctxt.initialized); // containerIndexes[i + 1] is instruction holder
         }
     }
-    let ctxt = c[0] as IvContext;
     if (ctxt.initialized) return;
     ctxt.initialized = true;
 
@@ -544,12 +544,12 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
 /**
  * Delete or attach container content
  */
-function checkContainer(c: BlockNodes, idx: number) {
+function checkContainer(c: BlockNodes, idx: number, firstTime: boolean) {
     let container = c[idx] as IvContainer;
     if (!container) return; // happens when block condition has never been true
     let lastRefresh = container.lastRefresh;
-    // console.log("checkContainer", container.uid, "in=", c[0].uid, idx, "lastRefresh=", lastRefresh)
-    if (lastRefresh !== 0 && lastRefresh !== (c[0] as IvContext).lastRefresh) {
+    // console.log("checkContainer", container.uid, "in=", c[0].uid, idx, "container.lastRefresh=", lastRefresh, "ctxt.lastRefresh=", (c[0] as IvContext).lastRefresh);
+    if (!firstTime && lastRefresh !== (c[0] as IvContext).lastRefresh) {
         // remove all nodes from DOM
         removeFromDom(c, container as IvNode);
     } else {
@@ -558,7 +558,8 @@ function checkContainer(c: BlockNodes, idx: number) {
             console.log("Todo: checkContainer / runInstructions for sub-templates")
         } else {
             let blocks = container.contentBlocks, nbrOfBlocks = blocks.length, nodes: BlockNodes;
-            if (lastRefresh > 1) {
+            if (!firstTime) {
+                // console.log("lastRefresh", lastRefresh, "container.contentLength=", container.contentLength, "nbrOfBlocks=", nbrOfBlocks)
                 // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end method
                 if (container.contentLength < nbrOfBlocks) {
                     // append new nodes
@@ -901,7 +902,7 @@ function updateText(c: BlockNodes, idx: number, instHolderIdx: number, nbrOfValu
             if (!pieces) {
                 pieces = nd.pieces;
             }
-            pieces![1 + i * 2] = v || "";
+            pieces![1 + i * 2] = (v === null || v === undefined) ? "" : v;
         }
     }
     if (!changed) return;
@@ -1224,19 +1225,55 @@ export function ζasync(c: BlockNodes, priority: number, fn: () => any) {
 }
 
 /**
- * Define and event listener node
- * e.g. ζlsnr(ζ, 2, 1, "click");
+ * Define an event listener node (creation mode only)
+ * e.g. ζlistener(ζ, 2, 1, 0, "click");
  */
-export function ζhandler(c: BlockNodes, idx: number, parentIdx: number, instIdx: number, eventName: string) {
+export function ζlistener(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number, eventName: string) {
+    if (!instHolderIdx) {
+        createListener(c, idx, parentIdx, eventName);
+    } else {
+        addInstruction(false, c, idx, instHolderIdx, createListener, [c, idx, parentIdx, eventName]);
+    }
+}
 
+function createListener(c: BlockNodes, idx: number, parentIdx: number, eventName: string) {
+    let parent = c[parentIdx] as IvNode, nd: IvEltListener = {
+        kind: "#listener",
+        uid: "lsnr" + (++uidCount),
+        domNode: parent!.domNode,
+        attached: true,
+        idx: idx,
+        parentIdx: parentIdx,
+        childPos: -1,   // will be determined after first render
+        lastRefresh: 0,
+        instructions: undefined,
+        contentData: undefined,
+        exprData: undefined,
+        callback: undefined
+    }
+    c[idx] = nd;
+
+    parent.domNode!.addEventListener(eventName, function (evt: any) {
+        if (nd.callback) {
+            nd.callback(evt);
+        }
+    });
 }
 
 /**
  * Update an event handler function
- * e.g. ζevt(ζ, 2, 0, function (e) { doSomething(e.name); });
+ * e.g. ζhandler(ζ, 2, 0, function (e) { doSomething(e.name); });
  */
-export function ζlistener(c: BlockNodes, idx: number, instIdx: number, handler: Function) {
+export function ζhandler(c: BlockNodes, idx: number, instHolderIdx: number, handler: (e: any) => void) {
+    if (!instHolderIdx) {
+        setEvtHandlerCb(c, idx, handler);
+    } else {
+        addInstruction(false, c, idx, instHolderIdx, setEvtHandlerCb, [c, idx, handler]);
+    }
+}
 
+function setEvtHandlerCb(c: BlockNodes, idx: number, handler: (e: any) => void) {
+    (c[idx] as IvEltListener).callback = handler;
 }
 
 // ----------------------------------------------------------------------------------------------

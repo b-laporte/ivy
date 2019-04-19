@@ -970,7 +970,25 @@ if (condition3) {
         })()`, 'param class + local variables initialization');
     });
 
-    // todo: change 1 time expressions to ζo(ζ, 0)? exp() : ζu
+    it("should support event handlers on elements", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div click(e)={doSomething()} mousemove( x, y )={doSomethingElse(y,x)}>
+                # Click {name} #
+            </div>
+        }`), `
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζlistener(ζ, 2, 1, 0, "click");
+                ζlistener(ζ, 3, 1, 0, "mousemove");
+                ζtxt(ζ, 4, 1, 0, ζs0);
+            }
+            ζhandler(ζ, 2, 0, function (e) {doSomething()});
+            ζhandler(ζ, 3, 0, function (x,y) {doSomethingElse(y,x)});
+            ζtxtval(ζ, 4, 0, ζs0, 1, ζe(ζ, 0, name));
+            ζend(ζ, 0);
+        `, '1');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });
 

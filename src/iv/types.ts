@@ -31,6 +31,7 @@ export interface IvContext extends IvExpressionData {
     parentCtxt: IvContext | null;    // parent context
     containerIdx: number;            // container idx in the parent context - 0 if parentCtxt===null
     initialized: boolean;            // true when all end() has been run once
+    containsInstructions: boolean;   // true if one of its nodes contains instructions
 }
 
 export interface IvNode {

@@ -41,10 +41,10 @@ export interface IvNode {
     parentIdx: number;                       // parent index in the template function
     attached: boolean;                       // true if domNode is attached to its parent
     domNode: any;                            // associated domNode
-    childPos: number;                        // -1 if not part of a children list, index in the parent children otherwise
+    nextSibling: IvNode | undefined;
     instructions: any[] | undefined;         // list of update instructions (used to delay component or param/decorator node content interpretation)
-    exprData: IvExpressionData | undefined;  // only used if the node holds expression information (node will be a root, but not necessarily a content node - e.g. a jsblock root)
     contentData: IvContentData | undefined;  // only for content (root) nodes (i.e. light dom) that will be projected in a host
+    exprData: IvExpressionData | undefined;  // only used if the node holds expression information (node will be a root, but not necessarily a content node - e.g. a jsblock root)
     // key -> if part of a collection
 }
 
@@ -74,7 +74,8 @@ export interface IvText extends IvNode {
 
 export interface IvParentNode extends IvNode {
     ns: string;                                // namespace, default: ""
-    children: IvNode[] | undefined;            // undefined if no children, list of child indexes otherwise
+    firstChild: IvNode | undefined;
+    lastChild: IvNode | undefined;
     contentRoot: IvNode | undefined;           // defined if the current parent node is a host for a content node
 }
 
@@ -96,7 +97,8 @@ export interface IvContainer extends IvNode {
     cptTemplate: IvTemplate | undefined;         // current component template
     cptParams: any | undefined;                  // shortcut to cptTemplate.params
     cptContent: IvNode | undefined;              // reference to root content element (if any)
-    children: number[] | undefined;              // light-dom children
+    firstChild: IvNode | undefined,              // light-dom children
+    lastChild: IvNode | undefined
 }
 
 /**

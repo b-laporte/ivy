@@ -42,7 +42,6 @@ export interface IvNode {
     attached: boolean;                       // true if domNode is attached to its parent
     domNode: any;                            // associated domNode
     childPos: number;                        // -1 if not part of a children list, index in the parent children otherwise
-    lastRefresh: number;                     // used for js block container elements. 0 if not used, last refresh count otherwise (starts at 1)
     instructions: any[] | undefined;         // list of update instructions (used to delay component or param/decorator node content interpretation)
     exprData: IvExpressionData | undefined;  // only used if the node holds expression information (node will be a root, but not necessarily a content node - e.g. a jsblock root)
     contentData: IvContentData | undefined;  // only for content (root) nodes (i.e. light dom) that will be projected in a host
@@ -75,7 +74,7 @@ export interface IvText extends IvNode {
 
 export interface IvParentNode extends IvNode {
     ns: string;                                // namespace, default: ""
-    children: number[] | undefined;            // undefined if no children, list of child indexes otherwise
+    children: IvNode[] | undefined;            // undefined if no children, list of child indexes otherwise
     contentRoot: IvNode | undefined;           // defined if the current parent node is a host for a content node
 }
 
@@ -91,6 +90,7 @@ export interface IvContainer extends IvNode {
     contentBlocks: BlockNodes[];                 // list of js blocks currently displayed
     blockPool: BlockNodes[];                     // list of js blocks previously displayed but temporarily detached
     contentLength: number;                       // number of items in contentBlocks after last refresh
+    lastRefresh: number;                         // last refresh count otherwise (starts at 1) - cf. IvContext
 
     // component properties - only used when the container is used to display a component
     cptTemplate: IvTemplate | undefined;         // current component template

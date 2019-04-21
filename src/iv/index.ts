@@ -182,7 +182,6 @@ function createFrag(c: BlockNodes, idx: number, parentIdx: number, isContainer: 
             ns: "",
             childPos: -1, // will be determined after first render
             children: undefined,
-            lastRefresh: 0,
             instructions: undefined,
             contentData: undefined,
             exprData: undefined,
@@ -243,7 +242,7 @@ export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: 
             nodes = f.contentBlocks[instanceIdx - 1] = ctxt.nodes;
         }
     }
-    f.lastRefresh = nodes[0].lastRefresh = pCtxt.lastRefresh;
+    f.lastRefresh = (nodes[0] as IvContext).lastRefresh = pCtxt.lastRefresh;
     cleanInstructions(nodes);
     // logNodes(nodes, "cc result")
     return nodes;
@@ -288,7 +287,7 @@ function removeFromDom(c: BlockNodes, nd: IvNode) {
         } else if (f.children) {
             let ch = f.children, len = ch.length;
             for (let i = 0; len > i; i++) {
-                removeFromDom(c, c[ch[i]] as IvNode);
+                removeFromDom(c, ch[i] as IvNode);
             }
         }
         f.domNode = undefined;
@@ -332,7 +331,7 @@ function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false, parentDomNo
     if (!nd || (nd.kind !== "#container" && nd.attached) || (!projectRoot && nd.contentData)) return;
     runInstructions(nd);
 
-    let pdn = parentDomNode || getParentDomNd(c, nd), domNode = nd.domNode, rCount = (c[0] as IvContext).lastRefresh;
+    let pdn = parentDomNode || getParentDomNd(c, nd), domNode = nd.domNode;
     if (nd.contentData) {
         let cd = nd.contentData;
         pdn = getParentDomNd(cd.contentHostNodes!, cd.contentHost!)
@@ -350,31 +349,26 @@ function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false, parentDomNo
         // console.log("A appendChild", domNode.$uid, "to", pdn.$uid);
         pdn.appendChild(domNode);
         nd.attached = true;
-        nd.lastRefresh = rCount;
     }
 
     if (nd.kind === "#element") {
-        // if ((nd as IvFragment).children) {
-        //     let e = nd as IvElement, ch = e.children!, len = ch.length, chNd: IvNode;
-        //     pdn = e.domNode;
-        //     for (let i = 0; len > i; i++) {
-        //         chNd = c[ch[i]] as IvNode;
-        //         appendToDom(c, chNd, false, pdn);
-        //         chNd.lastRefresh = rCount;
-        //     }
-        // } else {
+        if ((nd as IvFragment).children) {
+            let e = nd as IvElement, ch = e.children!, len = ch.length, chNd: IvNode;
+            pdn = e.domNode;
+            for (let i = 0; len > i; i++) {
+                chNd = ch[i] as IvNode;
+                appendToDom(c, chNd, false, pdn);
+            }
+        } else {
             projectHostContent(c, nd as IvParentNode, nd.domNode);
-        // }
+        }
     } else if (nd.kind === "#fragment") {
         nd.domNode = pdn;
         nd.attached = true;
-        nd.lastRefresh = rCount;
         if ((nd as IvFragment).children) {
-            let f = nd as IvFragment, ch = f.children!, len = ch.length, chNd: IvNode;
+            let f = nd as IvFragment, ch = f.children!, len = ch.length;
             for (let i = 0; len > i; i++) {
-                chNd = c[ch[i]] as IvNode;
-                appendToDom(c, chNd, false, pdn);
-                chNd.lastRefresh = rCount;
+                appendToDom(c, ch[i], false, pdn);
             }
         } else {
             projectHostContent(c, nd as IvParentNode, pdn);
@@ -382,19 +376,15 @@ function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false, parentDomNo
     } else if (nd.kind === "#container") {
         nd.domNode = pdn;
         nd.attached = true;
-        nd.lastRefresh = rCount;
         let container = nd as IvContainer, tpl = container.cptTemplate as Template;
         if (tpl) {
             // attach root node of the sub-template
-            let nodes = tpl.context.nodes, root = nodes[1] as IvNode;
-            appendToDom(nodes, root, false, pdn);
-            root.lastRefresh = rCount;
+            let nodes = tpl.context.nodes;
+            appendToDom(nodes, nodes[1] as IvNode, false, pdn);
         } else {
-            let blocks = container.contentBlocks, len = blocks.length, chNd: IvNode;
+            let blocks = container.contentBlocks, len = blocks.length;
             for (let i = 0; len > i; i++) {
-                chNd = blocks[i][1] as IvNode;
-                appendToDom(blocks[i], chNd, false, pdn);
-                chNd.lastRefresh = rCount;
+                appendToDom(blocks[i], blocks[i][1] as IvNode, false, pdn);
             }
         }
     }
@@ -419,13 +409,11 @@ function projectHostContent(c: BlockNodes, host: IvParentNode, parentDomNode = n
                 }
                 content.attached = true;
             } else if (content.kind === "#fragment") {
-                let f = content as IvFragment, ch = f.children!, len = ch.length, chNd: IvNode, rootNodes = cd.rootNodes!, rCount = (c[0] as IvContext).lastRefresh;
+                let f = content as IvFragment, ch = f.children!, len = ch.length, rootNodes = cd.rootNodes!;
                 f.domNode = host.domNode;
                 content.attached = true;
                 for (let i = 0; len > i; i++) {
-                    chNd = rootNodes[ch[i]] as IvNode;
-                    appendToDom(rootNodes, chNd, false, parentDomNode);
-                    chNd.lastRefresh = rCount;
+                    appendToDom(rootNodes, ch[i], false, parentDomNode);
                 }
             } else {
                 console.log("TODO: unsupported content kind: ", content.kind, "in", host.uid)
@@ -452,12 +440,11 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
     // console.log("insertInDomBefore", nd.uid, "parent", parentDomNd.$uid, "before", nextDomNd.$uid)
     runInstructions(nd);
 
-    let domNode = nd.domNode, rCount = (c[0] as IvContext).lastRefresh;
+    let domNode = nd.domNode;
     if (domNode && domNode !== parentDomNd) {
         // console.log("-> insert", domNode.$uid, "before", nextDomNd.$uid);
         parentDomNd.insertBefore(domNode, nextDomNd);
         nd.attached = true;
-        nd.lastRefresh = rCount;
     }
 
     // add children / or project content
@@ -466,14 +453,12 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
     } else if (nd.kind === "#fragment") {
         nd.domNode = parentDomNd;
         nd.attached = true;
-        nd.lastRefresh = rCount;
         if ((nd as IvFragment).children) {
             let f = nd as IvFragment, ch = f.children!, len = ch.length, chNd: IvNode;
             for (let i = 0; len > i; i++) {
-                chNd = c[ch[i]] as IvNode;
+                chNd = ch[i];
                 if (chNd) {
                     insertInDomBefore(c, parentDomNd, chNd, nextDomNd);
-                    chNd.lastRefresh = rCount;
                 } else {
                     console.log("fragment child should not be undefined: ", i)
                 }
@@ -484,18 +469,16 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
     } else if (nd.kind === "#container") {
         nd.domNode = parentDomNd;
         nd.attached = true;
-        nd.lastRefresh = rCount;
         let container = nd as IvContainer, tpl = container.cptTemplate as Template;
         if (tpl) {
-            let nodes = tpl.context.nodes, root = nodes[1] as IvNode;
-            insertInDomBefore(nodes, parentDomNd, root, nextDomNd);
+            let nodes = tpl.context.nodes;
+            insertInDomBefore(nodes, parentDomNd, nodes[1] as IvNode, nextDomNd);
         } else {
             let blocks = container.contentBlocks, len = blocks.length, chNd: IvNode;
             for (let i = 0; len > i; i++) {
                 chNd = blocks[i][1] as IvNode;
                 if (chNd) {
                     insertInDomBefore(blocks[i], parentDomNd, chNd, nextDomNd);
-                    chNd.lastRefresh = rCount;
                 } else {
                     console.log("container block should not be undefined:", i)
                 }
@@ -539,11 +522,14 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
     if (hostDomNd && (root.kind === "#fragment")) {
         root.domNode = hostDomNd;
         root.attached = true;
-        root.lastRefresh = ctxt.lastRefresh;
     }
     // append all child nodes to the root node
+    let pdn: any = null;
+    // if (root.kind === "#element") {
+    //     pdn = root.domNode; // ----> check ???
+    // }
     for (let i = 2; len > i; i++) {
-        appendToDom(c, c[i] as IvNode, false);
+        appendToDom(c, c[i] as IvNode, false, pdn);
     }
 
     // insert root node for root template
@@ -572,8 +558,7 @@ function checkContainer(c: BlockNodes, idx: number, firstTime: boolean) {
         } else {
             let blocks = container.contentBlocks, nbrOfBlocks = blocks.length, nodes: BlockNodes;
             if (!firstTime) {
-                // console.log("lastRefresh", lastRefresh, "container.contentLength=", container.contentLength, "nbrOfBlocks=", nbrOfBlocks)
-                // on first refresh (i.e. lastRefresh === 1) this code should not be run as nodes will be added in the end method
+                // on first refresh this code should not be run as nodes will be added in the end method
                 if (container.contentLength < nbrOfBlocks) {
                     // append new nodes
                     let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container as IvNode);
@@ -663,7 +648,7 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
         // find next node that is attached
         if (pos !== parent.children!.length - 1) {
             // console.log("> is not last")
-            let nextNode = c[parent.children![pos + 1]] as IvNode,
+            let nextNode = parent.children![pos + 1],
                 sdp = findFirstDomNd(c, nextNode, pdn);
             if (sdp) return sdp;
             // if not found (e.g. node not attached) we shift by 1
@@ -686,7 +671,7 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
         } else if (nd.kind === "#fragment" || nd.kind === "#component") {
             let ch = (nd as IvParentNode).children, len = ch ? ch.length : 0, sdp: SiblingDomPosition | null;
             for (let i = 0; len > i; i++) {
-                sdp = findFirstDomNd(c, c[ch![i]] as IvNode, parentDomNd);
+                sdp = findFirstDomNd(c, ch![i], parentDomNd);
                 if (sdp) {
                     return sdp;
                 }
@@ -834,7 +819,6 @@ function createElt(c: BlockNodes, idx: number, parentIdx: number, name: string, 
         ns: "",
         childPos: -1,   // will be determined after first render
         children: undefined,
-        lastRefresh: 0,
         instructions: undefined,
         contentData: undefined,
         contentRoot: undefined,
@@ -850,11 +834,11 @@ function connectChild(c: BlockNodes, child: IvNode, childIdx: number, setChildPo
     let p = c[child.parentIdx] as IvParentNode;
     if (!p) return;
     if (!p.children) {
-        p.children = [childIdx];
+        p.children = [child];
         child.childPos = 0;
     } else {
         let len = p.children.length;
-        p.children[len] = childIdx;
+        p.children[len] = child;
         child.childPos = len;
     }
 }
@@ -887,7 +871,6 @@ function createTxt(c: BlockNodes, idx: number, parentIdx: number, statics: strin
         parentIdx: parentIdx,
         childPos: -1,
         pieces: pieces,
-        lastRefresh: 0,
         instructions: undefined,
         contentData: undefined,
         exprData: undefined
@@ -930,7 +913,6 @@ function updateText(c: BlockNodes, idx: number, instHolderIdx: number, nbrOfValu
     if (!nd.domNode) {
         nd.domNode = (c[0] as IvContext).doc.createTextNode(pieces!.join(""));
         if ((c[0] as IvContext).initialized) {
-            // console.log("create text node (updateText):", nd.domNode.$uid, "lastRefresh=", lastRefresh)
             // on first refresh (i.e. initialized = false) this code should not be run as nodes will be added in the end method
 
             // append new nodes
@@ -1263,7 +1245,6 @@ function createListener(c: BlockNodes, idx: number, parentIdx: number, eventName
         idx: idx,
         parentIdx: parentIdx,
         childPos: -1,   // will be determined after first render
-        lastRefresh: 0,
         instructions: undefined,
         contentData: undefined,
         exprData: undefined,
@@ -1375,7 +1356,7 @@ export function logBlockNodes(list: BlockNodes, indent: string = "") {
         } else if (nd.kind === "#container") {
             let cont = nd as IvContainer;
             let dn = cont.domNode ? cont.domNode.$uid : "XX";
-            console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}`)
+            console.log(`${indent}[${i}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"}`);
             if (cont.cptTemplate) {
                 let tpl = cont.cptTemplate as Template;
                 console.log(`${indent + "  "}- light DOM children list: [${cont.children ? cont.children.join(",") : ""}]`);
@@ -1406,7 +1387,7 @@ export function logBlockNodes(list: BlockNodes, indent: string = "") {
             if (nd.instructions) {
                 lastArg += " instructions:" + nd.instructions.length;
             }
-            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"} lastRefresh:${nd.lastRefresh}${lastArg}`)
+            console.log(`${indent}[${nd.idx}] ${nd.uid} ${dn} parent:${nd.parentIdx} attached:${nd.attached ? 1 : 0} childPos:${nd.childPos >= 0 ? nd.childPos : "X"}${lastArg}`);
         }
     }
 }

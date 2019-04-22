@@ -58,9 +58,23 @@ export class Template implements IvTemplate {
         return this;
     }
 
+    notifyChange(d: any) {
+        this.refresh();
+    }
+
+    disconnectObserver() {
+        let p = this.params;
+        if (p && p["$kind"] === PARAM) {
+            p["$observer"] = null;
+        }
+    }
+
     refresh(data?: any) {
         let p = this.params;
         if (p && data) {
+            if (p["$kind"] === PARAM) {
+                p["$observer"] = null;
+            }
             // inject data into params
             for (let k in data) if (data.hasOwnProperty(k)) {
                 p[k] = data[k];
@@ -82,12 +96,15 @@ export class Template implements IvTemplate {
         if (!bypassRefresh) {
             // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH", this.context.nodes[0].uid)
             this.context.lastRefresh++;
-            if (p && p["$kind"] === PARAM) {
-                p["$reset"]();
-            }
             cleanInstructions(this.context.nodes);
             this.refreshFn(this.context.nodes, p);
+            if (p && p["$kind"] === PARAM) {
+                p["$reset"]();
+                p["$observer"] = this;
+            }
             this.forceRefresh = false;
+        } else if (p && p["$kind"] === PARAM) {
+            p["$observer"] = this;
         }
         return this;
     }
@@ -334,10 +351,12 @@ function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false, parentDomNo
     if (!nd || (nd.kind !== "#container" && nd.attached) || (!projectRoot && nd.contentData)) return;
     runInstructions(nd);
 
-    let pdn = parentDomNode || getParentDomNd(c, nd), domNode = nd.domNode;
+    let pdn: any, domNode = nd.domNode;
     if (nd.contentData) {
         let cd = nd.contentData;
         pdn = getParentDomNd(cd.contentHostNodes!, cd.contentHost!)
+    } else {
+        pdn = parentDomNode || getParentDomNd(c, nd);
     }
     if (!pdn) return;
     let ctxt = c[0] as IvContext;
@@ -525,12 +544,8 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
         root.attached = true;
     }
     // append all child nodes to the root node
-    let pdn: any = null;
-    // if (root.kind === "#element") {
-    //     pdn = root.domNode; // ----> check ???
-    // }
     for (let i = 2; len > i; i++) {
-        appendToDom(c, c[i] as IvNode, false, pdn);
+        appendToDom(c, c[i] as IvNode, false);
     }
 
     // insert root node for root template
@@ -1100,6 +1115,7 @@ function checkCpt(c: BlockNodes, idx: number, instHolderIdx: number, exprCptRef:
         } else {
             let tpl: Template = container.cptTemplate = cptRef()!;
             tpl.setParentCtxt(c[0] as IvContext, idx);
+            tpl.disconnectObserver();
             let p = container.cptParams = tpl.params;
             if (staticParams) {
                 let len = staticParams.length;
@@ -1109,9 +1125,7 @@ function checkCpt(c: BlockNodes, idx: number, instHolderIdx: number, exprCptRef:
             }
         }
     } else {
-        // let tpl = container.cptTemplate as Template;
-        // if hibe
-        // container.cptParams = latestVersion(tpl.params);
+        (container.cptTemplate as Template).disconnectObserver();
     }
 }
 
@@ -1278,11 +1292,16 @@ function setEvtHandlerCb(c: BlockNodes, idx: number, handler: (e: any) => void) 
 // Param class
 
 const PARAM = "PARAM";
+let CHANGED_DATA: any[] | null = null, NOTIFIER: Promise<void> | null = null;
 
 interface ParamObject {
     $kind: "PARAM"
     $changed: boolean;
     $reset: () => void;
+}
+
+interface DataObserver {
+    notifyChange(d: any): void;
 }
 
 /**
@@ -1310,12 +1329,7 @@ export function ζv(proto, key: string) {
     let $$key = "$$" + key;
     addPropertyInfo(proto, key, false, {
         get: function () { return this[$$key]; },
-        set: function (v) {
-            if (this[$$key] !== v) {
-                this[$$key] = v;
-                this["$changed"] = true;
-            }
-        },
+        set: function (v) { setDataProperty(this, $$key, v) },
         enumerable: true,
         configurable: true
     });
@@ -1325,6 +1339,51 @@ function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc
     if (desc && delete proto[propName]) {
         Object.defineProperty(proto, propName, desc);
     }
+}
+
+function setDataProperty(d: any, $$key: string, v: any) {
+    if (d[$$key] !== v) {
+        d[$$key] = v;
+        if (!d.$changed) {
+            d.$changed = true;
+            queueNotification(d, d.$observer);
+        }
+    }
+}
+
+function queueNotification(d: any, o: DataObserver) {
+    if (o) {
+        if (!CHANGED_DATA) {
+            CHANGED_DATA = [d];
+            createNotifier();
+        } else {
+            CHANGED_DATA.push(d);
+        }
+    }
+}
+
+async function createNotifier() {
+    if (!NOTIFIER) {
+        NOTIFIER = Promise.resolve().then(function () {
+            if (!CHANGED_DATA) return;
+            let len = CHANGED_DATA.length, d: any, o: DataObserver;
+            for (let i = 0; len > i; i++) {
+                d = CHANGED_DATA[i];
+                o = d.$observer;
+                if (o) {
+                    o.notifyChange(d);
+                }
+                d.$changed = false;
+            }
+            CHANGED_DATA = null;
+            NOTIFIER = null;
+        })
+    }
+    return NOTIFIER;
+}
+
+export async function changeComplete() {
+    return createNotifier();
 }
 
 // ----------------------------------------------------------------------------------------------

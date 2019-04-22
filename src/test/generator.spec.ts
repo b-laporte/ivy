@@ -920,6 +920,31 @@ if (condition3) {
         }, 'imports 3');
     });
 
+    it("should support $params argument", async function () {
+        let t = await test.template(`($params, a, b) => {
+            <div class="main">
+                # text {$params.a} #
+            </>
+        }`);
+
+        assert.equal(t.function, `(function () {
+        const ζs0 = ["class", "main"], ζs1 = [" text ", "", " "];
+        @ζd class ζParams {
+            @ζv a;
+            @ζv b;
+        }
+        return ζt(function (ζ, $) {
+            let $params = $, a = $["a"], b = $["b"];
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζtxt(ζ, 2, 1, 0, ζs1);
+            }
+            ζtxtval(ζ, 2, 0, ζs1, 1, ζe(ζ, 0, $params.a));
+            ζend(ζ, 0);
+        }, 0, ζParams);
+        })()` , '1');
+    });
+
     it("should support import re-injection", async function () {
         let t1 = await test.template(`() => {
             <div class="main">

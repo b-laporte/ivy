@@ -924,7 +924,9 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                     gc.error("Undefined $ argument type", arg);
                 }
             }
-            if (!argClassName) {
+            if (arg.name === "$params") {
+                argInit.push('$params = $');
+            } else if (!argClassName) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]')
                 classProps.push((indent + gc.indentIncrement) + "@ζv " + arg.name + ";")
                 gc.imports["ζv"] = 1;

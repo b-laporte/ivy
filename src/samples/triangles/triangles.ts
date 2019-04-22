@@ -12,21 +12,20 @@ let triangle = template(`(x: number, y: number, size: number, seconds: number) =
     }
 }`);
 
-let dot = template(`(x: number, y: number, size: number, text: string) => {
-    <div class="dot" style={getDotStyle(x,y,size)}>
-        // [style.backgroundColor]=(this.hoverMode ? "#ff0" : "#61dafb") 
-        // onmouseenter()=this.hover() onmouseleave()=this.unhover()
-        // if (this.hoverMode) {
-        //     **{{p.text}}**
-        // } else {
+let dot = template(`(x: number, y: number, size: number, text: string, hover:boolean, $params) => {
+    <div class="dot" style={getDotStyle(x,y,size,hover)} 
+        mouseenter()={$params.hover = true} mouseleave()={$params.hover = false}>
+        if (hover) {
+            #**{text}**#
+        } else {
             #{text}#
-        // }
+        }
     </div>
 }`);
 
-function getDotStyle(x: number, y: number, size: number) {
+function getDotStyle(x: number, y: number, size: number, hover: boolean = false) {
     let sz = 1.3 * size;
-    return `background-color:#61dafb;position:absolute;font:normal 15px sans-serif;text-align:center;cursor:pointer;\
+    return `background-color:${hover ? "#ff0" : "#61dafb"};position:absolute;font:normal 15px sans-serif;text-align:center;cursor:pointer;\
         width:${sz}px;height:${sz}px;left:${x}px;top:${y}px;border-radius:${sz / 2}px;line-height:${sz}px;`;
 }
 

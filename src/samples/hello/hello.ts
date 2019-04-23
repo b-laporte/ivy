@@ -1,7 +1,7 @@
 require('./index.html'); // webpack dependency
 import { template } from "../../iv";
 
-let hello = template(`() => {
+const hello = template(`() => {
     # Hello World #
 }`);
 

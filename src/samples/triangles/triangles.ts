@@ -1,7 +1,7 @@
 require('./index.html'); // webpack dependency
 import { template } from "../../iv";
 
-let triangle = template(`(x: number, y: number, size: number, seconds: number) => {
+const triangle = template(`(x: number, y: number, size: number, seconds: number) => {
     if (size<=25) {
         <$dot x={x-12.5} y={y-12.5} size=25 text={seconds}/>
     } else {
@@ -12,7 +12,7 @@ let triangle = template(`(x: number, y: number, size: number, seconds: number) =
     }
 }`);
 
-let dot = template(`(x: number, y: number, size: number, text: string, hover:boolean, $params) => {
+const dot = template(`(x: number, y: number, size: number, text: string, hover:boolean, $params) => {
     <div class="dot" style={getDotStyle(x,y,size,hover)} 
         mouseenter()={$params.hover = true} mouseleave()={$params.hover = false}>
         if (hover) {
@@ -29,7 +29,7 @@ function getDotStyle(x: number, y: number, size: number, hover: boolean = false)
         width:${sz}px;height:${sz}px;left:${x}px;top:${y}px;border-radius:${sz / 2}px;line-height:${sz}px;`;
 }
 
-let page = template(`(seconds, elapsed) => {
+const page = template(`(seconds, elapsed) => {
     # This page demonstrates 3 types of parallel updates: #
     <ul>
         <li> # a general scale transformation applied on the main triangle every animation frame # </li>

@@ -283,7 +283,7 @@ function toggleFareDetails(idx, itinerary) {
     mainTemplate.refresh();
 }
 
-
+// ------------------------------------------------------------------------------------
 // test doc
 let UID_COUNT = 0;
 const CR = "\n";

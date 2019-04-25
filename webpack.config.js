@@ -39,7 +39,9 @@ module.exports = [{
         "hello": "./src/samples/hello/hello.ts",
         "greetings": "./src/samples/greetings/greetings.ts",
         "triangles": "./src/samples/triangles/triangles.ts",
-        "flex": "./src/samples/flex/flex.ts"
+        "flex": "./src/samples/flex/flex.ts",
+        "tree": "./src/samples/tree/tree.ts",
+        "largetable": "./src/samples/largetable/largetable.ts"
     },
     module: {
         rules: [{

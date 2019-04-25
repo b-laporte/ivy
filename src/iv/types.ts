@@ -92,6 +92,8 @@ export interface IvContainer extends IvNode {
     blockPool: BlockNodes[];                     // list of js blocks previously displayed but temporarily detached
     contentLength: number;                       // number of items in contentBlocks after last refresh
     lastRefresh: number;                         // last refresh count otherwise (starts at 1) - cf. IvContext
+    isAsyncHost: boolean;                        // true if the container has been created to host async content
+    asyncPriority: number;                       // used for async hosts (0=immediate, >0=async)
 
     // component properties - only used when the container is used to display a component
     cptTemplate: IvTemplate | undefined;         // current component template

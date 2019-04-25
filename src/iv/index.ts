@@ -173,21 +173,22 @@ export const ζu = []; // must be an array to be used for undefined statics
  * @param idx the index in c.nodes 
  * @param parentIdx the parent index in c.nodes
  */
-export function ζfrag(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number = 0, isPlaceholder: number = 0) {
-    if (!instHolderIdx || isPlaceholder) {
-        // we must create the fragment if isPlaceholder as it will hold the sub-block nodes used in the sub-instructions
-        createFrag(c, idx, parentIdx, isPlaceholder, instHolderIdx === 0);
+export function ζfrag(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number = 0, containerFlag: number = 0) {
+    if (!instHolderIdx || containerFlag) {
+        // we must create the fragment if isContainer as it will hold the sub-block nodes used in the sub-instructions
+        createFrag(c, idx, parentIdx, containerFlag, instHolderIdx === 0);
         if (instHolderIdx) {
             addInstruction(true, c, idx, instHolderIdx, connectChild, [c, c[idx], idx, true]);
         }
     } else {
-        addInstruction(true, c, idx, instHolderIdx, createFrag, [c, idx, parentIdx, isPlaceholder, true]);
+        addInstruction(true, c, idx, instHolderIdx, createFrag, [c, idx, parentIdx, containerFlag, true]);
     }
 }
 
-function createFrag(c: BlockNodes, idx: number, parentIdx: number, isContainer: number = 0, setChildPosition = true) {
+function createFrag(c: BlockNodes, idx: number, parentIdx: number, containerFlag: number = 0, setChildPosition = true) {
+    // containerFlag: 0=not a container, 1=block container, 2=async container
     let nd: IvFragment | IvContainer;
-    if (!isContainer) {
+    if (!containerFlag) {
         nd = <IvFragment>{
             kind: "#fragment",
             uid: "frag" + (++uidCount),
@@ -226,7 +227,9 @@ function createFrag(c: BlockNodes, idx: number, parentIdx: number, isContainer: 
             cptContent: undefined,
             instructions: undefined,
             contentData: undefined,
-            exprData: undefined
+            exprData: undefined,
+            isAsyncHost: (containerFlag === 2),
+            asyncPriority: 0
         }
     }
     connectChild(c, nd, idx, setChildPosition);
@@ -513,17 +516,17 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
  * @param idx 
  */
 
-export function ζend(c: BlockNodes, instHolderIdx: number, containerIndexes?: number[]) {
+export function ζend(c: BlockNodes, instHolderIdx: number, containerIndexes?: (number[] | 0), isAsyncBlock?: 1) {
     // close the creation mode to avoid running it multiple times
     (c[0] as IvContext).cm = false;
     if (!instHolderIdx) {
-        endBlock(c, containerIndexes);
+        endBlock(c, containerIndexes, isAsyncBlock);
     } else {
         addInstruction(false, c, 0, 1, endBlock, [c, containerIndexes]);
     }
 }
 
-export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
+export function endBlock(c: BlockNodes, containerIndexes?: (number[] | 0), isAsyncBlock?: 1) {
     let ctxt = c[0] as IvContext;
     // console.log("endBlock", ctxt.uid, containerIndexes, ctxt.initialized);
     if (containerIndexes) {
@@ -531,6 +534,10 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
         for (let i = 0; len > i; i += 2) {
             checkContainer(c, containerIndexes[i], !ctxt.initialized); // containerIndexes[i + 1] is instruction holder
         }
+    }
+    if (isAsyncBlock && ctxt.initialized && ctxt.parentCtxt) {
+        // ensure root is attached
+        attachRootNode(c, (ctxt.parentCtxt as IvContext).nodes[ctxt.containerIdx] as IvContainer);
     }
     if (ctxt.initialized) return;
     ctxt.initialized = true;
@@ -553,6 +560,9 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
     if (!ctxt.parentCtxt) {
         // root node, attach to parent container
         insertInDomBefore(c, ctxt.rootDomNode, root, ctxt.anchorNode);
+    } else if (isAsyncBlock) {
+        // we need to attach to the parent element
+        appendToDom(c, root, false);
     }
 }
 
@@ -561,7 +571,7 @@ export function endBlock(c: BlockNodes, containerIndexes?: number[]) {
  */
 function checkContainer(c: BlockNodes, idx: number, firstTime: boolean) {
     let container = c[idx] as IvContainer;
-    if (!container) return; // happens when block condition has never been true
+    if (!container || container.isAsyncHost) return; // happens when block condition has never been true
     let lastRefresh = container.lastRefresh;
     // console.log("checkContainer", container.uid, "in=", c[0].uid, idx, "container.lastRefresh=", lastRefresh, "ctxt.lastRefresh=", (c[0] as IvContext).lastRefresh);
     if (!firstTime && lastRefresh !== (c[0] as IvContext).lastRefresh) {
@@ -735,7 +745,10 @@ function addInstruction(creation: boolean, c: BlockNodes, targetIdx: number, ins
             parent.cptContent = contentRoot;
         }
     } else {
-        if (!c[instHolderIdx]) console.log("NO HOLDER!", c[0].uid, instHolderIdx)
+        if (!c[instHolderIdx]) {
+            console.log("NO HOLDER!", c[0].uid, instHolderIdx)
+            logNodes(c, "addInstruction - fail")
+        }
         let nd = c[instHolderIdx] as IvNode, instructions = nd.instructions;
         if (!instructions) {
             instructions = nd.instructions = [creation, func, args];
@@ -1155,26 +1168,27 @@ function callCpt(c: BlockNodes, idx: number) {
         tpl.refresh();
         if ((c[0] as IvContext).initialized) {
             // on first refresh (i.e. initialized = false) this code should not be run as nodes will be added in the end method
-            // similar logic as checkContainer
+            attachRootNode(tpl.context.nodes, container);
+        }
+    }
+}
 
-            // ensure root node is attached
-            let childNodes = tpl.context.nodes, childRoot = childNodes[1] as IvNode;
+function attachRootNode(c: BlockNodes, container: IvContainer) {
+    // similar logic as checkContainer
+    let root = c[1] as IvNode;
 
-            // console.log("callCpt", container.uid, "in=", c[0].uid)
-            if (childRoot && !childRoot.attached) {
-                let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container);
-                // console.log(">> C next sibling result for", childRoot.uid, "in", tpl.context.nodes[0].uid, "position=", position, "nextDomNd=", nextDomNd ? nextDomNd.$uid : "XX", "parentDomNd=", parentDomNd ? parentDomNd.$uid : "XX")
+    if (root && !root.attached) {
+        let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(c, container);
+        // console.log(">> C next sibling result for", childRoot.uid, "in", tpl.context.nodes[0].uid, "position=", position, "nextDomNd=", nextDomNd ? nextDomNd.$uid : "XX", "parentDomNd=", parentDomNd ? parentDomNd.$uid : "XX")
 
-                if (parentDomNd) {
-                    // insert sub root nodes as other nodes have been attached in block end
-                    if (position === "beforeChild") {
-                        insertInDomBefore(childNodes, parentDomNd, childRoot, nextDomNd);
-                    } else if (position === "lastChild") {
-                        appendToDom(childNodes, childRoot);
-                    } else if (position === "lastOnRoot") {
-                        insertInDomBefore(childNodes, parentDomNd, childRoot, nextDomNd);
-                    }
-                }
+        if (parentDomNd) {
+            // insert sub root nodes as other nodes have been attached in block end
+            if (position === "beforeChild") {
+                insertInDomBefore(c, parentDomNd, root, nextDomNd);
+            } else if (position === "lastChild") {
+                appendToDom(c, root);
+            } else if (position === "lastOnRoot") {
+                insertInDomBefore(c, parentDomNd, root, nextDomNd);
             }
         }
     }
@@ -1230,11 +1244,73 @@ export function ζdeco(c: BlockNodes, idx: number, parentIdx: number, instIdx: n
 
 }
 
+
 /**
  * Asynchronous block definition
  */
-export function ζasync(c: BlockNodes, priority: number, fn: () => any) {
+export function ζasync(c: BlockNodes, containerIdx: number, priorityExpr: number, instHolderIdx: number, fn: () => any) {
+    if (!instHolderIdx) {
+        processAsyncBlock(c, containerIdx, priorityExpr, instHolderIdx, fn);
+    } else {
+        addInstruction(false, c, -1, instHolderIdx, processAsyncBlock, [c, containerIdx, priorityExpr, instHolderIdx, fn]);
+    }
+}
 
+function processAsyncBlock(c: BlockNodes, containerIdx: number, priorityExpr: number, instHolderIdx: number, fn: () => any) {
+    let container = c[containerIdx] as IvContainer, priority = typeof priorityExpr === "number" ? priorityExpr : getExprValue(c, instHolderIdx, priorityExpr);
+    // console.log("processAsyncBlock")
+    if (priority !== ζu) {
+        container.asyncPriority = priority;
+    } else {
+        priority = container.asyncPriority;
+    }
+    if (priority === 0) {
+        fn();
+    } else {
+        if (!ASYNC_QUEUE) {
+            ASYNC_QUEUE = [];
+        }
+        ASYNC_QUEUE.push(fn);
+        createAsyncProcessor();
+    }
+}
+
+let ASYNC_PROCESSOR: Promise<void> | null = null, ASYNC_QUEUE: (() => any)[] | null;
+
+async function createAsyncProcessor() {
+    if (!ASYNC_PROCESSOR) {
+        if (typeof setTimeout !== "undefined") {
+            // requestAnimation frame may run in the same frame!
+            ASYNC_PROCESSOR = new Promise(function (resolve) {
+                setTimeout(function () {
+                    processQueue();
+                    resolve();
+                }, 1)
+            })
+        } else {
+            ASYNC_PROCESSOR = Promise.resolve().then(function () {
+                processQueue();
+            })
+        }
+    }
+
+    return ASYNC_PROCESSOR;
+
+    function processQueue() {
+        // console.log("processQueue: ", ASYNC_QUEUE ? ASYNC_QUEUE.length : 0);
+        if (ASYNC_QUEUE) {
+            let len = ASYNC_QUEUE.length;
+            for (let i = 0; len > i; i++) {
+                ASYNC_QUEUE[i]();
+            }
+        }
+        ASYNC_QUEUE = null;
+        ASYNC_PROCESSOR = null;
+    }
+}
+
+export async function asyncComplete() {
+    return createAsyncProcessor();
 }
 
 /**

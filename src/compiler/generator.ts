@@ -20,7 +20,7 @@ export interface CompilationResult {
 }
 
 type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock | XjsEvtListener;
-type InstructionsHolder = XjsComponent | XjsParamNode | XjsJsBlock | null;
+type InstructionsHolder = XjsComponent | XjsParamNode | XjsJsBlock | XjsElement | XjsFragment | null;
 
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_LOG = /\/\/\s*log\s*/,
@@ -46,6 +46,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
         "#eventListener": "event listener"
     },
     $INDEX = "$index",
+    $ASYNC = "$async",
     $FRAGMENT_INDEX = "$fragmentIndex",
     $FRAGMENT_INS_HOLDER = "$fragmentIHolder",
     $STATIC_PARAMS_IDX = "$staticParamsIdx",
@@ -63,8 +64,17 @@ export async function compileTemplate(template: string, options: CompilationOpti
     let root = await parse(template, options.filePath || "", options.lineOffset || 0);
     let res = generate(root, options);
     if (log) {
+        let importMap = res.importMap || options.importMap, imports: string[] = []
+        for (let k in importMap) {
+            if (importMap.hasOwnProperty(k)) {
+                imports.push(k);
+            }
+        }
         const separator = "-------------------------------------------------------------------------------"
-        console.log(separator + "\n" + "Generated template:\n" + res.function + "\n" + separator);
+        console.log(separator);
+        console.log("imports: ", imports.join(", "));
+        console.log("template: " + res.function);
+        console.log(separator);
     }
     return res;
 }
@@ -163,7 +173,7 @@ export class GenerationCtxt {
     error(msg, nd: XjsNode) {
         let fileInfo = this.options.filePath ? " in " + this.options.filePath : "",
             lineOffset = this.options.lineOffset || 0;
-        throw new Error(`Invalid ${NODE_NAMES[nd.kind]} - ${msg} at line #${nd.lineNumber + lineOffset}${fileInfo}`);
+        throw new Error(`Invalid ${NODE_NAMES[nd.kind]} - ${msg} (line #${nd.lineNumber + lineOffset}${fileInfo})`);
     }
 }
 
@@ -187,8 +197,10 @@ export class JsBlockUpdate implements UpdateInstruction {
     instanceCounterVar = '';        // e.g. ζi2 -> used to count sub-block instances
     dExpressions: number[] = [];    // list of counters for deferred expressions (cf. ζexp)
     childBlockIndexes: number[] = [];
+    asyncValue: number | XjsExpression = 0;
+    asyncInsHolder: InstructionsHolder = null;
 
-    constructor(public nd: XjsTplFunction | XjsJsBlock, public idx: number, public parentBlock: JsBlockUpdate | null, public iHolder: InstructionsHolder, generationCtxt?: GenerationCtxt, indent?: string) {
+    constructor(public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentBlock: JsBlockUpdate | null, public iHolder: InstructionsHolder, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentBlock) {
             this.gc = parentBlock.gc;
             this.indent = parentBlock.indent;
@@ -207,8 +219,9 @@ export class JsBlockUpdate implements UpdateInstruction {
         if (this.blockIdx > 0) {
             this.jsVarName = "ζ" + this.blockIdx;
         }
-        if (iHolder && nd.kind === "#jsBlock") {
-            this.iHolder = nd;
+
+        if (iHolder && node.kind === "#jsBlock") {
+            this.iHolder = node;
         }
 
         let gc = this.gc;
@@ -223,30 +236,34 @@ export class JsBlockUpdate implements UpdateInstruction {
     }
 
     scan() {
-        let content = this.nd.content, len = content ? content.length : 0, nd: XjsContentNode;
-        if (len === 0) return;
+        if (this.node.kind === "#element" || this.node.kind === "#fragment" || this.node.kind === "#component") {
+            this.generateCmInstruction(this.node, 1, this.iHolder);
+            this.generateUpdateInstruction(this.node, this.iHolder, "", "");
+        } else {
+            let content = this.node.content, len = content ? content.length : 0, nd: XjsContentNode;
+            if (len === 0) return;
 
-        // creation mode
-        if (len > 1) {
-            // need container fragment
-            this.nodeCount = 1;
-            this.createInstructions.push(new FragmentCreation(null, 1, 1, this, this.iHolder)); // root fragment -> parentIdx = 1
-        }
-        for (let i = 0; len > i; i++) {
-            this.generateCmInstruction(content![i], 1, this.iHolder);
-        }
+            // creation mode
+            if (len > 1) {
+                // need container fragment
+                this.nodeCount = 1;
+                this.createInstructions.push(new FragmentCreation(null, 1, 1, this, this.iHolder)); // root fragment -> parentIdx = 1
+            }
+            for (let i = 0; len > i; i++) {
+                this.generateCmInstruction(content![i], 1, this.iHolder);
+            }
 
-        // update mode
-        let pKind = "", nKind = "";
-        for (let i = 0; len > i; i++) {
-            nKind = (i < len - 1) ? content![i + 1].kind : "";
-            this.generateUpdateInstruction(content![i], this.iHolder, pKind, nKind);
-            pKind = content![i].kind;
+            // update mode
+            let pKind = "", nKind = "";
+            for (let i = 0; len > i; i++) {
+                nKind = (i < len - 1) ? content![i + 1].kind : "";
+                this.generateUpdateInstruction(content![i], this.iHolder, pKind, nKind);
+                pKind = content![i].kind;
+            }
         }
 
         // clean instructions
-        let uInstructions = this.updateInstructions, ui: UpdateInstruction;
-        len = uInstructions.length;
+        let uInstructions = this.updateInstructions, ui: UpdateInstruction, len = uInstructions.length;
         for (let i = 0; len > i; i++) {
             ui = this.updateInstructions[i];
             if (ui.isJsBlock) {
@@ -277,32 +294,40 @@ export class JsBlockUpdate implements UpdateInstruction {
 
         switch (nd.kind) {
             case "#textNode":
+                this.rejectAsyncDecorator(nd as XjsText);
                 this.createInstructions.push(new TextCreation(nd, idx, parentIdx, this, iHolder));
                 break;
             case "#fragment":
-                this.createInstructions.push(new FragmentCreation(nd, idx, parentIdx, this, iHolder));
-                content = nd.content;
+                if (!this.processAsyncCase(nd as XjsFragment, idx, parentIdx, iHolder)) {
+                    this.createInstructions.push(new FragmentCreation(nd, idx, parentIdx, this, iHolder));
+                    content = nd.content;
+                }
                 break;
             case "#component":
-                // create a container block
-                this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
-                nd[$FRAGMENT_INDEX] = idx;
-                nd[$STATIC_PARAMS_IDX] = i1;
-                nd[$PARENT_IDX] = parentIdx;
-                nd[$PARENT_INS_HOLDER] = iHolder;
-                content = nd.content;
-                this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
-                if (nd.listeners && nd.listeners.length) {
-                    this.gc.error("Event listeners are not supported on components (yet)", nd);
+                if (!this.processAsyncCase(nd as XjsComponent, idx, parentIdx, iHolder)) {
+                    // create a container block
+                    this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
+                    nd[$FRAGMENT_INDEX] = idx;
+                    nd[$STATIC_PARAMS_IDX] = i1;
+                    nd[$PARENT_IDX] = parentIdx;
+                    nd[$PARENT_INS_HOLDER] = iHolder;
+                    content = nd.content;
+                    this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
+                    if (nd.listeners && nd.listeners.length) {
+                        this.gc.error("Event listeners are not supported on components (yet)", nd);
+                    }
                 }
                 break;
             case "#element":
-                this.createInstructions.push(new EltCreation(nd as XjsElement, idx, parentIdx, this, iHolder, stParams));
-                this.createListeners(nd as XjsElement, idx, iHolder);
-                content = nd.content;
+                if (!this.processAsyncCase(nd as XjsElement, idx, parentIdx, iHolder)) {
+                    this.createInstructions.push(new EltCreation(nd as XjsElement, idx, parentIdx, this, iHolder, stParams));
+                    this.createListeners(nd as XjsElement, idx, iHolder);
+                    content = nd.content;
+                }
                 break;
             case "#paramNode":
                 // e.g. ζpnode(ζ, 3, 1, 0, "header");
+                this.rejectAsyncDecorator(nd as XjsParamNode);
                 this.createInstructions.push(new PNodeCreation(nd as XjsParamNode, idx, parentIdx, this, iHolder, stParams));
                 nd[$PARENT_INS_HOLDER] = iHolder;
                 content = nd.content;
@@ -343,17 +368,87 @@ export class JsBlockUpdate implements UpdateInstruction {
         }
     }
 
+    rejectAsyncDecorator(nd: XjsText | XjsParamNode) {
+        let decorators = nd.decorators;
+        if (decorators) {
+            for (let d of decorators) {
+                if (d.ref.code === "async") {
+                    this.gc.error("@async cannot be used in this context", d);
+                }
+            }
+        }
+    }
+
+    processAsyncCase(nd: XjsElement | XjsFragment, idx: number, parentIdx: number, iHolder: InstructionsHolder): boolean {
+        // generate async block if @async decorator is used
+        let asyncValue: number | XjsExpression = 0;
+        if (!nd[$ASYNC]) {
+            let decorators = nd.decorators;
+            if (decorators) {
+                for (let d of decorators) {
+                    if (d.ref.code === "async") {
+                        if (!d.hasDefaultPropValue) {
+                            if (d.params) {
+                                this.gc.error("Async decorator doesn't accept multiple params", d);
+                            }
+                            asyncValue = 1;
+                            break;
+                        } else {
+                            let dv = d.defaultPropValue!;
+                            // value can be number or expression
+                            if (dv.kind === "#number") {
+                                asyncValue = dv.value;
+                            } else if (d.defaultPropValue!.kind === "#expression") {
+                                asyncValue = dv as XjsExpression;
+                            } else {
+                                this.gc.error("@async value must be either empty or a number or an expression", d);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (asyncValue) {
+            this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true, true));
+            nd[$ASYNC] = asyncValue;
+            nd[$FRAGMENT_INDEX] = idx;
+            nd[$FRAGMENT_INS_HOLDER] = iHolder;
+            return true
+        } else {
+            if (nd[$ASYNC]) {
+                this.asyncValue = nd[$ASYNC];
+                this.gc.imports['ζasync'] = 1;
+            }
+            nd[$ASYNC] = 0;
+            return false;
+        }
+    }
+
     createContentFragment(nd: XjsComponent | XjsParamNode, iHolder: InstructionsHolder) {
         let content = nd.content;
         if (content && content.length) {
             // create a fragment if content has something more than jsStatements and 
-            let len = content.length, count = 0;
+            let len = content.length, count = 0, asyncRoot = false;
             for (let i = 0; len > i; i++) {
                 if (content[i].kind !== "#jsStatements" && content[i].kind !== "#paramNode") {
+                    if (count === 0) {
+                        // check if content[i] is @async
+                        let nd = content[i];
+                        if (nd.kind === "#fragment" || nd.kind === "#element" || nd.kind === "#component") {
+                            nd = nd as XjsFragment;
+                            if (nd.decorators) {
+                                for (let d of nd.decorators) {
+                                    if (d.ref.code === "async") {
+                                        asyncRoot = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     count++;
                 }
             }
-            if (count && len > 1) {
+            if (asyncRoot || (count && len > 1)) {
                 // create a fragment to hold content nodes
                 let parentIdx = this.nodeCount, newIdx = ++this.nodeCount;
                 nd[$CONTENT_NODE_IDX] = newIdx;
@@ -399,16 +494,22 @@ export class JsBlockUpdate implements UpdateInstruction {
                 }
                 break;
             case "#component":
-                this.updateInstructions.push(new CptUpdate(nd as XjsComponent, nd[$FRAGMENT_INDEX], nd[$PARENT_IDX], this, iHolder, nd[$STATIC_PARAMS_IDX]));
-                this.generateContentUpdate(nd, iHolder, false);
-                this.updateInstructions.push(new CptCallUpdate(nd[$FRAGMENT_INDEX], this, iHolder));
+                if (!this.handleAsyncUpdate(nd as XjsComponent, iHolder, prevKind, nextKind)) {
+                    this.updateInstructions.push(new CptUpdate(nd as XjsComponent, nd[$FRAGMENT_INDEX], nd[$PARENT_IDX], this, iHolder, nd[$STATIC_PARAMS_IDX]));
+                    this.generateContentUpdate(nd, iHolder, false);
+                    this.updateInstructions.push(new CptCallUpdate(nd[$FRAGMENT_INDEX], this, iHolder));
+                }
                 break;
             case "#fragment":
-                this.generateContentUpdate(nd as XjsFragment, iHolder, false);
+                if (!this.handleAsyncUpdate(nd as XjsFragment, iHolder, prevKind, nextKind)) {
+                    this.generateContentUpdate(nd as XjsFragment, iHolder, false);
+                }
                 break;
             case "#element":
-                this.updateHandlers(nd as XjsElement, iHolder);
-                this.generateContentUpdate(nd as XjsElement, iHolder, true);
+                if (!this.handleAsyncUpdate(nd as XjsElement, iHolder, prevKind, nextKind)) {
+                    this.updateHandlers(nd as XjsElement, iHolder);
+                    this.generateContentUpdate(nd as XjsElement, iHolder, true);
+                }
                 break;
             case "#paramNode":
                 this.generateContentUpdate(nd as XjsParamNode, iHolder, false);
@@ -424,6 +525,19 @@ export class JsBlockUpdate implements UpdateInstruction {
                 jsb.scan();
                 break;
         }
+    }
+
+    handleAsyncUpdate(nd: XjsElement | XjsFragment | XjsComponent, iHolder: InstructionsHolder, prevKind: string, nextKind: string): boolean {
+        if (nd[$ASYNC]) {
+            let jsb = new JsBlockUpdate(nd as XjsElement, nd[$FRAGMENT_INDEX], this, null);
+            jsb.asyncInsHolder = nd[$FRAGMENT_INS_HOLDER];
+            jsb.prevKind = prevKind;
+            jsb.nextKind = nextKind;
+            this.updateInstructions.push(jsb);
+            jsb.scan();
+            return true
+        }
+        return false;
     }
 
     generateContentUpdate(nd: XjsComponent | XjsElement | XjsFragment, iHolder: InstructionsHolder, useAttributes: boolean) {
@@ -529,10 +643,10 @@ export class JsBlockUpdate implements UpdateInstruction {
         //     ζtxt(ζ1, 1, 1, 0, " Hello World ");
         // }
         // ζend(ζ1);
-        let isJsBlock = this.nd.kind === "#jsBlock", _indent = this.indent, _indent2 = this.indent2;
+        let isJsBlock = this.node.kind === "#jsBlock", _indent = this.indent, _indent2 = this.indent2;
         if (isJsBlock) {
             let p = this.parentBlock!;
-            let nd = this.nd as XjsJsBlock;
+            let nd = this.node as XjsJsBlock;
             _indent = this.indent = p.indent;
             _indent2 = this.indent2 = p.indent2;
 
@@ -544,15 +658,35 @@ export class JsBlockUpdate implements UpdateInstruction {
             // increment indents
             this.indent = p.indent + this.gc.indentIncrement;
             this.indent2 = p.indent2 + this.gc.indentIncrement;
+        } else if (this.asyncValue) {
+            // async block
+            let p = this.parentBlock!, ih = instructionsHolder(this.asyncInsHolder);
+            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.indent : " ");
+            body.push(`ζasync(${this.parentBlock!.jsVarName}, ${this.idx}, `);
+            if (typeof this.asyncValue === 'number') {
+                body.push('' + this.asyncValue);
+            } else {
+                generateExpression(body, this.asyncValue as XjsExpression, this.parentBlock!, ih);
+            }
+
+            body.push(`, ${ih}, function () {\n`);
+            this.indent = p.indent + this.gc.indentIncrement;
+            this.indent2 = p.indent2 + this.gc.indentIncrement;
         }
 
         if (this.createInstructions.length) {
             // push cleanIndexes to statics
-            let iHolderIdx = 0, cleanStaticsArg = ""; // or e.g. ", ζs3"
+            let iHolderIdx = 0, containerArg = ""; // or e.g. ", ζs3"
             if (this.cleanIndexes.length) {
                 let statics = this.gc.statics, csIdx = statics.length;
                 statics.push("ζs" + csIdx + " = [" + this.cleanIndexes.join(", ") + "]");
-                cleanStaticsArg = ", ζs" + csIdx;
+                containerArg = ", ζs" + csIdx;
+            }
+            if (this.asyncValue) {
+                if (!containerArg) {
+                    containerArg = ", 0";
+                }
+                containerArg += ", 1"; // async block flag
             }
 
             let instanceArgs = "", parentBlockVarName = "ζ";
@@ -566,8 +700,13 @@ export class JsBlockUpdate implements UpdateInstruction {
                     body.push(`${this.indent}let ${arr.join(", ")};\n`);
                 }
             } else {
-                if (this.nd[$FRAGMENT_INS_HOLDER]) {
-                    iHolderIdx = instructionsHolder(this.nd[$FRAGMENT_INS_HOLDER]);
+                if (this.node[$FRAGMENT_INS_HOLDER]) {
+                    if (this.asyncValue) {
+                        // async blocks are not deferred as they won't be called if not needed
+                        iHolderIdx = instructionsHolder(this.iHolder);
+                    } else {
+                        iHolderIdx = instructionsHolder(this.node[$FRAGMENT_INS_HOLDER]);
+                    }
                 }
                 if (this.childBlockIndexes.length) {
                     body.push(`${this.indent}ζi${this.childBlockIndexes.join(" = ζi")} = 0;\n`);
@@ -590,11 +729,11 @@ export class JsBlockUpdate implements UpdateInstruction {
                 ui.pushCode(body);
             }
 
-            body.push(`${this.indent}ζend(${this.jsVarName}, ${iHolderIdx ? 1 : 0}${cleanStaticsArg});\n`);
+            body.push(`${this.indent}ζend(${this.jsVarName}, ${iHolderIdx ? 1 : 0}${containerArg});\n`);
         }
 
         if (isJsBlock) {
-            let nd = this.nd as XjsJsBlock;
+            let nd = this.node as XjsJsBlock;
             this.indent = _indent;
             this.indent2 = _indent2;
             body.push(this.indent);
@@ -602,21 +741,26 @@ export class JsBlockUpdate implements UpdateInstruction {
             if (!nd.endCode.match(/\n$/) && this.nextKind !== "#jsBlock" && this.nextKind !== "#jsStatements") {
                 body.push("\n");
             }
+        } else if (this.asyncValue) {
+            // end of async function
+            this.indent = _indent;
+            this.indent2 = _indent2;
+            body.push(`${this.indent}});\n`);
         }
     }
 }
 
 class FragmentCreation implements UpdateInstruction {
-    constructor(nd: XjsFragment | null, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isContainer = false) {
+    constructor(node: XjsFragment | null, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isContainer = false, public isAsyncContainer = false) {
         let gc = this.block.gc;
-        if (nd && nd.params && nd.params.length) {
-            gc.error("Params cannot be used on fragments", nd);
+        if (node && node.params && node.params.length) {
+            gc.error("Params cannot be used on fragments", node);
         }
-        if (nd && nd.properties && nd.properties.length) {
-            gc.error("Properties cannot be used on fragments", nd);
+        if (node && node.properties && node.properties.length) {
+            gc.error("Properties cannot be used on fragments", node);
         }
-        if (nd && nd.listeners && nd.listeners.length) {
-            gc.error("Event listeners cannot be used on fragments", nd);
+        if (node && node.listeners && node.listeners.length) {
+            gc.error("Event listeners cannot be used on fragments", node);
         }
         gc.imports['ζfrag'] = 1;
     }
@@ -624,7 +768,7 @@ class FragmentCreation implements UpdateInstruction {
     pushCode(body: BodyContent[]) {
         let b = this.block, ih = instructionsHolder(this.iHolder), lastArgs = (ih === 0) ? "" : ", " + ih;
         if (this.isContainer) {
-            lastArgs = ", " + ih + ", 1";
+            lastArgs = ", " + ih + ", " + (this.isAsyncContainer ? 2 : 1);
         }
         body.push(`${b.indent2}ζfrag(${b.jsVarName}, ${this.idx}, ${this.parentIdx}${lastArgs});\n`);
     }
@@ -632,27 +776,27 @@ class FragmentCreation implements UpdateInstruction {
 
 class TextCreation implements CreationInstruction {
     lastParam = "";
-    constructor(public nd: XjsText, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+    constructor(public node: XjsText, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
         let gc = this.block.gc;
         gc.imports['ζtxt'] = 1;
 
-        let eLength = nd.expressions ? nd.expressions.length : 0;
-        if (nd.textFragments.length <= 1 && eLength === 0) {
+        let eLength = node.expressions ? node.expressions.length : 0;
+        if (node.textFragments.length <= 1 && eLength === 0) {
             // static version
-            this.lastParam = nd.textFragments.length === 0 ? '""' : encodeText(nd.textFragments[0]);
+            this.lastParam = node.textFragments.length === 0 ? '""' : encodeText(node.textFragments[0]);
         } else {
             // create static resource
-            let staticsIdx = gc.statics.length, pieces: string[] = [], fLength = nd.textFragments.length, eCount = 0;
+            let staticsIdx = gc.statics.length, pieces: string[] = [], fLength = node.textFragments.length, eCount = 0;
             for (let i = 0; fLength > i; i++) {
                 // todo eLength
-                pieces.push(encodeText(nd.textFragments[i]));
+                pieces.push(encodeText(node.textFragments[i]));
                 if (eCount < eLength) {
                     pieces.push('""');
                     eCount++;
                 }
             }
             gc.statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
-            nd["staticsRef"] = this.lastParam = 'ζs' + staticsIdx;
+            node["staticsRef"] = this.lastParam = 'ζs' + staticsIdx;
         }
     }
 
@@ -666,17 +810,17 @@ class TextCreation implements CreationInstruction {
 
 class TextUpdate implements UpdateInstruction {
     lastParam = "";
-    constructor(public nd: XjsText, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+    constructor(public node: XjsText, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
         this.block.gc.imports['ζtxtval'] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζtxtval(ζ1, 1, 0, ζs0, 1, ζe(ζ, 0, 1, name));
         let b = this.block, ih = instructionsHolder(this.iHolder);
-        body.push(`${b.indent}ζtxtval(${b.jsVarName}, ${this.idx}, ${ih}, ${this.nd["staticsRef"]}, ${this.nd.expressions!.length}, `);
-        let eLength = this.nd.expressions!.length;
+        body.push(`${b.indent}ζtxtval(${b.jsVarName}, ${this.idx}, ${ih}, ${this.node["staticsRef"]}, ${this.node.expressions!.length}, `);
+        let eLength = this.node.expressions!.length;
         for (let i = 0; eLength > i; i++) {
-            generateExpression(body, this.nd.expressions![i], this.block, ih);
+            generateExpression(body, this.node.expressions![i], this.block, ih);
             if (i < eLength - 1) {
                 body.push(', ');
             }
@@ -687,7 +831,7 @@ class TextUpdate implements UpdateInstruction {
 
 class EltCreation implements CreationInstruction {
     lastParam = "";
-    constructor(public nd: XjsElement, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
+    constructor(public node: XjsElement, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
         let gc = this.block.gc;
         gc.imports['ζelt'] = 1;
     }
@@ -695,15 +839,15 @@ class EltCreation implements CreationInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζelt(ζ1, 3, 1, 0, "span");
         let b = this.block;
-        if (this.nd.nameExpression) {
-            b.gc.error("Name expressions are not yet supported", this.nd);
+        if (this.node.nameExpression) {
+            b.gc.error("Name expressions are not yet supported", this.node);
         }
-        body.push(`${b.indent2}ζelt(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}"${this.staticArgs});\n`);
+        body.push(`${b.indent2}ζelt(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.node.name}"${this.staticArgs});\n`);
     }
 }
 
 class ListenerCreation implements CreationInstruction {
-    constructor(public nd: XjsEvtListener, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+    constructor(public node: XjsEvtListener, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
         let gc = this.block.gc;
         gc.imports['ζlistener'] = 1;
     }
@@ -711,7 +855,7 @@ class ListenerCreation implements CreationInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζlistener(ζ, 2, 1, 0, "click");
         let b = this.block;
-        body.push(`${b.indent2}ζlistener(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.nd.name}");\n`);
+        body.push(`${b.indent2}ζlistener(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${instructionsHolder(this.iHolder)}, "${this.node.name}");\n`);
     }
 }
 
@@ -733,11 +877,11 @@ class HandlerUpdate implements UpdateInstruction {
 }
 
 class CptUpdate implements UpdateInstruction {
-    constructor(public nd: XjsComponent, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticParamIdx: number) {
+    constructor(public node: XjsComponent, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticParamIdx: number) {
         let gc = this.block.gc;
         gc.imports['ζcpt'] = 1;
-        if (nd.properties && nd.properties.length) {
-            gc.error("Properties cannot be used on components", nd);
+        if (node.properties && node.properties.length) {
+            gc.error("Properties cannot be used on components", node);
         }
     }
 
@@ -746,8 +890,8 @@ class CptUpdate implements UpdateInstruction {
 
         let stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx, ih = instructionsHolder(this.iHolder);
         body.push(`${b.indent}ζcpt(${b.jsVarName}, ${this.idx}, ${ih}, `);
-        generateExpression(body, this.nd.ref as XjsExpression, this.block, ih);
-        body.push(`, ${this.nd[$CONTENT_NODE_IDX]}, 0${stParams});\n`);
+        generateExpression(body, this.node.ref as XjsExpression, this.block, ih);
+        body.push(`, ${this.node[$CONTENT_NODE_IDX]}, 0${stParams});\n`);
 
     }
 }
@@ -764,29 +908,29 @@ class CptCallUpdate implements UpdateInstruction {
 }
 
 class ContentUpdate implements UpdateInstruction {
-    constructor(public nd: XjsDecorator, parent: XjsComponent | XjsElement | XjsFragment, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
+    constructor(public node: XjsDecorator, parent: XjsComponent | XjsElement | XjsFragment, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder) {
         // manage @content built-in decorator
         let gc = this.block.gc;
         gc.imports['ζcont'] = 1;
         if (parent.kind !== "#element" && parent.kind !== "#fragment") {
-            gc.error("@content can only be used on elements or fragments", nd);
+            gc.error("@content can only be used on elements or fragments", node);
         }
         if (parent.content && parent.content.length) {
-            gc.error("@content can only be used on empty elements or fragments", nd);
+            gc.error("@content can only be used on empty elements or fragments", node);
         }
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζcont(ζ, 2, 0, ζe(ζ, 0, $content));
-        let b = this.block, ih = instructionsHolder(this.iHolder), d = this.nd, gc = this.block.gc;
+        let b = this.block, ih = instructionsHolder(this.iHolder), d = this.node, gc = this.block.gc;
 
         if (d.isOrphan || !d.defaultPropValue) {
             if (gc.templateArgs.indexOf("$content") < 0) {
                 gc.error("$content must be defined as template argument to use @content without expressions", d);
             }
-        } else if (this.nd.defaultPropValue && this.nd.defaultPropValue.kind !== "#expression") {
-            gc.error("@content value cannot be a " + this.nd.defaultPropValue.kind, d);
-        } else if (this.nd.defaultPropValue && this.nd.defaultPropValue.kind === "#expression" && this.nd.defaultPropValue.oneTime) {
+        } else if (this.node.defaultPropValue && this.node.defaultPropValue.kind !== "#expression") {
+            gc.error("@content value cannot be a " + this.node.defaultPropValue.kind, d);
+        } else if (this.node.defaultPropValue && this.node.defaultPropValue.kind === "#expression" && this.node.defaultPropValue.oneTime) {
             gc.error("@content expression cannot use one-time qualifier", d);
         }
 
@@ -794,35 +938,35 @@ class ContentUpdate implements UpdateInstruction {
         if (d.isOrphan || !d.defaultPropValue) {
             generateExpression(body, '$content', this.block, ih);
         } else {
-            generateExpression(body, this.nd.defaultPropValue as XjsExpression, this.block, ih);
+            generateExpression(body, this.node.defaultPropValue as XjsExpression, this.block, ih);
         }
         body.push(`);\n`);
     }
 }
 
 class PNodeCreation implements CreationInstruction {
-    constructor(public nd: XjsParamNode, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
+    constructor(public node: XjsParamNode, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public staticArgs: string) {
         block.gc.imports['ζpnode'] = 1;
     }
     pushCode(body: BodyContent[]) {
         let b = this.block;
-        if (this.nd.nameExpression) {
-            b.gc.error("Name expressions are not yet supported", this.nd);
+        if (this.node.nameExpression) {
+            b.gc.error("Name expressions are not yet supported", this.node);
         }
         let ih = 0;
         if (this.iHolder) {
             ih = instructionsHolder(this.iHolder[$PARENT_INS_HOLDER]);
         }
-        body.push(`${b.indent2}ζpnode(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${ih}, "${this.nd.name}"${this.staticArgs});\n`);
+        body.push(`${b.indent2}ζpnode(${b.jsVarName}, ${this.idx}, ${this.parentIdx}, ${ih}, "${this.node.name}"${this.staticArgs});\n`);
     }
 }
 
 class ParamUpdate implements UpdateInstruction {
     funcName: "ζatt" | "ζparam" | "ζprop";
 
-    constructor(public nd: XjsParam | XjsProperty, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isAttribute: boolean) {
+    constructor(public node: XjsParam | XjsProperty, public idx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isAttribute: boolean) {
         this.funcName = isAttribute ? "ζatt" : "ζparam"
-        if (nd.kind === "#property") {
+        if (node.kind === "#property") {
             this.funcName = "ζprop";
         }
         this.block.gc.imports[this.funcName] = 1;
@@ -831,20 +975,20 @@ class ParamUpdate implements UpdateInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 2, 0, "title", ζe(ζ, 0, 0, expr(x)));
         let b = this.block, ih = instructionsHolder(this.iHolder);
-        body.push(`${b.indent}${this.funcName}(${b.jsVarName}, ${this.idx}, ${ih}, "${this.nd.name}", `);
-        generateExpression(body, this.nd.value as XjsExpression, this.block, ih);
+        body.push(`${b.indent}${this.funcName}(${b.jsVarName}, ${this.idx}, ${ih}, "${this.node.name}", `);
+        generateExpression(body, this.node.value as XjsExpression, this.block, ih);
         body.push(');\n');
     }
 }
 
 class JsStatementsUpdate implements UpdateInstruction {
-    constructor(public nd: XjsJsStatements, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public prevKind: string) { }
+    constructor(public node: XjsJsStatements, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public prevKind: string) { }
 
     pushCode(body: BodyContent[]) {
         let b = this.block;
         body.push((this.prevKind !== "#jsBlock") ? b.indent : " ");
-        body.push(this.nd);
-        if (!this.nd.code.match(/\n$/)) {
+        body.push(this.node);
+        if (!this.node.code.match(/\n$/)) {
             body.push("\n");
         }
     }
@@ -872,7 +1016,7 @@ function encodeText(t: string) {
 function instructionsHolder(iHolder: InstructionsHolder) {
     if (!iHolder) return 0;
     if (iHolder.kind === "#jsBlock") return 1;
-    return iHolder[$CONTENT_NODE_IDX];
+    return iHolder[$CONTENT_NODE_IDX] ? iHolder[$CONTENT_NODE_IDX] : 0;
 }
 
 function generateExpression(body: BodyContent[], exp: XjsExpression | string, block: JsBlockUpdate, instructionsHolder: number) {

@@ -36,8 +36,10 @@ const avail = template(`(data, selectedItinerary, selectedFare, visible) => {
     var availability = data.availability;
     if (visible) {
         <div class="container availability">
+        let first=true;
         for (let bound of availability.bounds) {
-            <div>
+            <div @async={first? 0 : 1}>
+                first=false;
                 if (bound.searchData) {
                     <h2> #{bound.searchData.beginLocation.cityName} to {bound.searchData.endLocation.cityName}# </h2>
                 }
@@ -53,7 +55,7 @@ const avail = template(`(data, selectedItinerary, selectedFare, visible) => {
                         fareFamiliesList = {availability.fareFamilies}
                         jqFareFamilies = {availability.jqFareFamilies} 
                         fareFamiliesCaveats = {availability.fareFamiliesCaveats}/>
-                        // todo: (onSelect)="selectedItinerary = $event"
+                        // todo: select()="selectedItinerary = $event"
                 }
             </div>
         }

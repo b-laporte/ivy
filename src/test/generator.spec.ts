@@ -1014,6 +1014,219 @@ if (condition3) {
         `, '1');
     });
 
+    it("should support async elements", async function () {
+        assert.equal(await body.template(`(msg) => {
+            <div>
+                <div @async class="foo">
+                    # Message: {msg} #
+                </div>
+            </div>
+        }`), `
+            let ζi1 = 0, ζ1;
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1, 0, 2);
+            }
+            ζasync(ζ, 2, 1, 0, function () {
+                ζ1 = ζcc(ζ, 2, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζelt(ζ1, 1, 1, 0, "div", ζs1);
+                    ζtxt(ζ1, 2, 1, 0, ζs2);
+                }
+                ζtxtval(ζ1, 2, 0, ζs2, 1, ζe(ζ1, 0, msg));
+                ζend(ζ1, 0, 0, 1);
+            });
+            ζend(ζ, 0, ζs3);
+        `, '1');
+
+        assert.equal(await body.template(`(msg) => {
+            <div @async=3>
+                # Message: {msg} #
+            </div>
+        }`), `
+            let ζi1 = 0, ζ1;
+            if (ζ[0].cm) {
+                ζfrag(ζ, 1, 1, 0, 2);
+            }
+            ζasync(ζ, 1, 3, 0, function () {
+                ζ1 = ζcc(ζ, 1, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζtxt(ζ1, 2, 1, 0, ζs0);
+                }
+                ζtxtval(ζ1, 2, 0, ζs0, 1, ζe(ζ1, 0, msg));
+                ζend(ζ1, 0, 0, 1);
+            });
+            ζend(ζ, 0, ζs1);
+        `, '2');
+
+        assert.equal(await body.template(`(msg) => {
+            <div @async={expr()} click(e)={doSomething(e)}>
+                # Message1: {msg} #
+            </div>
+            # Message2: {msg} #
+        }`), `
+            let ζi1 = 0, ζ1;
+            if (ζ[0].cm) {
+                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 2, 1, 0, 2);
+                ζtxt(ζ, 3, 1, 0, ζs0);
+            }
+            ζasync(ζ, 2, ζe(ζ, 0, expr()), 0, function () {
+                ζ1 = ζcc(ζ, 2, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζlistener(ζ1, 2, 1, 0, "click");
+                    ζtxt(ζ1, 3, 1, 0, ζs1);
+                }
+                ζhandler(ζ1, 2, 0, function (e) {doSomething(e)});
+                ζtxtval(ζ1, 3, 0, ζs1, 1, ζe(ζ1, 0, msg));
+                ζend(ζ1, 0, 0, 1);
+            });
+            ζtxtval(ζ, 3, 0, ζs0, 1, ζe(ζ, 1, msg));
+            ζend(ζ, 0, ζs2);
+        `, '3');
+    });
+
+    it("should support async fragments", async function () {
+        assert.equal(await body.template(`(msg) => {
+            <div>
+                <! @async={expr()}>
+                    # Message: {msg} #
+                </>
+            </div>
+        }`), `
+            let ζi1 = 0, ζ1;
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1, 0, 2);
+            }
+            ζasync(ζ, 2, ζe(ζ, 0, expr()), 0, function () {
+                ζ1 = ζcc(ζ, 2, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζfrag(ζ1, 1, 1);
+                    ζtxt(ζ1, 2, 1, 0, ζs0);
+                }
+                ζtxtval(ζ1, 2, 0, ζs0, 1, ζe(ζ1, 0, msg));
+                ζend(ζ1, 0, 0, 1);
+            });
+            ζend(ζ, 0, ζs1);
+        `, '1');
+    });
+
+    it("should support async in deferred content", async function () {
+        assert.equal(await body.template(`(msg) => {
+            <$cpt>
+                # {msg} #
+                <div @async>
+                    # other text #
+                </div>
+            </>
+        }`), `
+            let ζi1 = 0, ζ1;
+            if (ζ[0].cm) {
+                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 2, 1, 2);
+                ζtxt(ζ, 3, 2, 2, ζs0);
+                ζfrag(ζ, 4, 2, 2, 2);
+            }
+            ζcpt(ζ, 1, 0, ζe(ζ, 0, cpt), 2, 0);
+            ζtxtval(ζ, 3, 2, ζs0, 1, [0, msg]);
+            ζasync(ζ, 4, 1, 2, function () {
+                ζ1 = ζcc(ζ, 4, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζtxt(ζ1, 2, 1, 0, " other text ");
+                }
+                ζend(ζ1, 0, 0, 1);
+            });
+            ζcall(ζ, 1);
+            ζend(ζ, 0, ζs1);
+        `, '1');
+
+        // cpt in cpt
+        assert.equal(await body.template(`(msg) => {
+            <$cpt>
+                # {msg} #
+                <div @async>
+                    # other text #
+                    <$cpt>
+                        # M2: {msg} #
+                        <div @async>
+                            # M3: {msg} #
+                        </div>
+                    </>
+                </div>
+            </>
+        }`), `
+            let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
+            if (ζ[0].cm) {
+                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 2, 1, 2);
+                ζtxt(ζ, 3, 2, 2, ζs0);
+                ζfrag(ζ, 4, 2, 2, 2);
+            }
+            ζcpt(ζ, 1, 0, ζe(ζ, 0, cpt), 2, 0);
+            ζtxtval(ζ, 3, 2, ζs0, 1, [0, msg]);
+            ζasync(ζ, 4, 1, 2, function () {
+                ζi2 = 0;
+                ζ1 = ζcc(ζ, 4, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζtxt(ζ1, 2, 1, 0, " other text ");
+                    ζfrag(ζ1, 3, 1, 0, 1);
+                    ζfrag(ζ1, 4, 3, 4);
+                    ζtxt(ζ1, 5, 4, 4, ζs1);
+                    ζfrag(ζ1, 6, 4, 4, 2);
+                }
+                ζcpt(ζ1, 3, 0, ζe(ζ1, 0, cpt), 4, 0);
+                ζtxtval(ζ1, 5, 4, ζs1, 1, [0, msg]);
+            ζasync(ζ1, 6, 1, 4, function () {
+                    ζ2 = ζcc(ζ1, 6, ++ζi2);
+                    if (ζ2[0].cm) {
+                        ζelt(ζ2, 1, 1, 0, "div");
+                        ζtxt(ζ2, 2, 1, 0, ζs2);
+                    }
+                    ζtxtval(ζ2, 2, 0, ζs2, 1, ζe(ζ2, 0, msg));
+                    ζend(ζ2, 0, 0, 1);
+            });
+                ζcall(ζ1, 3);
+                ζend(ζ1, 0, ζs4, 1);
+            });
+            ζcall(ζ, 1);
+            ζend(ζ, 0, ζs3);
+        `, '2');
+    });
+
+    it("should support async components", async function () {
+        assert.equal(await body.template(`(msg) => {
+            <div>
+                <$section title={msg} @async>
+                    # Message: {msg} #
+                </>
+            </div>
+        }`), `
+            let ζi1 = 0, ζ1;
+            if (ζ[0].cm) {
+                ζelt(ζ, 1, 1, 0, "div");
+                ζfrag(ζ, 2, 1, 0, 2);
+            }
+            ζasync(ζ, 2, 1, 0, function () {
+                ζ1 = ζcc(ζ, 2, ++ζi1);
+                if (ζ1[0].cm) {
+                    ζfrag(ζ1, 1, 1, 0, 1);
+                    ζtxt(ζ1, 2, 1, 2, ζs0);
+                }
+                ζcpt(ζ1, 1, 0, ζe(ζ1, 0, section), 2, 0);
+                ζparam(ζ1, 1, 0, "title", ζe(ζ1, 1, msg));
+                ζtxtval(ζ1, 2, 2, ζs0, 1, [0, msg]);
+                ζcall(ζ1, 1);
+                ζend(ζ1, 0, 0, 1);
+            });
+            ζend(ζ, 0, ζs1);
+        `, '1');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });
 

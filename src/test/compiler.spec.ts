@@ -112,7 +112,7 @@ describe('Template compiler', () => {
         } catch (e) {
             errMsg = e.message
         }
-        assert.equal(errMsg, 'Invalid text node - Unexpected end of template at line #5 in file-name.ts', "error 1");
+        assert.equal(errMsg, 'Invalid text node - Unexpected end of template at line #5 in file-name.ts', "error 1"); // XJS error
 
         try {
             await compile(` import{ template } from "../iv";
@@ -126,7 +126,7 @@ describe('Template compiler', () => {
         } catch (e) {
             errMsg = e.message
         }
-        assert.equal(errMsg, 'Invalid fragment - Params cannot be used on fragments at line #4 in file-name.ts', "error 2");
+        assert.equal(errMsg, 'Invalid fragment - Params cannot be used on fragments (line #4 in file-name.ts)', "error 2");
     });
 
 });

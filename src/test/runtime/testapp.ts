@@ -7,3 +7,4 @@ import "./simple-components.spec";
 import "./content-components.spec";
 import "./events.spec";
 import "./data.spec";
+import "./async.spec";

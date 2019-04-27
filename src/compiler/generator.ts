@@ -247,7 +247,7 @@ export class JsBlockUpdate implements UpdateInstruction {
             if (len > 1) {
                 // need container fragment
                 this.nodeCount = 1;
-                this.createInstructions.push(new FragmentCreation(null, 1, 1, this, this.iHolder)); // root fragment -> parentIdx = 1
+                this.createInstructions.push(new FragmentCreation(null, 1, 1, this, this.iHolder, ContainerType.Group)); // root fragment -> parentIdx = 1
             }
             for (let i = 0; len > i; i++) {
                 this.generateCmInstruction(content![i], 1, this.iHolder);
@@ -299,14 +299,14 @@ export class JsBlockUpdate implements UpdateInstruction {
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd as XjsFragment, idx, parentIdx, iHolder)) {
-                    this.createInstructions.push(new FragmentCreation(nd, idx, parentIdx, this, iHolder));
+                    this.createInstructions.push(new FragmentCreation(nd, idx, parentIdx, this, iHolder, ContainerType.Group));
                     content = nd.content;
                 }
                 break;
             case "#component":
                 if (!this.processAsyncCase(nd as XjsComponent, idx, parentIdx, iHolder)) {
                     // create a container block
-                    this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
+                    this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, ContainerType.Component));
                     nd[$FRAGMENT_INDEX] = idx;
                     nd[$STATIC_PARAMS_IDX] = i1;
                     nd[$PARENT_IDX] = parentIdx;
@@ -337,7 +337,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 break;
             case "#jsBlock":
                 // create a container block
-                this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true));
+                this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, ContainerType.Block));
                 nd[$FRAGMENT_INDEX] = idx;
                 nd[$FRAGMENT_INS_HOLDER] = iHolder;
                 break;
@@ -409,7 +409,7 @@ export class JsBlockUpdate implements UpdateInstruction {
             }
         }
         if (asyncValue) {
-            this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, true, true));
+            this.createInstructions.push(new FragmentCreation(null, idx, parentIdx, this, iHolder, ContainerType.Async));
             nd[$ASYNC] = asyncValue;
             nd[$FRAGMENT_INDEX] = idx;
             nd[$FRAGMENT_INS_HOLDER] = iHolder;
@@ -452,7 +452,7 @@ export class JsBlockUpdate implements UpdateInstruction {
                 // create a fragment to hold content nodes
                 let parentIdx = this.nodeCount, newIdx = ++this.nodeCount;
                 nd[$CONTENT_NODE_IDX] = newIdx;
-                this.createInstructions.push(new FragmentCreation(null, newIdx, parentIdx, this, iHolder));
+                this.createInstructions.push(new FragmentCreation(null, newIdx, parentIdx, this, iHolder, ContainerType.Group));
             } else {
                 if (count && len === 1) {
                     nd[$CONTENT_NODE_IDX] = this.nodeCount + 1;
@@ -750,8 +750,15 @@ export class JsBlockUpdate implements UpdateInstruction {
     }
 }
 
+enum ContainerType {
+    Group = 0,
+    Block = 1,
+    Component = 2,
+    Async = 3
+}
+
 class FragmentCreation implements UpdateInstruction {
-    constructor(node: XjsFragment | null, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public isContainer = false, public isAsyncContainer = false) {
+    constructor(node: XjsFragment | null, public idx: number, public parentIdx: number, public block: JsBlockUpdate, public iHolder: InstructionsHolder, public type: ContainerType) {
         let gc = this.block.gc;
         if (node && node.params && node.params.length) {
             gc.error("Params cannot be used on fragments", node);
@@ -767,8 +774,8 @@ class FragmentCreation implements UpdateInstruction {
 
     pushCode(body: BodyContent[]) {
         let b = this.block, ih = instructionsHolder(this.iHolder), lastArgs = (ih === 0) ? "" : ", " + ih;
-        if (this.isContainer) {
-            lastArgs = ", " + ih + ", " + (this.isAsyncContainer ? 2 : 1);
+        if (this.type !== ContainerType.Group) {
+            lastArgs = ", " + ih + ", " + this.type;
         }
         body.push(`${b.indent2}ζfrag(${b.jsVarName}, ${this.idx}, ${this.parentIdx}${lastArgs});\n`);
     }

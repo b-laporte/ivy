@@ -615,7 +615,7 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, " first ");
                 ζfrag(ζ, 4, 2, 2, 1);
@@ -642,7 +642,7 @@ if (condition3) {
 
         assert.equal(t1.body, `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, alert), 0, 0, ζs0);
             ζcall(ζ, 1);
@@ -659,7 +659,7 @@ if (condition3) {
         }`);
         assert.equal(t2.body, `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, b.section), 0, 0, ζs0);
             ζparam(ζ, 1, 0, "position", ζe(ζ, 1, getPosition()));
@@ -679,7 +679,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
                 ζelt(ζ, 2, 1, 2, "span");
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, myComponent), 2, 0);
@@ -697,10 +697,10 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, ζs0);
-                ζfrag(ζ, 4, 2, 2, 1);
+                ζfrag(ζ, 4, 2, 2, 2);
                 ζtxt(ζ, 5, 4, 5, ζs1);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, myComponent), 2, 0);
@@ -726,7 +726,7 @@ if (condition3) {
             if (ζ[0].cm) {
                 ζfrag(ζ, 1, 1);
                 ζtxt(ζ, 2, 1, 0, " first ");
-                ζfrag(ζ, 3, 1, 0, 1);
+                ζfrag(ζ, 3, 1, 0, 2);
                 ζfrag(ζ, 4, 3, 4);
                 ζpnode(ζ, 5, 4, 0, "header", ζs0);
                 ζtxt(ζ, 6, 4, 4, ζs1);
@@ -752,7 +752,7 @@ if (condition3) {
             if (ζ[0].cm) {
                 ζfrag(ζ, 1, 1);
                 ζtxt(ζ, 2, 1, 0, " first ");
-                ζfrag(ζ, 3, 1, 0, 1);
+                ζfrag(ζ, 3, 1, 0, 2);
                 ζfrag(ζ, 4, 3, 4);
                 ζpnode(ζ, 5, 4, 0, "header", ζs0);
                 ζfrag(ζ, 6, 5, 6);
@@ -783,7 +783,7 @@ if (condition3) {
             if (ζ[0].cm) {
                 ζfrag(ζ, 1, 1);
                 ζelt(ζ, 2, 1, 0, "span");
-                ζfrag(ζ, 3, 1, 0, 1);
+                ζfrag(ζ, 3, 1, 0, 2);
             }
             let x=123;
             ζcpt(ζ, 3, 0, ζe(ζ, 0, foo), 0, 0);
@@ -802,7 +802,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
                 ζpnode(ζ, 2, 1, 0, "paramA", ζs0);
                 ζpnode(ζ, 3, 1, 0, "paramB");
             }
@@ -856,7 +856,7 @@ if (condition3) {
         return ζt(function (ζ) {
             if (ζ[0].cm) {
                 ζelt(ζ, 1, 1, 0, "div", ζs0);
-                ζfrag(ζ, 2, 1, 0, 1);
+                ζfrag(ζ, 2, 1, 0, 2);
                 ζfrag(ζ, 3, 2, 3);
                 ζpnode(ζ, 4, 3, 0, "header");
                 ζtxt(ζ, 5, 4, 5, " The big title ");
@@ -1025,7 +1025,7 @@ if (condition3) {
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
                 ζelt(ζ, 1, 1, 0, "div");
-                ζfrag(ζ, 2, 1, 0, 2);
+                ζfrag(ζ, 2, 1, 0, 3);
             }
             ζasync(ζ, 2, 1, 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
@@ -1046,7 +1046,7 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 1, 0, 3);
             }
             ζasync(ζ, 1, 3, 0, function () {
                 ζ1 = ζcc(ζ, 1, ++ζi1);
@@ -1069,7 +1069,7 @@ if (condition3) {
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
                 ζfrag(ζ, 1, 1);
-                ζfrag(ζ, 2, 1, 0, 2);
+                ζfrag(ζ, 2, 1, 0, 3);
                 ζtxt(ζ, 3, 1, 0, ζs0);
             }
             ζasync(ζ, 2, ζe(ζ, 0, expr()), 0, function () {
@@ -1099,7 +1099,7 @@ if (condition3) {
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
                 ζelt(ζ, 1, 1, 0, "div");
-                ζfrag(ζ, 2, 1, 0, 2);
+                ζfrag(ζ, 2, 1, 0, 3);
             }
             ζasync(ζ, 2, ζe(ζ, 0, expr()), 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
@@ -1125,10 +1125,10 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, ζs0);
-                ζfrag(ζ, 4, 2, 2, 2);
+                ζfrag(ζ, 4, 2, 2, 3);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, cpt), 2, 0);
             ζtxtval(ζ, 3, 2, ζs0, 1, [0, msg]);
@@ -1161,10 +1161,10 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 1, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, ζs0);
-                ζfrag(ζ, 4, 2, 2, 2);
+                ζfrag(ζ, 4, 2, 2, 3);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, cpt), 2, 0);
             ζtxtval(ζ, 3, 2, ζs0, 1, [0, msg]);
@@ -1174,10 +1174,10 @@ if (condition3) {
                 if (ζ1[0].cm) {
                     ζelt(ζ1, 1, 1, 0, "div");
                     ζtxt(ζ1, 2, 1, 0, " other text ");
-                    ζfrag(ζ1, 3, 1, 0, 1);
+                    ζfrag(ζ1, 3, 1, 0, 2);
                     ζfrag(ζ1, 4, 3, 4);
                     ζtxt(ζ1, 5, 4, 4, ζs1);
-                    ζfrag(ζ1, 6, 4, 4, 2);
+                    ζfrag(ζ1, 6, 4, 4, 3);
                 }
                 ζcpt(ζ1, 3, 0, ζe(ζ1, 0, cpt), 4, 0);
                 ζtxtval(ζ1, 5, 4, ζs1, 1, [0, msg]);
@@ -1209,12 +1209,12 @@ if (condition3) {
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
                 ζelt(ζ, 1, 1, 0, "div");
-                ζfrag(ζ, 2, 1, 0, 2);
+                ζfrag(ζ, 2, 1, 0, 3);
             }
             ζasync(ζ, 2, 1, 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1, 0, 1);
+                    ζfrag(ζ1, 1, 1, 0, 2);
                     ζtxt(ζ1, 2, 1, 2, ζs0);
                 }
                 ζcpt(ζ1, 1, 0, ζe(ζ1, 0, section), 2, 0);

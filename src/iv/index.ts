@@ -173,22 +173,24 @@ export const ζu = []; // must be an array to be used for undefined statics
  * @param idx the index in c.nodes 
  * @param parentIdx the parent index in c.nodes
  */
-export function ζfrag(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number = 0, containerFlag: number = 0) {
-    if (!instHolderIdx || containerFlag) {
-        // we must create the fragment if isContainer as it will hold the sub-block nodes used in the sub-instructions
-        createFrag(c, idx, parentIdx, containerFlag, instHolderIdx === 0);
+export function ζfrag(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number = 0, type: number = 0) {
+    if (!instHolderIdx || type) {
+        // we must create the fragment if is a container as it will hold the sub-block nodes used in the sub-instructions
+        // this occurs when a js block is used in content -> the js block context will try to access his container to hold the sub-context 
+        // (unless we pass the parent instruction holder - e.g. ζ1 = ζcc(ζ, 6, 4, ++ζi1); ---> 4 would be instHolderIdx)
+        createFrag(c, idx, parentIdx, type, instHolderIdx === 0);
         if (instHolderIdx) {
             addInstruction(true, c, idx, instHolderIdx, connectChild, [c, c[idx], idx, true]);
         }
     } else {
-        addInstruction(true, c, idx, instHolderIdx, createFrag, [c, idx, parentIdx, containerFlag, true]);
+        addInstruction(true, c, idx, instHolderIdx, createFrag, [c, idx, parentIdx, type, true]);
     }
 }
 
-function createFrag(c: BlockNodes, idx: number, parentIdx: number, containerFlag: number = 0, setChildPosition = true) {
-    // containerFlag: 0=not a container, 1=block container, 2=async container
+function createFrag(c: BlockNodes, idx: number, parentIdx: number, type: number, setChildPosition = true) {
+    // containerType: 0=group, 1=js block container 2=component container, 3=async container
     let nd: IvFragment | IvContainer;
-    if (!containerFlag) {
+    if (!type) {
         nd = <IvFragment>{
             kind: "#fragment",
             uid: "frag" + (++uidCount),
@@ -228,7 +230,7 @@ function createFrag(c: BlockNodes, idx: number, parentIdx: number, containerFlag
             instructions: undefined,
             contentData: undefined,
             exprData: undefined,
-            isAsyncHost: (containerFlag === 2),
+            isAsyncHost: (type === 3),
             asyncPriority: 0
         }
     }

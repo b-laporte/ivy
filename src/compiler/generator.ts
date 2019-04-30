@@ -237,20 +237,22 @@ export class JsBlockUpdate implements UpdateInstruction {
 
     scan() {
         if (this.node.kind === "#element" || this.node.kind === "#fragment" || this.node.kind === "#component") {
-            this.generateCmInstruction(this.node, 1, this.iHolder);
+            this.generateCmInstruction(this.node, 0, this.iHolder);
             this.generateUpdateInstruction(this.node, this.iHolder, "", "");
         } else {
             let content = this.node.content, len = content ? content.length : 0, nd: XjsContentNode;
             if (len === 0) return;
 
+            let pIdx = 0;
             // creation mode
             if (len > 1) {
                 // need container fragment
                 this.nodeCount = 1;
-                this.createInstructions.push(new FragmentCreation(null, 1, 1, this, this.iHolder, ContainerType.Group)); // root fragment -> parentIdx = 1
+                this.createInstructions.push(new FragmentCreation(null, 1, pIdx, this, this.iHolder, ContainerType.Group)); // root fragment -> parentIdx = 1
+                pIdx = 1;
             }
             for (let i = 0; len > i; i++) {
-                this.generateCmInstruction(content![i], 1, this.iHolder);
+                this.generateCmInstruction(content![i], pIdx, this.iHolder);
             }
 
             // update mode

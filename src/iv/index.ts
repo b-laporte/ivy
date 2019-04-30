@@ -173,14 +173,11 @@ export const ζu = []; // must be an array to be used for undefined statics
  * @param parentIdx the parent index in c.nodes
  */
 export function ζfrag(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number = 0, type: number = 0) {
-    if (!instHolderIdx) { // || type
+    if (!instHolderIdx) {
         // we must create the fragment if is a container as it will hold the sub-block nodes used in the sub-instructions
         // this occurs when a js block is used in content -> the js block context will try to access his container to hold the sub-context 
         // (unless we pass the parent instruction holder - e.g. ζ1 = ζcc(ζ, 6, 4, ++ζi1); ---> 4 would be instHolderIdx)
-        createFrag(c, idx, parentIdx, type, instHolderIdx === 0);
-        // if (instHolderIdx) {
-        //     addInstruction(true, c, idx, instHolderIdx, connectChild, [c, c[idx], idx, true]);
-        // }
+        createFrag(c, idx, parentIdx, type, true);
     } else {
         addInstruction(true, c, idx, instHolderIdx, createFrag, [c, idx, parentIdx, type, true]);
     }
@@ -890,7 +887,7 @@ function createElt(c: BlockNodes, idx: number, parentIdx: number, name: string, 
 
 function connectChild(c: BlockNodes, child: IvNode, childIdx: number, setChildPosition = true) {
     c[childIdx] = child;
-    if (child.parentIdx === childIdx || !setChildPosition) return; // root node
+    if (child.parentIdx === 0 || !setChildPosition) return; // root node
     let p = c[child.parentIdx] as IvParentNode;
     if (!p) return;
     if (!p.firstChild) {

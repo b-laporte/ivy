@@ -9,7 +9,7 @@ describe('Code generator', () => {
             # Hello World #
         }`), `
             if (ζ[0].cm) {
-                ζtxt(ζ, 1, 1, 0, " Hello World ");
+                ζtxt(ζ, 1, 0, 0, " Hello World ");
             }
             ζend(ζ, 0);
         `, '1');
@@ -19,7 +19,7 @@ describe('Code generator', () => {
             # World #
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " Hello ");
                 ζtxt(ζ, 3, 1, 0, " World ");
             }
@@ -32,7 +32,7 @@ describe('Code generator', () => {
             # Hello {name} #
         }`), `
             if (ζ[0].cm) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+                ζtxt(ζ, 1, 0, 0, ζs0);
             }
             ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, name));
             ζend(ζ, 0);
@@ -49,7 +49,7 @@ describe('Code generator', () => {
             # {name+1} {::name+2} #
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, ζs0);
                 ζtxt(ζ, 3, 1, 0, ζs1);
             }
@@ -77,7 +77,7 @@ describe('Code generator', () => {
             </div>
         }`), `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1);
                 ζtxt(ζ, 3, 2, 0, ζs0);
                 ζelt(ζ, 4, 2, 0, "span");
@@ -98,7 +98,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.body, `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζs0);
                 ζelt(ζ, 2, 1, 0, "span", ζs1);
                 ζtxt(ζ, 3, 2, 0, " Hello ");
                 ζelt(ζ, 4, 1, 0, "span");
@@ -119,7 +119,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t2.body, `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζu, ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζu, ζs0);
                 ζelt(ζ, 2, 1, 0, "span", ζs1, ζs2);
                 ζtxt(ζ, 3, 2, 0, " Hello ");
                 ζelt(ζ, 4, 1, 0, "section");
@@ -140,7 +140,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.body, `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζs0);
             }
             ζend(ζ, 0);
         `, '1a');
@@ -157,7 +157,7 @@ describe('Code generator', () => {
             </div>
         }`), `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζelt(ζ, 2, 1, 0, "span");
             }
             ζatt(ζ, 1, 0, "title", ζe(ζ, 0, exp()+123));
@@ -173,7 +173,7 @@ describe('Code generator', () => {
             </div>
         }`), `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζelt(ζ, 2, 1, 0, "span");
             }
             ζprop(ζ, 1, 0, "title", ζe(ζ, 0, exp()+123));
@@ -193,7 +193,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t.body, `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " fragment 1 ");
                 ζfrag(ζ, 3, 1);
                 ζelt(ζ, 4, 3, 0, "div");
@@ -212,7 +212,7 @@ describe('Code generator', () => {
             # Something else #
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " Something ");
                 ζtxt(ζ, 3, 1, 0, " Something else ");
             }
@@ -229,7 +229,7 @@ describe('Code generator', () => {
             } while (test);
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " Something ");
             }
             do {
@@ -248,14 +248,14 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζfrag(ζ, 2, 1, 0, 1);
                 ζtxt(ζ, 3, 1, 0, " \\(end) ");
             }
             if (test) {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζtxt(ζ1, 1, 1, 0, ζs0);
+                    ζtxt(ζ1, 1, 0, 0, ζs0);
                 }
                 ζtxtval(ζ1, 1, 0, ζs0, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, 0);
@@ -281,21 +281,21 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζfrag(ζ, 2, 1, 0, 1);
                 ζfrag(ζ, 3, 1, 0, 1);
             }
             if (test) {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζtxt(ζ1, 1, 1, 0, ζs0);
+                    ζtxt(ζ1, 1, 0, 0, ζs0);
                 }
                 ζtxtval(ζ1, 1, 0, ζs0, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, 0);
             } else {
                 ζ2 = ζcc(ζ, 3, ++ζi2);
                 if (ζ2[0].cm) {
-                    ζtxt(ζ2, 1, 1, 0, ζs1);
+                    ζtxt(ζ2, 1, 0, 0, ζs1);
                 }
                 ζtxtval(ζ2, 1, 0, ζs1, 1, ζe(ζ2, 0, name));
                 ζend(ζ2, 0);
@@ -323,14 +323,14 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " hello ");
                 ζfrag(ζ, 3, 1, 0, 1);
             }
             do {
                 ζ1 = ζcc(ζ, 3, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1);
+                    ζfrag(ζ1, 1, 0);
                     ζtxt(ζ1, 2, 1, 0, ζs0);
                 }
                 let x=123;
@@ -351,14 +351,14 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζfrag(ζ, 2, 1, 0, 1);
                 ζfrag(ζ, 3, 1, 0, 1);
             }
             if (a) {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζtxt(ζ1, 1, 1, 0, ζs0);
+                    ζtxt(ζ1, 1, 0, 0, ζs0);
                 }
                 ζtxtval(ζ1, 1, 0, ζs0, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, 0);
@@ -366,7 +366,7 @@ describe('Code generator', () => {
             if (b) {
                 ζ2 = ζcc(ζ, 3, ++ζi2);
                 if (ζ2[0].cm) {
-                    ζtxt(ζ2, 1, 1, 0, ζs1);
+                    ζtxt(ζ2, 1, 0, 0, ζs1);
                 }
                 ζtxtval(ζ2, 1, 0, ζs1, 1, ζe(ζ2, 0, name));
                 ζend(ζ2, 0);
@@ -384,7 +384,7 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζelt(ζ, 2, 1, 0, "span");
                 ζfrag(ζ, 3, 1, 0, 1);
                 ζelt(ζ, 4, 1, 0, "section");
@@ -392,7 +392,7 @@ describe('Code generator', () => {
             if (a) {
                 ζ1 = ζcc(ζ, 3, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1);
+                    ζfrag(ζ1, 1, 0);
                     ζtxt(ζ1, 2, 1, 0, ζs0);
                     ζelt(ζ1, 3, 1, 0, "div");
                 }
@@ -423,20 +423,20 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 1);
+                ζfrag(ζ, 1, 0, 0, 1);
             }
             if (a) {
                 ζi2 = 0;
                 ζ1 = ζcc(ζ, 1, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1);
+                    ζfrag(ζ1, 1, 0);
                     ζfrag(ζ1, 2, 1, 0, 1);
                     ζelt(ζ1, 3, 1, 0, "div");
                 }
                 if (b) {
                     ζ2 = ζcc(ζ1, 2, ++ζi2);
                     if (ζ2[0].cm) {
-                        ζelt(ζ2, 1, 1, 0, "span");
+                        ζelt(ζ2, 1, 0, 0, "span");
                     }
                     ζend(ζ2, 0);
                 }
@@ -468,14 +468,14 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζtxt(ζ, 2, 1, 0, " first ");
                 ζfrag(ζ, 3, 1, 0, 1);
             }
             if (condition) {
                 ζ1 = ζcc(ζ, 3, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "span");
+                    ζelt(ζ1, 1, 0, 0, "span");
                 }
                 ζend(ζ1, 0);
             }
@@ -496,7 +496,7 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1);
                 ζfrag(ζ, 3, 2, 0, 1);
                 ζfrag(ζ, 4, 1, 0, 1);
@@ -504,14 +504,14 @@ describe('Code generator', () => {
             if (condition) {
                 ζ1 = ζcc(ζ, 3, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "span");
+                    ζelt(ζ1, 1, 0, 0, "span");
                 }
                 ζend(ζ1, 0);
             }
             if (condition) {
                 ζ2 = ζcc(ζ, 4, ++ζi2);
                 if (ζ2[0].cm) {
-                    ζelt(ζ2, 1, 1, 0, "span");
+                    ζelt(ζ2, 1, 0, 0, "span");
                 }
                 ζend(ζ2, 0);
             }
@@ -532,14 +532,14 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1, 0, 1);
             }
             if (condition1) {
                 ζi2 = 0;
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1);
+                    ζfrag(ζ1, 1, 0);
                     ζelt(ζ1, 2, 1, 0, "span");
                     ζfrag(ζ1, 3, 1, 0, 1);
                 }
@@ -547,7 +547,7 @@ describe('Code generator', () => {
 if (condition2) {
                     ζ2 = ζcc(ζ1, 3, ++ζi2);
                     if (ζ2[0].cm) {
-                        ζelt(ζ2, 1, 1, 0, "div");
+                        ζelt(ζ2, 1, 0, 0, "div");
                     }
                     ζend(ζ2, 0);
                 }
@@ -571,14 +571,14 @@ if (condition2) {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2, ζi3 = 0, ζ3;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1, 0, 1);
             }
             if (condition1) {
                 ζi2 = ζi3 = 0;
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1);
+                    ζfrag(ζ1, 1, 0);
                     ζelt(ζ1, 2, 1, 0, "span");
                     ζfrag(ζ1, 3, 1, 0, 1);
                     ζfrag(ζ1, 4, 1, 0, 1);
@@ -587,14 +587,14 @@ if (condition2) {
 if (condition2) {
                     ζ2 = ζcc(ζ1, 3, ++ζi2);
                     if (ζ2[0].cm) {
-                        ζelt(ζ2, 1, 1, 0, "div");
+                        ζelt(ζ2, 1, 0, 0, "div");
                     }
                     ζend(ζ2, 0);
                 } 
 if (condition3) {
                     ζ3 = ζcc(ζ1, 4, ++ζi3);
                     if (ζ3[0].cm) {
-                        ζelt(ζ3, 1, 1, 0, "div");
+                        ζelt(ζ3, 1, 0, 0, "div");
                     }
                     ζend(ζ3, 0);
                 }
@@ -615,7 +615,7 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, " first ");
                 ζfrag(ζ, 4, 2, 2, 1);
@@ -624,7 +624,7 @@ if (condition3) {
             if (condition) {
                 ζ1 = ζcc(ζ, 4, ++ζi1, 2);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 1, "span");
+                    ζelt(ζ1, 1, 0, 1, "span");
                 }
                 ζatt(ζ1, 1, 1, "class", [0, foo]);
                 ζatt(ζ1, 1, 1, "title", [1, foo+1]);
@@ -642,7 +642,7 @@ if (condition3) {
 
         assert.equal(t1.body, `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, alert), 0, 0, ζs0);
             ζcall(ζ, 1);
@@ -659,7 +659,7 @@ if (condition3) {
         }`);
         assert.equal(t2.body, `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, b.section), 0, 0, ζs0);
             ζparam(ζ, 1, 0, "position", ζe(ζ, 1, getPosition()));
@@ -679,7 +679,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
                 ζelt(ζ, 2, 1, 2, "span");
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, myComponent), 2, 0);
@@ -697,7 +697,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, ζs0);
                 ζfrag(ζ, 4, 2, 2, 2);
@@ -724,7 +724,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " first ");
                 ζfrag(ζ, 3, 1, 0, 2);
                 ζfrag(ζ, 4, 3, 4);
@@ -750,7 +750,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζtxt(ζ, 2, 1, 0, " first ");
                 ζfrag(ζ, 3, 1, 0, 2);
                 ζfrag(ζ, 4, 3, 4);
@@ -781,7 +781,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζelt(ζ, 2, 1, 0, "span");
                 ζfrag(ζ, 3, 1, 0, 2);
             }
@@ -802,7 +802,7 @@ if (condition3) {
             </>
         }`), `
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
                 ζpnode(ζ, 2, 1, 0, "paramA", ζs0);
                 ζpnode(ζ, 3, 1, 0, "paramB");
             }
@@ -821,7 +821,7 @@ if (condition3) {
             </div>
         }`), `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1);
             }
             ζcont(ζ, 2, 0, ζe(ζ, 0, $content));
@@ -834,7 +834,7 @@ if (condition3) {
             <div class="foo" @content/>
         }`), `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζs0);
             }
             ζcont(ζ, 1, 0, ζe(ζ, 0, $content));
             ζend(ζ, 0);
@@ -855,7 +855,7 @@ if (condition3) {
         const ζs0 = ["class", "main"], ζs1 = ["type", "important"], ζs2 = ["class", "content"];
         return ζt(function (ζ) {
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζs0);
                 ζfrag(ζ, 2, 1, 0, 2);
                 ζfrag(ζ, 3, 2, 3);
                 ζpnode(ζ, 4, 3, 0, "header");
@@ -885,7 +885,7 @@ if (condition3) {
         return ζt(function (ζ, $) {
             let name = $["name"];
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζs0);
                 ζtxt(ζ, 2, 1, 0, ζs1);
             }
             ζprop(ζ, 1, 0, "title", ζe(ζ, 0, "Message for " + name));
@@ -909,7 +909,7 @@ if (condition3) {
         return ζt(function (ζ, $) {
             let firstName = $["firstName"], lastName = $["lastName"];
             if (ζ[0].cm) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+                ζtxt(ζ, 1, 0, 0, ζs0);
             }
             ζtxtval(ζ, 1, 0, ζs0, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζ[0].cm? lastName : ζu));
             ζend(ζ, 0);
@@ -936,7 +936,7 @@ if (condition3) {
         return ζt(function (ζ, $) {
             let $params = $, a = $["a"], b = $["b"];
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div", ζs0);
+                ζelt(ζ, 1, 0, 0, "div", ζs0);
                 ζtxt(ζ, 2, 1, 0, ζs1);
             }
             ζtxtval(ζ, 2, 0, ζs1, 1, ζe(ζ, 0, $params.a));
@@ -972,7 +972,7 @@ if (condition3) {
         const ζs0 = [" Hello ", "", " "];
         return ζt(function (ζ, $) {
             if (ζ[0].cm) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+                ζtxt(ζ, 1, 0, 0, ζs0);
             }
             ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, $.name));
             ζend(ζ, 0);
@@ -987,7 +987,7 @@ if (condition3) {
         return ζt(function (ζ, $) {
             let name = $["name"];
             if (ζ[0].cm) {
-                ζtxt(ζ, 1, 1, 0, ζs0);
+                ζtxt(ζ, 1, 0, 0, ζs0);
             }
             ζtxtval(ζ, 1, 0, ζs0, 1, ζe(ζ, 0, $.name));
             ζend(ζ, 0);
@@ -1002,7 +1002,7 @@ if (condition3) {
             </div>
         }`), `
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζlistener(ζ, 2, 1, 0, "click");
                 ζlistener(ζ, 3, 1, 0, "mousemove");
                 ζtxt(ζ, 4, 1, 0, ζs0);
@@ -1024,13 +1024,13 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1, 0, 3);
             }
             ζasync(ζ, 2, 1, 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "div", ζs1);
+                    ζelt(ζ1, 1, 0, 0, "div", ζs1);
                     ζtxt(ζ1, 2, 1, 0, ζs2);
                 }
                 ζtxtval(ζ1, 2, 0, ζs2, 1, ζe(ζ1, 0, msg));
@@ -1046,12 +1046,12 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 3);
+                ζfrag(ζ, 1, 0, 0, 3);
             }
             ζasync(ζ, 1, 3, 0, function () {
                 ζ1 = ζcc(ζ, 1, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζelt(ζ1, 1, 0, 0, "div");
                     ζtxt(ζ1, 2, 1, 0, ζs0);
                 }
                 ζtxtval(ζ1, 2, 0, ζs0, 1, ζe(ζ1, 0, msg));
@@ -1068,14 +1068,14 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1);
+                ζfrag(ζ, 1, 0);
                 ζfrag(ζ, 2, 1, 0, 3);
                 ζtxt(ζ, 3, 1, 0, ζs0);
             }
             ζasync(ζ, 2, ζe(ζ, 0, expr()), 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζelt(ζ1, 1, 0, 0, "div");
                     ζlistener(ζ1, 2, 1, 0, "click");
                     ζtxt(ζ1, 3, 1, 0, ζs1);
                 }
@@ -1098,13 +1098,13 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1, 0, 3);
             }
             ζasync(ζ, 2, ζe(ζ, 0, expr()), 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1);
+                    ζfrag(ζ1, 1, 0);
                     ζtxt(ζ1, 2, 1, 0, ζs0);
                 }
                 ζtxtval(ζ1, 2, 0, ζs0, 1, ζe(ζ1, 0, msg));
@@ -1125,7 +1125,7 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, ζs0);
                 ζfrag(ζ, 4, 2, 2, 3);
@@ -1135,7 +1135,7 @@ if (condition3) {
             ζasync(ζ, 4, 1, 2, function () {
                 ζ1 = ζcc(ζ, 4, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζelt(ζ1, 1, 0, 0, "div");
                     ζtxt(ζ1, 2, 1, 0, " other text ");
                 }
                 ζend(ζ1, 0, 0, 1);
@@ -1161,7 +1161,7 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1, ζi2 = 0, ζ2;
             if (ζ[0].cm) {
-                ζfrag(ζ, 1, 1, 0, 2);
+                ζfrag(ζ, 1, 0, 0, 2);
                 ζfrag(ζ, 2, 1, 2);
                 ζtxt(ζ, 3, 2, 2, ζs0);
                 ζfrag(ζ, 4, 2, 2, 3);
@@ -1172,7 +1172,7 @@ if (condition3) {
                 ζi2 = 0;
                 ζ1 = ζcc(ζ, 4, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζelt(ζ1, 1, 1, 0, "div");
+                    ζelt(ζ1, 1, 0, 0, "div");
                     ζtxt(ζ1, 2, 1, 0, " other text ");
                     ζfrag(ζ1, 3, 1, 0, 2);
                     ζfrag(ζ1, 4, 3, 4);
@@ -1184,7 +1184,7 @@ if (condition3) {
             ζasync(ζ1, 6, 1, 4, function () {
                     ζ2 = ζcc(ζ1, 6, ++ζi2);
                     if (ζ2[0].cm) {
-                        ζelt(ζ2, 1, 1, 0, "div");
+                        ζelt(ζ2, 1, 0, 0, "div");
                         ζtxt(ζ2, 2, 1, 0, ζs2);
                     }
                     ζtxtval(ζ2, 2, 0, ζs2, 1, ζe(ζ2, 0, msg));
@@ -1208,13 +1208,13 @@ if (condition3) {
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
-                ζelt(ζ, 1, 1, 0, "div");
+                ζelt(ζ, 1, 0, 0, "div");
                 ζfrag(ζ, 2, 1, 0, 3);
             }
             ζasync(ζ, 2, 1, 0, function () {
                 ζ1 = ζcc(ζ, 2, ++ζi1);
                 if (ζ1[0].cm) {
-                    ζfrag(ζ1, 1, 1, 0, 2);
+                    ζfrag(ζ1, 1, 0, 0, 2);
                     ζtxt(ζ1, 2, 1, 2, ζs0);
                 }
                 ζcpt(ζ1, 1, 0, ζe(ζ1, 0, section), 2, 0);

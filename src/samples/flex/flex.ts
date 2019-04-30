@@ -38,7 +38,7 @@ const avail = template(`(data, selectedItinerary, selectedFare, visible) => {
         <div class="container availability">
         let first=true;
         for (let bound of availability.bounds) {
-            <div @async={first? 0 : 1}>
+            <div> // @async={first? 0 : 1}
                 first=false;
                 if (bound.searchData) {
                     <h2> #{bound.searchData.beginLocation.cityName} to {bound.searchData.endLocation.cityName}# </h2>

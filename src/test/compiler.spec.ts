@@ -21,7 +21,7 @@ describe('Template compiler', () => {
             let x = (function () {
             return ζt(function (ζ) {
                 if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 1, 0, " hello world ");
+                    ζtxt(ζ, 1, 0, 0, " hello world ");
                 }
                 ζend(ζ, 0);
             });
@@ -55,7 +55,7 @@ describe('Template compiler', () => {
             return ζt(function (ζ, $) {
                 let a = $["a"];
                 if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 1, 0, " T1 ");
+                    ζtxt(ζ, 1, 0, 0, " T1 ");
                 }
                 ζend(ζ, 0);
             }, 0, ζParams);
@@ -68,7 +68,7 @@ describe('Template compiler', () => {
             return ζt(function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];
                 if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 1, 0, " T1 ");
+                    ζtxt(ζ, 1, 0, 0, " T1 ");
                 }
                 ζend(ζ, 0);
             }, 0, ζParams);

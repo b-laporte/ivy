@@ -37,14 +37,6 @@ export class Template implements IvTemplate {
         return this.refreshArg;
     }
 
-    setParentCtxt(parentCtxt: IvContext, containerIdx: number) {
-        let ctxt = this.context;
-        ctxt.parentCtxt = parentCtxt;
-        ctxt.doc = parentCtxt.doc;
-        ctxt.containerIdx = containerIdx;
-        ctxt.rootDomNode = parentCtxt.rootDomNode;
-    }
-
     attach(element: any) {
         if (!this.context.rootDomNode) {
             let ctxt = this.context;
@@ -139,6 +131,13 @@ function createContext(parentCtxt: IvContext | null, isTemplateRoot: boolean, co
     return ctxt;
 }
 
+function setParentCtxt(ctxt: IvContext, parentCtxt: IvContext, containerIdx: number) {
+    ctxt.parentCtxt = parentCtxt;
+    ctxt.doc = parentCtxt.doc;
+    ctxt.containerIdx = containerIdx;
+    ctxt.rootDomNode = parentCtxt.rootDomNode;
+}
+
 /**
  * Template definition
  * (not called at runtime - cf. ζt)
@@ -174,14 +173,14 @@ export const ζu = []; // must be an array to be used for undefined statics
  * @param parentIdx the parent index in c.nodes
  */
 export function ζfrag(c: BlockNodes, idx: number, parentIdx: number, instHolderIdx: number = 0, type: number = 0) {
-    if (!instHolderIdx || type) {
+    if (!instHolderIdx) { // || type
         // we must create the fragment if is a container as it will hold the sub-block nodes used in the sub-instructions
         // this occurs when a js block is used in content -> the js block context will try to access his container to hold the sub-context 
         // (unless we pass the parent instruction holder - e.g. ζ1 = ζcc(ζ, 6, 4, ++ζi1); ---> 4 would be instHolderIdx)
         createFrag(c, idx, parentIdx, type, instHolderIdx === 0);
-        if (instHolderIdx) {
-            addInstruction(true, c, idx, instHolderIdx, connectChild, [c, c[idx], idx, true]);
-        }
+        // if (instHolderIdx) {
+        //     addInstruction(true, c, idx, instHolderIdx, connectChild, [c, c[idx], idx, true]);
+        // }
     } else {
         addInstruction(true, c, idx, instHolderIdx, createFrag, [c, idx, parentIdx, type, true]);
     }
@@ -245,9 +244,26 @@ function createFrag(c: BlockNodes, idx: number, parentIdx: number, type: number,
  * @param instHolderIdx index of the instruction holder (if any)
  * @param keyExpr value of the key expression (if any)
  */
-export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: any): any {
-    // f is a container fragment
-    // console.log("cc for container", c[idx].uid, "in", c[0].uid, "instance", instanceIdx)
+export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, instHolderIdx: number = 0, keyExpr?: any): any {
+    if (!instHolderIdx) {
+        return checkContext(c, idx, instanceIdx);
+    } else {
+        let f = c[idx] as IvContainer;
+        if (!f) {
+            // first-time call
+            let ctxt = createContext(null, false, idx);
+            addInstruction(true, c, idx, instHolderIdx, checkContext, [c, idx, instanceIdx, false, ctxt]);
+            return ctxt.nodes;
+        } else {
+            let nodes = checkContext(c, idx, instanceIdx, true);
+            addInstruction(true, c, idx, instHolderIdx, checkContext, [c, idx, instanceIdx, false]);
+            return nodes;
+        }
+
+    }
+}
+
+function checkContext(c: BlockNodes, idx: number, instanceIdx: number, firstRun = true, subContext?: IvContext) {
     let f = c[idx] as IvContainer, pCtxt = c[0] as IvContext, nodes = f.contentBlocks[instanceIdx - 1];
     if (instanceIdx === 1 && f.contentBlocks.length > 1) {
         // previous content blocks are moved to the block pool to be re-used if necessary
@@ -262,12 +278,19 @@ export function ζcc(c: BlockNodes, idx: number, instanceIdx: number, keyExpr?: 
         if (f.blockPool.length > 0) {
             nodes = f.contentBlocks[instanceIdx - 1] = f.blockPool.shift()!;
         } else {
-            let ctxt = createContext(pCtxt, false, idx);
+            let ctxt = subContext;
+            if (!ctxt) {
+                ctxt = createContext(pCtxt, false, idx);
+            } else {
+                setParentCtxt(ctxt, pCtxt, idx);
+            }
             nodes = f.contentBlocks[instanceIdx - 1] = ctxt.nodes;
         }
     }
-    f.lastRefresh = (nodes[0] as IvContext).lastRefresh = pCtxt.lastRefresh;
-    cleanInstructions(nodes);
+    if (firstRun) {
+        f.lastRefresh = (nodes[0] as IvContext).lastRefresh = pCtxt.lastRefresh;
+        //cleanInstructions(nodes);
+    }
     // logNodes(nodes, "cc result")
     return nodes;
 }
@@ -354,7 +377,7 @@ function getRootContext(ctxt: IvContext) {
 function appendToDom(c: BlockNodes, nd: IvNode, projectRoot = false, parentDomNode = null) {
     // console.log("appendToDom ", nd ? nd.uid : "XX", "in", c[0].uid, "attached:", nd ? nd.attached : false)
     if (!nd || (nd.kind !== "#container" && nd.attached) || (!projectRoot && nd.contentData)) return;
-    runInstructions(nd);
+    runInstructions(nd, "appendToDom");
 
     let pdn: any, domNode = nd.domNode;
     if (nd.contentData) {
@@ -467,7 +490,7 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
     // if (nd) console.log("insertInDomBefore - test", nd.uid, nd.attached, !parentDomNd, (!projectRoot && nd.contentData))
     if (!nd || (nd.kind !== "#container" && nd.attached) || !parentDomNd || (!projectRoot && nd.contentData)) return;
     // console.log("insertInDomBefore", nd.uid, "parent", parentDomNd.$uid, "before", nextDomNd.$uid)
-    runInstructions(nd);
+    runInstructions(nd, "insertInDomBefore");
 
     let domNode = nd.domNode;
     if (domNode && domNode !== parentDomNd) {
@@ -518,10 +541,10 @@ function insertInDomBefore(c: BlockNodes, parentDomNd: any, nd: IvNode, nextDomN
  * @param idx 
  */
 
-export function ζend(c: BlockNodes, instHolderIdx: number, containerIndexes?: (number[] | 0), isAsyncBlock?: 1) {
+export function ζend(c: BlockNodes, useInstructions: number, containerIndexes?: (number[] | 0), isAsyncBlock?: 1) {
     // close the creation mode to avoid running it multiple times
     (c[0] as IvContext).cm = false;
-    if (!instHolderIdx) {
+    if (!useInstructions) {
         endBlock(c, containerIndexes, isAsyncBlock);
     } else {
         addInstruction(false, c, 0, 1, endBlock, [c, containerIndexes]);
@@ -575,7 +598,7 @@ function checkContainer(c: BlockNodes, idx: number, firstTime: boolean) {
     let container = c[idx] as IvContainer;
     if (!container || container.isAsyncHost) return; // happens when block condition has never been true
     let lastRefresh = container.lastRefresh;
-    // console.log("checkContainer", container.uid, "in=", c[0].uid, idx, "container.lastRefresh=", lastRefresh, "ctxt.lastRefresh=", (c[0] as IvContext).lastRefresh);
+    // console.log("checkContainer", container.uid, "in=", c[0].uid, idx, "container.lastRefresh=", lastRefresh, "ctxt.lastRefresh=", (c[0] as IvContext).lastRefresh, "firstTime:", firstTime);
     if (!firstTime && lastRefresh !== (c[0] as IvContext).lastRefresh) {
         // remove all nodes from DOM
         removeFromDom(c, container as IvNode);
@@ -585,7 +608,11 @@ function checkContainer(c: BlockNodes, idx: number, firstTime: boolean) {
             console.log("Todo: checkContainer / runInstructions for sub-templates")
         } else {
             let blocks = container.contentBlocks, nbrOfBlocks = blocks.length, nodes: BlockNodes;
-            if (!firstTime) {
+            if (firstTime) {
+                for (let i = 0; nbrOfBlocks > i; i++) {
+                    runInstructions(blocks[i][1] as IvNode, "checkContainer 1");
+                }
+            } else {
                 // on first refresh this code should not be run as nodes will be added in the end method
                 if (container.contentLength < nbrOfBlocks) {
                     // append new nodes
@@ -622,7 +649,7 @@ function checkContainer(c: BlockNodes, idx: number, firstTime: boolean) {
             container.contentLength = nbrOfBlocks;
             for (let i = 0; nbrOfBlocks > i; i++) {
                 nodes = blocks[i];
-                runInstructions(nodes[1] as IvNode);
+                runInstructions(nodes[1] as IvNode, "checkContainer 2");
             }
         }
     }
@@ -725,7 +752,7 @@ function findNextSiblingDomNd(c: BlockNodes, node: IvNode): SiblingDomPosition {
 }
 
 function addInstruction(creation: boolean, c: BlockNodes, targetIdx: number, instHolderIdx: number, func: Function, args: any[]) {
-    // console.log("addInstruction - creation=", creation, "ctxt=", c[0].uid, "targetIdx=", targetIdx, "instHolderIdx=", instHolderIdx);
+    // console.log("addInstruction", func.name, "ctxt=", c[0].uid, "targetIdx=", targetIdx, "instHolderIdx=", instHolderIdx);
     if (targetIdx === instHolderIdx && !c[instHolderIdx]) {
         // this node is a content root node that has to be created but that will be considered as deferred
         func.apply(null, args);
@@ -744,12 +771,13 @@ function addInstruction(creation: boolean, c: BlockNodes, targetIdx: number, ins
                 }
             }
             let parent = c[contentRoot.parentIdx] as IvContainer;
-            parent.cptContent = contentRoot;
+            if (parent) {
+                parent.cptContent = contentRoot;
+            }
         }
     } else {
         if (!c[instHolderIdx]) {
-            console.log("NO HOLDER!", c[0].uid, instHolderIdx)
-            logNodes(c, "addInstruction - fail")
+            // logNodes(c, "addInstruction: no holder in " + c[0].uid + " at " + instHolderIdx);
         }
         let nd = c[instHolderIdx] as IvNode, instructions = nd.instructions;
         if (!instructions) {
@@ -763,11 +791,12 @@ function addInstruction(creation: boolean, c: BlockNodes, targetIdx: number, ins
     }
 }
 
-function runInstructions(nd: IvNode) {
-    // console.log("runInstructions", nd.uid, "instructions count=", nd.instructions ? nd.instructions.length : 0)
+function runInstructions(nd: IvNode, src: string) {
+    // console.log("runInstructions", "(" + src + ")", nd.uid, "instructions count = ", nd.instructions ? nd.instructions.length / 3 : 0)
     if (nd.instructions) {
         let instr = nd.instructions, len = instr.length;
         for (let i = 0; len > i; i += 3) {
+            // console.log("run instruction #" + (i / 3), instr[i + 1].name, instr[i + 2][1])
             instr[i + 1].apply(null, instr[i + 2]);
         }
         // console.log("empty instructions in", nd.uid);
@@ -778,6 +807,7 @@ function runInstructions(nd: IvNode) {
 function cleanInstructions(c: BlockNodes) {
     // remove all update instructions - must be run before a context is updated
     // (i.e. during cc or before refresh)
+    // console.log("cleanInstructions", c[0].uid, (!(c[0] as IvContext).containsInstructions));
     if (!(c[0] as IvContext).containsInstructions) return;
     let len = c.length, nbr = 0;
     for (let i = 1; len > i; i++) {
@@ -805,8 +835,8 @@ function removeUpdateInstructions(nd: IvNode) {
                 }
             }
             nd.instructions = newInstructions;
-            return nd.instructions.length;
             // console.log("removeUpdateInstructions in", nd.uid, "previous count=", instr.length, "new count=", newInstructions.length);
+            return nd.instructions.length;
         }
         return len;
     }
@@ -923,7 +953,7 @@ export function ζtxtval(c: BlockNodes, idx: number, instHolderIdx: number, stat
 function updateText(c: BlockNodes, idx: number, instHolderIdx: number, nbrOfValues: number, values: any[]) {
     let nd = c[idx] as IvText, changed = false, v: any, pieces: string[] | undefined = undefined;
     if (nd === undefined) {
-        console.log("nd undefined - context:", c[0].uid, "text node:", idx, "inst holder:", instHolderIdx)
+        console.log("updateText: nd undefined - context:", c[0].uid, "text node:", idx, "inst holder:", instHolderIdx)
     }
     // console.log("updateText", nd.uid, "in", c[0].uid);
     for (let i = 0; nbrOfValues > i; i++) {
@@ -1114,6 +1144,9 @@ function setParam(c: BlockNodes, cptIdx: number, instHolderIdx: number, name: st
  * Dynamic component creation / update
  */
 export function ζcpt(c: BlockNodes, idx: number, instHolderIdx: number, exprCptRef: any, contentIdx?: number, hasParamNodes?: number, staticParams?: any[]) {
+    if (contentIdx) {
+        removeUpdateInstructions(c[contentIdx] as IvNode);
+    }
     if (!instHolderIdx) {
         checkCpt(c, idx, instHolderIdx, exprCptRef, contentIdx, hasParamNodes, staticParams);
     } else {
@@ -1129,7 +1162,7 @@ function checkCpt(c: BlockNodes, idx: number, instHolderIdx: number, exprCptRef:
             console.log("[iv] Component cannot be changed dynamically (yet)")
         } else {
             let tpl: Template = container.cptTemplate = cptRef()!;
-            tpl.setParentCtxt(c[0] as IvContext, idx);
+            setParentCtxt(tpl.context, c[0] as IvContext, idx);
             tpl.disconnectObserver();
             let p = container.cptParams = tpl.params;
             if (staticParams) {
@@ -1137,6 +1170,11 @@ function checkCpt(c: BlockNodes, idx: number, instHolderIdx: number, exprCptRef:
                 for (let i = 0; len > i; i += 2) {
                     p[staticParams[i]] = staticParams[i + 1];
                 }
+            }
+            if (contentIdx) {
+                let contentNode = c[contentIdx] as IvNode
+                container.cptContent = contentNode;
+                //removeUpdateInstructions(contentNode);
             }
         }
     } else {
@@ -1156,6 +1194,7 @@ export function ζcall(c: BlockNodes, idx: number, instHolderIdx?: number) {
 }
 
 function callCpt(c: BlockNodes, idx: number) {
+    // console.log("callCpt", idx, "in", c[0].uid)
     let container = c[idx] as IvContainer, tpl = container ? container.cptTemplate as Template : null;
     if (tpl) {
         let ctxt = c[0] as IvContext;
@@ -1223,7 +1262,7 @@ function projectContent(c: BlockNodes, idx: number, instHolderIdx: number, exprC
         detachContentFromHost(cd.contentHostNodes!, cd.contentHost);
     }
     // retrieve contentRoot
-    runInstructions(contentRoot);
+    runInstructions(contentRoot, "projectContent");
 
     if (changed) {
         // store contentRoot in content data
@@ -1323,7 +1362,7 @@ export function ζlistener(c: BlockNodes, idx: number, parentIdx: number, instHo
     if (!instHolderIdx) {
         createListener(c, idx, parentIdx, eventName);
     } else {
-        addInstruction(false, c, idx, instHolderIdx, createListener, [c, idx, parentIdx, eventName]);
+        addInstruction(true, c, idx, instHolderIdx, createListener, [c, idx, parentIdx, eventName]);
     }
 }
 

@@ -711,8 +711,11 @@ export class JsBlockUpdate implements UpdateInstruction {
                 if (this.childBlockIndexes.length) {
                     body.push(`${this.indent}ζi${this.childBlockIndexes.join(" = ζi")} = 0;\n`);
                 }
-                instanceArgs = ", ++" + this.instanceCounterVar;
                 parentBlockVarName = this.parentBlock.jsVarName;
+                instanceArgs = ", ++" + this.instanceCounterVar;
+                if (iHolderIdx) {
+                    instanceArgs += ", " + iHolderIdx;
+                }
             }
             if (this.blockIdx > 0) {
                 // first block is initialized in the ζ1 definition

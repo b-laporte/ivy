@@ -622,7 +622,7 @@ if (condition3) {
             }
             ζcpt(ζ, 1, 0, ζe(ζ, 0, cpt), 2, 0);
             if (condition) {
-                ζ1 = ζcc(ζ, 4, ++ζi1);
+                ζ1 = ζcc(ζ, 4, ++ζi1, 2);
                 if (ζ1[0].cm) {
                     ζelt(ζ1, 1, 1, 1, "span");
                 }

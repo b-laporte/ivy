@@ -528,7 +528,7 @@ describe('Async decorator', () => {
                 </div>
                 //::C2 template anchor
             </body>
-        `, '4');
+        `, '6');
     });
 
 });

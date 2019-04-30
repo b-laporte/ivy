@@ -2086,7 +2086,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-                t.refresh({ showFirst: false, message: "Hello4" });
+        t.refresh({ showFirst: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>

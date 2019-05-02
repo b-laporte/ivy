@@ -33,7 +33,7 @@ module.exports = [{
     }
 }, {
     name: 'samples',
-    mode: 'none',
+    mode: 'production',
     target: 'web',
     entry: {
         "hello": "./src/samples/hello/hello.ts",

@@ -36,7 +36,7 @@ describe('Simple Components', () => {
     it("can project static nodes", function () {
         let tpl = template(`(names) => {
             <div class="main">
-                <$helloWorld/>
+                <*helloWorld/>
             </div>
         }`);
 
@@ -56,7 +56,7 @@ describe('Simple Components', () => {
     it("should support static and dynamic params", function () {
         let tpl = template(`(name) => {
             <div class="main">
-                <$hello name={name} className="message"/>
+                <*hello name={name} className="message"/>
             </div>
         }`);
 
@@ -101,7 +101,7 @@ describe('Simple Components', () => {
         let tpl = template(`(name) => {
             <div class="main">
                 if (name) {
-                    <$hello name={name} className="message"/>
+                    <*hello name={name} className="message"/>
                 }
             </div>
         }`);
@@ -163,7 +163,7 @@ describe('Simple Components', () => {
         let tpl = template(`(name) => {
             <div class="main">
                 if (name) {
-                    <$hello name={name} className="message"/>
+                    <*hello name={name} className="message"/>
                 }
             </div>
         }`);
@@ -217,7 +217,7 @@ describe('Simple Components', () => {
         let tpl = template(`(name) => {
             <div class="main">
                 if (name) {
-                    <$hello name={name} className="message"/>
+                    <*hello name={name} className="message"/>
                 }
                 # last #
             </div>
@@ -287,7 +287,7 @@ describe('Simple Components', () => {
         let tpl = template(`(name) => {
             <div class="main">
                 if (name) {
-                    <$hello name={name} className="message"/>
+                    <*hello name={name} className="message"/>
                 }
                 # last #
             </div>
@@ -346,7 +346,7 @@ describe('Simple Components', () => {
     it("can be combined with conditional blocks (lastOnRoot - init false)", function () {
         let tpl = template(`(name) => {
             if (name) {
-                <$hello name={name} className="message"/>
+                <*hello name={name} className="message"/>
             }
         }`);
 
@@ -398,7 +398,7 @@ describe('Simple Components', () => {
     it("can be combined with conditional blocks (lastOnRoot - init true)", function () {
         let tpl = template(`(name) => {
             if (name) {
-                <$hello name={name} className="message"/>
+                <*hello name={name} className="message"/>
             }
         }`);
 
@@ -444,7 +444,7 @@ describe('Simple Components', () => {
         let tpl = template(`(fn, ln) => {
             <div>
                 if (fn) {
-                    <$contactDetails firstName={fn} lastName={ln}/>
+                    <*contactDetails firstName={fn} lastName={ln}/>
                 }
             </div>
         }`);
@@ -505,7 +505,7 @@ describe('Simple Components', () => {
 
     it("should support conditional blocks in cpt (init false)", function () {
         let tpl = template(`(name) => {
-            <$greetings name={name}/>
+            <*greetings name={name}/>
         }`);
 
         let t = getTemplate(tpl, body).refresh({ name: "" });
@@ -549,7 +549,7 @@ describe('Simple Components', () => {
 
     it("should support conditional blocks in cpt (init true)", function () {
         let tpl = template(`(name) => {
-            <$greetings name={name}/>
+            <*greetings name={name}/>
         }`);
 
         let t = getTemplate(tpl, body).refresh({ name: "Hal" });
@@ -578,8 +578,8 @@ describe('Simple Components', () => {
 
     it("should support multiple instances", function () {
         let tpl = template(`(name1, name2) => {
-            <$greetings name={name1}/>
-            <$greetings name={name2}/>
+            <*greetings name={name1}/>
+            <*greetings name={name2}/>
         }`);
 
         let t = getTemplate(tpl, body).refresh({ name1: "Marge", name2: "Homer" });
@@ -613,7 +613,7 @@ describe('Simple Components', () => {
         let tpl = template(`(names) => {
             # first #
             for (let name of names || []) {
-                <$greetings name={name}/>
+                <*greetings name={name}/>
             }
         }`);
 
@@ -681,7 +681,7 @@ describe('Simple Components', () => {
         let tpl = template(`(names) => {
             # first #
             for (let name of names || []) {
-                <$greetings name={name}/>
+                <*greetings name={name}/>
             }
         }`);
 

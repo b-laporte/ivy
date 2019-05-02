@@ -11,7 +11,7 @@ const hello = template(`(name, $params) => {
 
 const greetings = template(`(names) => {
     for (let name of names) {
-        <$hello name={name}/>
+        <*hello name={name}/>
     }
 }`);
 

@@ -58,7 +58,7 @@ describe('Content Components', () => {
 
     let section3 = template(`(text, open, $content) => {
         if (open) {
-            <$section open=true text="Sub-Section">
+            <*section open=true text="Sub-Section">
                 # :::: Inner text {text} :::: #
                 <div @content={$content}/>
             </>
@@ -82,7 +82,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:element / content:element / projection host: element)", function () {
         let tpl = template(`(message) => {
             <div class="main">
-                <$panel type="important">
+                <*panel type="important">
                     <div> # Message: {message} # </div>
                 </>
             </div>
@@ -160,7 +160,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:fragment / content:element / projection host: element)", function () {
         let tpl = template(`(message) => {
             <!>
-                <$panel type="important">
+                <*panel type="important">
                     <div> # Message: {message} # </div>
                 </>
             </>
@@ -215,7 +215,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:element / content:fragment / projection host: element)", function () {
         let tpl = template(`(title, message) => {
             <div class="main">
-                <$header text={title}>
+                <*header text={title}>
                     <div> # Line A: {message} # </div>
                     <div> # Line B: {message} # </div>
                 </>
@@ -262,7 +262,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:fragment / content:fragment / projection host: element)", function () {
         let tpl = template(`(title, message) => {
             <!>
-                <$header text={title}>
+                <*header text={title}>
                     <div> # Line A: {message} # </div>
                     <div> # Line B: {message} # </div>
                 </>
@@ -305,7 +305,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:element / content:element / projection host: fragment)", function () {
         let tpl = template(`(message) => {
             <div class="main">
-                <$panel2 type="important">
+                <*panel2 type="important">
                     <div> # Message: {message} # </div>
                 </>
             </div>
@@ -374,7 +374,7 @@ describe('Content Components', () => {
 
     it("can project & update content (cpt host:fragment / content:element / projection host: fragment)", function () {
         let tpl = template(`(message, messageType) => {
-            <$panel2 type={messageType}>
+            <*panel2 type={messageType}>
                 <div> # Message: {message} # </div>
             </>
         }`);
@@ -409,7 +409,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:element / content:fragment / projection host: fragment)", function () {
         let tpl = template(`(title, message) => {
             <div class="main">
-                <$header2 text={title}>
+                <*header2 text={title}>
                     <div> # Line A: {message} # </div>
                     <div> # Line B: {message} # </div>
                 </>
@@ -451,7 +451,7 @@ describe('Content Components', () => {
 
     it("can project & update content (cpt host:fragment / content:fragment / projection host: fragment)", function () {
         let tpl = template(`(title, message) => {
-            <$header2 text={title}>
+            <*header2 text={title}>
                 <!> # Line A: {message} # </>
                 <!> # Line B: {message} # </>
             </>
@@ -480,7 +480,7 @@ describe('Content Components', () => {
 
     it("defer attribute updates", function () {
         let tpl = template(`(message, type) => {
-            <$panel2 type={type}>
+            <*panel2 type={type}>
                 <div class={type}> # Message: {message} # </div>
             </>
         }`);
@@ -540,7 +540,7 @@ describe('Content Components', () => {
 
     it("defer property updates", function () {
         let tpl = template(`(message, type) => {
-            <$panel2 type={type}>
+            <*panel2 type={type}>
                 <div [className]={type}> # Message: {message} # </div>
             </>
         }`);
@@ -589,7 +589,7 @@ describe('Content Components', () => {
         let tpl = template(`(text, message) => {
             # Start #
             if (message) {
-                <$header2 text={text}>
+                <*header2 text={text}>
                     # Message: {message} #
                 </>
             }
@@ -656,7 +656,7 @@ describe('Content Components', () => {
         let tpl = template(`(text, message) => {
             # Start #
             if (message) {
-                <$header text={text}>
+                <*header text={text}>
                     # Message: {message} #
                 </>
             }
@@ -731,7 +731,7 @@ describe('Content Components', () => {
         let tpl = template(`(text, message) => {
             # Start #
             if (message) {
-                <$header2 text={text}>
+                <*header2 text={text}>
                     # Message: {message} #
                 </>
             }
@@ -798,7 +798,7 @@ describe('Content Components', () => {
         let tpl = template(`(text, message) => {
             # Start #
             if (message) {
-                <$header text={text}>
+                <*header text={text}>
                     # Message: {message} #
                 </>
             }
@@ -872,7 +872,7 @@ describe('Content Components', () => {
     it("should support conditions in content (projection host: fragment / init false)", function () {
         let tpl = template(`(text, message) => {
             # Start #
-            <$header2 text={text}>
+            <*header2 text={text}>
                 # content #
                 if (message) {
                     # Message: {message} {text} #
@@ -958,7 +958,7 @@ describe('Content Components', () => {
     it("should support conditions in content (projection host: div / init false)", function () {
         let tpl = template(`(text, message) => {
             # Start #
-            <$header text={text}>
+            <*header text={text}>
                 # content #
                 if (message) {
                     # Message: {message} {text} #
@@ -1058,7 +1058,7 @@ describe('Content Components', () => {
     it("should support conditions in content (projection host: fragment / init true)", function () {
         let tpl = template(`(text, message) => {
             # Start #
-            <$header2 text={text}>
+            <*header2 text={text}>
                 # content #
                 if (message) {
                     # Message: {message} {text} #
@@ -1144,7 +1144,7 @@ describe('Content Components', () => {
     it("should support conditions in content (projection host: div / init true)", function () {
         let tpl = template(`(text, message) => {
             # Start #
-            <$header text={text}>
+            <*header text={text}>
                 # content #
                 if (message) {
                     # Message: {message} {text} #
@@ -1243,7 +1243,7 @@ describe('Content Components', () => {
 
     it("should support conditions in components (projection host: fragment / init false)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section2 open={open} text={text}>
+            <*section2 open={open} text={text}>
                 # content #
                 # Message: {message} {text} #
             </>
@@ -1320,7 +1320,7 @@ describe('Content Components', () => {
 
     it("should support conditions in components (projection host: fragment / init true)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section2 open={open} text={text}>
+            <*section2 open={open} text={text}>
                 # content #
                 # Message: {message} {text} #
             </>
@@ -1397,7 +1397,7 @@ describe('Content Components', () => {
 
     it("should support conditions in components (projection host: div / init false)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section open={open} text={text}>
+            <*section open={open} text={text}>
                 # content #
                 # Message: {message} {text} #
             </>
@@ -1482,7 +1482,7 @@ describe('Content Components', () => {
 
     it("should support conditions in components (projection host: div / init true)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section open={open} text={text}>
+            <*section open={open} text={text}>
                 # content #
                 # Message: {message} {text} #
             </>
@@ -1567,7 +1567,7 @@ describe('Content Components', () => {
 
     it("should support one-time expressions in content", function () {
         let tpl = template(`(text, open, message) => {
-            <$header2 text={text}>
+            <*header2 text={text}>
                 # A: {message} #
                 if (open) {
                     # B: {::message} #
@@ -1626,7 +1626,7 @@ describe('Content Components', () => {
 
     it("should support deferred content projection (init false)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section3 text={text} open={open}>
+            <*section3 text={text} open={open}>
                 # Message: {message} #
             </>
         }`);
@@ -1698,7 +1698,7 @@ describe('Content Components', () => {
 
     it("should support deferred content projection (init true)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section3 text={text} open={open}>
+            <*section3 text={text} open={open}>
                 # Message: {message} #
             </>
         }`);
@@ -1762,9 +1762,9 @@ describe('Content Components', () => {
 
     it("should support deferred component call (init false)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section2 text={text} open={open}>
+            <*section2 text={text} open={open}>
                 # main content #
-                <$panel2 type="abc">
+                <*panel2 type="abc">
                     <div>
                         # Message in panel2: {message} #
                     </div>
@@ -1846,9 +1846,9 @@ describe('Content Components', () => {
 
     it("should support deferred component call (init true)", function () {
         let tpl = template(`(text, open, message) => {
-            <$section2 text={text} open={open}>
+            <*section2 text={text} open={open}>
                 # main content #
-                <$panel2 type="abc">
+                <*panel2 type="abc">
                     <div>
                         # Message in panel2: {message} #
                     </div>
@@ -1920,9 +1920,9 @@ describe('Content Components', () => {
 
     it("should support param updates in deferred content", function () {
         let tpl = template(`(type, open, message) => {
-            <$section text={"panel type: "+type} open={open}>
+            <*section text={"panel type: "+type} open={open}>
                 # main content #
-                <$panel type={type}>
+                <*panel type={type}>
                     <div>
                         # 1st Message in panel: {message} #
                     </div>
@@ -2042,7 +2042,7 @@ describe('Content Components', () => {
 
     it("should support be able to project content in 2 different placeholders depending on condition", function () {
         let tpl = template(`(message, showFirst) => {
-            <$sectionAB first={showFirst}>
+            <*sectionAB first={showFirst}>
                 # Message in panel: {message} #
             </>
         }`);

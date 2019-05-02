@@ -606,12 +606,12 @@ if (condition3) {
 
     it("should support js blocks in component content", async function () {
         assert.equal(await body.template(`(foo) => {
-            <$cpt>
+            <*cpt>
                 # first #
                 if (condition) {
                     <span class={foo} title={foo+1}/>
                 }
-            </$cpt>
+            </*cpt>
         }`), `
             let ζi1 = 0, ζ1;
             if (ζ[0].cm) {
@@ -637,7 +637,7 @@ if (condition3) {
 
     it("should support components with no content", async function () {
         let t1 = await test.template(`() => {
-            <$alert class="important" position="bottom"/>
+            <*alert class="important" position="bottom"/>
         }`);
 
         assert.equal(t1.body, `
@@ -655,7 +655,7 @@ if (condition3) {
 
         // with dynamic params
         let t2 = await test.template(`() => {
-            <$b.section position={getPosition()} msg={myMessage} type="big" important/>
+            <*b.section position={getPosition()} msg={myMessage} type="big" important/>
         }`);
         assert.equal(t2.body, `
             if (ζ[0].cm) {
@@ -674,7 +674,7 @@ if (condition3) {
 
     it("should support components with content & no param nodes", async function () {
         assert.equal(await body.template(`() => {
-            <$myComponent>
+            <*myComponent>
                 <span title={getTitle()}/>
             </>
         }`), `
@@ -689,9 +689,9 @@ if (condition3) {
         `, 'single node + dynamic param');
 
         assert.equal(await body.template(`() => {
-            <$myComponent>
+            <*myComponent>
                 # hello {name1} #
-                <$otherComponent p1={expr()}>
+                <*otherComponent p1={expr()}>
                     # hello {name2} #
                 </>
             </>
@@ -717,7 +717,7 @@ if (condition3) {
     it("should support components with content & param nodes", async function () {
         assert.equal(await body.template(`() => {
             # first #
-            <$myComponent>
+            <*myComponent>
                 <.header position="top" foo={bar()}/>
                 # some content {baz()} #
                 <.footer type="small"/>
@@ -741,7 +741,7 @@ if (condition3) {
 
         assert.equal(await body.template(`() => {
             # first #
-            <$myComponent>
+            <*myComponent>
                 <.header position="top" foo={bar()}>
                     <.title> <b> # Complex {exp()} # </b> </.title>
                     # header content #
@@ -776,7 +776,7 @@ if (condition3) {
             <span>
                 let x=123;
             </span>
-            <$foo>
+            <*foo>
                 let bar=foo;
             </>
         }`), `
@@ -795,7 +795,7 @@ if (condition3) {
 
     it("should not create content fragments components with only param nodes and js statements", async function () {
         assert.equal(await body.template(`() => {
-            <$foo>
+            <*foo>
                 <.paramA value="a"/>
                 let bar=foo;
                 <.paramB value={exp(bar)}/>
@@ -844,7 +844,7 @@ if (condition3) {
     it("should generate the full template function", async function () {
         let t1 = await test.template(`() => {
             <div class="main">
-                <$b.section type="important">
+                <*b.section type="important">
                     <.header> # The big title #</>
                     <span class="content"> # Section content # </>
                 </>
@@ -957,7 +957,7 @@ if (condition3) {
         }, "t1 imports");
 
         let t2 = await test.template(`(comp) => {
-            <$comp/>
+            <*comp/>
         }`, t1.importMap);
         assert.deepEqual(t2.importMap, {
             "ζelt": 1, "ζtxt": 1, "ζcc": 1, "ζtxtval": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζfrag": 1, "ζcpt": 1, "ζcall": 1, "ζv": 1, "ζd": 1
@@ -1116,7 +1116,7 @@ if (condition3) {
 
     it("should support async in deferred content", async function () {
         assert.equal(await body.template(`(msg) => {
-            <$cpt>
+            <*cpt>
                 # {msg} #
                 <div @async>
                     # other text #
@@ -1146,11 +1146,11 @@ if (condition3) {
 
         // cpt in cpt
         assert.equal(await body.template(`(msg) => {
-            <$cpt>
+            <*cpt>
                 # {msg} #
                 <div @async>
                     # other text #
-                    <$cpt>
+                    <*cpt>
                         # M2: {msg} #
                         <div @async>
                             # M3: {msg} #
@@ -1201,7 +1201,7 @@ if (condition3) {
     it("should support async components", async function () {
         assert.equal(await body.template(`(msg) => {
             <div>
-                <$section title={msg} @async>
+                <*section title={msg} @async>
                     # Message: {msg} #
                 </>
             </div>

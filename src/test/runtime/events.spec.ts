@@ -63,11 +63,11 @@ describe('Event handlers', () => {
 
     it("can be defined in deferred content", function () {
         const tpl = template(`() => {
-            <$panel type="info">
+            <*panel type="info">
                 <div class="main" click(e)={doSomething(e)}>
                     # Click me #
                 </div>
-            </$panel>
+            </*panel>
         }`);
 
         let t = getTemplate(tpl, body).refresh(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];

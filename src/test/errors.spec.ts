@@ -16,7 +16,7 @@ describe('Code generation errors', () => {
         }`), 'Invalid decorator - @content can only be used on empty elements or fragments (line #2)', '2');
 
         assert.equal(await error.template(`($content) => {
-            <$cpt @content={$content}/>
+            <*cpt @content={$content}/>
         }`), 'Invalid decorator - @content can only be used on elements or fragments (line #2)', '3');
 
         assert.equal(await error.template(`($content) => {
@@ -44,7 +44,7 @@ describe('Code generation errors', () => {
         }`), 'Invalid decorator - @async cannot be used in this context (line #2)', '1');
 
         assert.equal(await error.template(`() => {
-            <$section title="foo">
+            <*section title="foo">
                 <.header @async> # Header # </>
                 # Content #
             </>

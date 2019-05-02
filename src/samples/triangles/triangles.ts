@@ -3,12 +3,12 @@ import { template } from "../../iv";
 
 const triangle = template(`(x: number, y: number, size: number, seconds: number) => {
     if (size<=25) {
-        <$dot x={x-12.5} y={y-12.5} size=25 text={seconds}/>
+        <*dot x={x-12.5} y={y-12.5} size=25 text={seconds}/>
     } else {
         let childSz = size/2, half = childSz/2;
-        <$triangle x={x} y={y-half} size={childSz} seconds={seconds}/>
-        <$triangle x={x-childSz} y={y+half} size={childSz} seconds={seconds}/>
-        <$triangle x={x+childSz} y={y+half} size={childSz} seconds={seconds}/>
+        <*triangle x={x} y={y-half} size={childSz} seconds={seconds}/>
+        <*triangle x={x-childSz} y={y+half} size={childSz} seconds={seconds}/>
+        <*triangle x={x+childSz} y={y+half} size={childSz} seconds={seconds}/>
     }
 }`);
 
@@ -39,7 +39,7 @@ const page = template(`(seconds, elapsed) => {
     <i> # code derived from the # <a href="https://stencil-fiber-demo.firebaseapp.com"> # stencil fiber demo # </a></i>
     
     <div id="main" style={computeMainStyle(elapsed)}>
-        <$triangle x=0 y=0 size={1e3} seconds={seconds}/>
+        <*triangle x=0 y=0 size={1e3} seconds={seconds}/>
     </div>
 }`);
 

@@ -249,7 +249,7 @@ describe('Async decorator', () => {
     it("can be used on sub-components w/ @content", async function () {
         const tpl = template(`(msg, open) => {
             <div class="main">
-                <$section title="Section" open={open}>
+                <*section title="Section" open={open}>
                     # Message: {msg} #
                 </>
             </div>
@@ -356,7 +356,7 @@ describe('Async decorator', () => {
     it("can be used in light-dom content", async function () {
         const tpl = template(`(msg, open) => {
             <div class="main">
-                <$section2 title="Section" open={open}>
+                <*section2 title="Section" open={open}>
                     <div @async>
                         # Message: {msg} #
                     </div>
@@ -432,7 +432,7 @@ describe('Async decorator', () => {
     it("can be used on components (@async)", async function () {
         const tpl = template(`(msg, open) => {
             <div class="main">
-                <$section2 @async title="Section" open={open}>
+                <*section2 @async title="Section" open={open}>
                     <div>
                         # Message: {msg} #
                     </div>

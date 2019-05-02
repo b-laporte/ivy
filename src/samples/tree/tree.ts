@@ -32,10 +32,10 @@ const tree = template(`(data) => {
   <tree>
     <span style={"background-color:"+getColor(data.depth)}> #{data.value}# </span>
     if (data.left != null) {
-      <$tree data={data.left}/>
+      <*tree data={data.left}/>
     }
     if (data.right != null) {
-      <$tree data={data.right}/>
+      <*tree data={data.right}/>
     }
   </tree>
 }`);

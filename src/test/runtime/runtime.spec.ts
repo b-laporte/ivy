@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { template, ζd, ζv } from '../../iv';
-import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
-import { IvContext } from '../../iv/types';
+import { ElementNode, reset, getTemplate, stringify } from '../utils';
+import { IvView } from '../../iv/types';
 
 describe('Iv Runtime', () => {
     let body: ElementNode;
@@ -106,8 +106,8 @@ describe('Iv Runtime', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
-                    #::T5 1-time: Homer #
-                    <span::E4>
+                    #::T4 1-time: Homer #
+                    <span::E5>
                         #::T6 name:Homer, name+123:Homer123#
                     </span>
                 </div>
@@ -119,8 +119,8 @@ describe('Iv Runtime', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
-                    #::T5 1-time: Homer #
-                    <span::E4>
+                    #::T4 1-time: Homer #
+                    <span::E5>
                         #::T6 name:World, name+123:World123# (1)
                     </span>
                 </div>
@@ -132,8 +132,8 @@ describe('Iv Runtime', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
-                    #::T5 1-time: Homer #
-                    <span::E4>
+                    #::T4 1-time: Homer #
+                    <span::E5>
                         #::T6 name:World, name+123:World123# (1)
                     </span>
                 </div>
@@ -336,7 +336,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        assert.equal((t["context"] as IvContext).lastRefresh, 1, "refreshed #1");
+        assert.equal((t["view"] as IvView).lastRefresh, 1, "refreshed #1");
 
         t.refresh({ name1: "Bart", name2: "Lisa" });
         assert.equal(stringify(t), `
@@ -346,7 +346,7 @@ describe('Iv Runtime', () => {
                 //::C2 template anchor
             </body>
         `, '2');
-        assert.equal((t["context"] as IvContext).lastRefresh, 1, "no second refresh");
+        assert.equal((t["view"] as IvView).lastRefresh, 1, "no second refresh");
     });
 
     it("should use simple param classes", function () {

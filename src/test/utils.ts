@@ -1,7 +1,7 @@
-import { Template, logBlockNodes } from './../iv/index';
+import { Template, logViewNodes } from './../iv/index';
 import { CompilationResult } from '../compiler/generator';
 import { compileTemplate } from '../compiler/generator';
-import { IvTemplate, IvNode, BlockNodes, IvContext, IvContainer } from '../iv/types';
+import { IvTemplate, IvNode, IvView, IvContainer } from '../iv/types';
 
 export let body = {
     async template(tpl: string, log = false) {
@@ -62,20 +62,20 @@ export function getTemplate(f: () => IvTemplate, body: any) {
 const SEP = "-------------------------------------------------------------------------------";
 
 export function logNodes(t: IvTemplate, label = "") {
-    let nodes: BlockNodes = t["context"]["nodes"];
+    let view: IvView = t["view"];
     console.log("");
     console.log(SEP);
-    if (!nodes || !nodes.length) {
+    if (!view || !view.nodes || !view.nodes.length) {
         console.log(label + "\nEmpty template")
         return;
     }
     if (label) console.log(label)
-    logBlockNodes(nodes, "");
+    logViewNodes(t["view"], "");
     console.log(SEP);
 }
 
 export function stringify(t: IvTemplate, log = false) {
-    let r = t["context"].rootDomNode.stringify(o)
+    let r = t["view"].rootDomNode.stringify(o)
     if (log) {
         console.log(SEP);
         console.log(r);
@@ -136,28 +136,28 @@ interface StringOptions {
 }
 
 class CommentNode {
-    $uid: string;
+    uid: string;
 
     constructor(public data: string) {
-        this.$uid = "C" + (++UID_COUNT);
+        this.uid = "C" + (++UID_COUNT);
     }
 
     stringify(options: StringOptions): string {
         let indent = options.indent || "",
             showUid = options.showUid === true,
-            uid = showUid ? "::" + this.$uid : "";
+            uid = showUid ? "::" + this.uid : "";
 
         return `${indent}//${uid} ${this.data}`;
     }
 }
 
 class TextNode {
-    $uid: string;
+    uid: string;
     parentNode = null;
     changeCount = 0;
 
     constructor(public _textContent: string) {
-        this.$uid = "T" + (++UID_COUNT);
+        this.uid = "T" + (++UID_COUNT);
     }
 
     set textContent(v: string) {
@@ -168,7 +168,7 @@ class TextNode {
     stringify(options: StringOptions): string {
         let indent = options.indent || "",
             showUid = options.showUid === true,
-            uid = showUid ? "::" + this.$uid : "",
+            uid = showUid ? "::" + this.uid : "",
             chg = this.changeCount === 0 ? "" : " (" + this.changeCount + ")";
 
         return `${indent}#${uid}${this._textContent}#${chg}`;
@@ -213,7 +213,7 @@ function incrementChanges(e, name) {
 }
 
 export class ElementNode {
-    $uid: string;
+    uid: string;
     childNodes: any[] = [];
     namespaceURI: string = "http://www.w3.org/1999/xhtml";
     parentNode = null;
@@ -223,7 +223,7 @@ export class ElementNode {
     eListeners: any[];
 
     constructor(public nodeName: string, namespace?: string) {
-        this.$uid = ((nodeName === "#doc-fragment") ? "F" : "E") + (++UID_COUNT);
+        this.uid = ((nodeName === "#doc-fragment") ? "F" : "E") + (++UID_COUNT);
         if (namespace) {
             this.namespaceURI = namespace;
         }
@@ -258,7 +258,7 @@ export class ElementNode {
 
     removeChild(node) {
         // brute force... but simple and safe
-        // console.log("removeChild", node.$uid)
+        // console.log("removeChild", node.uid)
         let ch2: any[] = [], found = false;
         for (let nd of this.childNodes) {
             if (nd !== node) {
@@ -319,7 +319,7 @@ export class ElementNode {
         let indent = options.indent || "",
             isRoot = options.isRoot === true,
             showUid = options.showUid === true,
-            uid = showUid ? "::" + this.$uid : "",
+            uid = showUid ? "::" + this.uid : "",
             styleBuf: string[] = [],
             lines: string[] = [], indent2 = isRoot ? indent + "    " : indent, atts: string[] = [], att = "";
 
@@ -333,7 +333,7 @@ export class ElementNode {
 
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
-                && k !== "namespaceURI" && k !== "$uid" && k !== "parentNode"
+                && k !== "namespaceURI" && k !== "uid" && k !== "parentNode"
                 && k !== "style" && k !== "classList" && k !== "$changes") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);

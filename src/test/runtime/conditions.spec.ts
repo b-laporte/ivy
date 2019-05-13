@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { template } from '../../iv';
-import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
+import { ElementNode, reset, getTemplate, stringify } from '../utils';
 
 describe('Conditional Blocks', () => {
     let body: ElementNode;
@@ -89,10 +89,10 @@ describe('Conditional Blocks', () => {
         let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E4>
-                    #::T5 Hello Marge #
+                <div::E3>
+                    #::T4 Hello Marge #
                 </div>
-                #::T3 end #
+                #::T5 end #
                 //::C2 template anchor
             </body>
         `, '1');
@@ -100,7 +100,7 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: false, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T3 end #
+                #::T5 end #
                 //::C2 template anchor
             </body>
         `, '2');
@@ -108,10 +108,10 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E4>
-                    #::T5 Hello Homer # (1)
+                <div::E3>
+                    #::T4 Hello Homer # (1)
                 </div>
-                #::T3 end #
+                #::T5 end #
                 //::C2 template anchor
             </body>
         `, '3');
@@ -119,10 +119,10 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
-                <div::E4>
-                    #::T5 Hello Maggie # (2)
+                <div::E3>
+                    #::T4 Hello Maggie # (2)
                 </div>
-                #::T3 end #
+                #::T5 end #
                 //::C2 template anchor
             </body>
         `, '4');
@@ -147,11 +147,11 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Homer #
-                <span::E3 a:title="Hello Homer">
-                    #::T4 ! #
+                #::T3 Hello Homer #
+                <span::E4 a:title="Hello Homer">
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '2');
@@ -159,11 +159,11 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Marge # (1)
-                <span::E3 a:title="Hello Marge"(1)>
-                    #::T4 ! #
+                #::T3 Hello Marge # (1)
+                <span::E4 a:title="Hello Marge"(1)>
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '3');
@@ -178,11 +178,11 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Marge # (1)
-                <span::E3 a:title="Hello Marge"(1)>
-                    #::T4 ! #
+                #::T3 Hello Marge # (1)
+                <span::E4 a:title="Hello Marge"(1)>
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '5');
@@ -197,11 +197,11 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Maggie # (2)
-                <span::E3 a:title="Hello Maggie"(2)>
-                    #::T4 ! #
+                #::T3 Hello Maggie # (2)
+                <span::E4 a:title="Hello Maggie"(2)>
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '7');
@@ -219,11 +219,11 @@ describe('Conditional Blocks', () => {
         let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Marge #
-                <span::E3 a:title="Hello Marge">
-                    #::T4 ! #
+                #::T3 Hello Marge #
+                <span::E4 a:title="Hello Marge">
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '1');
@@ -238,11 +238,11 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Marge #
-                <span::E3 a:title="Hello Marge">
-                    #::T4 ! #
+                #::T3 Hello Marge #
+                <span::E4 a:title="Hello Marge">
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '3');
@@ -250,11 +250,11 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Bart # (1)
-                <span::E3 a:title="Hello Bart"(1)>
-                    #::T4 ! #
+                #::T3 Hello Bart # (1)
+                <span::E4 a:title="Hello Bart"(1)>
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
         `, '4');
@@ -269,14 +269,14 @@ describe('Conditional Blocks', () => {
         t.refresh({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T6 Hello Maggie # (2)
-                <span::E3 a:title="Hello Maggie"(2)>
-                    #::T4 ! #
+                #::T3 Hello Maggie # (2)
+                <span::E4 a:title="Hello Maggie"(2)>
+                    #::T5 ! #
                 </span>
-                <div::E5/>
+                <div::E6/>
                 //::C2 template anchor
             </body>
-        `, '4');
+        `, '6');
     });
 
     it("should work as last child + multiple content (init false)", function () {
@@ -305,9 +305,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Marge #
-                    <span::E5 a:title="Hello Marge">
-                        #::T6 ! #
+                    #::T5 Hello Marge #
+                    <span::E6 a:title="Hello Marge">
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -319,9 +319,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Bart # (1)
-                    <span::E5 a:title="Hello Bart"(1)>
-                        #::T6 ! #
+                    #::T5 Hello Bart # (1)
+                    <span::E6 a:title="Hello Bart"(1)>
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -343,9 +343,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Bart # (1)
-                    <span::E5 a:title="Hello Bart"(1)>
-                        #::T6 ! #
+                    #::T5 Hello Bart # (1)
+                    <span::E6 a:title="Hello Bart"(1)>
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -357,9 +357,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Maggie # (2)
-                    <span::E5 a:title="Hello Maggie"(2)>
-                        #::T6 ! #
+                    #::T5 Hello Maggie # (2)
+                    <span::E6 a:title="Hello Maggie"(2)>
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -383,9 +383,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Marge #
-                    <span::E5 a:title="Hello Marge">
-                        #::T6 ! #
+                    #::T5 Hello Marge #
+                    <span::E6 a:title="Hello Marge">
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -407,9 +407,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Marge #
-                    <span::E5 a:title="Hello Marge">
-                        #::T6 ! #
+                    #::T5 Hello Marge #
+                    <span::E6 a:title="Hello Marge">
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -421,9 +421,9 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     #::T4 first #
-                    #::T7 Hello Homer # (1)
-                    <span::E5 a:title="Hello Homer"(1)>
-                        #::T6 ! #
+                    #::T5 Hello Homer # (1)
+                    <span::E6 a:title="Hello Homer"(1)>
+                        #::T7 ! #
                     </span>
                 </div>
                 //::C2 template anchor
@@ -454,10 +454,10 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     <div::E4>
-                        <span::E6 a:class="c2">
-                            #::T7 msg2: Always look on the bright side of life #
+                        <span::E5 a:class="c2">
+                            #::T6 msg2: Always look on the bright side of life #
                         </span>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -472,7 +472,7 @@ describe('Conditional Blocks', () => {
                         <div::E8 a:class="c1">
                             #::T9 msg1: Always look on the bright side of life #
                         </div>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -484,10 +484,10 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     <div::E4>
-                        <span::E6 a:class="c2">
-                            #::T7 msg2: Nobody expects the Spanish Inquisition! # (1)
+                        <span::E5 a:class="c2">
+                            #::T6 msg2: Nobody expects the Spanish Inquisition! # (1)
                         </span>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -502,7 +502,7 @@ describe('Conditional Blocks', () => {
                         <div::E8 a:class="c1">
                             #::T9 msg1: Nobody expects the Spanish Inquisition! # (1)
                         </div>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -533,10 +533,10 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     <div::E4>
-                        <div::E6 a:class="c1">
-                            #::T7 msg1: Always look on the bright side of life #
+                        <div::E5 a:class="c1">
+                            #::T6 msg1: Always look on the bright side of life #
                         </div>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -551,7 +551,7 @@ describe('Conditional Blocks', () => {
                         <span::E8 a:class="c2">
                             #::T9 msg2: Always look on the bright side of life #
                         </span>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -563,10 +563,10 @@ describe('Conditional Blocks', () => {
             <body::E1>
                 <div::E3>
                     <div::E4>
-                        <div::E6 a:class="c1">
-                            #::T7 msg1: It's just a flesh wound # (1)
+                        <div::E5 a:class="c1">
+                            #::T6 msg1: It's just a flesh wound # (1)
                         </div>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor
@@ -581,7 +581,7 @@ describe('Conditional Blocks', () => {
                         <span::E8 a:class="c2">
                             #::T9 msg2: It's just a flesh wound # (1)
                         </span>
-                        #::T5 last #
+                        #::T7 last #
                     </div>
                 </div>
                 //::C2 template anchor

@@ -1,4 +1,10 @@
-import { IvComponent } from './types';
+
+export interface IvDocument {
+    createTextNode(data: string): any;
+    createElement(name: string): any;
+    createElementNS(ns: string, name: string): any;
+    createComment(data: string): any;
+}
 
 export interface IvTemplate {
     document: IvDocument;
@@ -7,56 +13,49 @@ export interface IvTemplate {
     refresh(data?: any): IvTemplate;
 }
 
-// IvContext will be at position 0
-export type BlockNodes = Array<IvContext | IvNode>;
-
-export interface IvDocument {
-    createTextNode(data: string): any;
-    //createDocFragment(): any;
-    createElement(name: string): any;
-    createElementNS(ns: string, name: string): any;
-    createComment(data: string): any;
-}
-
-export interface IvContext extends IvExpressionData {
-    kind: "#context";
-    uid: string;                     // unique id (debug)
-    cm: boolean;                     // creation mode
-    nodes: BlockNodes;               // list of nodes associated to this context (note: nodes[0] = this)
-    isTemplateRoot: boolean;         // true if the context is associated to the template root (will be false for sub js blocks)
-    doc: IvDocument;
-    rootDomNode: any;                // associated domNode (same for all contexts in a given template instance)
-    lastRefresh: number;
-    anchorNode: any;                 // dom node used as anchor in the domNode (content will be inserted before this anchor)
-    parentCtxt: IvContext | null;    // parent context
-    containerIdx: number;            // container idx in the parent context - 0 if parentCtxt===null
-    initialized: boolean;            // true when all end() has been run once
-    containsInstructions: boolean;   // true if one of its nodes contains instructions
-}
-
 export interface IvNode {
-    kind: "#container" | "#fragment" | "#element" | "#component" | "#decorator" | "#text" | "#listener";
-    uid: string;                             // unique id (debug)
-    idx: number;                             // node index in the template function
-    parentIdx: number;                       // parent index in the template function
-    attached: boolean;                       // true if domNode is attached to its parent
-    domNode: any;                            // associated domNode
-    nextSibling: IvNode | undefined;
-    instructions: any[] | undefined;         // list of update instructions (used to delay component or param/decorator node content interpretation)
-    contentData: IvContentData | undefined;  // only for content (root) nodes (i.e. light dom) that will be projected in a host
-    exprData: IvExpressionData | undefined;  // only used if the node holds expression information (node will be a root, but not necessarily a content node - e.g. a jsblock root)
-    // key -> if part of a collection
+    kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#listener";
+    uid: string;                      // unique id (debug)
+    idx: number;                      // 0 for root nodes, etc.
+    parentIdx: number;                // index for parent node - -1 if undefined
+    nextSibling: IvNode | undefined;  // node linked list - needed for dynamic insert
+    domNode: any;                     // associated DOM node - meaning depends on node kind (usually DOM host)
+    attached: boolean;                // true if the domNode is attached to its parent domNode
 }
 
-export interface IvExpressionData {
-    expressions: any[] | undefined;             // array of expression values
-    oExpressions: any[] | undefined;            // array of one-time expression flags
+export interface IvParentNode extends IvNode {
+    ns: string;                       // namespace, default: ""
+    firstChild: IvNode | undefined;   // node linked list - needed for dynamic insert
+    lastChild: IvNode | undefined;
+    // contentRoot: IvNode | undefined;  // defined if the current node is a host for a content node, in which case firstChild / lastChild refers to the light-dom
 }
 
-export interface IvContentData {
-    contentHost: IvParentNode | undefined;      // reference the host node where the node is projected (host is <xxx @content/> or <! @content/>) - host is a IvParentNode
-    contentHostNodes: BlockNodes | undefined;   // nodes associated to contentHost
-    rootNodes: BlockNodes;                      // nodes associated to the node that holds contentData
+export interface IvFragment extends IvParentNode {
+    kind: "#fragment" | "#container";
+}
+
+export interface IvView {
+    kind: "#view";
+    uid: string;                                  // unique id (debug)
+    nodes: IvNode[] | null;                       // list of IvNodes associated to this view
+    doc: IvDocument;                              // for test / dependency injection
+    parentView: IvView | null;                    // parent view: null for the root view, parent view otherwise (can be in a different template)
+    cm: boolean;                                  // creation mode
+    cmAppends: null | ((n: IvNode, domOnly: boolean) => void)[];    // array of append functions used at creation time
+    lastRefresh: number;                          // refresh count at last refresh
+    container: IvContainer | null;                // null if root view, container host otherwise
+    isTemplate: boolean;                          // true if the VIEW is associated to a template root (will be false for sub js blocks)
+    rootDomNode: any;                             // domNode the view is attached to - only used by the root view
+    anchorNode: any;                              // dom node used as anchor in the domNode - only used by the root view (content will be inserted before this anchor)
+    expressions: any[] | undefined;               // array of expression values
+    oExpressions: any[] | undefined;              // array of one-time expression flags
+    // initialized: boolean;            // true when all end() has been run once
+    // containsInstructions: boolean;   // true if one of its nodes contains instructions
+}
+
+export interface IvText extends IvNode {
+    kind: "#text";
+    pieces: string[] | undefined;
 }
 
 export interface IvEltListener extends IvNode {
@@ -64,64 +63,37 @@ export interface IvEltListener extends IvNode {
     callback: ((e: any) => void) | undefined;
 }
 
-/**
- * Iv vDOM text node
- */
-export interface IvText extends IvNode {
-    kind: "#text";
-    pieces: string[] | undefined;
-}
-
-export interface IvParentNode extends IvNode {
-    ns: string;                                // namespace, default: ""
-    firstChild: IvNode | undefined;
-    lastChild: IvNode | undefined;
-    contentRoot: IvNode | undefined;           // defined if the current parent node is a host for a content node
-}
-
-/**
- * Iv vDOM fragment
- */
-export interface IvFragment extends IvParentNode {
-    kind: "#fragment";
-}
-
-export interface IvContainer extends IvNode {
+export interface IvContainer extends IvFragment {
     kind: "#container";
-    contentBlocks: BlockNodes[];                 // list of js blocks currently displayed
-    blockPool: BlockNodes[];                     // list of js blocks previously displayed but temporarily detached
-    contentLength: number;                       // number of items in contentBlocks after last refresh
-    lastRefresh: number;                         // last refresh count otherwise (starts at 1) - cf. IvContext
-    
-    isAsyncHost: boolean;                        // true if the container has been created to host async content
-    asyncPriority: number;                       // used for async hosts (0=immediate, >0=async)
-
-    // component properties - only used when the container is used to display a component
-    cptTemplate: IvTemplate | undefined;         // current component template
-    cptParams: any | undefined;                  // shortcut to cptTemplate.params
-    cptContent: IvNode | undefined;              // reference to root content element (if any)
-    firstChild: IvNode | undefined,              // light-dom children
-    lastChild: IvNode | undefined
+    subKind: "##block" | "##cpt" | "##async";
+    cmAppend: null | ((n: IvNode, domOnly: boolean) => void);
 }
 
-/**
- * Iv vDOM element
- */
+export interface IvBlockContainer extends IvContainer {
+    subKind: "##block";
+    views: IvView[];
+    viewPool: IvView[];
+    lastRefresh: number;
+    nbrOfVisibleViews: number;
+    insertFn: null | ((n: IvNode, domOnly: boolean) => void);
+}
+
+export interface IvCptContainer extends IvContainer {
+    subKind: "##cpt";
+    cptTemplate: IvTemplate;           // current component template
+    cptParams: any;                    // shortcut to cptTemplate.params
+    cptView: IvView | undefined;       // reference to root content element (if any)
+}
+
+export interface IvAsyncContainer extends IvContainer {
+    subKind: "##async";
+    priority: number;    // 0=immediate, >0=async
+}
+
 export interface IvElement extends IvParentNode {
     kind: "#element";
 }
 
-/**
- * Iv vDOM component
- */
 export interface IvComponent extends IvParentNode {
     kind: "#component";
-    // contentIdx
-}
-
-/**
- * Iv vDOM decorator
- */
-export interface IvDecorator extends IvParentNode {
-    kind: "#decorator";
 }

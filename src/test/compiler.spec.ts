@@ -7,7 +7,7 @@ describe('Template compiler', () => {
         let src1 = `\// start
             import { template } from "../iv";
 
-            let x = template(\`() => {
+            const x = template(\`() => {
                 # hello world #
             }\`);
 
@@ -16,14 +16,14 @@ describe('Template compiler', () => {
         let r = await compile(src1, "test1")
 
         assert.equal(r, `\// start
-            import { template, ζcc, ζend, ζtxt, ζt } from "../iv";
+            import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
 
-            let x = (function () {
+            const x = (function () {
+            const ζs0 = {};
             return ζt(function (ζ) {
-                if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 0, 0, " hello world ");
-                }
-                ζend(ζ, 0);
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, " hello world ", 0);
+                ζend(ζ, ζc);
             });
             })();
 
@@ -46,31 +46,31 @@ describe('Template compiler', () => {
         let r = await compile(src2, "test2")
 
         assert.equal(r, `\
-            import{ template, ζtxt, ζcc, ζend, ζv, ζd, ζt } from "../iv";
+            import{ template, ζtxt, ζinit, ζend, ζv, ζd, ζt } from "../iv";
 
             let t1 = (function () {
+            const ζs0 = {};
             @ζd class ζParams {
                 @ζv a;
             }
             return ζt(function (ζ, $) {
                 let a = $["a"];
-                if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 0, 0, " T1 ");
-                }
-                ζend(ζ, 0);
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, " T1 ", 0);
+                ζend(ζ, ζc);
             }, 0, ζParams);
             })();
             let x = 123, t2 = (function () {
+            const ζs0 = {};
             @ζd class ζParams {
                 @ζv p1;
                 @ζv p2;
             }
             return ζt(function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];
-                if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 0, 0, " T1 ");
-                }
-                ζend(ζ, 0);
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, " T1 ", 0);
+                ζend(ζ, ζc);
             }, 0, ζParams);
             })();
             let z = "ABCD";

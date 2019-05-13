@@ -114,7 +114,7 @@ describe('Loops', () => {
                 </div>
                 //::C2 template anchor
             </body>
-        `, '6');
+        `, '7');
     });
 
     it("should work for simple elements / no keys (empty first)", function () {
@@ -220,12 +220,12 @@ describe('Loops', () => {
         let t = getTemplate(tpl, body).refresh({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T4 Hello Homer #
-                <div::E3>
+                #::T3 Hello Homer #
+                <div::E4>
                     #::T5 Last Name: Simpson #
                 </div>
-                #::T7 Hello Mickey #
-                <div::E6>
+                #::T6 Hello Mickey #
+                <div::E7>
                     #::T8 Last Name: Mouse #
                 </div>
                 //::C2 template anchor
@@ -235,8 +235,8 @@ describe('Loops', () => {
         t.refresh({ names: [{ first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T4 Hello Mickey # (1)
-                <div::E3>
+                #::T3 Hello Mickey # (1)
+                <div::E4>
                     #::T5 Last Name: Mouse # (1)
                 </div>
                 //::C2 template anchor
@@ -253,16 +253,16 @@ describe('Loops', () => {
         t.refresh({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }, { first: "Bart", last: "Simpson" }] });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T4 Hello Homer # (2)
-                <div::E3>
+                #::T3 Hello Homer # (2)
+                <div::E4>
                     #::T5 Last Name: Simpson # (2)
                 </div>
-                #::T7 Hello Mickey #
-                <div::E6>
+                #::T6 Hello Mickey #
+                <div::E7>
                     #::T8 Last Name: Mouse #
                 </div>
-                #::T10 Hello Bart #
-                <div::E9>
+                #::T9 Hello Bart #
+                <div::E10>
                     #::T11 Last Name: Simpson #
                 </div>
                 //::C2 template anchor

@@ -1,6 +1,4 @@
-import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer } from './types';
-import { visitNode } from 'typescript';
-import { logNodes } from '../test/utils';
+import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener } from './types';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -44,6 +42,7 @@ export class Template implements IvTemplate {
             ctxt.rootDomNode = element;
             ctxt.anchorNode = ctxt.doc.createComment("template anchor"); // used as anchor in the parent domNode
             element.appendChild(ctxt.anchorNode);
+            //appendChild(element, ctxt.anchorNode);
         } else {
             error("template host cannot be changed yet"); // todo
         }
@@ -190,7 +189,7 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
     // if doesn't exist, create one and register it on the container
     let cnt = pv.nodes![containerIdx] as IvBlockContainer, view: IvView, views = cnt.views;
     if (!cnt.attached) {
-        console.log("Invalid ζview call: container must be attached (" + cnt.uid + ")");
+        console.log("[ERROR] Invalid ζview call: container must be attached (" + cnt.uid + ")");
     }
     if (instanceIdx === 1) {
         cnt.insertFn = null;
@@ -248,6 +247,7 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer) {
         return function (n: IvNode, domOnly: boolean) {
             if (n.domNode) {
                 parentDomNd.appendChild(n.domNode);
+                // appendChild(parentDomNd, n.domNode);
             } else {
                 n.domNode = parentDomNd;
             }
@@ -348,6 +348,7 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
         let len = staticAttributes.length;
         for (let i = 0; len > i; i += 2) {
             e.setAttribute(staticAttributes[i], staticAttributes[i + 1]);
+            // setAttribute(e, staticAttributes[i], staticAttributes[i + 1]);
         }
     }
     if (staticProperties) {
@@ -374,6 +375,7 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
         v.cmAppends![parentLevel + 1] = function (n: IvNode, domOnly: boolean) {
             if (n.domNode) {
                 e.appendChild(n.domNode);
+                // appendChild(e, n.domNode);
             } else {
                 n.domNode = e;
             }
@@ -663,16 +665,17 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
 export function ζatt(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
     if (!iHolder) {
-        setAttribute(v, iHolder, eltIdx, name, expr);
+        updateAttribute(v, iHolder, eltIdx, name, expr);
     } else {
         console.log("todo att expr")
     }
 }
 
-function setAttribute(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+function updateAttribute(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     let val = getExprValue(v, iHolder, expr);
     if (val !== ζu) {
         (v.nodes![eltIdx] as IvNode).domNode.setAttribute(name, val);
+        // setAttribute((v.nodes![eltIdx] as IvNode).domNode, name, val);
     }
 }
 
@@ -712,6 +715,39 @@ function setParam(v: IvView, iHolder: number, cptIdx: number, name: string, expr
         if (p) {
             p[name] = val;
         }
+    }
+}
+
+// Event listener
+// ζevt(ζ, ζc, 1, 0, function (e) {doSomething()});
+export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void) {
+    if (cm) {
+        // get associated elt
+        let domNode = v.nodes![eltIdx].domNode;
+        if (!domNode) {
+            console.log("[ERROR] Invalid ζevt call: parent element must have a DOM node");
+            return;
+        }
+        // create and register event listener
+        let nd: IvEltListener = {
+            kind: "#listener",
+            uid: "evt" + (++uidCount),
+            idx: idx,
+            parentIdx: eltIdx,
+            nextSibling: undefined,
+            domNode: domNode,
+            attached: true,
+            callback: handler
+        }
+        v.nodes![idx] = nd;
+        domNode.addEventListener(eventName, function (evt: any) {
+            if (nd.callback) {
+                nd.callback(evt);
+            }
+        });
+    } else {
+        // update callback as it may contain different closure values
+        (v.nodes![idx] as IvEltListener).callback = handler;
     }
 }
 

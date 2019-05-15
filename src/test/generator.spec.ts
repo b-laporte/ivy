@@ -584,6 +584,21 @@ describe('Code generator', () => {
         ], '2b');
     });
 
+    it("should support event handlers on elements", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div click(e)={doSomething()} mousemove( x, y )={doSomethingElse(y,x)}>
+                # Click {name} #
+            </div>
+            }`), `
+            let ζc = ζinit(ζ, ζs0, 4);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", function (e) {doSomething()});
+            ζevt(ζ, ζc, 2, 0, "mousemove", function (x,y) {doSomethingElse(y,x)});
+            ζtxt(ζ, ζc, 3, 1, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
     /*
         it("should support js blocks in component content", async function () {
             assert.equal(await body.template(`(foo) => {
@@ -937,25 +952,6 @@ describe('Code generator', () => {
                 ζend(ζ, 0);
             }, 0, MyParamClass);
             })()`, 'param class + local variables initialization');
-        });
-    
-        it("should support event handlers on elements", async function () {
-            assert.equal(await body.template(`(name) => {
-                <div click(e)={doSomething()} mousemove( x, y )={doSomethingElse(y,x)}>
-                    # Click {name} #
-                </div>
-            }`), `
-                if (ζ[0].cm) {
-                    ζelt(ζ, 1, 0, 0, "div");
-                    ζlistener(ζ, 2, 1, 0, "click");
-                    ζlistener(ζ, 3, 1, 0, "mousemove");
-                    ζtxt(ζ, 4, 1, 0, ζs0);
-                }
-                ζhandler(ζ, 2, 0, function (e) {doSomething()});
-                ζhandler(ζ, 3, 0, function (x,y) {doSomethingElse(y,x)});
-                ζtxtval(ζ, 4, 0, ζs0, 1, ζe(ζ, 0, name));
-                ζend(ζ, 0);
-            `, '1');
         });
     
         it("should support async elements", async function () {

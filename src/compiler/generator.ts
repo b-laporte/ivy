@@ -366,8 +366,8 @@ export class ViewInstruction implements RuntimeInstruction {
                 break;
             case "#element":
                 this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iHolder, parentLevel, stParams));
-                // this.createListeners(nd as XjsElement, idx, iHolder);
                 this.generateParamInstructions(nd as XjsElement, idx, iHolder, true);
+                this.createListeners(nd as XjsElement, idx, iHolder);
                 content = nd.content;
                 break;
             case "#component":
@@ -487,6 +487,14 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (p.value && p.value.kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, this, iHolder, isAttribute));
                 }
+            }
+        }
+    }
+
+    createListeners(nd: XjsElement, parentIdx: number, iHolder: number) {
+        if (nd.listeners && nd.listeners.length) {
+            for (let listener of nd.listeners) {
+                this.instructions.push(new EvtInstruction(listener, this.nodeCount++, parentIdx, this, iHolder));
             }
         }
     }
@@ -762,5 +770,22 @@ class CallInstruction implements RuntimeInstruction {
         // e.g. ζcall(ζ, 2);
         let v = this.view;
         body.push(`${v.indent}${funcStart("call", this.iHolder)}${v.jsVarName}, ${this.idx});\n`);
+    }
+}
+
+class EvtInstruction implements RuntimeInstruction {
+    constructor(public listener: XjsEvtListener, public idx: number, public parentIdx, public view: ViewInstruction, public iHolder: number) {
+        view.gc.imports['ζevt'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζevt(ζ, ζc, 1, 0, function (e) {doSomething()});
+        let v = this.view, listener = this.listener, args = "";
+        if (listener.argumentNames) {
+            args = listener.argumentNames.join(",");
+        }
+        body.push(`${v.indent}${funcStart("evt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${listener.name}", function (${args}) {`);
+        body.push(listener);
+        body.push(`});\n`);
     }
 }

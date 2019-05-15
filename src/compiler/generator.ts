@@ -1,6 +1,7 @@
 import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../xjs/parser/types';
 import { parse } from '../xjs/parser/xjs-parser';
 import { before } from 'mocha';
+import { nodeModuleNameResolver } from 'typescript';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result
@@ -341,10 +342,10 @@ export class ViewInstruction implements RuntimeInstruction {
             this.nodeCount++;
         }
 
-        let stParams = "", i1 = -1, i2 = -1;
+        let stParams = "", i1 = -1, i2 = -1, containsParamExpr = false;
         if (nd.kind === "#element" || nd.kind === "#component" || nd.kind === "#paramNode") {
-            i1 = this.registerStatics(nd.params);
-            i2 = this.registerStatics(nd.properties);
+            [i1, containsParamExpr] = this.registerStatics(nd.params);
+            [i2] = this.registerStatics(nd.properties);
             if (i1 > -1 && i2 > -1) {
                 stParams = `, ζs${i1}, ζs${i2}`;
             } else if (i1 > -1) {
@@ -368,6 +369,22 @@ export class ViewInstruction implements RuntimeInstruction {
                 // this.createListeners(nd as XjsElement, idx, iHolder);
                 this.generateParamInstructions(nd as XjsElement, idx, iHolder, true);
                 content = nd.content;
+                break;
+            case "#component":
+                // create a container block
+                content = nd.content;
+                let callImmediately = !containsParamExpr && (!content || !content.length);
+                this.instructions.push(new CptInstruction(nd as XjsComponent, idx, this, iHolder, parentLevel, callImmediately, i1));
+                if (containsParamExpr) {
+                    this.generateParamInstructions(nd as XjsComponent, idx, iHolder, false);
+                }
+                if (!callImmediately) {
+                    this.instructions.push(new CallInstruction(idx, this, iHolder));
+                }
+                // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
+                if (nd.listeners && nd.listeners.length) {
+                    this.gc.error("Event listeners are not supported on components (yet)", nd);
+                }
                 break;
             case "#jsStatements":
                 this.instructions.push(new JsStatementsInstruction(nd, this, iHolder, prevKind));
@@ -407,13 +424,15 @@ export class ViewInstruction implements RuntimeInstruction {
         }
     }
 
-    registerStatics(params: XjsParam[] | XjsProperty[] | undefined): number {
+    registerStatics(params: XjsParam[] | XjsProperty[] | undefined): [number, boolean] {
         // return the index of the static resource or -1 if none
-        if (!params || !params.length) return -1;
+        // 2nd param is true if dynamic expressions are found
+        if (!params || !params.length) return [-1, false];
         let v: XjsNumber | XjsBoolean | XjsString | XjsExpression | undefined,
             sIdx = -1, val: string[] | undefined = undefined,
             p: XjsParam | XjsProperty,
             sVal = "",
+            containsExpr = false,
             statics = this.gc.statics;
         for (let i = 0; params.length > i; i++) {
             p = params[i];
@@ -427,6 +446,8 @@ export class ViewInstruction implements RuntimeInstruction {
                 } else {
                     sVal = "" + v.value;
                 }
+            } else if (v && v.kind === "#expression") {
+                containsExpr = true;
             }
             if (sVal) {
                 if (sIdx < 0) {
@@ -440,7 +461,7 @@ export class ViewInstruction implements RuntimeInstruction {
         if (val) {
             statics[sIdx] = "ζs" + sIdx + " = [" + val!.join(", ") + "]";
         }
-        return sIdx;
+        return [sIdx, containsExpr];
     }
 
     generateParamInstructions(f: XjsFragment, idx: number, iHolder: number, isAttribute: boolean) {
@@ -705,11 +726,41 @@ class JsStatementsInstruction implements RuntimeInstruction {
 
 class CntInstruction implements RuntimeInstruction {
     constructor(public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public type: ContainerType) {
-        this.view.gc.imports['ζcnt'] = 1;
+        view.gc.imports['ζcnt'] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         let v = this.view;
         body.push(`${v.indent}${funcStart("cnt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, ${this.type});\n`);
+    }
+}
+
+class CptInstruction implements RuntimeInstruction {
+    constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public callImmediately: boolean, public staticParamIdx: number) {
+        view.gc.imports['ζcpt'] = 1;
+        if (node.properties && node.properties.length) {
+            view.gc.error("Properties cannot be used on components", node);
+        }
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
+        let v = this.view, stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx;
+
+        body.push(`${v.indent}${funcStart("cpt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, `);
+        generateExpression(body, this.node.ref as XjsExpression, this.view, this.iHolder);
+        body.push(`, ${this.callImmediately ? 1 : 0}${stParams});\n`);
+    }
+}
+
+class CallInstruction implements RuntimeInstruction {
+    constructor(public idx: number, public view: ViewInstruction, public iHolder: number) {
+        view.gc.imports['ζcall'] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζcall(ζ, 2);
+        let v = this.view;
+        body.push(`${v.indent}${funcStart("call", this.iHolder)}${v.jsVarName}, ${this.idx});\n`);
     }
 }

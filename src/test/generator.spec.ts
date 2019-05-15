@@ -549,6 +549,41 @@ describe('Code generator', () => {
             ζend(ζ, ζc, ζs1);
         `, '2');
     });
+
+    it("should support components with no content", async function () {
+        let t1 = await test.template(`() => {
+            <*alert class="important" position="bottom"/>
+        }`);
+
+        assert.equal(t1.body, `
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, ζe(ζ, 0, alert), 1, ζs1);
+            ζend(ζ, ζc);
+        `, '1a');
+
+        assert.deepEqual(t1.statics, [
+            'ζs0 = {}',
+            'ζs1 = ["class", "important", "position", "bottom"]'
+        ], '1b');
+
+        // with dynamic params
+        let t2 = await test.template(`() => {
+            <*b.section position={getPosition()} msg={myMessage} type="big" important/>
+        }`);
+        assert.equal(t2.body, `
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, ζe(ζ, 0, b.section), 0, ζs1);
+            ζpar(ζ, 0, 0, "position", ζe(ζ, 1, getPosition()));
+            ζpar(ζ, 0, 0, "msg", ζe(ζ, 2, myMessage));
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '2a');
+        assert.deepEqual(t2.statics, [
+            'ζs0 = {}',
+            'ζs1 = ["type", "big", "important", true]'
+        ], '2b');
+    });
+
     /*
         it("should support js blocks in component content", async function () {
             assert.equal(await body.template(`(foo) => {
@@ -579,43 +614,6 @@ describe('Code generator', () => {
                 ζcall(ζ, 1);
                 ζend(ζ, 0, ζs0);
             `, '1');
-        });
-    
-        it("should support components with no content", async function () {
-            let t1 = await test.template(`() => {
-                <*alert class="important" position="bottom"/>
-            }`);
-    
-            assert.equal(t1.body, `
-                if (ζ[0].cm) {
-                    ζfrag(ζ, 1, 0, 0, 2);
-                }
-                ζcpt(ζ, 1, 0, ζe(ζ, 0, alert), 0, 0, ζs0);
-                ζcall(ζ, 1);
-                ζend(ζ, 0);
-            `, '1a');
-    
-            assert.deepEqual(t1.statics, [
-                'ζs0 = ["class", "important", "position", "bottom"]'
-            ], '1b');
-    
-            // with dynamic params
-            let t2 = await test.template(`() => {
-                <*b.section position={getPosition()} msg={myMessage} type="big" important/>
-            }`);
-            assert.equal(t2.body, `
-                if (ζ[0].cm) {
-                    ζfrag(ζ, 1, 0, 0, 2);
-                }
-                ζcpt(ζ, 1, 0, ζe(ζ, 0, b.section), 0, 0, ζs0);
-                ζparam(ζ, 1, 0, "position", ζe(ζ, 1, getPosition()));
-                ζparam(ζ, 1, 0, "msg", ζe(ζ, 2, myMessage));
-                ζcall(ζ, 1);
-                ζend(ζ, 0);
-            `, '2a');
-            assert.deepEqual(t2.statics, [
-                'ζs0 = ["type", "big", "important", true]'
-            ], '2b');
         });
     
         it("should support components with content & no param nodes", async function () {

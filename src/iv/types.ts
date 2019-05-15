@@ -31,7 +31,7 @@ export interface IvParentNode extends IvNode {
 }
 
 export interface IvFragment extends IvParentNode {
-    kind: "#fragment" | "#container";
+    kind: "#fragment";
 }
 
 export interface IvView {
@@ -63,7 +63,7 @@ export interface IvEltListener extends IvNode {
     callback: ((e: any) => void) | undefined;
 }
 
-export interface IvContainer extends IvFragment {
+export interface IvContainer extends IvNode {
     kind: "#container";
     subKind: "##block" | "##cpt" | "##async";
     cmAppend: null | ((n: IvNode, domOnly: boolean) => void);
@@ -74,15 +74,14 @@ export interface IvBlockContainer extends IvContainer {
     views: IvView[];
     viewPool: IvView[];
     lastRefresh: number;
-    nbrOfVisibleViews: number;
+    previousNbrOfViews: number;
     insertFn: null | ((n: IvNode, domOnly: boolean) => void);
 }
 
 export interface IvCptContainer extends IvContainer {
     subKind: "##cpt";
-    cptTemplate: IvTemplate;           // current component template
-    cptParams: any;                    // shortcut to cptTemplate.params
-    cptView: IvView | undefined;       // reference to root content element (if any)
+    cptTemplate: IvTemplate | null;      // current component template
+    cptParams: any;                      // shortcut to cptTemplate.params
 }
 
 export interface IvAsyncContainer extends IvContainer {

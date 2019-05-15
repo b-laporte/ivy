@@ -1,5 +1,6 @@
-import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment } from './types';
+import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer } from './types';
 import { visitNode } from 'typescript';
+import { logNodes } from '../test/utils';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -122,6 +123,13 @@ function createView(parentView: IvView | null, isTemplateRoot: boolean, containe
     return view;
 }
 
+function setParentView(v: IvView, pv: IvView, container: IvContainer) {
+    v.parentView = pv;
+    v.doc = pv.doc;
+    v.container = container;
+    v.rootDomNode = pv.rootDomNode;
+}
+
 export function template(template: string): () => IvTemplate {
     return function () {
         return new Template(() => { })
@@ -155,19 +163,22 @@ export function ζinit(v: IvView, staticCache: Object, nbrOfNodes: number): bool
     let cm = v.cm;
     if (cm) {
         v.nodes = new Array(nbrOfNodes);
-        v.cmAppends = [];
-        if (v.anchorNode) {
-            // this is the root template
-            v.cmAppends[0] = function (n: IvNode, domOnly: boolean) {
-                if (n.domNode) {
-                    v.rootDomNode.insertBefore(n.domNode, v.anchorNode);
-                } else {
-                    n.domNode = v.rootDomNode;
+        if (!v.cmAppends) {
+            // cmAppends is already defined when the template is called from another template
+            v.cmAppends = [];
+            if (v.anchorNode) {
+                // this is the root template
+                v.cmAppends[0] = function (n: IvNode, domOnly: boolean) {
+                    if (n.domNode) {
+                        v.rootDomNode.insertBefore(n.domNode, v.anchorNode);
+                    } else {
+                        n.domNode = v.rootDomNode;
+                    }
                 }
             }
-        } else {
-
         }
+    } else {
+        v.cmAppends = null;
     }
     return cm;
 }
@@ -178,11 +189,16 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
     // retrieve container to get previous view
     // if doesn't exist, create one and register it on the container
     let cnt = pv.nodes![containerIdx] as IvBlockContainer, view: IvView, views = cnt.views;
+    if (!cnt.attached) {
+        console.log("Invalid ζview call: container must be attached (" + cnt.uid + ")");
+    }
     if (instanceIdx === 1) {
         cnt.insertFn = null;
     }
+    // console.log("ζview", cnt.uid, instanceIdx, cnt.domNode === undefined)
     if (instanceIdx === 1 && cnt.views.length > 1) {
         // previous views are moved to the view pool to be re-used if necessary
+        cnt.previousNbrOfViews = views.length;
         view = views.shift()!;
         if (cnt.viewPool.length) {
             cnt.viewPool = views.concat(cnt.viewPool);
@@ -194,6 +210,7 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
         view = cnt.views[instanceIdx - 1];
         if (!view) {
             if (cnt.viewPool.length > 0) {
+                // console.log("view: retrieve from pool: ", cnt.uid)
                 if (!cnt.insertFn) {
                     cnt.insertFn = getViewInsertFunction(pv, cnt);
                 }
@@ -208,7 +225,6 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
                     view.cmAppends = [getViewInsertFunction(pv, cnt)];
                 }
             }
-            cnt.nbrOfVisibleViews = instanceIdx;
         }
     }
     // return sth
@@ -239,6 +255,7 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer) {
     } else {
         return function () {
             console.log("TODO: VIEW APPEND: ", position)
+            logView(pv, "getViewInsertFunction for " + cnt.uid)
         }
     }
 }
@@ -262,9 +279,8 @@ function checkContainer(v: IvView, idx: number, firstTime: boolean) {
             //         runInstructions(blocks[i][1] as IvNode, "checkContainer 1");
             //     }
         } else {
-            let nbrOfVisibleViews = bc.nbrOfVisibleViews;
-            // console.log("nbrOfVisibleViews", nbrOfVisibleViews, "nbrOfViews", nbrOfViews);
-            if (nbrOfViews < nbrOfVisibleViews) {
+            // console.log("previousNbrOfViews", bc.previousNbrOfViews, "nbrOfViews", nbrOfViews);
+            if (nbrOfViews !== bc.previousNbrOfViews) {
                 // disconnect the nodes that are still attached in the pool
                 let pool = bc.viewPool, len = pool.length, view: IvView;
                 for (let i = 0; len > i; i++) {
@@ -272,7 +288,7 @@ function checkContainer(v: IvView, idx: number, firstTime: boolean) {
                     removeFromDom(view, view.nodes![0]);
                 }
             }
-            bc.nbrOfVisibleViews = nbrOfViews; // all views are immediately inserted
+            bc.previousNbrOfViews = nbrOfViews; // all views are immediately inserted
 
             //   for (let i = 0; nbrOfBlocks > i; i++) {
             //         nodes = blocks[i];
@@ -292,6 +308,18 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
         while (ch) {
             insertInDom(ch, insertFn);
             ch = ch.nextSibling;
+        }
+    } else if (nd.kind === "#container") {
+        let k = (nd as IvContainer).subKind;
+        if (k === "##cpt") {
+            let cc = nd as IvCptContainer, tpl = cc.cptTemplate as Template, root = tpl ? tpl.view.nodes![0] : null;
+            if (tpl) tpl.forceRefresh = true;
+            if (root) insertInDom(root, insertFn);
+        } else if (k === "##block") {
+            let cb = nd as IvBlockContainer, views = cb.views;
+            for (let i = 0; views.length > i; i++) {
+                insertInDom(views[i].nodes![0], insertFn);
+            }
         }
     }
 }
@@ -522,6 +550,7 @@ export function ζcnt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
             parentCmAppend(n, true); // append container content
         };
     if (type === 1) {
+        // block container
         nd = <IvBlockContainer>{
             kind: "#container",
             subKind: "##block",
@@ -532,21 +561,101 @@ export function ζcnt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
             domNode: undefined,
             attached: true,            // always attached when created
             nextSibling: undefined,
-            firstChild: undefined,
-            lastChild: undefined,
             views: [],
             viewPool: [],
             cmAppend: cmAppend,
             lastRefresh: 0,
-            nbrOfVisibleViews: 0,
+            previousNbrOfViews: 0,
             insertFn: null
         };
+    } else if (type === 2) {
+        // cpt container
+        nd = <IvCptContainer>{
+            kind: "#container",
+            subKind: "##cpt",
+            uid: "cnc" + (++uidCount),
+            idx: idx,
+            parentIdx: -1,
+            ns: "",
+            domNode: undefined,
+            attached: true,            // always attached when created
+            nextSibling: undefined,
+            cmAppend: cmAppend,
+            cptTemplate: null,         // current component template
+            cptParams: null            // shortcut to cptTemplate.params
+        }
     } else {
         console.log("TODO: new cnt type");
-        return;
+        return null;
     }
     v.nodes![idx] = nd;
     parentCmAppend(nd, false); // append container in parent view
+    return nd;
+}
+
+// Component Definition (& call if no params and no content)
+// e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
+export function ζcpt(v: IvView, cm: boolean, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[], iHolder?: number) {
+    let container: IvCptContainer;
+    if (cm) {
+        // creation mode
+        iHolder = iHolder || 0;
+
+        // create cpt container
+        container = ζcnt(v, cm, idx, parentLevel, 2) as IvCptContainer;
+
+        let cptRef = getExprValue(v, iHolder, exprCptRef);
+        if (cptRef === ζu) {
+            console.log("[iv] Invalid component ref")
+            return;
+        }
+        let tpl: Template = container.cptTemplate = cptRef()!;
+        setParentView(tpl.view, v, container);
+        tpl.disconnectObserver();
+        let p = container.cptParams = tpl.params;
+        if (staticParams) {
+            // initialize static params
+            let len = staticParams.length;
+            for (let i = 0; len > i; i += 2) {
+                p[staticParams[i]] = staticParams[i + 1];
+            }
+        }
+    } else {
+        // update mode
+        container = v.nodes![idx] as IvCptContainer;
+    }
+    if (callImmediately) {
+        ζcall(v, idx, container);
+    }
+}
+
+// Component call - used when a component has content, params or param nodes
+export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
+    container = container || v.nodes![idx] as IvCptContainer;
+    let tpl = container ? container.cptTemplate as Template : null;
+    if (tpl) {
+        let cm = v.cm;
+        tpl.view.lastRefresh = v.lastRefresh - 1; // will be incremented by refresh()
+        // if (container.cptContent) {
+        //     tpl.params.$content = container.cptContent;
+        //     let instr = container.cptContent.instructions;
+        //     if (instr && instr.length) {
+        //         tpl.forceRefresh = true;
+        //     }
+        // }
+        if (cm) {
+            // define cmAppend
+            tpl.view.cmAppends = [container!.cmAppend!];
+        } else {
+            let root = tpl.view.nodes![0];
+            if (!root.attached) {
+                tpl.forceRefresh = true;
+                let insertFn = getViewInsertFunction(v, container!);
+                insertInDom(root, insertFn);
+            }
+        }
+        tpl.refresh();
+    }
 }
 
 // Attribute setter
@@ -582,6 +691,27 @@ function setProperty(v: IvView, iHolder: number, eltIdx: number, name: string, e
     let val = getExprValue(v, iHolder, expr);
     if (val !== ζu) {
         (v.nodes![eltIdx] as IvNode).domNode[name] = val;
+    }
+}
+
+// Param setter
+// e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
+export function ζpar(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+    if (expr === ζu) return;
+    if (!iHolder) {
+        setParam(v, iHolder, eltIdx, name, expr);
+    } else {
+        console.log("todo att expr")
+    }
+}
+
+function setParam(v: IvView, iHolder: number, cptIdx: number, name: string, expr: any) {
+    let val = getExprValue(v, iHolder, expr);
+    if (val !== ζu) {
+        let p = (v.nodes![cptIdx] as IvCptContainer).cptParams;
+        if (p) {
+            p[name] = val;
+        }
     }
 }
 
@@ -644,10 +774,10 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
     }
 
     function findFirstDomNd(v: IvView, nd: IvNode, parentDomNd: any): SiblingDomPosition | null {
-        if (!nd || !nd.attached) return null;
+        if (!nd) return null;
         if (nd.kind === "#element" || nd.kind === "#text") {
             return { position: "beforeChild", nextDomNd: nd.domNode, parentDomNd: parentDomNd };
-        } else if (nd.kind === "#fragment" || nd.kind === "#component") {
+        } else if (nd.kind === "#fragment") {
             let sdp: SiblingDomPosition | null, ch = (nd as IvParentNode).firstChild;
             while (ch) {
                 sdp = findFirstDomNd(v, ch, parentDomNd);
@@ -663,14 +793,12 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
             if (container.subKind === "##block") {
                 let views = (container as IvBlockContainer).views, len = views.length;
                 for (let i = 0; len > i; i++) {
-                    sdp = findFirstDomNd(views[i], views[i][0] as IvNode, parentDomNd);
+                    sdp = findFirstDomNd(views[i], views[i].nodes![0] as IvNode, parentDomNd);
                     if (sdp) break;
                 }
             } else if (container.subKind === "##cpt") {
-                // let tpl = container.cptTemplate as Template
-                // let nodes = tpl.context.nodes;
-                // sdp = findFirstDomNd(nodes, nodes[1] as IvNode, parentDomNd);
-                console.log("TODO findFirstDomNd cpt");
+                let tpl = (container as IvCptContainer).cptTemplate as Template, view = tpl.view;
+                sdp = findFirstDomNd(view, view.nodes![0], parentDomNd);
             }
             return sdp ? sdp : null;
         } else {
@@ -709,7 +837,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
         let pdn = getParentDomNd(v, nd);
         nd.attached = false;
         if (pdn) {
-            // console.log(nd.uid, nd.attached, nd.domNode.$uid, "in=", pdn ? pdn.$uid : "XX")
+            // console.log("removeChild:", nd.uid, "/", nd.domNode.uid, "in=", pdn ? pdn.uid : "XX")
             pdn.removeChild(nd.domNode);
         }
     } else if (nd.kind === "#container") {
@@ -721,18 +849,24 @@ function removeFromDom(v: IvView, nd: IvNode) {
                 root = views[i].nodes![0];
                 removeFromDom(views[i], root);
                 root.attached = false;
+                if (root.kind === "#container" || root.kind === "#fragment") {
+                    root.domNode = undefined;
+                }
             }
             // move previous nodes to blockPool
             container.views = [];
-            container.nbrOfVisibleViews = 0;
+            container.previousNbrOfViews = 0;
             container.viewPool = views.concat(container.viewPool);
         } else if (nd["subKind"] === "##cpt") {
-            // tpl = container.cptTemplate as Template
-            // let nodes = tpl.context.nodes, root = nodes[1] as IvNode;
-            // removeFromDom(nodes, root);
-            // root.attached = false;
+            let tpl = (nd as IvCptContainer).cptTemplate as Template
+            let nodes = tpl.view.nodes!, root = nodes[0];
+            removeFromDom(tpl.view, root);
+            root.attached = false;
+            if (root.kind === "#container" || root.kind === "#fragment") {
+                root.domNode = undefined;
+            }
         }
-        // note: we have to keep container attached
+        // note: we have to keep container attached (except if they are root)
     } else if (nd.kind === "#fragment") {
         let f = nd as IvFragment;
         f.attached = false;
@@ -891,12 +1025,6 @@ export function logViewNodes(v: IvView, indent: string = "") {
             let cont = nd as IvContainer;
             let dn = cont.domNode ? cont.domNode.uid : "XX";
             console.log(`${indent}[${i}] ${nd.uid}${space} ${dn} attached:${nd.attached ? 1 : 0} parent:${nd.parentIdx} nextSibling:${nd.nextSibling ? nd.nextSibling.uid : "X"}`);
-            // if (cont.cptTemplate) {
-            //     let tpl = cont.cptTemplate as Template;
-            //     console.log(`${indent + "  "}- light DOM first Child: [${cont.firstChild ? cont.firstChild!.uid : "XX"}]`);
-            //     console.log(`${indent + "  "}- shadow DOM:`);
-            //     logViewNodes(tpl.context.nodes, "    " + indent);
-            // } else {
             if (cont.subKind === "##block") {
                 let cb = cont as IvBlockContainer, len2 = cb.views.length;
                 if (!len2) {
@@ -913,6 +1041,17 @@ export function logViewNodes(v: IvView, indent: string = "") {
                         logViewNodes(cb.views[j], "    " + indent);
                     }
                 }
+            } else if (cont.subKind === "##cpt") {
+                let cc = cont as IvCptContainer, tpl = cc.cptTemplate;
+                if (!tpl) {
+                    console.log(`${indent + "  "}- no template`);
+                } else {
+                    // console.log(`${indent + "  "}- light DOM first Child: [${cont.firstChild ? cont.firstChild!.uid : "XX"}]`);
+                    console.log(`${indent + "  "}- shadow DOM:`);
+                    logViewNodes(tpl["view"], "    " + indent);
+                }
+            } else {
+                console.log(`${indent + "  "}- ${cont.subKind} container`);
             }
         } else {
             let dn = nd.domNode ? nd.domNode.uid : "XX", lastArg = "";

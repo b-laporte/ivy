@@ -165,6 +165,12 @@ class TextNode {
         this.changeCount++;
     }
 
+    log(label = "") {
+        console.log(SEP);
+        if (label) console.log("LOG::" + label.toUpperCase());
+        console.log(this.stringify({}));
+    }
+
     stringify(options: StringOptions): string {
         let indent = options.indent || "",
             showUid = options.showUid === true,
@@ -315,6 +321,12 @@ export class ElementNode {
         }
     }
 
+    log(label = "") {
+        console.log(SEP);
+        if (label) console.log("LOG::" + label.toUpperCase());
+        console.log(this.stringify({}));
+    }
+
     stringify(options: StringOptions): string {
         let indent = options.indent || "",
             isRoot = options.isRoot === true,
@@ -358,6 +370,10 @@ export class ElementNode {
             let options2: StringOptions = { indent: indent2 + "    ", isRoot: false, showUid: showUid };
             lines.push(`${indent2}<${this.nodeName}${uid}${att}>`);
             for (let ch of this.childNodes) {
+                if (ch === this) {
+                    lines.push(`${indent2}CHILD=PARENT!`);
+                    continue;
+                }
                 lines.push(ch.stringify(options2));
             }
             lines.push(`${indent2}</${this.nodeName}>`);

@@ -1,4 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener } from './types';
+import { createImportSpecifier, createNode } from 'typescript';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -81,7 +82,7 @@ export class Template implements IvTemplate {
         if (!bypassRefresh) {
             // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH", this.context.nodes[0].uid)
             this.view.lastRefresh++;
-            //cleanInstructions(this.view.nodes);
+            this.view.instructions = undefined;
             this.refreshFn(this.view, p);
             if (p && p["$kind"] === PARAM) {
                 p["$reset"]();
@@ -106,11 +107,13 @@ function createView(parentView: IvView | null, isTemplateRoot: boolean, containe
         cmAppends: null,
         lastRefresh: 0,
         container: null,
+        projectionHost: null,
         isTemplate: isTemplateRoot,
         rootDomNode: null,
         anchorNode: null,
         expressions: undefined,
-        oExpressions: undefined
+        oExpressions: undefined,
+        instructions: undefined
     }
     if (parentView) {
         view.rootDomNode = parentView.rootDomNode;
@@ -187,54 +190,122 @@ export function ζinit(v: IvView, staticCache: Object, nbrOfNodes: number): bool
 export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
     // retrieve container to get previous view
     // if doesn't exist, create one and register it on the container
-    let cnt = pv.nodes![containerIdx] as IvBlockContainer, view: IvView, views = cnt.views;
-    if (!cnt.attached) {
-        console.log("[ERROR] Invalid ζview call: container must be attached (" + cnt.uid + ")");
+    let cn = pv.nodes![containerIdx] as IvContainer, view: IvView;
+    if (!cn || !cn.attached) {
+        console.log("[ERROR] Invalid ζview call: container must be attached (" + (cn ? cn.uid : "XX") + ")");
     }
-    if (instanceIdx === 1) {
-        cnt.insertFn = null;
-    }
-    // console.log("ζview", cnt.uid, instanceIdx, cnt.domNode === undefined)
-    if (instanceIdx === 1 && cnt.views.length > 1) {
-        // previous views are moved to the view pool to be re-used if necessary
-        cnt.previousNbrOfViews = views.length;
-        view = views.shift()!;
-        if (cnt.viewPool.length) {
-            cnt.viewPool = views.concat(cnt.viewPool);
-        } else {
-            cnt.viewPool = views;
+    if (cn.subKind === "##block") {
+        let cnt = cn as IvBlockContainer, views = cnt.views;
+        if (instanceIdx === 1) {
+            cnt.insertFn = null;
         }
-        cnt.views = [view];
-    } else {
-        view = cnt.views[instanceIdx - 1];
-        if (!view) {
-            if (cnt.viewPool.length > 0) {
-                // console.log("view: retrieve from pool: ", cnt.uid)
-                if (!cnt.insertFn) {
-                    cnt.insertFn = getViewInsertFunction(pv, cnt);
-                }
-                view = views[instanceIdx - 1] = cnt.viewPool.shift()!;
-                insertInDom(view.nodes![0], cnt.insertFn);
+        // console.log("ζview", cnt.uid, instanceIdx, cnt.domNode === undefined)
+        if (instanceIdx === 1 && cnt.views.length > 1) {
+            // previous views are moved to the view pool to be re-used if necessary
+            cnt.previousNbrOfViews = views.length;
+            view = views.shift()!;
+            if (cnt.viewPool.length) {
+                cnt.viewPool = views.concat(cnt.viewPool);
             } else {
-                view = views[instanceIdx - 1] = createView(pv, false, cnt);
-                view.nodes = new Array(nbrOfNodes);
-                if (pv.cm && cnt.cmAppend) {
-                    view.cmAppends = [cnt.cmAppend];
-                } else if (!pv.cm) {
-                    view.cmAppends = [getViewInsertFunction(pv, cnt)];
+                cnt.viewPool = views;
+            }
+            cnt.views = [view];
+            // this view was already attached so doesn't need to be inserted again
+        } else {
+            view = cnt.views[instanceIdx - 1];
+            if (!view) {
+                if (cnt.viewPool.length > 0) {
+                    // console.log("view: retrieve from pool: ", cnt.uid)
+                    if (!cnt.insertFn) {
+                        cnt.insertFn = getViewInsertFunction(pv, cnt);
+                    }
+                    view = views[instanceIdx - 1] = cnt.viewPool.shift()!;
+                    insertInDom(view.nodes![0], cnt.insertFn);
+                } else {
+                    view = views[instanceIdx - 1] = createView(pv, false, cnt);
+                    view.nodes = new Array(nbrOfNodes);
+                    if (pv.cm && cnt.cmAppend) {
+                        view.cmAppends = [cnt.cmAppend];
+                    } else if (!pv.cm) {
+                        view.cmAppends = [getViewInsertFunction(pv, cnt)];
+                    }
                 }
             }
         }
+        cnt.lastRefresh = view.lastRefresh = pv.lastRefresh;
+    } else {
+        // in this case cn is a component container and iHolder > 0
+        let cnt = cn as IvCptContainer;
+        view = cnt.contentView!;
+        if (!view) {
+            view = cnt.contentView = createView(pv, false, cnt);
+            view.nodes = new Array(nbrOfNodes);
+        }
+        // cmAppends will be already defined in ζins() as the current view is deferred
+        view.lastRefresh = pv.lastRefresh;
     }
-    // return sth
-    cnt.lastRefresh = view.lastRefresh = pv.lastRefresh;
     return view;
 }
 
-function getViewInsertFunction(pv: IvView, cnt: IvContainer) {
+export function ζviewD(pv: IvView, iHolder: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number, contentView?: number) {
+    let v = ζview(pv, iHolder, containerIdx, nbrOfNodes, instanceIdx);
+    // console.log("viewD", v.uid, v.instructions? v.instructions.length : "XX")
+
+    // reset instructions
+    if (iHolder === 1) {
+        v.instructions = [];
+    } else {
+        let v2 = v, h = iHolder - 1;
+        while (h > 0) {
+            v2 = v2.parentView!;
+            h--;
+        }
+        if (!v2.instructions) {
+            v2.instructions = [];
+        }
+        v.instructions = v2.instructions;
+    }
+    if (v.cm && !v.cmAppends) {
+        addInstruction(v, initView, [v, pv, containerIdx]);
+    }
+    return v;
+}
+
+function initView(v: IvView, parentView: IvView, containerIdx: number) {
+    // initialize cmAppend when view has been created in a deferred context
+    // i.e. container was created with cntD and its cmAppend was not defined
+    let cn = parentView.nodes![containerIdx] as IvContainer;
+    if (!v.cmAppends && cn.cmAppend) {
+        // console.log("initView:", v.uid, "container:", cn.uid)
+        v.cmAppends = [cn.cmAppend];
+    }
+}
+
+function addInstruction(v: IvView, func: Function, args: any[]) {
+    // console.log("addInstruction in", v.uid, " -> ", func.name);
+    v.instructions!.push(func);
+    v.instructions!.push(args);
+}
+
+function runInstructions(v: IvView) {
+    // console.log("runInstructions in", v.uid, "instructions count = ", v.instructions ? v.instructions.length / 2 : 0)
+    if (v.instructions) {
+        let instr = v.instructions.slice(0), len = instr.length;
+        v.instructions.splice(0, len); // empty the array (may be referenced by multiple views)
+        v.instructions = undefined;
+        if (len) {
+            for (let i = 0; len > i; i += 2) {
+                // console.log("   -> run instruction #" + (i / 2), instr[i].name);
+                instr[i].apply(null, instr[i + 1]);
+            }
+        }
+    }
+}
+
+function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
     // determine the append mode
     let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(pv, cnt);
-    // console.log(`findNextSiblingDomNd: position=${position} nextDomNd=${nextDomNd ? nextDomNd.uid : "XX"} parentDomNd=${parentDomNd ? parentDomNd.uid : "XX"}`)
+    // console.log(`findNextSiblingDomNd of ${cnt.uid} position=${position} nextDomNd=${nextDomNd ? nextDomNd.uid : "XX"} parentDomNd=${parentDomNd ? parentDomNd.uid : "XX"}`)
     if (position === "beforeChild" || position === "lastOnRoot") {
         return function (n: IvNode, domOnly: boolean) {
             if (n.domNode) {
@@ -246,8 +317,8 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer) {
     } else if (position === "lastChild") {
         return function (n: IvNode, domOnly: boolean) {
             if (n.domNode) {
+                // console.log("getViewInsertFunction: appendChild", n.domNode.uid, "in", parentDomNd.uid)
                 parentDomNd.appendChild(n.domNode);
-                // appendChild(parentDomNd, n.domNode);
             } else {
                 n.domNode = parentDomNd;
             }
@@ -322,6 +393,12 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
             }
         }
     }
+    if (nd.kind === "#fragment" || nd.kind === "#element") {
+        let cv = (nd as IvFragment | IvElement).contentView;
+        if (cv) {
+            insertInDom(cv.nodes![0], insertFn);
+        }
+    }
 }
 
 // End view
@@ -337,6 +414,10 @@ export function ζend(v: IvView, cm: boolean, containerIndexes?: (number[] | 0))
 
     v.cm = false;
     v.cmAppends = null;
+}
+
+export function ζendD(v: IvView, cm: boolean, containerIndexes?: (number[] | 0)) {
+    addInstruction(v, ζend, [v, cm, containerIndexes]);
 }
 
 // Element creation function
@@ -367,7 +448,8 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
         attached: true,            // always attached when created
         nextSibling: undefined,
         firstChild: undefined,
-        lastChild: undefined
+        lastChild: undefined,
+        contentView: null
     }
     v.nodes![idx] = nd;
     v.cmAppends![parentLevel]!(nd, false); // append in the parent DOM
@@ -386,6 +468,11 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     }
 }
 
+export function ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, staticAttributes?: any[], staticProperties?: any[]) {
+    if (!cm) return;
+    addInstruction(v, ζelt, [v, cm, idx, parentLevel, name, hasChildren, staticAttributes, staticProperties]);
+}
+
 function appendChildToNode(p: IvParentNode, child: IvNode) {
     if (!p.firstChild) {
         p.firstChild = p.lastChild = child;
@@ -399,7 +486,7 @@ function appendChildToNode(p: IvParentNode, child: IvNode) {
 
 // Text creation function
 // e.g. ζtxt(ζ, ζc, 0, 1, 1, " Hello World ", 0);
-export function ζtxt(v: IvView, cm: boolean, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+export function ζtxt(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
     let nd: IvText;
     if (!nbrOfValues) {
         // static node: nbrOfValues === 0
@@ -414,19 +501,18 @@ export function ζtxt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
             nd = v.nodes![idx] as IvText;
             pieces = nd.pieces!;
         }
-
         for (let i = 0; nbrOfValues > i; i++) {
-            val = getExprValue(v, 0, values[i]);
+            val = getExprValue(v, iHolder, values[i]);
             if (val !== ζu) {
                 changed = true;
                 pieces![1 + i * 2] = (val === null || val === undefined) ? "" : val;
             }
         }
-
         if (cm) {
             nd = createNode(v.doc.createTextNode(pieces.join("") as string), pieces);
         } else {
             if (changed) {
+                // console.log("set ", idx, nd!.uid, nd!.domNode.uid, pieces.join(""))
                 nd!.domNode.textContent = pieces.join("");
             }
             return;
@@ -450,19 +536,23 @@ export function ζtxt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     }
 }
 
+export function ζtxtD(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+    let args = [v, cm, iHolder, idx, parentLevel, statics, nbrOfValues]
+    for (let i = 0; nbrOfValues > i; i++) {
+        args.push(values[i]);
+    }
+    addInstruction(v, ζtxt, args);
+}
+
 // Expression binding
 // e.g. ζe(ζ, 0, name)
-export function ζe(v: IvView, idx: number, value: any, iHolder?: number) {
-    let ev = v;
-    if (iHolder) {
-        console.log("TODO: iHolder expr");
-    }
-    if (!ev.expressions) {
+export function ζe(v: IvView, idx: number, value: any) {
+    if (!v.expressions) {
         // first time, expression is considered changed
-        ev.expressions = [];
-        ev.expressions[idx] = value;
+        v.expressions = [];
+        v.expressions[idx] = value;
     } else {
-        let exp = ev.expressions;
+        let exp = v.expressions;
         if (exp.length > idx && exp[idx] === value) return ζu;
         exp[idx] = value;
     }
@@ -482,7 +572,7 @@ function getExprValue(v: IvView, iHolder: number, exprValue: any) {
             exprs[2 * exprValue[0]] = 1;
             return exprValue[1];
         }
-        return ζe(v, exprValue[0], exprValue[1], iHolder);
+        return ζe(v, exprValue[0], exprValue[1]);
     }
     return exprValue;
 }
@@ -529,7 +619,8 @@ export function ζfra(v: IvView, cm: boolean, idx: number, parentLevel: number) 
         attached: true,            // always attached when created
         nextSibling: undefined,
         firstChild: undefined,
-        lastChild: undefined
+        lastChild: undefined,
+        contentView: null
     }
     v.nodes![idx] = nd;
     let parentCmAppend = v.cmAppends![parentLevel]!;
@@ -542,15 +633,22 @@ export function ζfra(v: IvView, cm: boolean, idx: number, parentLevel: number) 
     }
 }
 
+export function ζfraD(v: IvView, cm: boolean, idx: number, parentLevel: number) {
+    addInstruction(v, ζfra, [v, cm, idx, parentLevel]);
+}
+
 // Container creation
 // e.g. ζcnt(ζ, ζc, 1, 1, 1);
 export function ζcnt(v: IvView, cm: boolean, idx: number, parentLevel: number, type: number) {
     if (!cm) return;
-    let nd: IvContainer,
-        parentCmAppend = v.cmAppends![parentLevel]!,
-        cmAppend = function (n: IvNode, domOnly: boolean) {
-            parentCmAppend(n, true); // append container content
-        };
+    let nd = createContainer(idx, null, type)!;
+    v.nodes![idx] = nd;
+    initContainer(v, nd, parentLevel);
+    return nd;
+}
+
+function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boolean) => void), type: number): IvContainer | null {
+    let nd: IvContainer;
     if (type === 1) {
         // block container
         nd = <IvBlockContainer>{
@@ -584,31 +682,51 @@ export function ζcnt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
             nextSibling: undefined,
             cmAppend: cmAppend,
             cptTemplate: null,         // current component template
-            cptParams: null            // shortcut to cptTemplate.params
+            cptParams: null,           // shortcut to cptTemplate.params
+            contentView: null
         }
     } else {
         console.log("TODO: new cnt type");
         return null;
     }
-    v.nodes![idx] = nd;
-    parentCmAppend(nd, false); // append container in parent view
     return nd;
 }
 
+function initContainer(v: IvView, container: IvContainer, parentLevel: number) {
+    // called when 
+    let parentCmAppend = v.cmAppends![parentLevel]!,
+        cmAppend = function (n: IvNode, domOnly: boolean) {
+            // console.log("initContainer: append", n.uid, n.domNode ? n.domNode.uid : "XX", "parentLevel:", parentLevel, "in", v.uid, "(container: " + container.uid + ")");
+            parentCmAppend(n, true); // append container content
+        };
+    container.cmAppend = cmAppend;
+    parentCmAppend(container, false); // append container in parent view
+}
+
+export function ζcntD(v: IvView, cm: boolean, idx: number, parentLevel: number, type: number) {
+    if (!cm) return;
+    let nd = createContainer(idx, null, type)!;
+    v.nodes![idx] = nd;
+    addInstruction(v, initContainer, [v, nd, parentLevel]);
+}
+
+
 // Component Definition (& call if no params and no content)
 // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-export function ζcpt(v: IvView, cm: boolean, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[], iHolder?: number) {
+export function ζcpt(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
     let container: IvCptContainer;
     if (cm) {
         // creation mode
         iHolder = iHolder || 0;
 
-        // create cpt container
-        container = ζcnt(v, cm, idx, parentLevel, 2) as IvCptContainer;
+        // create cpt container if not already done in ζcptD
+        container = (v.nodes![idx] as IvCptContainer) || ζcnt(v, cm, idx, parentLevel, 2) as IvCptContainer;
 
         let cptRef = getExprValue(v, iHolder, exprCptRef);
         if (cptRef === ζu) {
-            console.log("[iv] Invalid component ref")
+            console.log("[iv] Invalid component ref", container.cptTemplate !== null)
+            logView(v, "[iv] Invalid component ref / " + container.uid);
+
             return;
         }
         let tpl: Template = container.cptTemplate = cptRef()!;
@@ -631,6 +749,13 @@ export function ζcpt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     }
 }
 
+export function ζcptD(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
+    if (cm) {
+        ζcntD(v, cm, idx, parentLevel, 2);
+    }
+    addInstruction(v, ζcpt, [v, cm, iHolder, idx, parentLevel, exprCptRef, callImmediately, staticParams]);
+}
+
 // Component call - used when a component has content, params or param nodes
 export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
     container = container || v.nodes![idx] as IvCptContainer;
@@ -638,13 +763,13 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
     if (tpl) {
         let cm = v.cm;
         tpl.view.lastRefresh = v.lastRefresh - 1; // will be incremented by refresh()
-        // if (container.cptContent) {
-        //     tpl.params.$content = container.cptContent;
-        //     let instr = container.cptContent.instructions;
-        //     if (instr && instr.length) {
-        //         tpl.forceRefresh = true;
-        //     }
-        // }
+        if (container.contentView) {
+            tpl.params.$content = container.contentView;
+            let instr = container.contentView.instructions;
+            if (instr && instr.length) {
+                tpl.forceRefresh = true;
+            }
+        }
         if (cm) {
             // define cmAppend
             tpl.view.cmAppends = [container!.cmAppend!];
@@ -660,18 +785,14 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
     }
 }
 
+export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
+    addInstruction(v, ζcall, [v, idx, container]);
+}
+
 // Attribute setter
 // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
 export function ζatt(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
-    if (!iHolder) {
-        updateAttribute(v, iHolder, eltIdx, name, expr);
-    } else {
-        console.log("todo att expr")
-    }
-}
-
-function updateAttribute(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     let val = getExprValue(v, iHolder, expr);
     if (val !== ζu) {
         (v.nodes![eltIdx] as IvNode).domNode.setAttribute(name, val);
@@ -679,21 +800,25 @@ function updateAttribute(v: IvView, iHolder: number, eltIdx: number, name: strin
     }
 }
 
+export function ζattD(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+    if (expr !== ζu) {
+        addInstruction(v, ζatt, [v, iHolder, eltIdx, name, expr]);
+    }
+}
+
 // Property setter
 // e.g. ζpro(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
 export function ζpro(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
-    if (!iHolder) {
-        setProperty(v, iHolder, eltIdx, name, expr);
-    } else {
-        console.log("todo prop expr")
-    }
-}
-
-function setProperty(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     let val = getExprValue(v, iHolder, expr);
     if (val !== ζu) {
         (v.nodes![eltIdx] as IvNode).domNode[name] = val;
+    }
+}
+
+export function ζproD(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+    if (expr !== ζu) {
+        addInstruction(v, ζpro, [v, iHolder, eltIdx, name, expr]);
     }
 }
 
@@ -701,20 +826,18 @@ function setProperty(v: IvView, iHolder: number, eltIdx: number, name: string, e
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
 export function ζpar(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
-    if (!iHolder) {
-        setParam(v, iHolder, eltIdx, name, expr);
-    } else {
-        console.log("todo att expr")
-    }
-}
-
-function setParam(v: IvView, iHolder: number, cptIdx: number, name: string, expr: any) {
     let val = getExprValue(v, iHolder, expr);
     if (val !== ζu) {
-        let p = (v.nodes![cptIdx] as IvCptContainer).cptParams;
+        let p = (v.nodes![eltIdx] as IvCptContainer).cptParams;
         if (p) {
             p[name] = val;
         }
+    }
+}
+
+export function ζparD(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+    if (expr !== ζu) {
+        addInstruction(v, ζpar, [v, iHolder, eltIdx, name, expr]);
     }
 }
 
@@ -751,6 +874,80 @@ export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, event
     }
 }
 
+export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void) {
+    console.log("TODO ζevtD");
+}
+
+// Insert / Content projection instruction
+// e.g. ζins(ζ, 1, ζe(ζ, 0, $content));
+export function ζins(v: IvView, iHolder: number, idx: number, exprContentView: any) {
+    let projectionNode = v.nodes![idx] as (IvElement | IvFragment); // node with @content decorator: either a fragment or an element
+    let contentView = getExprValue(v, iHolder, exprContentView) as IvView;
+
+    if ((contentView as any) === ζu || exprContentView === undefined) {
+        contentView = projectionNode.contentView as IvView;
+    }
+
+    if (!contentView) return;
+
+    let ph = contentView.projectionHost;
+    if (ph && ph.hostNode !== projectionNode) {
+        // contentView was already projected somewhere else
+        removeFromDom(contentView, contentView.nodes![0]);
+    }
+
+    if (projectionNode.contentView && projectionNode.contentView !== contentView) {
+        console.log("TODO: check once param nodes are available")
+        // current projection node is already projecting a view
+        removeFromDom(projectionNode.contentView, projectionNode.contentView.nodes![0]);
+    }
+    projectionNode.contentView = contentView;
+    contentView.projectionHost = {
+        view: v,
+        hostNode: projectionNode
+    }
+
+    if (contentView.cm) {
+        if (projectionNode.kind === "#element") {
+            let pdn = projectionNode.domNode;
+            contentView.cmAppends = [function (n: IvNode) {
+                if (n.domNode) {
+                    projectionNode.domNode.appendChild(n.domNode);
+                } else {
+                    n.domNode = pdn;
+                }
+            }];
+        } else {
+            // fragment
+            contentView.cmAppends = [getViewInsertFunction(v, projectionNode)]
+        }
+    } else {
+        let insertFn: ((n: IvNode, domOnly: boolean) => void);
+        // insert 
+        if (projectionNode.kind === "#element") {
+            let elt = projectionNode.domNode
+            insertFn = function (n: IvNode, domOnly: boolean) {
+                if (n.domNode) {
+                    elt.appendChild(n.domNode);
+                } else {
+                    n.domNode = elt;
+                }
+            }
+        } else {
+            // fragment
+            insertFn = getViewInsertFunction(v, projectionNode as IvFragment);
+        }
+        insertInDom(contentView.nodes![0], insertFn);
+    }
+
+    contentView.container = projectionNode;
+    runInstructions(contentView);
+}
+
+export function ζinsD(v: IvView, iHolder: number, idx: number, exprContentView: any) {
+    addInstruction(v, ζins, [v, iHolder, idx, exprContentView]);
+}
+
 interface SiblingDomPosition {
     position: "lastChild" | "beforeChild" | "lastOnRoot" | "defer";
     nextDomNd?: any;
@@ -760,23 +957,9 @@ interface SiblingDomPosition {
 function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
     while (true) {
         if (!nd) {
-            console.log("nd is null!!")
+            console.log("[ERROR] findNextSiblingDomNd: nd cannot be undefined")
         }
-        // if (nd.contentData) {
-        //     // nd is the root of a light-dom projection
-        //     let cd = nd.contentData, host = cd.contentHost;
-        //     // console.log("> has content data, host:", host ? host.uid : "XX")
-        //     if (host) {
-        //         if (host.kind === "#element") {
-        //             return { position: "lastChild", parentDomNd: host.domNode };
-        //         } else {
-        //             return findNextSiblingDomNd(cd.contentHostNodes!, host);
-        //         }
-        //     } else {
-        //         return { position: "defer", parentDomNd: undefined };
-        //     }
-        // }
-
+        // console.log("findNextSiblingDomNd", nd.uid)
         if (nd.idx === 0) {
             // console.log("> is root - is attached:", nd.attached)
             if (!nd.attached) {
@@ -787,7 +970,18 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
             if (!pView) {
                 return { position: "lastOnRoot", parentDomNd: v.rootDomNode, nextDomNd: v.anchorNode };
             } else {
-                return findNextSiblingDomNd(pView, v.container as IvNode)
+                if (v.projectionHost) {
+                    // current node is the root of a light-dom that is projected in another container
+                    let container = v.projectionHost.hostNode;
+                    if (container.kind === "#element") {
+                        return { position: "lastChild", parentDomNd: container.domNode };
+                    } else {
+                        // container is a fragment
+                        return findNextSiblingDomNd(v.projectionHost.view, container);
+                    }
+                } else {
+                    return findNextSiblingDomNd(pView, v.container as IvNode);
+                }
             }
         }
 
@@ -844,17 +1038,19 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
 }
 
 function getParentDomNd(v: IvView, nd: IvNode) {
-    // console.log("getParentDomNd", c[0].uid, nd.uid, nd.idx, nd.contentData !== undefined)
-    // if (nd.contentData) {
-    //     // this node is a light-dom root node
-    //     if (!nd.attached) return null;
-    //     let cd = nd.contentData, parent = cd.contentHost;
-    //     if (parent && parent.domNode !== nd.domNode) {
-    //         return parent.domNode;
-    //     } else {
-    //         return getParentDomNd(cd.contentHostNodes!, parent!);
-    //     }
-    // }
+    // console.log("getParentDomNd", v.uid, nd ? nd.uid : "XX");
+
+    if (nd.idx === 0 && v.projectionHost) {
+        // this node is a light-dom root node
+        if (!nd.attached) return null;
+        let hNode = v.projectionHost.hostNode;
+        if (hNode.kind === "#element") {
+            return hNode.domNode;
+        } else {
+            // hNode is a fragment
+            return getParentDomNd(v.projectionHost.view, hNode);
+        }
+    }
     if (nd.idx === 0) {
         // nd is a root node
         if (v.parentView) {
@@ -873,8 +1069,10 @@ function removeFromDom(v: IvView, nd: IvNode) {
         let pdn = getParentDomNd(v, nd);
         nd.attached = false;
         if (pdn) {
-            // console.log("removeChild:", nd.uid, "/", nd.domNode.uid, "in=", pdn ? pdn.uid : "XX")
+            // console.log("removeChild:", nd.domNode.uid, "in", pdn ? pdn.uid : "XX")
             pdn.removeChild(nd.domNode);
+        } else {
+            console.log("ERROR: parent not found for: ", nd.uid);
         }
     } else if (nd.kind === "#container") {
         if (nd["subKind"] === "##block") {
@@ -906,17 +1104,16 @@ function removeFromDom(v: IvView, nd: IvNode) {
     } else if (nd.kind === "#fragment") {
         let f = nd as IvFragment;
         f.attached = false;
-        // if (f.contentRoot) {
-        //     let content = f.contentRoot!, cd = content.contentData!;
-        //     removeFromDom(cd.rootNodes, content);
-        // } else 
-        if (f.firstChild) {
-            let nd = f.firstChild;
-            while (nd) {
-                removeFromDom(v, nd);
-                nd = nd.nextSibling!;
+        if (f.contentView) {
+            removeFromDom(f.contentView, f.contentView.nodes![0]);
+        } else
+            if (f.firstChild) {
+                let nd = f.firstChild;
+                while (nd) {
+                    removeFromDom(v, nd);
+                    nd = nd.nextSibling!;
+                }
             }
-        }
         f.domNode = undefined;
     } else {
         console.log("TODO removeFromDom for " + nd.kind)
@@ -1042,8 +1239,8 @@ export function logViewNodes(v: IvView, indent: string = "") {
         console.log(`${indent}${v.uid} - no nodes`);
         return;
     }
-    let pv = v.parentView ? v.parentView.uid : "XX"
-    console.log(`${indent}*${v.uid}* cm:${v.cm} isTemplate:${v.isTemplate} parentView:${pv}`);
+    let pv = v.parentView ? v.parentView.uid : "XX", ph = v.projectionHost, host = ph ? " >>> projection host: " + ph.hostNode.uid + " in " + ph.view.uid : "";
+    console.log(`${indent}*${v.uid}* cm:${v.cm} isTemplate:${v.isTemplate} parentView:${pv}${host}`);
     let len = v.nodes.length, nd: IvNode, space = "";
     for (let i = 0; len > i; i++) {
         nd = v.nodes[i];
@@ -1060,7 +1257,7 @@ export function logViewNodes(v: IvView, indent: string = "") {
         if (nd.kind === "#container") {
             let cont = nd as IvContainer;
             let dn = cont.domNode ? cont.domNode.uid : "XX";
-            console.log(`${indent}[${i}] ${nd.uid}${space} ${dn} attached:${nd.attached ? 1 : 0} parent:${nd.parentIdx} nextSibling:${nd.nextSibling ? nd.nextSibling.uid : "X"}`);
+            console.log(`${indent}[${i}] ${nd.uid}${space} ${dn} attached:${nd.attached ? 1 : 0} parent:${parent(nd.parentIdx)} nextSibling:${nd.nextSibling ? nd.nextSibling.uid : "X"}`);
             if (cont.subKind === "##block") {
                 let cb = cont as IvBlockContainer, len2 = cb.views.length;
                 if (!len2) {
@@ -1078,11 +1275,16 @@ export function logViewNodes(v: IvView, indent: string = "") {
                     }
                 }
             } else if (cont.subKind === "##cpt") {
-                let cc = cont as IvCptContainer, tpl = cc.cptTemplate;
+                let cc = cont as IvCptContainer, tpl = cc.cptTemplate, contentView = cc.contentView;
+                if (!contentView) {
+                    console.log(`${indent + "  "}- light DOM: none`);
+                } else {
+                    console.log(`${indent + "  "}- light DOM:`);
+                    logViewNodes(contentView, "    " + indent);
+                }
                 if (!tpl) {
                     console.log(`${indent + "  "}- no template`);
                 } else {
-                    // console.log(`${indent + "  "}- light DOM first Child: [${cont.firstChild ? cont.firstChild!.uid : "XX"}]`);
                     console.log(`${indent + "  "}- shadow DOM:`);
                     logViewNodes(tpl["view"], "    " + indent);
                 }
@@ -1100,8 +1302,16 @@ export function logViewNodes(v: IvView, indent: string = "") {
                     ch = ch.nextSibling;
                 }
                 lastArg = " children:[" + children.join(", ") + "]";
+                let cnView = (nd as IvFragment | IvElement).contentView;
+                if (cnView) {
+                    lastArg += " >>> content view: " + cnView.uid;
+                }
             }
-            console.log(`${indent}[${nd.idx}] ${nd.uid}${space} ${dn} attached:${nd.attached ? 1 : 0} parent:${nd.parentIdx} nextSibling:${nd.nextSibling ? nd.nextSibling.uid : "X"}${lastArg}`);
+            console.log(`${indent}[${nd.idx}] ${nd.uid}${space} ${dn} attached:${nd.attached ? 1 : 0} parent:${parent(nd.parentIdx)} nextSibling:${nd.nextSibling ? nd.nextSibling.uid : "X"}${lastArg}`);
         }
+    }
+
+    function parent(idx) {
+        return idx < 0 ? "X" : idx;
     }
 }

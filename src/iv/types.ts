@@ -32,25 +32,31 @@ export interface IvParentNode extends IvNode {
 
 export interface IvFragment extends IvParentNode {
     kind: "#fragment";
+    contentView: IvView | null;                                     // set when the fragment is used to project a content view
+}
+
+export interface IvProjectionHost {
+    view: IvView;
+    hostNode: IvElement | IvFragment;
 }
 
 export interface IvView {
     kind: "#view";
-    uid: string;                                  // unique id (debug)
-    nodes: IvNode[] | null;                       // list of IvNodes associated to this view
-    doc: IvDocument;                              // for test / dependency injection
-    parentView: IvView | null;                    // parent view: null for the root view, parent view otherwise (can be in a different template)
-    cm: boolean;                                  // creation mode
+    uid: string;                                                    // unique id (debug)
+    nodes: IvNode[] | null;                                         // list of IvNodes associated to this view
+    doc: IvDocument;                                                // for test / dependency injection
+    parentView: IvView | null;                                      // parent view: null for the root view, parent view otherwise (can be in a different template)
+    cm: boolean;                                                    // creation mode
     cmAppends: null | ((n: IvNode, domOnly: boolean) => void)[];    // array of append functions used at creation time
-    lastRefresh: number;                          // refresh count at last refresh
-    container: IvContainer | null;                // null if root view, container host otherwise
-    isTemplate: boolean;                          // true if the VIEW is associated to a template root (will be false for sub js blocks)
-    rootDomNode: any;                             // domNode the view is attached to - only used by the root view
-    anchorNode: any;                              // dom node used as anchor in the domNode - only used by the root view (content will be inserted before this anchor)
-    expressions: any[] | undefined;               // array of expression values
-    oExpressions: any[] | undefined;              // array of one-time expression flags
-    // initialized: boolean;            // true when all end() has been run once
-    // containsInstructions: boolean;   // true if one of its nodes contains instructions
+    lastRefresh: number;                                            // refresh count at last refresh
+    container: IvContainer | IvElement | IvFragment | null;         // null if root view, container host otherwise
+    projectionHost: IvProjectionHost | null;                        // defined when view corresponds to a projected light-dom 
+    isTemplate: boolean;                                            // true if the VIEW is associated to a template root (will be false for sub js blocks)
+    rootDomNode: any;                                               // domNode the view is attached to - only used by the root view
+    anchorNode: any;                                                // dom node used as anchor in the domNode - only used by the root view (content will be inserted before this anchor)
+    expressions: any[] | undefined;                                 // array of expression values
+    oExpressions: any[] | undefined;                                // array of one-time expression flags
+    instructions: any[] | undefined;
 }
 
 export interface IvText extends IvNode {
@@ -82,6 +88,7 @@ export interface IvCptContainer extends IvContainer {
     subKind: "##cpt";
     cptTemplate: IvTemplate | null;      // current component template
     cptParams: any;                      // shortcut to cptTemplate.params
+    contentView: IvView | null;          // light-dom / content view
 }
 
 export interface IvAsyncContainer extends IvContainer {
@@ -91,6 +98,7 @@ export interface IvAsyncContainer extends IvContainer {
 
 export interface IvElement extends IvParentNode {
     kind: "#element";
+    contentView: IvView | null;          // set when the element is used to project a content view
 }
 
 export interface IvComponent extends IvParentNode {

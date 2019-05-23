@@ -63,25 +63,6 @@ describe('Event handlers', () => {
         assert.equal(lastType, "click", "doSomethingElse was called");
     });
 
-    // it("can be defined in deferred content", function () {
-    //     const tpl = template(`() => {
-    //         <*panel type="info">
-    //             <div class="main" click(e)={doSomething(e)}>
-    //                 # Click me #
-    //             </div>
-    //         </*panel>
-    //     }`);
-
-    //     let t = getTemplate(tpl, body).refresh(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];
-    //     // console.log(stringify(t));
-    //     assert.equal(index, 0, "index=0 before click");
-    //     mainDiv.click();
-    //     assert.equal(index, 1, "index=1 after click");
-    //     mainDiv.click();
-    //     assert.equal(index, 2, "index=2 after 2nd click");
-    //     assert.equal(lastEvent.type, "click", "event properly passed");
-    // });
-
     it("should support element creation/removal", function () {
 
         const tpl = template(`(condition, someVar) => {
@@ -106,5 +87,24 @@ describe('Event handlers', () => {
         mainDiv.click();
         assert.equal(index, 2, "index=2 after 2nd click");
         assert.equal(lastArg, 42, "lastArg=42 after click");
+    });
+
+    xit("can be defined in deferred content", function () {
+        const tpl = template(`() => {
+            <*panel type="info">
+                <div class="main" click(e)={doSomething(e)}>
+                    # Click me #
+                </div>
+            </*panel>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];
+        // console.log(stringify(t));
+        assert.equal(index, 0, "index=0 before click");
+        mainDiv.click();
+        assert.equal(index, 1, "index=1 after click");
+        mainDiv.click();
+        assert.equal(index, 2, "index=2 after 2nd click");
+        assert.equal(lastEvent.type, "click", "event properly passed");
     });
 });

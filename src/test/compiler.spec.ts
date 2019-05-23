@@ -22,7 +22,7 @@ describe('Template compiler', () => {
             const ζs0 = {};
             return ζt(function (ζ) {
                 let ζc = ζinit(ζ, ζs0, 1);
-                ζtxt(ζ, ζc, 0, 0, " hello world ", 0);
+                ζtxt(ζ, ζc, 0, 0, 0, " hello world ", 0);
                 ζend(ζ, ζc);
             });
             })();
@@ -56,7 +56,7 @@ describe('Template compiler', () => {
             return ζt(function (ζ, $) {
                 let a = $["a"];
                 let ζc = ζinit(ζ, ζs0, 1);
-                ζtxt(ζ, ζc, 0, 0, " T1 ", 0);
+                ζtxt(ζ, ζc, 0, 0, 0, " T1 ", 0);
                 ζend(ζ, ζc);
             }, 0, ζParams);
             })();
@@ -69,7 +69,7 @@ describe('Template compiler', () => {
             return ζt(function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];
                 let ζc = ζinit(ζ, ζs0, 1);
-                ζtxt(ζ, ζc, 0, 0, " T1 ", 0);
+                ζtxt(ζ, ζc, 0, 0, 0, " T1 ", 0);
                 ζend(ζ, ζc);
             }, 0, ζParams);
             })();

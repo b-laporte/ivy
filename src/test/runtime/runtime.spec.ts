@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { template, ζd, ζv } from '../../iv';
-import { ElementNode, reset, getTemplate, stringify } from '../utils';
+import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvView } from '../../iv/types';
 
 describe('Iv Runtime', () => {

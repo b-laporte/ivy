@@ -875,7 +875,7 @@ export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, event
 }
 
 export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void) {
-    console.log("TODO ζevtD");
+    addInstruction(v, ζevt, [v, cm, idx, eltIdx, eventName, handler]);
 }
 
 // Insert / Content projection instruction
@@ -1216,6 +1216,13 @@ async function createNotifier() {
 
 export async function changeComplete() {
     return createNotifier();
+}
+
+// ----------------------------------------------------------------------------------------------
+// Async functions
+
+export async function asyncComplete() {
+    return null; //createAsyncProcessor();
 }
 
 // ----------------------------------------------------------------------------------------------

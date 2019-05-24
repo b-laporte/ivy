@@ -2101,7 +2101,7 @@ describe('Content Components', () => {
         `, '4');
     });
 
-    // todo: same as before with projection in fragment + TODO check
+    // TODO: check once param nodes are available
     
     // content projected twice -> error
 

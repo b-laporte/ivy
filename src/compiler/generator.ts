@@ -1,7 +1,8 @@
 import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../xjs/parser/types';
 import { parse } from '../xjs/parser/xjs-parser';
 import { before } from 'mocha';
-import { nodeModuleNameResolver } from 'typescript';
+import { nodeModuleNameResolver, JsxFlags } from 'typescript';
+import { IvElement, IvFragment, IvComponent } from '../iv/types';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result
@@ -26,6 +27,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
     RX_LOG = /\/\/\s*log\s*/,
     PARAMS_ARG = "$params",
+    ASYNC = "async",
     NODE_NAMES = {
         "#tplFunction": "template function",
         "#tplArgument": "template argument",
@@ -251,20 +253,22 @@ export class ViewInstruction implements RuntimeInstruction {
     nodeCount = 0;
     instructions: RuntimeInstruction[] = [];
     indent = '';
-    prevKind = '';                       // kind of the previous sibling
-    nextKind = '';                       // kind of the next sibling
-    instanceCounterVar = '';             // e.g. ζi2 -> used to count sub-block instances
+    prevKind = '';                          // kind of the previous sibling
+    nextKind = '';                          // kind of the next sibling
+    instanceCounterVar = '';                // e.g. ζi2 -> used to count sub-block instances
     blockIdx = 0;
-    jsVarName = "ζ";                     // block variable name - e.g. ζ or ζ1
-    cmVarName = "ζc";                    // creation mode var name - e.g. ζc or ζc1
-    childBlockCreated: boolean[] = [];   // used to know if a block container has already been created
+    jsVarName = "ζ";                        // block variable name - e.g. ζ or ζ1
+    cmVarName = "ζc";                       // creation mode var name - e.g. ζc or ζc1
+    childBlockCreated: boolean[] = [];      // used to know if a block container has already been created
     childBlockIndexes: number[] = [];
     childViewIndexes: number[] = [];
-    exprCount = 0;                       // binding expressions count
-    expr1Count = 0;                      // one-time expressions count
-    dExpressions: number[] = [];         // list of counters for deferred expressions (cf. ζexp)
+    exprCount = 0;                          // binding expressions count
+    expr1Count = 0;                         // one-time expressions count
+    dExpressions: number[] = [];            // list of counters for deferred expressions (cf. ζexp)
     isLightDom = false;
-    hasChildNodes = false;               // true if the view has Child nodes
+    hasChildNodes = false;                  // true if the view has Child nodes
+    isAsyncView = false;                    // true for async blocks
+    asyncValue: number | XjsExpression = 0; // async priority
 
     constructor(public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iHolder: number, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentView) {
@@ -302,21 +306,24 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     scan() {
-        let content = this.node.content, len = content ? content.length : 0, nd: XjsContentNode;
-        if (len === 0) return;
+        if (this.isAsyncView) {
+            this.generateInstruction([(this.node as any)], 0, 0, this.iHolder, this.prevKind, this.nextKind);
+        } else {
+            let content = this.node.content, len = content ? content.length : 0, nd: XjsContentNode;
+            if (len === 0) return;
 
-        let pLevel = 0;
-        // creation mode
-        if (len > 1) {
-            // need container fragment
-            this.nodeCount = 1;
-            this.instructions.push(new FraInstruction(null, 0, this, this.iHolder, pLevel));
-            FraInstruction
-            pLevel = 1;
+            let pLevel = 0;
+            // creation mode
+            if (len > 1) {
+                // need container fragment
+                this.nodeCount = 1;
+                this.instructions.push(new FraInstruction(null, 0, this, this.iHolder, pLevel));
+                FraInstruction
+                pLevel = 1;
+            }
+
+            this.scanContent(content, pLevel, this.iHolder);
         }
-
-        this.scanContent(content, pLevel, this.iHolder);
-
         if (this.parentView && this.hasChildNodes) {
             this.gc.imports['ζview' + getIhSuffix(this.iHolder)] = 1;
             this.gc.imports['ζend' + getIhSuffix(this.iHolder)] = 1;
@@ -359,41 +366,47 @@ export class ViewInstruction implements RuntimeInstruction {
                 this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
                 break;
             case "#fragment":
-                this.instructions.push(new FraInstruction(nd, idx, this, iHolder, parentLevel));
-                this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
-                content = nd.content;
+                if (!this.processAsyncCase(nd as XjsFragment, idx, parentLevel, prevKind, nextKind)) {
+                    this.instructions.push(new FraInstruction(nd, idx, this, iHolder, parentLevel));
+                    this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
+                    content = nd.content;
+                }
                 break;
             case "#element":
-                this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iHolder, parentLevel, stParams));
-                this.generateParamInstructions(nd as XjsElement, idx, iHolder, true);
-                this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iHolder);
-                this.createListeners(nd as XjsElement, idx, iHolder);
-                content = nd.content;
+                if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
+                    this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iHolder, parentLevel, stParams));
+                    this.generateParamInstructions(nd as XjsElement, idx, iHolder, true);
+                    this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iHolder);
+                    this.createListeners(nd as XjsElement, idx, iHolder);
+                    content = nd.content;
+                }
                 break;
             case "#component":
-                // create a container block
-                let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length);
-                let ci = new CptInstruction(nd as XjsComponent, idx, this, iHolder, parentLevel, callImmediately, i1)
-                this.instructions.push(ci);
-                if (containsParamExpr) {
-                    this.generateParamInstructions(nd as XjsComponent, idx, iHolder, false);
-                }
-                if (nd.content && nd.content.length) {
-                    let vi = new ViewInstruction(nd as XjsComponent, idx, this, 1);
-                    this.instructions.push(vi);
-                    vi.scan();
-                    if (!vi.hasChildNodes) {
-                        callImmediately = true;
-                        ci.callImmediately = true;
+                if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
+                    // create a container block
+                    let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length);
+                    let ci = new CptInstruction(nd as XjsComponent, idx, this, iHolder, parentLevel, callImmediately, i1)
+                    this.instructions.push(ci);
+                    if (containsParamExpr) {
+                        this.generateParamInstructions(nd as XjsComponent, idx, iHolder, false);
                     }
-                }
-                if (!callImmediately) {
-                    this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
-                    this.instructions.push(new CallInstruction(idx, this, iHolder));
-                }
-                // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
-                if (nd.listeners && nd.listeners.length) {
-                    this.gc.error("Event listeners are not supported on components (yet)", nd);
+                    if (nd.content && nd.content.length) {
+                        let vi = new ViewInstruction(nd as XjsComponent, idx, this, 1);
+                        this.instructions.push(vi);
+                        vi.scan();
+                        if (!vi.hasChildNodes) {
+                            callImmediately = true;
+                            ci.callImmediately = true;
+                        }
+                    }
+                    if (!callImmediately) {
+                        this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
+                        this.instructions.push(new CallInstruction(idx, this, iHolder));
+                    }
+                    // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
+                    if (nd.listeners && nd.listeners.length) {
+                        this.gc.error("Event listeners are not supported on components (yet)", nd);
+                    }
                 }
                 break;
             case "#jsStatements":
@@ -501,6 +514,61 @@ export class ViewInstruction implements RuntimeInstruction {
         }
     }
 
+    processAsyncCase(nd: XjsElement | XjsFragment, idx: number, parentLevel: number, prevKind: string, nextKind: string): boolean {
+        // generate async block if @async decorator is used
+        let asyncValue: number | XjsExpression = 0;
+
+        if (nd === this.node) {
+            return false; // we are in the async block for this node
+        }
+
+        // determine if an async decorator is used
+        let decorators = nd.decorators;
+        if (decorators) {
+            for (let d of decorators) {
+                if (d.ref.code === ASYNC) {
+                    if (!d.hasDefaultPropValue) {
+                        if (d.params) {
+                            this.gc.error("Async decorator doesn't accept multiple params", d);
+                        }
+                        asyncValue = 1;
+                        break;
+                    } else {
+                        let dv = d.defaultPropValue!;
+                        // value can be number or expression
+                        if (dv.kind === "#number") {
+                            asyncValue = dv.value;
+                        } else if (d.defaultPropValue!.kind === "#expression") {
+                            asyncValue = dv as XjsExpression;
+                        } else {
+                            this.gc.error("@async value must be either empty or a number or an expression", d);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (asyncValue) {
+            // create an async container
+            this.instructions.push(new CntInstruction(idx, this, this.iHolder, parentLevel, ContainerType.Async));
+            let av = new ViewInstruction(nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
+            av.setAsync(asyncValue);
+            av.prevKind = prevKind;
+            av.nextKind = nextKind;
+            this.instructions.push(av);
+            av.scan();
+            return true
+        }
+        return false;
+    }
+
+    setAsync(asyncValue: number | XjsExpression) {
+        this.isAsyncView = true;
+        this.asyncValue = asyncValue;
+        this.gc.imports['ζasync'] = 1;
+        this.indent = this.parentView!.indent;
+    }
+
     generateBuiltInDecoratorsInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iHolder: number) {
         let d = nd.decorators;
         if (d) {
@@ -551,7 +619,22 @@ export class ViewInstruction implements RuntimeInstruction {
             if (!nd.startCode.match(/\n$/)) {
                 body.push("\n");
             }
-        } // else if (this.asyncValue) {}
+        } else if (this.isAsyncView) {
+            // async block
+            let p = this.parentView!;
+            this.indent = p.indent;
+            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.indent : " ");
+            body.push(`${funcStart("async", this.iHolder)}${p.jsVarName}, ${this.iHolder}, ${this.idx}, `);
+            if (typeof this.asyncValue === 'number') {
+                body.push('' + this.asyncValue);
+            } else {
+                generateExpression(body, this.asyncValue as XjsExpression, p!, this.iHolder);
+            }
+            body.push(`, function () {\n`);
+            this.indent = p.indent + this.gc.indentIncrement;
+        } else if (this.isLightDom) {
+            this.indent = this.parentView!.indent;
+        }
 
         if (this.instructions.length) {
             let endArg = "";
@@ -605,6 +688,10 @@ export class ViewInstruction implements RuntimeInstruction {
             if (!nd.endCode.match(/\n$/) && this.nextKind !== "#jsBlock" && this.nextKind !== "#jsStatements") {
                 body.push("\n");
             }
+        } else if (this.isAsyncView) {
+            // end of async function
+            body.push(`${this.parentView!.indent}});\n`);
+            this.indent = this.parentView!.indent;
         }
     }
 }

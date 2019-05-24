@@ -89,7 +89,7 @@ describe('Event handlers', () => {
         assert.equal(lastArg, 42, "lastArg=42 after click");
     });
 
-    xit("can be defined in deferred content", function () {
+    it("can be defined in deferred content", function () {
         const tpl = template(`() => {
             <*panel type="info">
                 <div class="main" click(e)={doSomething(e)}>

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { compile } from '../compiler/compiler';
+import { compile } from '../iv/compiler/compiler';
 
 describe('Template compiler', () => {
 

@@ -1,6 +1,6 @@
 import { Template, logViewNodes } from './../iv/index';
-import { CompilationResult } from '../compiler/generator';
-import { compileTemplate } from '../compiler/generator';
+import { CompilationResult } from '../iv/compiler/generator';
+import { compileTemplate } from '../iv/compiler/generator';
 import { IvTemplate, IvNode, IvView, IvContainer } from '../iv/types';
 
 export let body = {

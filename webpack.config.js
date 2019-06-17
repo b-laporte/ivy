@@ -20,7 +20,7 @@ module.exports = [{
             },
             {
                 test: /\.(ts|js)$/,
-                loader: "./dist/webpack/loader.js"
+                loader: "./dist/iv/webpack/loader.js"
             }
         ]
     },
@@ -33,7 +33,7 @@ module.exports = [{
     }
 }, {
     name: 'samples',
-    mode: 'none',
+    mode: 'production',
     target: 'web',
     entry: {
         "hello": "./src/samples/hello/hello.ts",

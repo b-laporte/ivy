@@ -1,8 +1,5 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../xjs/parser/types';
-import { parse } from '../xjs/parser/xjs-parser';
-import { before } from 'mocha';
-import { nodeModuleNameResolver, JsxFlags } from 'typescript';
-import { IvElement, IvFragment, IvComponent } from '../iv/types';
+import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../../xjs/parser/types';
+import { parse } from '../../xjs/parser/xjs-parser';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result

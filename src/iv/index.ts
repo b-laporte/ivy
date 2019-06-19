@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener } from './types';
-import { createImportSpecifier, createNode } from 'typescript';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -8,17 +8,29 @@ function error(msg) {
     console.log("[iv error] " + msg);
 }
 
+let TPL_COUNT = 0;
+
 /**
  * Template object created at runtime
  */
 export class Template implements IvTemplate {
+    uid = ++TPL_COUNT;
     view: IvView;
     refreshArg: any = undefined;
     forceRefresh = false;
+    watchCb: () => void;
+    activeWatch = false;
+    lastRefreshVersion = 0;
+    processing = false;
 
     constructor(public refreshFn: (ζ: IvView, ζa?: any) => void | undefined, public argumentClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, true, null);
+        let self = this;
+        this.watchCb = function () {
+            self.notifyChange();
+        }
+        this.watchCb["$templateId"] = this.uid;
     }
 
     get document() {
@@ -50,23 +62,28 @@ export class Template implements IvTemplate {
         return this;
     }
 
-    notifyChange(d: any) {
+    notifyChange() {
         this.refresh();
     }
 
     disconnectObserver() {
-        let p = this.params;
-        if (p && p["$kind"] === PARAM) {
-            p["$observer"] = null;
+        if (this.activeWatch) {
+            unwatch(this.params, this.watchCb);
+            this.activeWatch = false;
         }
     }
 
     refresh(data?: any) {
+        if (this.processing) return this;
+        this.processing = true;
+        // console.log('refresh', this.uid)
         let p = this.params;
+
         if (p && data) {
-            if (p["$kind"] === PARAM) {
-                p["$observer"] = null;
+            if (!isMutating(p)) {
+                createNewRefreshContext();
             }
+            this.disconnectObserver();
             // inject data into params
             for (let k in data) if (data.hasOwnProperty(k)) {
                 p[k] = data[k];
@@ -76,22 +93,25 @@ export class Template implements IvTemplate {
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
             bypassRefresh = false; // internal blocks may have to be recreated if root is not attached
         }
-        if (p && bypassRefresh && p["$kind"] === PARAM && p["$changed"] === true) {
+        if (p && bypassRefresh && version(p) !== this.lastRefreshVersion) {
             bypassRefresh = false;
         }
         if (!bypassRefresh) {
-            // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REFRESH", this.context.nodes[0].uid)
+            // console.log(">>>>>>>>>>>>>>>>> REFRESH", this.uid, "params version:", version(p), "last refresh version:", this.lastRefreshVersion);
             this.view.lastRefresh++;
             this.view.instructions = undefined;
             this.refreshFn(this.view, p);
-            if (p && p["$kind"] === PARAM) {
-                p["$reset"]();
-                p["$observer"] = this;
-            }
+            // console.log(">>>>>>>>>>>>>>>>> REFRESH DONE", this.uid);
+            commitChanges(p);
             this.forceRefresh = false;
-        } else if (p && p["$kind"] === PARAM) {
-            p["$observer"] = this;
+            this.lastRefreshVersion = version(p);
         }
+
+        if (!this.activeWatch) {
+            watch(p, this.watchCb);
+            this.activeWatch = true;
+        }
+        this.processing = false;
         return this;
     }
 }
@@ -1123,100 +1143,108 @@ function removeFromDom(v: IvView, nd: IvNode) {
 // ----------------------------------------------------------------------------------------------
 // Param class
 
-const PARAM = "PARAM";
-let CHANGED_DATA: any[] | null = null, NOTIFIER: Promise<void> | null = null;
+export const ζΔD = ΔD;
+export const ζΔp = Δp;
+export const ζΔf = Δf;
+export const ζΔfStr = ΔfStr;
+export const ζΔfBool = ΔfBool;
+export const ζΔfNbr = ΔfNbr;
+export const ζΔlf = Δlf;
 
-interface ParamObject {
-    $kind: "PARAM"
-    $changed: boolean;
-    $reset: () => void;
-}
+// const PARAM = "PARAM";
+// let CHANGED_DATA: any[] | null = null, NOTIFIER: Promise<void> | null = null;
 
-interface DataObserver {
-    notifyChange(d: any): void;
-}
+// interface ParamObject {
+//     $kind: "PARAM"
+//     $changed: boolean;
+//     $reset: () => void;
+// }
 
-/**
- * Class decorator for the parameter class
- */
-// export let ζd = Data();
-export function ζd(c: any) {
-    let proto = c.prototype
-    proto.$kind = PARAM;
-    proto.$changed = false;
-    proto.$reset = $resetDataChanges;
-}
+// interface DataObserver {
+//     notifyChange(d: any): void;
+// }
 
-function $resetDataChanges(this: ParamObject) {
-    this.$changed = false;
-}
+// /**
+//  * Class decorator for the parameter class
+//  */
+// // export let ζd = Data();
+// export function ζd(c: any) {
+//     let proto = c.prototype
+//     proto.$kind = PARAM;
+//     proto.$changed = false;
+//     proto.$reset = $resetDataChanges;
+// }
 
-/**
- * Class property decorator for the parameter class
- */
-// export let ζv = value();
-export function ζv(proto, key: string) {
-    // proto = object prototype
-    // key = the property name (e.g. "value")
-    let $$key = "$$" + key;
-    addPropertyInfo(proto, key, false, {
-        get: function () { return this[$$key]; },
-        set: function (v) { setDataProperty(this, $$key, v) },
-        enumerable: true,
-        configurable: true
-    });
-}
+// function $resetDataChanges(this: ParamObject) {
+//     this.$changed = false;
+// }
 
-function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc: PropertyDescriptor | undefined) {
-    if (desc && delete proto[propName]) {
-        Object.defineProperty(proto, propName, desc);
-    }
-}
+// /**
+//  * Class property decorator for the parameter class
+//  */
+// // export let ζv = value();
+// export function ζv(proto, key: string) {
+//     // proto = object prototype
+//     // key = the property name (e.g. "value")
+//     let $$key = "$$" + key;
+//     addPropertyInfo(proto, key, false, {
+//         get: function () { return this[$$key]; },
+//         set: function (v) { setDataProperty(this, $$key, v) },
+//         enumerable: true,
+//         configurable: true
+//     });
+// }
 
-function setDataProperty(d: any, $$key: string, v: any) {
-    if (d[$$key] !== v) {
-        d[$$key] = v;
-        if (!d.$changed) {
-            d.$changed = true;
-            queueNotification(d, d.$observer);
-        }
-    }
-}
+// function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc: PropertyDescriptor | undefined) {
+//     if (desc && delete proto[propName]) {
+//         Object.defineProperty(proto, propName, desc);
+//     }
+// }
 
-function queueNotification(d: any, o: DataObserver) {
-    if (o) {
-        if (!CHANGED_DATA) {
-            CHANGED_DATA = [d];
-            createNotifier();
-        } else {
-            CHANGED_DATA.push(d);
-        }
-    }
-}
+// function setDataProperty(d: any, $$key: string, v: any) {
+//     if (d[$$key] !== v) {
+//         d[$$key] = v;
+//         if (!d.$changed) {
+//             d.$changed = true;
+//             queueNotification(d, d.$observer);
+//         }
+//     }
+// }
 
-async function createNotifier() {
-    if (!NOTIFIER) {
-        NOTIFIER = Promise.resolve().then(function () {
-            if (!CHANGED_DATA) return;
-            let len = CHANGED_DATA.length, d: any, o: DataObserver;
-            for (let i = 0; len > i; i++) {
-                d = CHANGED_DATA[i];
-                o = d.$observer;
-                if (o) {
-                    o.notifyChange(d);
-                }
-                d.$changed = false;
-            }
-            CHANGED_DATA = null;
-            NOTIFIER = null;
-        })
-    }
-    return NOTIFIER;
-}
+// function queueNotification(d: any, o: DataObserver) {
+//     if (o) {
+//         if (!CHANGED_DATA) {
+//             CHANGED_DATA = [d];
+//             createNotifier();
+//         } else {
+//             CHANGED_DATA.push(d);
+//         }
+//     }
+// }
 
-export async function changeComplete() {
-    return createNotifier();
-}
+// async function createNotifier() {
+//     if (!NOTIFIER) {
+//         NOTIFIER = Promise.resolve().then(function () {
+//             if (!CHANGED_DATA) return;
+//             let len = CHANGED_DATA.length, d: any, o: DataObserver;
+//             for (let i = 0; len > i; i++) {
+//                 d = CHANGED_DATA[i];
+//                 o = d.$observer;
+//                 if (o) {
+//                     o.notifyChange(d);
+//                 }
+//                 d.$changed = false;
+//             }
+//             CHANGED_DATA = null;
+//             NOTIFIER = null;
+//         })
+//     }
+//     return NOTIFIER;
+// }
+
+// export async function changeComplete() {
+//     return createNotifier();
+// }
 
 // ----------------------------------------------------------------------------------------------
 // Async functions

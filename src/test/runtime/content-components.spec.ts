@@ -2102,7 +2102,7 @@ describe('Content Components', () => {
     });
 
     // TODO: check once param nodes are available
-    
+
     // content projected twice -> error
 
 });

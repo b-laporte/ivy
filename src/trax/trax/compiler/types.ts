@@ -17,7 +17,14 @@ export interface DataObject {
     // validator: xxx - tbd: validator function?
 }
 
-export interface DataProperty {
+export interface DataMember {
+    name: string;
+    type?: DataType;
+    shallowRef?: boolean;
+    defaultValue?: CodeFragment;
+}
+
+export interface DataProperty extends DataMember {
     kind: "property",
     name: string;
     namePos: number;
@@ -44,7 +51,7 @@ interface CodeFragment {
 export type DataType = BaseType | RefType | CollectionType;
 
 interface BaseType {
-    kind: "string" | "number" | "boolean";
+    kind: "string" | "number" | "boolean" | "any";
     canBeNull?: boolean;
 }
 

@@ -1,15 +1,10 @@
-import { createVariableDeclaration } from 'typescript';
 
 const MP_TRACKABLE = "ΔTrackable",
     MP_CHANGE_VERSION = "ΔChangeVersion", // last changed meta property
-    MP_META_DATA = "ΔMd",
-    MP_DATA_FACTORY = "ΔDataFactory",
     MP_FACTORY = "ΔFactory",
     MP_IS_FACTORY = "ΔIsFactory",
     MP_IS_PROXY = "ΔIsProxy",
     MP_CREATE_PROXY = "ΔCreateProxy";
-
-let TRAX_COUNTER = 1;
 
 export interface TraxObject {
     ΔTrackable: true;
@@ -35,7 +30,7 @@ export interface Factory<T> {
 }
 
 function initMetaData(o: TraxObject): TraxMetaData | null {
-    if (!o.ΔTrackable) return null;
+    if (!o || !o.ΔTrackable) return null;
     if (!o.ΔMd) {
         return o.ΔMd = {
             parents: undefined,
@@ -52,6 +47,17 @@ function initMetaData(o: TraxObject): TraxMetaData | null {
 type FlexArray<T> = T | T[] | undefined;
 
 const $isArray = Array.isArray;
+
+function FA_length<T>(a: FlexArray<T>): number {
+    if (a) {
+        if ($isArray(a) && !a[MP_IS_PROXY]) {
+            return (a as Array<T>).length;
+        } else {
+            return 1;
+        }
+    }
+    return 0
+}
 
 function FA_forEach<T>(a: FlexArray<T>, fn: (item: T) => void) {
     if (a) {
@@ -122,7 +128,7 @@ export function computed(proto, propName: string, descriptor: PropertyDescriptor
 }
 
 export function version(o: any /*DataObject*/): number {
-    return (o && o[MP_TRACKABLE] === true) ? o[MP_CHANGE_VERSION] : -1;
+    return (o && o[MP_TRACKABLE] === true) ? o[MP_CHANGE_VERSION] : 0;
 }
 
 // export function touch(o: any /*DataObject*/): number {
@@ -130,25 +136,42 @@ export function version(o: any /*DataObject*/): number {
 //     return 0; // return new version if DataObject or 0 if not
 // }
 
-export function hasProperty(o: any /*TraxObject*/, property: string): boolean {
-    return false; // TODO
-}
+// export function hasProperty(o: any /*TraxObject*/, property: string): boolean {
+//     return false; // TODO
+// }
 
 export function isDataObject(o: any /*TraxObject*/): boolean {
     return !!(o && o[MP_TRACKABLE] === true);
 }
 
-export function isBeingChanged(o: any /*TraxObject*/): boolean {
-    return o[MP_CHANGE_VERSION] === TRAX_COUNTER;
+export function isMutating(o: any /*TraxObject*/): boolean {
+    return version(o) % 2 === 1;
 }
 
 /**
  * Return a promise that will be resolved when the current context has refreshed
  */
-export async function changeComplete() {
-    return new Promise(function (resolve) {
-        refreshContext.addWatcher(resolve);
-    }) as any;
+export async function changeComplete(o: any /*TraxObject*/) {
+    if (isMutating(o)) {
+        return new Promise(function (resolve) {
+            function cb() {
+                unwatch(o, cb);
+                resolve();
+            }
+            watch(o, cb);
+        }) as any;
+    }
+}
+
+// return true if changes where committed and if a new refresh context has been created
+export function commitChanges(o: any /*TraxObject*/, forceNewRefreshContext = false) {
+    if (!o) return;
+    let md = (o as TraxObject).ΔMd;
+    if (md && md.refreshCtxt) {
+        md.refreshCtxt.refresh(true);
+    } else if (forceNewRefreshContext) {
+        createNewRefreshContext();
+    }
 }
 
 type WatchFunction = (o: TraxObject) => void;
@@ -159,14 +182,16 @@ type WatchFunction = (o: TraxObject) => void;
  * @param fn the function to call when the data node changes (the new data node version will be passed as argument)
  * @return the watch function that can be used as identifier to un-watch the object (cf. unwatch)
  */
-export function watch(o: any, fn: WatchFunction): WatchFunction {
+export function watch(o: any, fn: WatchFunction): WatchFunction | null {
     let md = initMetaData(o);
-    if (md) {
+    if (md && fn) {
         // console.log("FA_addItem: watch")
         md.watchers = FA_addItem(md.watchers, fn);
-        if (isBeingChanged(o)) {
-            refreshContext.checkObject(o);
+        if (isMutating(o)) {
+            refreshContext.register(o);
         }
+    } else {
+        return null;
     }
     return fn;
 }
@@ -176,11 +201,19 @@ export function watch(o: any, fn: WatchFunction): WatchFunction {
  * @param d the targeted data node
  * @param watchFn the watch function that should not be called any longer (returned by watch(...))
  */
-export function unwatch(o: any, watchFn: WatchFunction) {
-    let md = initMetaData(o);
-    if (md) {
+export function unwatch(o: any, watchFn: WatchFunction | null) {
+    let md = o ? (o as TraxObject).ΔMd : undefined;
+    if (md && watchFn) {
         md.watchers = FA_removeItem(md.watchers, watchFn);
     }
+}
+
+export function numberOfWatchers(o: any): number {
+    let md = (o as TraxObject).ΔMd;
+    if (md) {
+        return FA_length(md.watchers);
+    }
+    return 0;
 }
 
 // -----------------------------------------------------------------------------------------------------------------------------
@@ -202,14 +235,19 @@ export function ΔD(c: any) {
  * Adds getter / setter 
  * @param factory 
  */
-export function Δp<T>(factory: Factory<T>, canBeNull?: 1) {
+export function Δp<T>(factory?: Factory<T>, canBeNull?: 1) {
+    if (!factory) {
+        factory = $fNull as any;
+        canBeNull = 1;
+    }
+
     return function (proto, key: string) {
         // proto = object prototype
         // key = the property name (e.g. "value")
         let ΔΔKey = "ΔΔ" + key, cbn = canBeNull === 1;
         addPropertyInfo(proto, key, false, {
-            get: function () { return ΔGet(<any>this, ΔΔKey, key, factory, cbn); },
-            set: function (v) { ΔSet(<any>this, ΔΔKey, v, factory, <any>this); },
+            get: function () { return ΔGet(<any>this, ΔΔKey, key, factory!, cbn); },
+            set: function (v) { ΔSet(<any>this, ΔΔKey, v, factory!, <any>this); },
             enumerable: true,
             configurable: true
         });
@@ -251,6 +289,13 @@ export let ΔfNbr: Factory<number> = $fNbr as Factory<number>;
 function $fBool() { return false }
 $fBool[MP_IS_FACTORY] = true;
 export let ΔfBool: Factory<boolean> = $fBool as Factory<boolean>;
+
+/**
+ * Factory function for null (!)
+ */
+function $fNull() { return null }
+$fNull[MP_IS_FACTORY] = true;
+export let ΔfNull: Factory<null> = $fNull as Factory<null>;
 
 /**
  * Fills a proto info structure with some more property description
@@ -371,7 +416,7 @@ export function ΔSet<T>(obj: TraxObject, ΔΔPropName: string | number, newValu
     }
 
     let updateVal = false, currentValue = propHolder[ΔΔPropName];
-    if (obj.ΔChangeVersion === TRAX_COUNTER) {
+    if (isMutating(obj)) {
         // object has already been changed
         updateVal = true;
     } else {
@@ -400,16 +445,17 @@ export function ΔSet<T>(obj: TraxObject, ΔΔPropName: string | number, newValu
  */
 export function touch(o: TraxObject) {
     // return true if the node was touched, false if it was already touched (i.e. marked as modified in the current update round)
+    if (!isDataObject(o)) return;
+
     let firstTimeTouch = true;
 
-    if (o.ΔChangeVersion === TRAX_COUNTER) {
+    if (isMutating(o)) {
         // node already modified
         firstTimeTouch = false;
     } else {
-        o.ΔChangeVersion = TRAX_COUNTER;
+        o.ΔChangeVersion += 1;
     }
-
-    refreshContext.checkObject(o);
+    refreshContext.register(o);
 
     if (firstTimeTouch) {
         // recursively touch on parent nodes
@@ -480,22 +526,17 @@ interface DnWatcher {
     watchers: FlexArray<(o: TraxObject) => void>;
 }
 
+let RC_COUNT = 0;
+
 /**
  * Context holding a linked list of nodes that need to be refreshed
  */
 class RefreshContext {
-    objects: TraxObject[] = [];
-    refreshWatchers: FlexArray<() => void> = undefined;
-    mtTriggered = false; // true when the refresh micro task has been triggered
+    id = ++RC_COUNT;
+    objects: TraxObject[] | undefined;
 
     constructor() {
-        TRAX_COUNTER++;
-    }
-
-    addWatcher(fn: () => void) {
-        // console.log("FA_addItem:addWatcher");
-        this.refreshWatchers = FA_addItem(this.refreshWatchers, fn);
-        this.triggerRefreshTask();
+        // console.log("New Refresh Context: " + this.id)
     }
 
     /**
@@ -503,19 +544,16 @@ class RefreshContext {
      * If refresh is needed, its md.refreshContext will be set
      * @param o 
      */
-    checkObject(o: TraxObject) {
-        let md = o.ΔMd;
-        if (md && md.watchers && !md.refreshCtxt) {
-            this.objects.push(o);
+    register(o: TraxObject) {
+        let md = initMetaData(o);
+        if (md && !md.refreshCtxt) {
+            if (!this.objects) {
+                this.objects = [o];
+                Promise.resolve().then(() => { this.refresh() });
+            } else {
+                this.objects.push(o);
+            }
             md.refreshCtxt = this;
-            this.triggerRefreshTask();
-        }
-    }
-
-    triggerRefreshTask() {
-        if (!this.mtTriggered) {
-            Promise.resolve().then(() => { this.refresh() });
-            this.mtTriggered = true;
         }
     }
 
@@ -524,25 +562,33 @@ class RefreshContext {
      * @param syncWatchers flag indicating if watch callbacks should be called synchronously (default: true)
      */
     refresh(syncWatchers = true) {
-        let objects = this.objects, len = objects.length;
-        if (!len && !this.refreshWatchers) return;
+        let objects = this.objects, len = objects ? objects.length : 0;
+        if (!len) return;
+        // console.log("refresh", this.id)
 
         // create a new refresh context (may be filled while we are executing watcher callbacks on current context)
-        refreshContext = new RefreshContext();
+        createNewRefreshContext();
 
         let o: TraxObject,
             md: TraxMetaData,
             instanceWatchers: DnWatcher[] = [];
 
         for (let i = 0; len > i; i++) {
-            o = objects[i]
+            o = objects![i]
             md = o.ΔMd!;
-            if (md.watchers) {
-                // instanceWatchers = watchers callbacks (for all instances)
-                instanceWatchers.push({ dataNode: o, watchers: md.watchers });
+            if (md.refreshCtxt) {
+                if (o.ΔChangeVersion % 2) {
+                    // create stable version
+                    o.ΔChangeVersion += 1;
+                }
+                if (md.refreshCtxt && md.watchers) {
+                    // instanceWatchers = watchers callbacks (for all instances)
+                    instanceWatchers.push({ dataNode: o, watchers: md.watchers });
+                }
             }
             md.refreshCtxt = undefined;
         }
+        this.objects = undefined;
 
         let nbrOfCallbacks = instanceWatchers.length;
         if (nbrOfCallbacks) {
@@ -555,13 +601,6 @@ class RefreshContext {
                     callWatchers(instanceWatchers);
                 });
             }
-        }
-        if (this.refreshWatchers) {
-            // notify all temporary watchers (generated through calls to changeComplete())
-            FA_forEach(this.refreshWatchers, function (cb) {
-                cb();
-            });
-            this.refreshWatchers = undefined;
         }
     }
 }
@@ -589,6 +628,11 @@ export function createFactory<T>(cf: Constructor<T> | Factory<T>): Factory<T> {
     return factory as Factory<T>;
 }
 
+export function createNewRefreshContext() {
+    if (refreshContext.objects) {
+        refreshContext = new RefreshContext();
+    }
+}
 
 // -----------------------------------------------------------------------------------------------------------------------------
 // List classes
@@ -756,22 +800,21 @@ export interface ArrayProxy<T> extends Array<T> {
 }
 
 /**
- * Return a new list of cf items that is also a factory to create new lists of cf items
+ * Return a new list of cf items 
  * @param cf list item Constructor or Factory object
  */
 export function list<T>(cf: Constructor<T> | Factory<T>): ArrayProxy<T> {
     return TraxList.ΔNewProxy(createFactory(cf));
 }
 
-export let Δls = list;
-
 // Creates a list factory for a specific ItemFactory
-function $lf<T>(itemFactory: Factory<T>): Factory<ArrayProxy<T>> {
-    function listFactory() { return TraxList.ΔNewProxy(itemFactory) }
+function $lf<T>(itemFactory?: Factory<T>): Factory<ArrayProxy<T>> {
+    itemFactory = itemFactory || ΔfNull as any;
+    function listFactory() { return TraxList.ΔNewProxy(itemFactory!) }
     listFactory[MP_IS_FACTORY] = true;
     listFactory[MP_CREATE_PROXY] = function (arr) {
-        return TraxList.ΔCreateProxy(arr, itemFactory);
+        return TraxList.ΔCreateProxy(arr, itemFactory!);
     }
     return listFactory as Factory<ArrayProxy<T>>;
 };
-export let Δlf = $lf as <T>(itemFactory: Factory<T>) => Factory<ArrayProxy<T>>;
+export let Δlf = $lf as <T>(itemFactory?: Factory<T>) => Factory<ArrayProxy<T>>;

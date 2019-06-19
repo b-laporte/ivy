@@ -1,7 +1,8 @@
 import * as assert from 'assert';
-import { template, ζd, ζv } from '../../iv';
+import { template, ζΔD, ζΔp } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvView } from '../../iv/types';
+import { isMutating, commitChanges } from '../../trax/trax';
 
 describe('Iv Runtime', () => {
     let body: ElementNode;
@@ -350,23 +351,23 @@ describe('Iv Runtime', () => {
     });
 
     it("should use simple param classes", function () {
-        @ζd class Names {
-            @ζv firstName;
-            @ζv lastName;
+        @ζΔD class Names {
+            ΔΔfirstName: any; @ζΔp() firstName: any;
+            ΔΔlastName: any; @ζΔp() lastName: any;
         }
 
         let n = new Names();
-        assert.equal(n["$changed"], false, "unchanged when created");
+        assert.equal(isMutating(n), false, "unchanged when created");
         n.firstName = "Homer";
-        assert.equal(n["$changed"], true, "changed (1)");
+        assert.equal(isMutating(n), true, "changed (1)");
         n.lastName = "Simpson";
-        assert.equal(n["$changed"], true, "changed (2)");
-        n["$reset"]();
-        assert.equal(n["$changed"], false, "unchanged after reset");
+        assert.equal(isMutating(n), true, "changed (2)");
+        commitChanges(n);
+        assert.equal(isMutating(n), false, "unchanged after reset");
         n.firstName = "Homer";
-        assert.equal(n["$changed"], false, "unchanged for identical value");
+        assert.equal(isMutating(n), false, "unchanged for identical value");
         n.firstName = "Marge";
-        assert.equal(n["$changed"], true, "changed (3)");
+        assert.equal(isMutating(n), true, "changed (3)");
     });
 
     // cpt

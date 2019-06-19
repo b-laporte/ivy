@@ -155,10 +155,15 @@ export function parse(src: string, filePath: string): (TraxImport | DataObject)[
                         if (tp) {
                             prop.type = tp;
                         } else if (!handleDefaultValue(c, prop) && c.kind !== ts.SyntaxKind.Decorator) {
-                            error("Unsupported syntax", c);
+                            if (c.kind !== ts.SyntaxKind.Parameter && c.getText() !== "any") {
+                                error("Unsupported syntax", c);
+                            }
                         }
                     }
                 });
+                if (!prop.type) {
+                    prop.type = { kind: "any" };
+                }
                 obj.members.push(prop);
             }
         }
@@ -192,7 +197,9 @@ export function parse(src: string, filePath: string): (TraxImport | DataObject)[
                     error("Unsupported parenthesized type", n);
                 }
             }
-            if (n.kind === ts.SyntaxKind.StringKeyword) {
+            if (n.kind === ts.SyntaxKind.AnyKeyword) {
+                return { kind: "any" }
+            } if (n.kind === ts.SyntaxKind.StringKeyword) {
                 return { kind: "string" }
             } else if (n.kind === ts.SyntaxKind.BooleanKeyword) {
                 return { kind: "boolean" }
@@ -246,7 +253,7 @@ export function parse(src: string, filePath: string): (TraxImport | DataObject)[
             }
         }
         if (raiseErrorIfInvalid && n.kind !== ts.SyntaxKind.Decorator) {
-            // console.log("Unsupported type", n)
+            console.log("Unsupported type", n)
             error("Unsupported type", n);
         }
         return null;

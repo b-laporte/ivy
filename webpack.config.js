@@ -53,7 +53,7 @@ module.exports = [{
             }
         }, {
             test: /\.(ts|js)$/,
-            loader: "./dist/webpack/loader.js"
+            loader: "./dist/iv/webpack/loader.js"
         }, {
             test: /\.(html|css|svg|data)$/,
             use: [{

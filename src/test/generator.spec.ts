@@ -642,7 +642,6 @@ describe('Code generator', () => {
         `, 'multiple nodes & sub-component');
     });
 
-
     it("should support js blocks in component content", async function () {
         assert.equal(await body.template(`(foo) => {
             <*cpt>
@@ -708,9 +707,9 @@ describe('Code generator', () => {
 
         assert.equal(t.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = [" text ", "", " "];
-        @ζd class ζParams {
-            @ζv a;
-            @ζv b;
+        @ζΔD class ζParams {
+            ΔΔa: any; @ζΔp() a: any;
+            ΔΔb: any; @ζΔp() b: any;
         }
         return ζt(function (ζ, $) {
             let $params = $, a = $["a"], b = $["b"];
@@ -737,7 +736,7 @@ describe('Code generator', () => {
             <*comp/>
         }`, t1.importMap);
         assert.deepEqual(t2.importMap, {
-            "ζelt": 1, "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζcpt": 1, "ζv": 1, "ζd": 1
+            "ζelt": 1, "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζcpt": 1, "ζΔD": 1, "ζΔp": 1
         }, "t2 imports");
     });
 

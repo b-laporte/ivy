@@ -1,5 +1,6 @@
 import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../../xjs/parser/types';
 import { parse } from '../../xjs/parser/xjs-parser';
+import { getPropertyDefinition, getClassDecorator } from '../../trax/trax/compiler/generator';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result
@@ -184,9 +185,13 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [];
     indent = reduceIndent(indent);
 
+    function addImport(symbol: string) {
+        gc.imports[symbol] = 1;
+    }
+
     if (args && args.length) {
         let classProps: string[] = [], arg: XjsTplArgument;
-        gc.imports["ζv"] = 1;
+
         argNames = ", $";
         for (let i = 0; args.length > i; i++) {
             arg = args[i];
@@ -197,8 +202,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 argInit.push(PARAMS_ARG + ' = $');
             } else if (!argClassName) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]')
-                classProps.push((indent + gc.indentIncrement) + "@ζv " + arg.name + ";")
-                gc.imports["ζv"] = 1;
+                classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name }, "ζ", addImport));
             } else if (i > 0) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]');
             }
@@ -206,12 +210,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         if (!argClassName) {
             // default argument class definition
             argClassName = "ζParams";
-            gc.imports["ζd"] = 1;
-            // sample parameter class:
-            // @ζd class ζParams { 
-            //     @ζv options;
-            // }
-            classDef = [indent, "@ζd class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
+            classDef = [indent, getClassDecorator("ζ", addImport), " class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
         }
     }
 

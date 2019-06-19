@@ -1,8 +1,10 @@
 import { parse } from './parser';
-import { DataObject, TraxImport, DataProperty, ComputedProperty, DataType } from './types';
+import { DataObject, TraxImport, DataProperty, ComputedProperty, DataType, DataMember } from './types';
 
 const DATA = "Data",
     DATA_DECO = "@" + DATA,
+    CLASS_DECO = "ΔD",
+    PRIVATE_PREFIX = "ΔΔ",
     RX_LOG = /\/\/\s*trax\:log/,
     RX_NULL_TYPE = /\|\s*null$/;
 
@@ -99,87 +101,111 @@ export function generate(src: string, filePath: string): string {
     function processDataObject(n: DataObject) {
 
         // transform @Data decorator -> @ΔD()
-        replace(DATA_DECO, "@ΔD", n.decoPos);
-        addImport("ΔD");
+        replace(DATA_DECO, getClassDecorator(), n.decoPos);
+        addImport(CLASS_DECO);
 
         let len = n.members.length,
             prop: DataProperty,
             m: DataProperty | ComputedProperty,
-            tp: DataType | undefined,
-            separator: string,
-            nullArg1: string;
+            tp: DataType | undefined;
         for (let i = 0; len > i; i++) {
             m = n.members[i]
             if (m.kind === "property") {
-                prop = m as DataProperty;
+                try {
+                    prop = m as DataProperty;
+                    insert(PRIVATE_PREFIX, prop.namePos);
 
-                insert("ΔΔ", prop.namePos);
-
-                tp = prop.type;
-                if (tp) {
-                    let { typeRef, factory } = getTypeInfo(tp, n);
-                    if (tp.canBeNull) {
-                        nullArg1 = ", 1";
-                    } else {
-                        nullArg1 = "";
-                    }
-
-                    if (factory) {
-                        separator = endsWithSemiColon(prop.end) ? "" : ";";
-
+                    tp = prop.type;
+                    if (tp) {
+                        if (!endsWithSemiColon(prop.end)) {
+                            insert(";", prop.end);
+                        }
                         // add new property definition
                         // e.g. @Δp(ΔfStr) street: string;
-                        addImport("Δp");
-                        insert(`${separator} @Δp(${factory}${nullArg1}) ${prop.name}: ${typeRef};`, prop.end);
+                        insert(" " + propertyDefinition(prop, false, addImport), prop.end);
+                        // insert(` @Δp(${factory}${nullArg1}) ${prop.name}: ${typeRef};`, prop.end);
+                    } else {
+                        throw new Error("Untyped property are not supported");
                     }
-
-                } else {
-                    error("Untyped property are not supported", n);
+                } catch (ex) {
+                    error(ex.message, n);
                 }
-
             }
         }
+    }
+}
 
+export function getClassDecorator(libPrefix = "", addImport?: (symbol: string) => void) {
+    if (addImport) {
+        addImport(libPrefix + CLASS_DECO);
+    }
+    return "@" + libPrefix + CLASS_DECO;
+}
+
+export function getPropertyDefinition(m: DataMember, libPrefix = "", addImport?: (symbol: string) => void) {
+    return propertyDefinition(m, true, addImport, libPrefix);
+}
+
+function propertyDefinition(m: DataMember, includePrivateDefinition = true, addImport?: (symbol: string) => void, libPrefix = ""): string {
+    addImport = addImport || function () { };
+
+    let tp = m.type, { typeRef, factory } = getTypeInfo(tp, addImport, libPrefix), privateDef = "", nullArg1 = "";
+    if (tp && tp.canBeNull) {
+        nullArg1 = ", 1";
     }
 
-    function getTypeInfo(tp: DataType, n: DataObject): { typeRef: string, factory: string } {
-        let typeRef = "", factory = "";
+    if (includePrivateDefinition) {
+        privateDef = `${PRIVATE_PREFIX}${m.name}: ${typeRef}; `
+    }
 
-        if (tp.kind === "string") {
-            typeRef = "string";
-            factory = "ΔfStr";
-            addImport(factory);
-        } else if (tp.kind === "number") {
-            typeRef = "number";
-            factory = "ΔfNbr";
-            addImport(factory);
-        } else if (tp.kind === "boolean") {
-            typeRef = "boolean";
-            factory = "ΔfBool";
-            addImport(factory);
-        } else if (tp.kind === "reference") {
-            typeRef = tp.identifier;
-            factory = "Δf(" + typeRef + ")";
-            addImport("Δf");
-        } else if (tp.kind === "array") {
-            if (tp.itemType) {
-                let info = getTypeInfo(tp.itemType, n);
-                if (info.typeRef.match(RX_NULL_TYPE)) {
-                    typeRef = "(" + info.typeRef + ")[]"
-                } else {
-                    typeRef = info.typeRef + "[]"
-                }
-                factory = "Δlf(" + info.factory + ")";
-                addImport("Δlf");
+    addImport(libPrefix + "Δp");
+    return `${privateDef}@${libPrefix}Δp(${factory}${nullArg1}) ${m.name}: ${typeRef};`;
+}
+
+
+function getTypeInfo(tp: DataType | undefined, addImport: (symbol: string) => void, libPrefix = ""): { typeRef: string, factory: string } {
+    let typeRef = "", factory = "";
+    if (!tp) {
+        return { typeRef: "any", factory: "" };
+    }
+
+    if (tp.kind === "any") {
+        typeRef = "any";
+        factory = "";
+    } else if (tp.kind === "string") {
+        typeRef = "string";
+        factory = libPrefix + "ΔfStr";
+        addImport(factory);
+    } else if (tp.kind === "number") {
+        typeRef = "number";
+        factory = libPrefix + "ΔfNbr";
+        addImport(factory);
+    } else if (tp.kind === "boolean") {
+        typeRef = "boolean";
+        factory = libPrefix + "ΔfBool";
+        addImport(factory);
+    } else if (tp.kind === "reference") {
+        typeRef = tp.identifier;
+        factory = libPrefix + "Δf(" + typeRef + ")";
+        addImport(libPrefix + "Δf");
+    } else if (tp.kind === "array") {
+        if (tp.itemType) {
+            let info = getTypeInfo(tp.itemType, addImport, libPrefix);
+            if (info.typeRef.match(RX_NULL_TYPE)) {
+                typeRef = "(" + info.typeRef + ")[]"
             } else {
-                error("Item type must be specified in Arrays", n);
+                typeRef = info.typeRef + "[]"
             }
+            factory = libPrefix + "Δlf(" + info.factory + ")";
+            addImport(libPrefix + "Δlf");
         } else {
-            error("Generator doesn't support type " + tp.kind + " yet", n);
+            throw new Error("Item type must be specified in Arrays");
         }
-        if (tp.canBeNull) {
-            typeRef += " | null";
-        }
-        return { typeRef, factory };
+    } else {
+        throw new Error("Generator doesn't support type " + tp.kind + " yet");
     }
+    if (tp.canBeNull) {
+        typeRef += " | null";
+    }
+    return { typeRef, factory };
 }

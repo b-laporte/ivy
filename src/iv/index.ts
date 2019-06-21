@@ -267,7 +267,7 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
     return view;
 }
 
-export function ζviewD(pv: IvView, iHolder: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number, contentView?: number) {
+export function ζviewD(pv: IvView, iHolder: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
     let v = ζview(pv, iHolder, containerIdx, nbrOfNodes, instanceIdx);
     // console.log("viewD", v.uid, v.instructions? v.instructions.length : "XX")
 
@@ -807,6 +807,14 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
 
 export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
     addInstruction(v, ζcall, [v, idx, container]);
+}
+
+export function ζpnode(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
+    console.log("TODO ζpnode")
+}
+
+export function ζpnodeD(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
+    console.log("TODO ζpnodeD")
 }
 
 // Attribute setter

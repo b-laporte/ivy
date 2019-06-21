@@ -215,9 +215,8 @@ describe('Code generator', () => {
                 callSomething();
             } while (test);
         }`), `
-            let ζc = ζinit(ζ, ζs0, 2);
-            ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " Something ", 0);
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, " Something ", 0);
             do {
                 callSomething();
             } while (test);
@@ -306,11 +305,10 @@ describe('Code generator', () => {
             ζtxt(ζ, ζc, 0, 1, 1, " hello ", 0);
             ζcnt(ζ, ζc, 2, 1, 1);
             do {
-                ζ1 = ζview(ζ, 0, 2, 2, ++ζi1);
+                ζ1 = ζview(ζ, 0, 2, 1, ++ζi1);
                 ζc1 = ζ1.cm;
-                ζfra(ζ1, ζc1, 0, 0);
                 let x=123;
-                ζtxt(ζ1, ζc1, 0, 1, 1, ζs1, 1, ζe(ζ1, 0, name));
+                ζtxt(ζ1, ζc1, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
             } while (test)
             ζend(ζ, ζc, ζs2);
@@ -606,7 +604,7 @@ describe('Code generator', () => {
             }`), `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
-            ζ1 = ζviewD(ζ, 1, 0, 1, 0, 1);
+            ζ1 = ζviewD(ζ, 1, 0, 1, 0);
             ζc1 = ζ1.cm;
             ζeltD(ζ1, ζc1, 0, 0, "span", 0);
             ζattD(ζ1, 1, 0, "title", [0, getTitle()]);
@@ -625,13 +623,13 @@ describe('Code generator', () => {
             }`), `
             let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
-            ζ1 = ζviewD(ζ, 1, 0, 3, 0, 1);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
             ζtxtD(ζ1, ζc1, 1, 1, 1, ζs1, 1, [0, name1]);
             ζcptD(ζ1, ζc1, 1, 2, 1, [1, otherComponent], 0);
             ζparD(ζ1, 1, 2, "p1", [2, expr()]);
-            ζ2 = ζviewD(ζ1, 1, 2, 1, 0, 1);
+            ζ2 = ζviewD(ζ1, 1, 2, 1, 0);
             ζc2 = ζ2.cm;
             ζtxtD(ζ2, ζc2, 1, 0, 0, ζs2, 1, [0, name2]);
             ζendD(ζ2, ζc2);
@@ -654,7 +652,7 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζi2 = 0;
-            ζ1 = ζviewD(ζ, 1, 0, 3, 0, 1);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
             ζtxtD(ζ1, ζc1, 1, 1, 1, " first ", 0);
@@ -793,166 +791,279 @@ describe('Code generator', () => {
         `, '1');
     });
 
-    /*
-        it("should support components with content & param nodes", async function () {
-            assert.equal(await body.template(`() => {
-                # first #
-                <*myComponent>
+    it("should support components with content & param nodes", async function () {
+        assert.equal(await body.template(`() => {
+            # first #
+            <*myComponent>
+                <.header position="top" foo={bar()}/>
+                # some content {baz()} #
+                <.footer type="small"/>
+            </>
+            # last #
+            }`), `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 6);
+            ζfra(ζ, ζc, 0, 0);
+            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
+            ζ1 = ζviewD(ζ, 1, 2, 1, 0);
+            ζc1 = ζ1.cm;
+            ζpnode(ζ, ζc, 0, 3, 2, "header", ζs1);
+            ζpar(ζ, 0, 3, "foo", ζe(ζ, 1, bar()));
+            ζtxtD(ζ1, ζc1, 1, 0, 0, ζs2, 1, [0, baz()]);
+            ζpnode(ζ, ζc, 0, 4, 2, "footer", ζs3);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 2);
+            ζtxt(ζ, ζc, 0, 5, 1, " last ", 0);
+            ζend(ζ, ζc);
+        `, '1');
+
+        assert.equal(await body.template(`() => {
+            # first #
+            <*myComponent>
+                <.header position="top" foo={bar()}>
+                    <.title> <b> # Complex {exp()} # </b> </.title>
+                    # header content #
+                </>
+                # cpt content {foo()} #
+            </>
+        }`), `
+            let ζ1, ζc1, ζ2, ζc2, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 5);
+            ζfra(ζ, ζc, 0, 0);
+            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
+            ζ1 = ζviewD(ζ, 1, 2, 1, 0);
+            ζc1 = ζ1.cm;
+            ζpnode(ζ, ζc, 0, 3, 2, "header", ζs1);
+            ζpar(ζ, 0, 3, "foo", ζe(ζ, 1, bar()));
+            ζ2 = ζviewD(ζ, 1, 3, 1, 0);
+            ζc2 = ζ2.cm;
+            ζpnode(ζ, ζc, 0, 4, 3, "title");
+            ζ3 = ζviewD(ζ, 1, 4, 2, 0);
+            ζc3 = ζ3.cm;
+            ζeltD(ζ3, ζc3, 0, 0, "b", 1);
+            ζtxtD(ζ3, ζc3, 1, 1, 1, ζs2, 1, [0, exp()]);
+            ζendD(ζ3, ζc3);
+            ζtxtD(ζ2, ζc2, 1, 0, 0, " header content ", 0);
+            ζendD(ζ2, ζc2);
+            ζtxtD(ζ1, ζc1, 1, 0, 0, ζs3, 1, [0, foo()]);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 2);
+            ζend(ζ, ζc);
+        `, '2');
+
+        // todo $value should be natively interpreted and included into pnode instead of par
+        assert.equal(await body.template(`() => {
+            <*myComponent>
+                <.header foo={bar()}>
+                    <.foo position="top">
+                        <.bar $value={exp()}/>
+                        <.bar $value={exp2()}/>
+                    </>
+                </>
+            </>
+            }`), `
+            let ζ1, ζc1, ζ2, ζc2, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 5);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
+            ζpnode(ζ, ζc, 0, 1, 1, "header");
+            ζpar(ζ, 0, 1, "foo", ζe(ζ, 1, bar()));
+            ζpnode(ζ, ζc, 0, 2, 2, "foo", ζs1);
+            ζpnode(ζ, ζc, 0, 3, 3, "bar");
+            ζpar(ζ, 0, 3, "$value", ζe(ζ, 2, exp()));
+            ζpnode(ζ, ζc, 0, 4, 3, "bar");
+            ζpar(ζ, 0, 4, "$value", ζe(ζ, 3, exp2()));
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '3');
+    });
+
+    it("should support components with param nodes and control statements", async function () {
+        assert.equal(await body.template(`(x, y) => {
+            # first #
+            <*myComponent>
+                if (x) {
+                    # foo #
                     <.header position="top" foo={bar()}/>
+                }
+                # abc #
+                if (y) {
                     # some content {baz()} #
-                    <.footer type="small"/>
-                </>
-            }`), `
-                if (ζ[0].cm) {
-                    ζfrag(ζ, 1, 0);
-                    ζtxt(ζ, 2, 1, 0, " first ");
-                    ζfrag(ζ, 3, 1, 0, 2);
-                    ζfrag(ζ, 4, 3, 4);
-                    ζpnode(ζ, 5, 4, 0, "header", ζs0);
-                    ζtxt(ζ, 6, 4, 4, ζs1);
-                    ζpnode(ζ, 7, 4, 0, "footer", ζs2);
                 }
-                ζcpt(ζ, 3, 0, ζe(ζ, 0, myComponent), 4, 0);
-                ζparam(ζ, 5, 0, "foo", ζe(ζ, 1, bar()));
-                ζtxtval(ζ, 6, 4, ζs1, 1, [0, baz()]);
-                ζcall(ζ, 3);
-                ζend(ζ, 0);
-            `, '1');
-    
-            assert.equal(await body.template(`() => {
-                # first #
-                <*myComponent>
-                    <.header position="top" foo={bar()}>
-                        <.title> <b> # Complex {exp()} # </b> </.title>
-                        # header content #
-                    </>
-                    # cpt content {foo()} #
-                </>
+                <.footer type="small"/>
+            </>
+            # last #
             }`), `
-                if (ζ[0].cm) {
-                    ζfrag(ζ, 1, 0);
-                    ζtxt(ζ, 2, 1, 0, " first ");
-                    ζfrag(ζ, 3, 1, 0, 2);
-                    ζfrag(ζ, 4, 3, 4);
-                    ζpnode(ζ, 5, 4, 0, "header", ζs0);
-                    ζfrag(ζ, 6, 5, 6);
-                    ζpnode(ζ, 7, 6, 4, "title");
-                    ζelt(ζ, 8, 7, 8, "b");
-                    ζtxt(ζ, 9, 8, 8, ζs1);
-                    ζtxt(ζ, 10, 6, 6, " header content ");
-                    ζtxt(ζ, 11, 4, 4, ζs2);
-                }
-                ζcpt(ζ, 3, 0, ζe(ζ, 0, myComponent), 4, 0);
-                ζparam(ζ, 5, 0, "foo", ζe(ζ, 1, bar()));
-                ζtxtval(ζ, 9, 8, ζs1, 1, [0, exp()]);
-                ζtxtval(ζ, 11, 4, ζs2, 1, [0, foo()]);
-                ζcall(ζ, 3);
-                ζend(ζ, 0);
-            `, '2');
-        });
-    
-        it("should not create content fragments components with only param nodes and js statements", async function () {
-            assert.equal(await body.template(`() => {
-                <*foo>
-                    <.paramA value="a"/>
-                    let bar=foo;
-                    <.paramB value={exp(bar)}/>
-                </>
-            }`), `
-                if (ζ[0].cm) {
-                    ζfrag(ζ, 1, 0, 0, 2);
-                    ζpnode(ζ, 2, 1, 0, "paramA", ζs0);
-                    ζpnode(ζ, 3, 1, 0, "paramB");
-                }
-                ζcpt(ζ, 1, 0, ζe(ζ, 0, foo), 0, 0);
+            let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζi3 = 0, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 6);
+            ζfra(ζ, ζc, 0, 0);
+            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
+            ζi2 = ζi3 = 0;
+            ζ1 = ζviewD(ζ, 1, 2, 4, 0);
+            ζc1 = ζ1.cm;
+            ζfraD(ζ1, ζc1, 0, 0);
+            ζcntD(ζ1, ζc1, 1, 1, 1);
+            if (x) {
+                ζ2 = ζviewD(ζ1, 2, 1, 1, ++ζi2);
+                ζc2 = ζ2.cm;
+                ζtxtD(ζ2, ζc2, 2, 0, 0, " foo ", 0);
+                ζpnode(ζ, ζc, 0, 3, 2, "header", ζs1);
+                ζpar(ζ, 0, 3, "foo", ζe(ζ, 1, bar()));
+                ζendD(ζ2, ζc2);
+            }
+            ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
+            ζcntD(ζ1, ζc1, 3, 1, 1);
+            if (y) {
+                ζ3 = ζviewD(ζ1, 2, 3, 1, ++ζi3);
+                ζc3 = ζ3.cm;
+                ζtxtD(ζ3, ζc3, 2, 0, 0, ζs2, 1, [0, baz()]);
+                ζendD(ζ3, ζc3);
+            }
+            ζpnode(ζ, ζc, 0, 4, 2, "footer", ζs3);
+            ζendD(ζ1, ζc1, ζs4);
+            ζcall(ζ, 2);
+            ζtxt(ζ, ζc, 0, 5, 1, " last ", 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should not create content fragments components with only param nodes and js statements", async function () {
+        assert.equal(await body.template(`() => {
+            <*foo>
+                <.paramA value="a"/>
                 let bar=foo;
-                ζparam(ζ, 3, 0, "value", ζe(ζ, 1, exp(bar)));
-                ζcall(ζ, 1);
-                ζend(ζ, 0);
-            `, '1');
-        });
-    
-        it("should generate the full template function", async function () {
-            let t1 = await test.template(`() => {
-                <div class="main">
-                    <*b.section type="important">
-                        <.header> # The big title #</>
-                        <span class="content"> # Section content # </>
-                    </>
+                <.paramB value={exp(bar)}/>
+            </>
+        }`), `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
+            ζpnode(ζ, ζc, 0, 1, 1, "paramA", ζs1);
+            let bar=foo;
+            ζpnode(ζ, ζc, 0, 2, 1, "paramB");
+            ζpar(ζ, 0, 2, "value", ζe(ζ, 1, exp(bar)));
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should properly generate 2 components with or without param nodes", async function () {
+        assert.equal(await body.template(`() => {
+            <*foo>
+                <.paramA value="a"/>
+            </>
+            <*bar>
+                let x = 123;
+            </>
+        }`), `
+            let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 4);
+            ζfra(ζ, ζc, 0, 0);
+            ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, foo), 0);
+            ζpnode(ζ, ζc, 0, 2, 2, "paramA", ζs1);
+            ζcall(ζ, 1);
+            ζcpt(ζ, ζc, 0, 3, 1, ζe(ζ, 1, bar), 1);
+            let x = 123;
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support deferred param nodes", async function () {
+        assert.equal(await body.template(`() => {
+            <*foo>
+                <.paramA value="a"/>
+                <*bar>
+                    <.paramB value="b"/>
                 </>
-            }`);
-    
-            assert.equal(t1.function, `(function () {
-            const ζs0 = ["class", "main"], ζs1 = ["type", "important"], ζs2 = ["class", "content"];
-            return ζt(function (ζ) {
-                if (ζ[0].cm) {
-                    ζelt(ζ, 1, 0, 0, "div", ζs0);
-                    ζfrag(ζ, 2, 1, 0, 2);
-                    ζfrag(ζ, 3, 2, 3);
-                    ζpnode(ζ, 4, 3, 0, "header");
-                    ζtxt(ζ, 5, 4, 5, " The big title ");
-                    ζelt(ζ, 6, 3, 3, "span", ζs2);
-                    ζtxt(ζ, 7, 6, 3, " Section content ");
-                }
-                ζcpt(ζ, 2, 0, ζe(ζ, 0, b.section), 3, 0, ζs1);
-                ζcall(ζ, 2);
-                ζend(ζ, 0);
-            });
-            })()` , 'f1');
-            assert.deepEqual(t1.importMap, {
-                "ζelt": 1, "ζfrag": 1, "ζpnode": 1, "ζtxt": 1, "ζcc": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζt": 1
-            }, 'imports 1');
-    
-            let t2 = await test.template(`(name) => {
-                <div class="msg" [title]={"Message for " + name}>
-                    # Hello {name} #
+            </>
+        }`), `
+            let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 2);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
+            ζ1 = ζviewD(ζ, 1, 0, 2, 0);
+            ζc1 = ζ1.cm;
+            ζpnode(ζ, ζc, 0, 1, 1, "paramA", ζs1);
+            ζcptD(ζ1, ζc1, 1, 0, 0, [0, bar], 0);
+            ζpnodeD(ζ1, ζc1, 1, 1, 1, "paramB", ζs2);
+            ζcallD(ζ1, 0);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should generate the full template function", async function () {
+        let t1 = await test.template(`() => {
+            <div class="main">
+                <*b.section type="important">
+                    <.header> # The big title #</>
+                    <span class="content"> # Section content # </>
                 </>
-            }`);
-            assert.equal(t2.function, `(function () {
-            const ζs0 = ["class", "msg"], ζs1 = [" Hello ", "", " "];
-            @ζd class ζParams {
-                @ζv name;
-            }
-            return ζt(function (ζ, $) {
-                let name = $["name"];
-                if (ζ[0].cm) {
-                    ζelt(ζ, 1, 0, 0, "div", ζs0);
-                    ζtxt(ζ, 2, 1, 0, ζs1);
-                }
-                ζprop(ζ, 1, 0, "title", ζe(ζ, 0, "Message for " + name));
-                ζtxtval(ζ, 2, 0, ζs1, 1, ζe(ζ, 1, name));
-                ζend(ζ, 0);
-            }, 0, ζParams);
-            })()` , 'f2');
-            assert.deepEqual(t2.importMap, {
-                "ζelt": 1, "ζtxt": 1, "ζcc": 1, "ζe": 1, "ζtxtval": 1, "ζend": 1, "ζprop": 1, "ζv": 1, "ζd": 1, "ζt": 1
-            }, 'imports 2');
-    
-            let t3 = await test.template(`(firstName, lastName) => {
-                # Hello {firstName} {::lastName} #
-            }`);
-            assert.equal(t3.function, `(function () {
-            const ζs0 = [" Hello ", "", " ", "", " "];
-            @ζd class ζParams {
-                @ζv firstName;
-                @ζv lastName;
-            }
-            return ζt(function (ζ, $) {
-                let firstName = $["firstName"], lastName = $["lastName"];
-                if (ζ[0].cm) {
-                    ζtxt(ζ, 1, 0, 0, ζs0);
-                }
-                ζtxtval(ζ, 1, 0, ζs0, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
-                ζend(ζ, 0);
-            }, 0, ζParams);
-            })()` , 'f3');
-            assert.deepEqual(t3.importMap, {
-                "ζtxt": 1, "ζcc": 1, "ζtxtval": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζv": 1, "ζd": 1, "ζt": 1
-            }, 'imports 3');
+            </>
+        }`);
+
+        assert.equal(t1.function, `(function () {
+        const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = ["type", "important"], ζs3 = ["class", "content"];
+        return ζt(function (ζ) {
+            let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, b.section), 0, ζs2);
+            ζ1 = ζviewD(ζ, 1, 1, 2, 0);
+            ζc1 = ζ1.cm;
+            ζpnode(ζ, ζc, 0, 2, 2, "header");
+            ζ2 = ζviewD(ζ, 1, 2, 1, 0);
+            ζc2 = ζ2.cm;
+            ζtxtD(ζ2, ζc2, 1, 0, 0, " The big title ", 0);
+            ζendD(ζ2, ζc2);
+            ζeltD(ζ1, ζc1, 0, 0, "span", 1, ζs3);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, " Section content ", 0);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 1);
+            ζend(ζ, ζc);
         });
-    
-        
-        */
+        })()` , 'f1');
+        assert.deepEqual(t1.importMap, {
+            "ζinit": 1, "ζelt": 1, "ζeltD": 1, "ζpnode": 1, "ζtxtD": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζendD": 1, "ζviewD": 1, "ζt": 1
+        }, 'imports 1');
+
+        let t2 = await test.template(`(name) => {
+            <div class="msg" [title]={"Message for " + name}>
+                # Hello {name} #
+            </>
+        }`);
+        assert.equal(t2.function, `(function () {
+        const ζs0 = {}, ζs1 = ["class", "msg"], ζs2 = [" Hello ", "", " "];
+        @ζΔD class ζParams {
+            ΔΔname: any; @ζΔp() name: any;
+        }
+        return ζt(function (ζ, $) {
+            let name = $["name"];
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζpro(ζ, 0, 0, "title", ζe(ζ, 0, "Message for " + name));
+            ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 1, name));
+            ζend(ζ, ζc);
+        }, 0, ζParams);
+        })()` , 'f2');
+        assert.deepEqual(t2.importMap, {
+            "ζinit": 1, "ζelt": 1, "ζtxt": 1, "ζe": 1, "ζend": 1, "ζpro": 1, "ζΔp": 1, "ζΔD": 1, "ζt": 1
+        }, 'imports 2');
+
+        let t3 = await test.template(`(firstName, lastName) => {
+            # Hello {firstName} {::lastName} #
+        }`);
+        assert.equal(t3.function, `(function () {
+        const ζs0 = {}, ζs1 = [" Hello ", "", " ", "", " "];
+        @ζΔD class ζParams {
+            ΔΔfirstName: any; @ζΔp() firstName: any;
+            ΔΔlastName: any; @ζΔp() lastName: any;
+        }
+        return ζt(function (ζ, $) {
+            let firstName = $["firstName"], lastName = $["lastName"];
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
+            ζend(ζ, ζc);
+        }, 0, ζParams);
+        })()` , 'f3');
+        assert.deepEqual(t3.importMap, {
+            "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζΔD": 1, "ζΔp": 1, "ζt": 1
+        }, 'imports 3');
+    });
 
     it("should support async elements", async function () {
         assert.equal(await body.template(`(msg) => {
@@ -962,11 +1073,11 @@ describe('Code generator', () => {
                 </div>
             </div>
         }`), `
-            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 3);
             ζasync(ζ, 0, 1, 1, function () {
-                ζ1 = ζview(ζ, 0, 1, 2, ++ζi1);
+                ζ1 = ζview(ζ, 0, 1, 2, 0);
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1, ζs2);
                 ζtxt(ζ1, ζc1, 0, 1, 1, ζs3, 1, ζe(ζ1, 0, msg));
@@ -980,10 +1091,10 @@ describe('Code generator', () => {
                 # Message: {msg} #
             </div>
         }`), `
-            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcnt(ζ, ζc, 0, 0, 3);
             ζasync(ζ, 0, 0, 3, function () {
-                ζ1 = ζview(ζ, 0, 0, 2, ++ζi1);
+                ζ1 = ζview(ζ, 0, 0, 2, 0);
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1);
                 ζtxt(ζ1, ζc1, 0, 1, 1, ζs1, 1, ζe(ζ1, 0, msg));
@@ -998,11 +1109,11 @@ describe('Code generator', () => {
             </div>
             # Message2: {msg} #
         }`), `
-            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             ζcnt(ζ, ζc, 1, 1, 3);
             ζasync(ζ, 0, 1, ζe(ζ, 0, expr()), function () {
-                ζ1 = ζview(ζ, 0, 1, 3, ++ζi1);
+                ζ1 = ζview(ζ, 0, 1, 3, 0);
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1);
                 ζevt(ζ1, ζc1, 1, 0, "click", function (e) {doSomething(e)});
@@ -1022,11 +1133,11 @@ describe('Code generator', () => {
                 </>
             </div>
         }`), `
-            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 3);
             ζasync(ζ, 0, 1, ζe(ζ, 0, expr()), function () {
-                ζ1 = ζview(ζ, 0, 1, 2, ++ζi1);
+                ζ1 = ζview(ζ, 0, 1, 2, 0);
                 ζc1 = ζ1.cm;
                 ζfra(ζ1, ζc1, 0, 0);
                 ζtxt(ζ1, ζc1, 0, 1, 1, ζs1, 1, ζe(ζ1, 0, msg));
@@ -1048,11 +1159,11 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 3);
             ζasync(ζ, 0, 1, 1, function () {
-                ζ1 = ζview(ζ, 0, 1, 1, 0, 1);
+                ζ1 = ζview(ζ, 0, 1, 1, 0);
                 ζc1 = ζ1.cm;
                 ζcpt(ζ1, ζc1, 0, 0, 0, ζe(ζ1, 0, section), 0);
                 ζpar(ζ1, 0, 0, "title", ζe(ζ1, 1, msg));
-                ζ2 = ζviewD(ζ1, 1, 0, 1, 0, 1);
+                ζ2 = ζviewD(ζ1, 1, 0, 1, 0);
                 ζc2 = ζ2.cm;
                 ζtxtD(ζ2, ζc2, 1, 0, 0, ζs1, 1, [0, msg]);
                 ζendD(ζ2, ζc2);
@@ -1072,16 +1183,15 @@ describe('Code generator', () => {
                 </div>
             </>
         }`), `
-            let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
+            let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
-            ζi2 = 0;
-            ζ1 = ζviewD(ζ, 1, 0, 3, 0, 1);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
             ζtxtD(ζ1, ζc1, 1, 1, 1, ζs1, 1, [0, msg]);
             ζcntD(ζ1, ζc1, 2, 1, 3);
             ζasyncD(ζ1, 2, 2, 1, function () {
-                ζ2 = ζviewD(ζ1, 2, 2, 2, ++ζi2);
+                ζ2 = ζviewD(ζ1, 2, 2, 2, 0);
                 ζc2 = ζ2.cm;
                 ζeltD(ζ2, ζc2, 0, 0, "div", 1);
                 ζtxtD(ζ2, ζc2, 2, 1, 1, " other text ", 0);
@@ -1107,28 +1217,26 @@ describe('Code generator', () => {
                 </div>
             </>
         }`), `
-            let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζ3, ζc3, ζi4 = 0, ζ4, ζc4, ζc = ζinit(ζ, ζs0, 1);
+            let ζ1, ζc1, ζ2, ζc2, ζ3, ζc3, ζ4, ζc4, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
-            ζi2 = 0;
-            ζ1 = ζviewD(ζ, 1, 0, 3, 0, 1);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
             ζtxtD(ζ1, ζc1, 1, 1, 1, ζs1, 1, [0, msg]);
             ζcntD(ζ1, ζc1, 2, 1, 3);
             ζasyncD(ζ1, 2, 2, 1, function () {
-                ζ2 = ζviewD(ζ1, 2, 2, 3, ++ζi2);
+                ζ2 = ζviewD(ζ1, 2, 2, 3, 0);
                 ζc2 = ζ2.cm;
                 ζeltD(ζ2, ζc2, 0, 0, "div", 1);
                 ζtxtD(ζ2, ζc2, 2, 1, 1, " other text ", 0);
                 ζcptD(ζ2, ζc2, 2, 2, 1, [0, cpt], 0);
-                ζi4 = 0;
-                ζ3 = ζviewD(ζ2, 1, 2, 3, 0, 1);
+                ζ3 = ζviewD(ζ2, 1, 2, 3, 0);
                 ζc3 = ζ3.cm;
                 ζfraD(ζ3, ζc3, 0, 0);
                 ζtxtD(ζ3, ζc3, 1, 1, 1, ζs2, 1, [0, msg]);
                 ζcntD(ζ3, ζc3, 2, 1, 3);
                 ζasyncD(ζ3, 2, 2, 1, function () {
-                    ζ4 = ζviewD(ζ3, 2, 2, 2, ++ζi4);
+                    ζ4 = ζviewD(ζ3, 2, 2, 2, 0);
                     ζc4 = ζ4.cm;
                     ζeltD(ζ4, ζc4, 0, 0, "div", 1);
                     ζtxtD(ζ4, ζc4, 2, 1, 1, ζs3, 1, [0, msg]);

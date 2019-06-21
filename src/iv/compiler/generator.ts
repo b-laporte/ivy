@@ -88,7 +88,7 @@ function generate(tf: XjsTplFunction, options: CompilationOptions) {
         }
 
         if (tf.content) {
-            root = new ViewInstruction(tf, 1, null, 0, gc, tf.indent);
+            root = new ViewInstruction("template", tf, 1, null, 0, gc, tf.indent);
             root.scan();
             root.pushCode(body);
         }
@@ -244,6 +244,8 @@ interface RuntimeInstruction {
     pushCode(body: BodyContent[]);
 }
 
+type ViewKind = "template" | "cptContent" | "paramContent" | "jsBlock" | "asyncBlock";
+
 export class ViewInstruction implements RuntimeInstruction {
     gc: GenerationCtxt;
     nodeCount = 0;
@@ -261,19 +263,25 @@ export class ViewInstruction implements RuntimeInstruction {
     exprCount = 0;                          // binding expressions count
     expr1Count = 0;                         // one-time expressions count
     dExpressions: number[] = [];            // list of counters for deferred expressions (cf. ζexp)
-    isLightDom = false;
     hasChildNodes = false;                  // true if the view has Child nodes
-    isAsyncView = false;                    // true for async blocks
+    hasParamNodes = false;
     asyncValue: number | XjsExpression = 0; // async priority
+    cptIHolder: number = -1;                // iHolder of the component associated with this view
+    cpnParentLevel: number = -1;            // component or pnode parent level
 
-    constructor(public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iHolder: number, generationCtxt?: GenerationCtxt, indent?: string) {
+    constructor(public kind: ViewKind, public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iHolder: number, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentView) {
             this.gc = parentView.gc;
             this.blockIdx = this.gc.blockCount++;
-            if (node.kind === "#component") {
-                this.isLightDom = true;
+            if (this.kind === "cptContent" || this.kind === "paramContent") {
+                // no instance var, no indent
                 this.indent = parentView.indent;
-            } else {
+                this.instanceCounterVar = '';
+            } else if (this.kind === "asyncBlock") {
+                this.gc.imports['ζasync'] = 1;
+                this.indent = parentView.indent + this.gc.indentIncrement;
+                this.instanceCounterVar = '';
+            } else if (this.kind === "jsBlock") {
                 this.indent = parentView.indent + this.gc.indentIncrement;
                 this.instanceCounterVar = 'ζi' + this.blockIdx;
                 this.gc.localVars[`${this.instanceCounterVar} = 0`] = 1;
@@ -302,7 +310,7 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     scan() {
-        if (this.isAsyncView) {
+        if (this.kind === "asyncBlock") {
             this.generateInstruction([(this.node as any)], 0, 0, this.iHolder, this.prevKind, this.nextKind);
         } else {
             let content = this.node.content, len = content ? content.length : 0, nd: XjsContentNode;
@@ -311,11 +319,21 @@ export class ViewInstruction implements RuntimeInstruction {
             let pLevel = 0;
             // creation mode
             if (len > 1) {
-                // need container fragment
-                this.nodeCount = 1;
-                this.instructions.push(new FraInstruction(null, 0, this, this.iHolder, pLevel));
-                FraInstruction
-                pLevel = 1;
+                // need container fragment if child nodes are not pnodes nor statements
+                let count = 0, ch: XjsContentNode;
+                for (let i = 0; len > i; i++) {
+                    ch = content![i];
+                    if (ch.kind !== "#jsStatements" && ch.kind !== "#paramNode") {
+                        count++;
+                        if (count > 1) break;
+                    }
+                }
+                if (count > 1) {
+                    this.nodeCount = 1;
+                    this.instructions.push(new FraInstruction(null, 0, this, this.iHolder, pLevel));
+                    FraInstruction
+                    pLevel = 1;
+                }
             }
 
             this.scanContent(content, pLevel, this.iHolder);
@@ -337,7 +355,7 @@ export class ViewInstruction implements RuntimeInstruction {
 
     generateInstruction(siblings: XjsContentNode[], siblingIdx: number, parentLevel: number, iHolder: number, prevKind: string, nextKind: string) {
         let nd: XjsContentNode = siblings[siblingIdx], content: XjsContentNode[] | undefined = undefined, idx = this.nodeCount;
-        if (nd.kind !== "#jsStatements") {
+        if (nd.kind !== "#jsStatements" && nd.kind !== "#paramNode") {
             this.nodeCount++;
             this.hasChildNodes = true;
         }
@@ -371,7 +389,7 @@ export class ViewInstruction implements RuntimeInstruction {
             case "#element":
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
                     this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iHolder, parentLevel, stParams));
-                    this.generateParamInstructions(nd as XjsElement, idx, iHolder, true);
+                    this.generateParamInstructions(nd as XjsElement, idx, iHolder, true, this);
                     this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iHolder);
                     this.createListeners(nd as XjsElement, idx, iHolder);
                     content = nd.content;
@@ -384,16 +402,20 @@ export class ViewInstruction implements RuntimeInstruction {
                     let ci = new CptInstruction(nd as XjsComponent, idx, this, iHolder, parentLevel, callImmediately, i1)
                     this.instructions.push(ci);
                     if (containsParamExpr) {
-                        this.generateParamInstructions(nd as XjsComponent, idx, iHolder, false);
+                        this.generateParamInstructions(nd as XjsComponent, idx, iHolder, false, this);
                     }
                     if (nd.content && nd.content.length) {
-                        let vi = new ViewInstruction(nd as XjsComponent, idx, this, 1);
+                        let vi = new ViewInstruction("cptContent", nd as XjsComponent, idx, this, 1);
+                        vi.cptIHolder = iHolder; // used by sub param Nodes to have the same value
+                        vi.cpnParentLevel = parentLevel;
                         this.instructions.push(vi);
+                        this.hasParamNodes = false;
                         vi.scan();
-                        if (!vi.hasChildNodes) {
+                        if (!vi.hasChildNodes && !this.hasParamNodes) {
                             callImmediately = true;
                             ci.callImmediately = true;
                         }
+                        this.hasParamNodes = false;
                     }
                     if (!callImmediately) {
                         this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
@@ -403,6 +425,54 @@ export class ViewInstruction implements RuntimeInstruction {
                     if (nd.listeners && nd.listeners.length) {
                         this.gc.error("Event listeners are not supported on components (yet)", nd);
                     }
+                }
+                break;
+            case "#paramNode":
+                // e.g. ζpnode(ζ, 3, 1, 0, "header");
+                // logic close to #component
+                this.rejectAsyncDecorator(nd as XjsParamNode);
+
+                // pickup the closest parent view that is not a js block
+                if (!this.parentView) {
+                    this.gc.error("Param nodes cannot be defined at root level", nd); // TODO: this could change
+                }
+                let v: ViewInstruction = this, cptIHolder = 0, cpnParentLevel = 0;
+                while (v) {
+                    if (v.cptIHolder > -1) {
+                        cptIHolder = v.cptIHolder;
+                    }
+                    if (v.cpnParentLevel > -1) {
+                        cpnParentLevel = v.cpnParentLevel;
+                    }
+                    if (v.kind === "asyncBlock") {
+                        this.gc.error("Param nodes cannot be defined in @async blocks", nd);
+                    } else if (v.kind === "jsBlock" || v.kind === "paramContent") {
+                        v = v.parentView!;
+                    } else if (v.kind === "cptContent") {
+                        v = v.parentView!;
+                        break;
+                    } else if (v.kind === "template") {
+                        break;
+                    } else {
+                        this.gc.error("Param nodes cannot be defined in " + v.kind + " views", nd);
+                    }
+                }
+                let newIdx = v.nodeCount++;
+                v.hasParamNodes = true;
+
+                let pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIHolder, cpnParentLevel + 1, i1, this.indent)
+                this.instructions.push(pi);
+                if (containsParamExpr) {
+                    this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIHolder, false, v);
+                }
+                if (nd.content && nd.content.length) {
+                    let vi = new ViewInstruction("paramContent", nd as XjsParamNode, newIdx, v, 1);
+                    vi.cpnParentLevel = cpnParentLevel + 1;
+                    this.instructions.push(vi);
+                    vi.scan();
+                }
+                if (nd.listeners && nd.listeners.length) {
+                    this.gc.error("Event listeners are not supported on param nodes (yet)", nd);
                 }
                 break;
             case "#jsStatements":
@@ -424,7 +494,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                 }
                 this.childBlockIndexes.push(idx);
-                let jsb = new ViewInstruction(nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
+                let jsb = new ViewInstruction("jsBlock", nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
                 jsb.prevKind = prevKind;
                 jsb.nextKind = nextKind;
                 this.instructions.push(jsb);
@@ -483,18 +553,14 @@ export class ViewInstruction implements RuntimeInstruction {
         return [sIdx, containsExpr];
     }
 
-    generateParamInstructions(f: XjsFragment, idx: number, iHolder: number, isAttribute: boolean) {
-        // if (f.kind === "#paramNode") {
-        //     iHolder = iHolder ? iHolder[$PARENT_INS_HOLDER] : null;
-        // }
-
+    generateParamInstructions(f: XjsFragment, idx: number, iHolder: number, isAttribute: boolean, view: ViewInstruction) {
         // dynamic params / attributes
         if (f.params && f.params.length) {
             let len = f.params.length, p: XjsParam;
             for (let i = 0; len > i; i++) {
                 p = f.params[i];
                 if (p.value && p.value.kind === "#expression") {
-                    this.instructions.push(new ParamInstruction(p, idx, this, iHolder, isAttribute));
+                    this.instructions.push(new ParamInstruction(p, idx, view, iHolder, isAttribute, this.indent));
                 }
             }
         }
@@ -504,7 +570,7 @@ export class ViewInstruction implements RuntimeInstruction {
             for (let i = 0; len > i; i++) {
                 p = f.properties[i];
                 if (p.value && p.value.kind === "#expression") {
-                    this.instructions.push(new ParamInstruction(p, idx, this, iHolder, isAttribute));
+                    this.instructions.push(new ParamInstruction(p, idx, view, iHolder, isAttribute, this.indent));
                 }
             }
         }
@@ -547,7 +613,7 @@ export class ViewInstruction implements RuntimeInstruction {
         if (asyncValue) {
             // create an async container
             this.instructions.push(new CntInstruction(idx, this, this.iHolder, parentLevel, ContainerType.Async));
-            let av = new ViewInstruction(nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
+            let av = new ViewInstruction("asyncBlock", nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
             av.setAsync(asyncValue);
             av.prevKind = prevKind;
             av.nextKind = nextKind;
@@ -559,10 +625,7 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     setAsync(asyncValue: number | XjsExpression) {
-        this.isAsyncView = true;
         this.asyncValue = asyncValue;
-        this.gc.imports['ζasync'] = 1;
-        this.indent = this.parentView!.indent;
     }
 
     generateBuiltInDecoratorsInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iHolder: number) {
@@ -615,11 +678,10 @@ export class ViewInstruction implements RuntimeInstruction {
             if (!nd.startCode.match(/\n$/)) {
                 body.push("\n");
             }
-        } else if (this.isAsyncView) {
+        } else if (this.kind === "asyncBlock") {
             // async block
             let p = this.parentView!;
-            this.indent = p.indent;
-            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.indent : " ");
+            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.gc.decreaseIndent(this.indent) : " ");
             body.push(`${funcStart("async", this.iHolder)}${p.jsVarName}, ${this.iHolder}, ${this.idx}, `);
             if (typeof this.asyncValue === 'number') {
                 body.push('' + this.asyncValue);
@@ -627,9 +689,6 @@ export class ViewInstruction implements RuntimeInstruction {
                 generateExpression(body, this.asyncValue as XjsExpression, p!, this.iHolder);
             }
             body.push(`, function () {\n`);
-            this.indent = p.indent + this.gc.indentIncrement;
-        } else if (this.isLightDom) {
-            this.indent = this.parentView!.indent;
         }
 
         if (this.instructions.length) {
@@ -659,7 +718,7 @@ export class ViewInstruction implements RuntimeInstruction {
                         body.push(`${this.indent}ζi${this.childViewIndexes.join(" = ζi")} = 0;\n`);
                     }
                     parentViewVarName = this.parentView.jsVarName;
-                    lastArgs = this.isLightDom ? ", 0, 1" : ", ++" + this.instanceCounterVar;
+                    lastArgs = this.instanceCounterVar ? ", ++" + this.instanceCounterVar : ", 0";
                 }
                 if (this.blockIdx > 0) {
                     // root block is initialized with ζinit
@@ -684,10 +743,9 @@ export class ViewInstruction implements RuntimeInstruction {
             if (!nd.endCode.match(/\n$/) && this.nextKind !== "#jsBlock" && this.nextKind !== "#jsStatements") {
                 body.push("\n");
             }
-        } else if (this.isAsyncView) {
+        } else if (this.kind === "asyncBlock") {
             // end of async function
             body.push(`${this.parentView!.indent}});\n`);
-            this.indent = this.parentView!.indent;
         }
     }
 }
@@ -820,7 +878,7 @@ class FraInstruction implements RuntimeInstruction {
 class ParamInstruction implements RuntimeInstruction {
     funcName: "att" | "par" | "pro";
 
-    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iHolder: number, public isAttribute: boolean) {
+    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iHolder: number, public isAttribute: boolean, public indent: string) {
         this.funcName = isAttribute ? "att" : "par"
         if (node.kind === "#property") {
             this.funcName = "pro";
@@ -831,7 +889,7 @@ class ParamInstruction implements RuntimeInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
         let v = this.view, iSuffix = this.iHolder ? "D" : "";
-        body.push(`${v.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iHolder ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
+        body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iHolder ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
         generateExpression(body, this.node.value as XjsExpression, this.view, this.iHolder);
         body.push(');\n');
     }
@@ -876,6 +934,24 @@ class CptInstruction implements RuntimeInstruction {
         body.push(`${v.indent}${funcStart("cpt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.iHolder}, ${this.idx}, ${this.parentLevel}, `);
         generateExpression(body, this.node.ref as XjsExpression, this.view, this.iHolder);
         body.push(`, ${this.callImmediately ? 1 : 0}${stParams});\n`);
+    }
+}
+
+class PndInstruction implements RuntimeInstruction {
+    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public staticParamIdx: number, public indent: string) {
+        view.gc.imports['ζpnode' + getIhSuffix(iHolder)] = 1;
+        if (node.properties && node.properties.length) {
+            view.gc.error("Properties cannot be used on param nodes", node);
+        }
+        if (node.nameExpression) {
+            view.gc.error("Param nodes names cannot be defined through expressions (yet)", node);
+        }
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
+        let v = this.view, stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx;
+        body.push(`${this.indent}${funcStart("pnode", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.iHolder}, ${this.idx}, ${this.parentLevel}, "${this.node.name}"${stParams});\n`);
     }
 }
 

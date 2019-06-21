@@ -266,10 +266,10 @@ export class ViewInstruction implements RuntimeInstruction {
     hasChildNodes = false;                  // true if the view has Child nodes
     hasParamNodes = false;
     asyncValue: number | XjsExpression = 0; // async priority
-    cptIHolder: number = -1;                // iHolder of the component associated with this view
+    cptIFlag: number = -1;                  // iFlag of the component associated with this view
     cpnParentLevel: number = -1;            // component or pnode parent level
 
-    constructor(public kind: ViewKind, public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iHolder: number, generationCtxt?: GenerationCtxt, indent?: string) {
+    constructor(public kind: ViewKind, public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iFlag: number, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentView) {
             this.gc = parentView.gc;
             this.blockIdx = this.gc.blockCount++;
@@ -311,7 +311,7 @@ export class ViewInstruction implements RuntimeInstruction {
 
     scan() {
         if (this.kind === "asyncBlock") {
-            this.generateInstruction([(this.node as any)], 0, 0, this.iHolder, this.prevKind, this.nextKind);
+            this.generateInstruction([(this.node as any)], 0, 0, this.iFlag, this.prevKind, this.nextKind);
         } else {
             let content = this.node.content, len = content ? content.length : 0, nd: XjsContentNode;
             if (len === 0) return;
@@ -330,30 +330,30 @@ export class ViewInstruction implements RuntimeInstruction {
                 }
                 if (count > 1) {
                     this.nodeCount = 1;
-                    this.instructions.push(new FraInstruction(null, 0, this, this.iHolder, pLevel));
+                    this.instructions.push(new FraInstruction(null, 0, this, this.iFlag, pLevel));
                     FraInstruction
                     pLevel = 1;
                 }
             }
 
-            this.scanContent(content, pLevel, this.iHolder);
+            this.scanContent(content, pLevel, this.iFlag);
         }
         if (this.parentView && this.hasChildNodes) {
-            this.gc.imports['ζview' + getIhSuffix(this.iHolder)] = 1;
-            this.gc.imports['ζend' + getIhSuffix(this.iHolder)] = 1;
+            this.gc.imports['ζview' + getIhSuffix(this.iFlag)] = 1;
+            this.gc.imports['ζend' + getIhSuffix(this.iFlag)] = 1;
         }
     }
 
-    scanContent(content: XjsContentNode[] | undefined, parentLevel: number, iHolder: number) {
+    scanContent(content: XjsContentNode[] | undefined, parentLevel: number, iFlag: number) {
         let pKind = "", nKind = "", len = content ? content.length : 0;
         for (let i = 0; len > i; i++) {
             nKind = (i < len - 1) ? content![i + 1].kind : "";
-            this.generateInstruction(content!, i, parentLevel, iHolder, pKind, nKind);
+            this.generateInstruction(content!, i, parentLevel, iFlag, pKind, nKind);
             pKind = content![i].kind;
         }
     }
 
-    generateInstruction(siblings: XjsContentNode[], siblingIdx: number, parentLevel: number, iHolder: number, prevKind: string, nextKind: string) {
+    generateInstruction(siblings: XjsContentNode[], siblingIdx: number, parentLevel: number, iFlag: number, prevKind: string, nextKind: string) {
         let nd: XjsContentNode = siblings[siblingIdx], content: XjsContentNode[] | undefined = undefined, idx = this.nodeCount;
         if (nd.kind !== "#jsStatements" && nd.kind !== "#paramNode") {
             this.nodeCount++;
@@ -376,22 +376,22 @@ export class ViewInstruction implements RuntimeInstruction {
         switch (nd.kind) {
             case "#textNode":
                 this.rejectAsyncDecorator(nd as XjsText);
-                this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iHolder, parentLevel));
-                this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
+                this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel));
+                this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd as XjsFragment, idx, parentLevel, prevKind, nextKind)) {
-                    this.instructions.push(new FraInstruction(nd, idx, this, iHolder, parentLevel));
-                    this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
+                    this.instructions.push(new FraInstruction(nd, idx, this, iFlag, parentLevel));
+                    this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
                     content = nd.content;
                 }
                 break;
             case "#element":
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
-                    this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iHolder, parentLevel, stParams));
-                    this.generateParamInstructions(nd as XjsElement, idx, iHolder, true, this);
-                    this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iHolder);
-                    this.createListeners(nd as XjsElement, idx, iHolder);
+                    this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, stParams));
+                    this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
+                    this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iFlag);
+                    this.createListeners(nd as XjsElement, idx, iFlag);
                     content = nd.content;
                 }
                 break;
@@ -399,14 +399,14 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
                     // create a container block
                     let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length);
-                    let ci = new CptInstruction(nd as XjsComponent, idx, this, iHolder, parentLevel, callImmediately, i1)
+                    let ci = new CptInstruction(nd as XjsComponent, idx, this, iFlag, parentLevel, callImmediately, i1)
                     this.instructions.push(ci);
                     if (containsParamExpr) {
-                        this.generateParamInstructions(nd as XjsComponent, idx, iHolder, false, this);
+                        this.generateParamInstructions(nd as XjsComponent, idx, iFlag, false, this);
                     }
                     if (nd.content && nd.content.length) {
                         let vi = new ViewInstruction("cptContent", nd as XjsComponent, idx, this, 1);
-                        vi.cptIHolder = iHolder; // used by sub param Nodes to have the same value
+                        vi.cptIFlag = iFlag; // used by sub param Nodes to have the same value
                         vi.cpnParentLevel = parentLevel;
                         this.instructions.push(vi);
                         this.hasParamNodes = false;
@@ -418,8 +418,8 @@ export class ViewInstruction implements RuntimeInstruction {
                         this.hasParamNodes = false;
                     }
                     if (!callImmediately) {
-                        this.generateBuiltInDecoratorsInstructions(nd, idx, iHolder);
-                        this.instructions.push(new CallInstruction(idx, this, iHolder));
+                        this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
+                        this.instructions.push(new CallInstruction(idx, this, iFlag));
                     }
                     // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
                     if (nd.listeners && nd.listeners.length) {
@@ -436,10 +436,10 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (!this.parentView) {
                     this.gc.error("Param nodes cannot be defined at root level", nd); // TODO: this could change
                 }
-                let v: ViewInstruction = this, cptIHolder = 0, cpnParentLevel = 0;
+                let v: ViewInstruction = this, cptIFlag = 0, cpnParentLevel = 0;
                 while (v) {
-                    if (v.cptIHolder > -1) {
-                        cptIHolder = v.cptIHolder;
+                    if (v.cptIFlag > -1) {
+                        cptIFlag = v.cptIFlag;
                     }
                     if (v.cpnParentLevel > -1) {
                         cpnParentLevel = v.cpnParentLevel;
@@ -460,10 +460,10 @@ export class ViewInstruction implements RuntimeInstruction {
                 let newIdx = v.nodeCount++;
                 v.hasParamNodes = true;
 
-                let pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIHolder, cpnParentLevel + 1, i1, this.indent)
+                let pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent)
                 this.instructions.push(pi);
                 if (containsParamExpr) {
-                    this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIHolder, false, v);
+                    this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
                 }
                 if (nd.content && nd.content.length) {
                     let vi = new ViewInstruction("paramContent", nd as XjsParamNode, newIdx, v, 1);
@@ -476,7 +476,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 }
                 break;
             case "#jsStatements":
-                this.instructions.push(new JsStatementsInstruction(nd, this, iHolder, prevKind));
+                this.instructions.push(new JsStatementsInstruction(nd, this, iFlag, prevKind));
                 break;
             case "#jsBlock":
                 if (!this.childBlockCreated[idx]) {
@@ -485,7 +485,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     for (let i = siblingIdx; siblings.length > i; i++) {
                         siblingNd = siblings[i];
                         if (siblingNd.kind === "#jsBlock") {
-                            this.instructions.push(new CntInstruction(idx + count, this, this.iHolder, parentLevel, ContainerType.Block));
+                            this.instructions.push(new CntInstruction(idx + count, this, this.iFlag, parentLevel, ContainerType.Block));
                             this.childBlockCreated[idx + count] = true;
                         } else {
                             break;
@@ -494,7 +494,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                 }
                 this.childBlockIndexes.push(idx);
-                let jsb = new ViewInstruction("jsBlock", nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
+                let jsb = new ViewInstruction("jsBlock", nd, idx, this, this.iFlag ? this.iFlag + 1 : 0);
                 jsb.prevKind = prevKind;
                 jsb.nextKind = nextKind;
                 this.instructions.push(jsb);
@@ -504,12 +504,12 @@ export class ViewInstruction implements RuntimeInstruction {
 
         if (content) {
             if (nd.kind === "#component") {
-                // iHolder = nd as XjsComponent;
+                // iFlag = nd as XjsComponent;
             } else if (nd.kind === "#paramNode") {
-                // iHolder = nd as XjsParamNode;
+                // iFlag = nd as XjsParamNode;
             }
 
-            this.scanContent(content, parentLevel + 1, iHolder);
+            this.scanContent(content, parentLevel + 1, iFlag);
         }
     }
 
@@ -553,14 +553,14 @@ export class ViewInstruction implements RuntimeInstruction {
         return [sIdx, containsExpr];
     }
 
-    generateParamInstructions(f: XjsFragment, idx: number, iHolder: number, isAttribute: boolean, view: ViewInstruction) {
+    generateParamInstructions(f: XjsFragment, idx: number, iFlag: number, isAttribute: boolean, view: ViewInstruction) {
         // dynamic params / attributes
         if (f.params && f.params.length) {
             let len = f.params.length, p: XjsParam;
             for (let i = 0; len > i; i++) {
                 p = f.params[i];
                 if (p.value && p.value.kind === "#expression") {
-                    this.instructions.push(new ParamInstruction(p, idx, view, iHolder, isAttribute, this.indent));
+                    this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));
                 }
             }
         }
@@ -570,7 +570,7 @@ export class ViewInstruction implements RuntimeInstruction {
             for (let i = 0; len > i; i++) {
                 p = f.properties[i];
                 if (p.value && p.value.kind === "#expression") {
-                    this.instructions.push(new ParamInstruction(p, idx, view, iHolder, isAttribute, this.indent));
+                    this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));
                 }
             }
         }
@@ -612,8 +612,8 @@ export class ViewInstruction implements RuntimeInstruction {
 
         if (asyncValue) {
             // create an async container
-            this.instructions.push(new CntInstruction(idx, this, this.iHolder, parentLevel, ContainerType.Async));
-            let av = new ViewInstruction("asyncBlock", nd, idx, this, this.iHolder ? this.iHolder + 1 : 0);
+            this.instructions.push(new CntInstruction(idx, this, this.iFlag, parentLevel, ContainerType.Async));
+            let av = new ViewInstruction("asyncBlock", nd, idx, this, this.iFlag ? this.iFlag + 1 : 0);
             av.setAsync(asyncValue);
             av.prevKind = prevKind;
             av.nextKind = nextKind;
@@ -628,7 +628,7 @@ export class ViewInstruction implements RuntimeInstruction {
         this.asyncValue = asyncValue;
     }
 
-    generateBuiltInDecoratorsInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iHolder: number) {
+    generateBuiltInDecoratorsInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iFlag: number) {
         let d = nd.decorators;
         if (d) {
             let len = d.length, deco: XjsDecorator;
@@ -638,17 +638,17 @@ export class ViewInstruction implements RuntimeInstruction {
                     if (nd.kind == "#textNode") {
                         this.gc.error("@content can not be used on text nodes", nd);
                     } else {
-                        this.instructions.push(new InsInstruction(deco, nd, idx, this, iHolder));
+                        this.instructions.push(new InsInstruction(deco, nd, idx, this, iFlag));
                     }
                 }
             }
         }
     }
 
-    createListeners(nd: XjsElement, parentIdx: number, iHolder: number) {
+    createListeners(nd: XjsElement, parentIdx: number, iFlag: number) {
         if (nd.listeners && nd.listeners.length) {
             for (let listener of nd.listeners) {
-                this.instructions.push(new EvtInstruction(listener, this.nodeCount++, parentIdx, this, iHolder));
+                this.instructions.push(new EvtInstruction(listener, this.nodeCount++, parentIdx, this, iFlag));
             }
         }
     }
@@ -682,11 +682,11 @@ export class ViewInstruction implements RuntimeInstruction {
             // async block
             let p = this.parentView!;
             body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.gc.decreaseIndent(this.indent) : " ");
-            body.push(`${funcStart("async", this.iHolder)}${p.jsVarName}, ${this.iHolder}, ${this.idx}, `);
+            body.push(`${funcStart("async", this.iFlag)}${p.jsVarName}, ${this.iFlag}, ${this.idx}, `);
             if (typeof this.asyncValue === 'number') {
                 body.push('' + this.asyncValue);
             } else {
-                generateExpression(body, this.asyncValue as XjsExpression, p!, this.iHolder);
+                generateExpression(body, this.asyncValue as XjsExpression, p!, this.iFlag);
             }
             body.push(`, function () {\n`);
         }
@@ -722,7 +722,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 }
                 if (this.blockIdx > 0) {
                     // root block is initialized with ζinit
-                    body.push(`${this.indent}${this.jsVarName} = ${funcStart("view", this.iHolder)}${parentViewVarName}, ${this.iHolder}, ${this.idx}, ${this.nodeCount}${lastArgs});\n`);
+                    body.push(`${this.indent}${this.jsVarName} = ${funcStart("view", this.iFlag)}${parentViewVarName}, ${this.iFlag}, ${this.idx}, ${this.nodeCount}${lastArgs});\n`);
                     body.push(`${this.indent}${this.cmVarName} = ${this.jsVarName}.cm;\n`);
                 }
             }
@@ -732,7 +732,7 @@ export class ViewInstruction implements RuntimeInstruction {
             }
 
             if (this.hasChildNodes) {
-                body.push(`${this.indent}${funcStart("end", this.iHolder)}${this.jsVarName}, ${this.cmVarName}${endArg});\n`);
+                body.push(`${this.indent}${funcStart("end", this.iFlag)}${this.jsVarName}, ${this.cmVarName}${endArg});\n`);
             }
         }
 
@@ -750,9 +750,9 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 }
 
-function generateExpression(body: BodyContent[], exp: XjsExpression | string, view: ViewInstruction, iHolder: number) {
+function generateExpression(body: BodyContent[], exp: XjsExpression | string, view: ViewInstruction, iFlag: number) {
     if (typeof (exp) !== "string" && exp.oneTime) {
-        let ih = iHolder ? ", 1" : "";
+        let ih = iFlag ? ", 1" : "";
         // e.g. ζo(ζ1, 0, ζc1? exp() : ζu, 2)
         body.push(`ζo(${view.jsVarName}, ${view.expr1Count++}, ${view.cmVarName}? `);
         body.push(exp); // to generate source map
@@ -761,7 +761,7 @@ function generateExpression(body: BodyContent[], exp: XjsExpression | string, vi
         view.gc.imports['ζu'] = 1;
     } else {
         // e.g. ζe(ζ1, 2, expr())
-        if (iHolder === 0) {
+        if (iFlag === 0) {
             body.push(`ζe(${view.jsVarName}, ${view.exprCount++}, `);
             body.push(exp); // to generate source map
             body.push(')');
@@ -770,12 +770,12 @@ function generateExpression(body: BodyContent[], exp: XjsExpression | string, vi
             // so will be passed as an array: [0, getTitle()]
             // note: context nodes and instruction holder are already passed to the function
             // where the expression is used, this is why they don't need to be passed in the expression array
-            if (view.dExpressions[iHolder] === undefined) {
-                view.dExpressions[iHolder] = 0;
+            if (view.dExpressions[iFlag] === undefined) {
+                view.dExpressions[iFlag] = 0;
             } else {
-                view.dExpressions[iHolder]++;
+                view.dExpressions[iFlag]++;
             }
-            body.push(`[${view.dExpressions[iHolder]}, `);
+            body.push(`[${view.dExpressions[iFlag]}, `);
             body.push(exp); // to generate source map
             body.push(`]`);
         }
@@ -783,16 +783,16 @@ function generateExpression(body: BodyContent[], exp: XjsExpression | string, vi
     }
 }
 
-function getIhSuffix(iHolder) {
-    return iHolder ? "D" : "";
+function getIhSuffix(iFlag) {
+    return iFlag ? "D" : "";
 }
 
 class TxtInstruction implements RuntimeInstruction {
     isStatic = true;            // true when the text doesn't contain expressions
     staticsExpr: string = '""'; // '" static string "' or "ζs1"
 
-    constructor(public node: XjsText, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number) {
-        this.view.gc.imports['ζtxt' + getIhSuffix(iHolder)] = 1;
+    constructor(public node: XjsText, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number) {
+        this.view.gc.imports['ζtxt' + getIhSuffix(iFlag)] = 1;
 
         let eLength = node.expressions ? node.expressions.length : 0;
         if (node.textFragments.length <= 1 && eLength === 0) {
@@ -821,17 +821,17 @@ class TxtInstruction implements RuntimeInstruction {
         // e.g. ζtxt(ζ1, ζc1, 0, 2, 1, ζs0, 1, ζe(ζ, 0, 1, name));
         let v = this.view, eLength = this.node.expressions ? this.node.expressions.length : 0;
 
-        body.push(`${v.indent}${funcStart("txt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.iHolder}, ${this.idx}, ${this.parentLevel}, ${this.staticsExpr}, ${eLength}`);
+        body.push(`${v.indent}${funcStart("txt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, ${this.staticsExpr}, ${eLength}`);
         for (let i = 0; eLength > i; i++) {
             body.push(', ');
-            generateExpression(body, this.node.expressions![i], this.view, this.iHolder);
+            generateExpression(body, this.node.expressions![i], this.view, this.iFlag);
         }
         body.push(');\n');
     }
 }
 
-function funcStart(name: string, iHolder: number) {
-    if (!iHolder) {
+function funcStart(name: string, iFlag: number) {
+    if (!iFlag) {
         return "ζ" + name + "(";
     } else {
         return "ζ" + name + "D(";
@@ -839,8 +839,8 @@ function funcStart(name: string, iHolder: number) {
 }
 
 class EltInstruction implements RuntimeInstruction {
-    constructor(public node: XjsElement, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public staticArgs: string) {
-        this.view.gc.imports['ζelt' + getIhSuffix(iHolder)] = 1;
+    constructor(public node: XjsElement, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticArgs: string) {
+        this.view.gc.imports['ζelt' + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
@@ -850,12 +850,12 @@ class EltInstruction implements RuntimeInstruction {
             v.gc.error("Name expressions are not yet supported", this.node);
         }
         let hasChildren = (this.node.content && this.node.content.length) ? 1 : 0;
-        body.push(`${v.indent}${funcStart("elt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, "${this.node.name}", ${hasChildren}${this.staticArgs});\n`);
+        body.push(`${v.indent}${funcStart("elt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, "${this.node.name}", ${hasChildren}${this.staticArgs});\n`);
     }
 }
 
 class FraInstruction implements RuntimeInstruction {
-    constructor(public node: XjsFragment | null, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number) {
+    constructor(public node: XjsFragment | null, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number) {
         let gc = this.view.gc;
         if (node && node.params && node.params.length) {
             gc.error("Params cannot be used on fragments", node);
@@ -866,37 +866,37 @@ class FraInstruction implements RuntimeInstruction {
         if (node && node.listeners && node.listeners.length) {
             gc.error("Event listeners cannot be used on fragments", node);
         }
-        gc.imports['ζfra' + getIhSuffix(iHolder)] = 1;
+        gc.imports['ζfra' + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         let v = this.view;
-        body.push(`${v.indent}${funcStart("fra", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel});\n`);
+        body.push(`${v.indent}${funcStart("fra", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel});\n`);
     }
 }
 
 class ParamInstruction implements RuntimeInstruction {
     funcName: "att" | "par" | "pro";
 
-    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iHolder: number, public isAttribute: boolean, public indent: string) {
+    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iFlag: number, public isAttribute: boolean, public indent: string) {
         this.funcName = isAttribute ? "att" : "par"
         if (node.kind === "#property") {
             this.funcName = "pro";
         }
-        this.view.gc.imports["ζ" + this.funcName + getIhSuffix(iHolder)] = 1;
+        this.view.gc.imports["ζ" + this.funcName + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-        let v = this.view, iSuffix = this.iHolder ? "D" : "";
-        body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iHolder ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
-        generateExpression(body, this.node.value as XjsExpression, this.view, this.iHolder);
+        let v = this.view, iSuffix = this.iFlag ? "D" : "";
+        body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
+        generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
         body.push(');\n');
     }
 }
 
 class JsStatementsInstruction implements RuntimeInstruction {
-    constructor(public node: XjsJsStatements, public view: ViewInstruction, public iHolder: number, public prevKind: string) { }
+    constructor(public node: XjsJsStatements, public view: ViewInstruction, public iFlag: number, public prevKind: string) { }
 
     pushCode(body: BodyContent[]) {
         let v = this.view;
@@ -909,19 +909,19 @@ class JsStatementsInstruction implements RuntimeInstruction {
 }
 
 class CntInstruction implements RuntimeInstruction {
-    constructor(public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public type: ContainerType) {
-        view.gc.imports['ζcnt' + getIhSuffix(iHolder)] = 1;
+    constructor(public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public type: ContainerType) {
+        view.gc.imports['ζcnt' + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         let v = this.view;
-        body.push(`${v.indent}${funcStart("cnt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, ${this.type});\n`);
+        body.push(`${v.indent}${funcStart("cnt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, ${this.type});\n`);
     }
 }
 
 class CptInstruction implements RuntimeInstruction {
-    constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public callImmediately: boolean, public staticParamIdx: number) {
-        view.gc.imports['ζcpt' + getIhSuffix(iHolder)] = 1;
+    constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public callImmediately: boolean, public staticParamIdx: number) {
+        view.gc.imports['ζcpt' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on components", node);
         }
@@ -931,15 +931,15 @@ class CptInstruction implements RuntimeInstruction {
         // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
         let v = this.view, stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx;
 
-        body.push(`${v.indent}${funcStart("cpt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.iHolder}, ${this.idx}, ${this.parentLevel}, `);
-        generateExpression(body, this.node.ref as XjsExpression, this.view, this.iHolder);
+        body.push(`${v.indent}${funcStart("cpt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, `);
+        generateExpression(body, this.node.ref as XjsExpression, this.view, this.iFlag);
         body.push(`, ${this.callImmediately ? 1 : 0}${stParams});\n`);
     }
 }
 
 class PndInstruction implements RuntimeInstruction {
-    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iHolder: number, public parentLevel: number, public staticParamIdx: number, public indent: string) {
-        view.gc.imports['ζpnode' + getIhSuffix(iHolder)] = 1;
+    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string) {
+        view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on param nodes", node);
         }
@@ -951,25 +951,25 @@ class PndInstruction implements RuntimeInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
         let v = this.view, stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx;
-        body.push(`${this.indent}${funcStart("pnode", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.iHolder}, ${this.idx}, ${this.parentLevel}, "${this.node.name}"${stParams});\n`);
+        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, "${this.node.name}"${stParams});\n`);
     }
 }
 
 class CallInstruction implements RuntimeInstruction {
-    constructor(public idx: number, public view: ViewInstruction, public iHolder: number) {
-        view.gc.imports['ζcall' + getIhSuffix(iHolder)] = 1;
+    constructor(public idx: number, public view: ViewInstruction, public iFlag: number) {
+        view.gc.imports['ζcall' + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζcall(ζ, 2);
         let v = this.view;
-        body.push(`${v.indent}${funcStart("call", this.iHolder)}${v.jsVarName}, ${this.idx});\n`);
+        body.push(`${v.indent}${funcStart("call", this.iFlag)}${v.jsVarName}, ${this.idx});\n`);
     }
 }
 
 class EvtInstruction implements RuntimeInstruction {
-    constructor(public listener: XjsEvtListener, public idx: number, public parentIdx, public view: ViewInstruction, public iHolder: number) {
-        view.gc.imports['ζevt' + getIhSuffix(iHolder)] = 1;
+    constructor(public listener: XjsEvtListener, public idx: number, public parentIdx, public view: ViewInstruction, public iFlag: number) {
+        view.gc.imports['ζevt' + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
@@ -978,17 +978,17 @@ class EvtInstruction implements RuntimeInstruction {
         if (listener.argumentNames) {
             args = listener.argumentNames.join(",");
         }
-        body.push(`${v.indent}${funcStart("evt", this.iHolder)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${listener.name}", function (${args}) {`);
+        body.push(`${v.indent}${funcStart("evt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${listener.name}", function (${args}) {`);
         body.push(listener);
         body.push(`});\n`);
     }
 }
 
 class InsInstruction implements RuntimeInstruction {
-    constructor(public node: XjsDecorator, parent: XjsComponent | XjsElement | XjsFragment, public idx: number, public view: ViewInstruction, public iHolder: number) {
+    constructor(public node: XjsDecorator, parent: XjsComponent | XjsElement | XjsFragment, public idx: number, public view: ViewInstruction, public iFlag: number) {
         // manage @content built-in decorator
         let gc = this.view.gc;
-        gc.imports['ζins' + getIhSuffix(iHolder)] = 1;
+        gc.imports['ζins' + getIhSuffix(iFlag)] = 1;
         if (parent.kind !== "#element" && parent.kind !== "#fragment") {
             gc.error("@content can only be used on elements or fragments", node);
         }
@@ -1011,11 +1011,11 @@ class InsInstruction implements RuntimeInstruction {
             gc.error("@content expression cannot use one-time qualifier", d);
         }
 
-        body.push(`${v.indent}${funcStart("ins", this.iHolder)}${v.jsVarName}, ${this.iHolder}, ${this.idx}, `);
+        body.push(`${v.indent}${funcStart("ins", this.iFlag)}${v.jsVarName}, ${this.iFlag}, ${this.idx}, `);
         if (d.isOrphan || !d.defaultPropValue) {
-            generateExpression(body, '$content', this.view, this.iHolder);
+            generateExpression(body, '$content', this.view, this.iFlag);
         } else {
-            generateExpression(body, this.node.defaultPropValue as XjsExpression, this.view, this.iHolder);
+            generateExpression(body, this.node.defaultPropValue as XjsExpression, this.view, this.iFlag);
         }
         body.push(`);\n`);
     }

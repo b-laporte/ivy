@@ -207,7 +207,7 @@ export function ζinit(v: IvView, staticCache: Object, nbrOfNodes: number): bool
 
 // Sub-view creation
 // e.g. ζ1 = ζview(ζ, 0, 1, 2, ++ζi1);
-export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
+export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
     // retrieve container to get previous view
     // if doesn't exist, create one and register it on the container
     let cn = pv.nodes![containerIdx] as IvContainer, view: IvView;
@@ -254,7 +254,7 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
         }
         cnt.lastRefresh = view.lastRefresh = pv.lastRefresh;
     } else {
-        // in this case cn is a component container and iHolder > 0
+        // in this case cn is a component container and iFlag > 0
         let cnt = cn as IvCptContainer;
         view = cnt.contentView!;
         if (!view) {
@@ -267,15 +267,15 @@ export function ζview(pv: IvView, iHolder: number, containerIdx: number, nbrOfN
     return view;
 }
 
-export function ζviewD(pv: IvView, iHolder: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
-    let v = ζview(pv, iHolder, containerIdx, nbrOfNodes, instanceIdx);
+export function ζviewD(pv: IvView, iFlag: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
+    let v = ζview(pv, iFlag, containerIdx, nbrOfNodes, instanceIdx);
     // console.log("viewD", v.uid, v.instructions? v.instructions.length : "XX")
 
     // reset instructions
-    if (iHolder === 1) {
+    if (iFlag === 1) {
         v.instructions = [];
     } else {
-        let v2 = v, h = iHolder - 1;
+        let v2 = v, h = iFlag - 1;
         while (h > 0) {
             v2 = v2.parentView!;
             h--;
@@ -506,7 +506,7 @@ function appendChildToNode(p: IvParentNode, child: IvNode) {
 
 // Text creation function
 // e.g. ζtxt(ζ, ζc, 0, 1, 1, " Hello World ", 0);
-export function ζtxt(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
     let nd: IvText;
     if (!nbrOfValues) {
         // static node: nbrOfValues === 0
@@ -522,7 +522,7 @@ export function ζtxt(v: IvView, cm: boolean, iHolder: number, idx: number, pare
             pieces = nd.pieces!;
         }
         for (let i = 0; nbrOfValues > i; i++) {
-            val = getExprValue(v, iHolder, values[i]);
+            val = getExprValue(v, iFlag, values[i]);
             if (val !== ζu) {
                 changed = true;
                 pieces![1 + i * 2] = (val === null || val === undefined) ? "" : val;
@@ -556,8 +556,8 @@ export function ζtxt(v: IvView, cm: boolean, iHolder: number, idx: number, pare
     }
 }
 
-export function ζtxtD(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
-    let args = [v, cm, iHolder, idx, parentLevel, statics, nbrOfValues]
+export function ζtxtD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+    let args = [v, cm, iFlag, idx, parentLevel, statics, nbrOfValues]
     for (let i = 0; nbrOfValues > i; i++) {
         args.push(values[i]);
     }
@@ -579,9 +579,9 @@ export function ζe(v: IvView, idx: number, value: any) {
     return value;
 }
 
-function getExprValue(v: IvView, iHolder: number, exprValue: any) {
+function getExprValue(v: IvView, iFlag: number, exprValue: any) {
     // exprValue is an array if instHolderIdx>0 as expression was deferred
-    if (iHolder) {
+    if (iFlag) {
         if (exprValue[2]) {
             let exprs = v.oExpressions!;
             // one-time expression
@@ -599,12 +599,12 @@ function getExprValue(v: IvView, iHolder: number, exprValue: any) {
 
 // One-time expression evaluation
 // e.g. ζo(ζ, 0, ζc? name : ζu)
-export function ζo(v: IvView, idx: number, value: any, iHolder?: number): any {
+export function ζo(v: IvView, idx: number, value: any, iFlag?: number): any {
     let exprs = v.oExpressions;
     if (!exprs) {
         exprs = v.oExpressions = [];
     }
-    if (iHolder) {
+    if (iFlag) {
         if (!exprs[2 * idx]) {
             // list of read, result
             // where read = 0 | 1
@@ -733,16 +733,16 @@ export function ζcntD(v: IvView, cm: boolean, idx: number, parentLevel: number,
 
 // Component Definition (& call if no params and no content)
 // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-export function ζcpt(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
+export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
     let container: IvCptContainer;
     if (cm) {
         // creation mode
-        iHolder = iHolder || 0;
+        iFlag = iFlag || 0;
 
         // create cpt container if not already done in ζcptD
         container = (v.nodes![idx] as IvCptContainer) || ζcnt(v, cm, idx, parentLevel, 2) as IvCptContainer;
 
-        let cptRef = getExprValue(v, iHolder, exprCptRef);
+        let cptRef = getExprValue(v, iFlag, exprCptRef);
         if (cptRef === ζu) {
             console.log("[iv] Invalid component ref", container.cptTemplate !== null)
             logView(v, "[iv] Invalid component ref / " + container.uid);
@@ -769,11 +769,11 @@ export function ζcpt(v: IvView, cm: boolean, iHolder: number, idx: number, pare
     }
 }
 
-export function ζcptD(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
+export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
     if (cm) {
         ζcntD(v, cm, idx, parentLevel, 2);
     }
-    addInstruction(v, ζcpt, [v, cm, iHolder, idx, parentLevel, exprCptRef, callImmediately, staticParams]);
+    addInstruction(v, ζcpt, [v, cm, iFlag, idx, parentLevel, exprCptRef, callImmediately, staticParams]);
 }
 
 // Component call - used when a component has content, params or param nodes
@@ -809,52 +809,52 @@ export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
     addInstruction(v, ζcall, [v, idx, container]);
 }
 
-export function ζpnode(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
+export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
     console.log("TODO ζpnode")
 }
 
-export function ζpnodeD(v: IvView, cm: boolean, iHolder: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
+export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
     console.log("TODO ζpnodeD")
 }
 
 // Attribute setter
 // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-export function ζatt(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+export function ζatt(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
-    let val = getExprValue(v, iHolder, expr);
+    let val = getExprValue(v, iFlag, expr);
     if (val !== ζu) {
         (v.nodes![eltIdx] as IvNode).domNode.setAttribute(name, val);
         // setAttribute((v.nodes![eltIdx] as IvNode).domNode, name, val);
     }
 }
 
-export function ζattD(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+export function ζattD(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr !== ζu) {
-        addInstruction(v, ζatt, [v, iHolder, eltIdx, name, expr]);
+        addInstruction(v, ζatt, [v, iFlag, eltIdx, name, expr]);
     }
 }
 
 // Property setter
 // e.g. ζpro(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-export function ζpro(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+export function ζpro(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
-    let val = getExprValue(v, iHolder, expr);
+    let val = getExprValue(v, iFlag, expr);
     if (val !== ζu) {
         (v.nodes![eltIdx] as IvNode).domNode[name] = val;
     }
 }
 
-export function ζproD(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+export function ζproD(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr !== ζu) {
-        addInstruction(v, ζpro, [v, iHolder, eltIdx, name, expr]);
+        addInstruction(v, ζpro, [v, iFlag, eltIdx, name, expr]);
     }
 }
 
 // Param setter
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-export function ζpar(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
-    let val = getExprValue(v, iHolder, expr);
+    let val = getExprValue(v, iFlag, expr);
     if (val !== ζu) {
         let p = (v.nodes![eltIdx] as IvCptContainer).cptParams;
         if (p) {
@@ -863,9 +863,9 @@ export function ζpar(v: IvView, iHolder: number, eltIdx: number, name: string, 
     }
 }
 
-export function ζparD(v: IvView, iHolder: number, eltIdx: number, name: string, expr: any) {
+export function ζparD(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr !== ζu) {
-        addInstruction(v, ζpar, [v, iHolder, eltIdx, name, expr]);
+        addInstruction(v, ζpar, [v, iFlag, eltIdx, name, expr]);
     }
 }
 
@@ -908,9 +908,9 @@ export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, even
 
 // Insert / Content projection instruction
 // e.g. ζins(ζ, 1, ζe(ζ, 0, $content));
-export function ζins(v: IvView, iHolder: number, idx: number, exprContentView: any) {
+export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: any) {
     let projectionNode = v.nodes![idx] as (IvElement | IvFragment); // node with @content decorator: either a fragment or an element
-    let contentView = getExprValue(v, iHolder, exprContentView) as IvView;
+    let contentView = getExprValue(v, iFlag, exprContentView) as IvView;
 
     if ((contentView as any) === ζu || exprContentView === undefined) {
         contentView = projectionNode.contentView as IvView;
@@ -972,8 +972,8 @@ export function ζins(v: IvView, iHolder: number, idx: number, exprContentView: 
     runInstructions(contentView);
 }
 
-export function ζinsD(v: IvView, iHolder: number, idx: number, exprContentView: any) {
-    addInstruction(v, ζins, [v, iHolder, idx, exprContentView]);
+export function ζinsD(v: IvView, iFlag: number, idx: number, exprContentView: any) {
+    addInstruction(v, ζins, [v, iFlag, idx, exprContentView]);
 }
 
 interface SiblingDomPosition {

@@ -733,7 +733,7 @@ export function ζcntD(v: IvView, cm: boolean, idx: number, parentLevel: number,
 
 // Component Definition (& call if no params and no content)
 // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
+export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[], pNodeParamNames?: string[]) {
     let container: IvCptContainer;
     if (cm) {
         // creation mode

@@ -877,7 +877,7 @@ describe('Code generator', () => {
     });
 
     it("should support components with param nodes and control statements", async function () {
-        assert.equal(await body.template(`(x, y) => {
+        let t1 = await test.template(`(x, y) => {
             # first #
             <*myComponent>
                 if (x) {
@@ -891,11 +891,13 @@ describe('Code generator', () => {
                 <.footer type="small"/>
             </>
             # last #
-            }`), `
+            }`);
+
+        assert.equal(t1.body, `
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζi3 = 0, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 6);
             ζfra(ζ, ζc, 0, 0);
             ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
-            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
+            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0, 0, ζs4);
             ζi2 = ζi3 = 0;
             ζ1 = ζviewD(ζ, 1, 2, 4, 0);
             ζc1 = ζ1.cm;
@@ -918,11 +920,77 @@ describe('Code generator', () => {
                 ζendD(ζ3, ζc3);
             }
             ζpnode(ζ, ζc, 0, 4, 2, "footer", ζs3);
-            ζendD(ζ1, ζc1, ζs4);
+            ζendD(ζ1, ζc1, ζs5);
             ζcall(ζ, 2);
             ζtxt(ζ, ζc, 0, 5, 1, " last ", 0);
             ζend(ζ, ζc);
         `, '1');
+
+        assert.deepEqual(t1.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"position\", \"top\"]",
+            "ζs2 = [\" some content \", \"\", \" \"]",
+            "ζs3 = [\"type\", \"small\"]",
+            "ζs4 = [\"header\"]",
+            "ζs5 = [1, 3]"
+        ], "1s");
+
+        let t2 = await test.template(`(x, y, z) => {
+            <*myComponent>
+                if (x) {
+                    <.header position="top" foo={bar()}>
+                    if (y) {
+                        <.title type="small"/>
+                    }
+                    </.header>
+                }
+                # abc #
+                if (z) {
+                    <.footer foo="bar"/>
+                }
+            </>
+            }`);
+
+        assert.equal(t2.body, `
+            let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζ3, ζc3, ζi4 = 0, ζ4, ζc4, ζi5 = 0, ζ5, ζc5, ζc = ζinit(ζ, ζs0, 4);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0, 0, ζs4);
+            ζi2 = ζi5 = 0;
+            ζ1 = ζviewD(ζ, 1, 0, 4, 0);
+            ζc1 = ζ1.cm;
+            ζfraD(ζ1, ζc1, 0, 0);
+            ζcntD(ζ1, ζc1, 1, 1, 1);
+            if (x) {
+                ζpnode(ζ, ζc, 0, 1, 1, "header", ζs1, ζs6);
+                ζpar(ζ, 0, 1, "foo", ζe(ζ, 1, bar()));
+                ζi4 = 0;
+                ζ3 = ζviewD(ζ, 1, 1, 1, 0);
+                ζc3 = ζ3.cm;
+                ζcntD(ζ3, ζc3, 0, 0, 1);
+                if (y) {
+                    ζpnode(ζ, ζc, 0, 2, 2, "title", ζs2);
+                }
+                ζendD(ζ3, ζc3, ζs7);
+            }
+            ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
+            ζcntD(ζ1, ζc1, 3, 1, 1);
+            if (z) {
+                ζpnode(ζ, ζc, 0, 3, 1, "footer", ζs3);
+            }
+            ζendD(ζ1, ζc1, ζs5);
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '2');
+
+        assert.deepEqual(t2.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"position\", \"top\"]",
+            "ζs2 = [\"type\", \"small\"]",
+            "ζs3 = [\"foo\", \"bar\"]",
+            "ζs4 = [\"header\", \"footer\"]",
+            "ζs5 = [1, 3]",
+            "ζs6 = [\"title\"]",
+            "ζs7 = [0]"
+        ], "2s");
     });
 
     it("should not create content fragments components with only param nodes and js statements", async function () {

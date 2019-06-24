@@ -268,6 +268,7 @@ export class ViewInstruction implements RuntimeInstruction {
     asyncValue: number | XjsExpression = 0; // async priority
     cptIFlag: number = -1;                  // iFlag of the component associated with this view
     cpnParentLevel: number = -1;            // component or pnode parent level
+    contentParentInstruction: CptInstruction | PndInstruction | undefined; // only defined for kind="cptContent" or "paramContent"
 
     constructor(public kind: ViewKind, public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iFlag: number, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentView) {
@@ -406,6 +407,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                     if (nd.content && nd.content.length) {
                         let vi = new ViewInstruction("cptContent", nd as XjsComponent, idx, this, 1);
+                        vi.contentParentInstruction = ci;
                         vi.cptIFlag = iFlag; // used by sub param Nodes to have the same value
                         vi.cpnParentLevel = parentLevel;
                         this.instructions.push(vi);
@@ -460,6 +462,30 @@ export class ViewInstruction implements RuntimeInstruction {
                 let newIdx = v.nodeCount++;
                 v.hasParamNodes = true;
 
+                let v2: ViewInstruction | null = this, inJsBlock = false, contentParentView: ViewInstruction | null = null;
+                while (v2) {
+                    if (v2.kind === "jsBlock") {
+                        inJsBlock = true;
+                        v2 = v2.parentView;
+                    } else if (v2.kind === "cptContent" || v2.kind === "paramContent") {
+                        contentParentView = v2;
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+                // add param name to contentParentInstruction.dynamicPNodeNames if in Js block
+                if (inJsBlock) {
+                    if (!contentParentView) {
+                        this.gc.error("Internal error: contentParentView should be defined", nd);
+                    } else {
+                        let names = contentParentView.contentParentInstruction!.dynamicPNodeNames, name = (nd as XjsParamNode).name;
+                        if (names.indexOf(name) < 0) {
+                            names.push(name);
+                        }
+                    }
+                }
+
                 let pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent)
                 this.instructions.push(pi);
                 if (containsParamExpr) {
@@ -467,10 +493,13 @@ export class ViewInstruction implements RuntimeInstruction {
                 }
                 if (nd.content && nd.content.length) {
                     let vi = new ViewInstruction("paramContent", nd as XjsParamNode, newIdx, v, 1);
+                    vi.indent = this.indent;
+                    vi.contentParentInstruction = pi;
                     vi.cpnParentLevel = cpnParentLevel + 1;
                     this.instructions.push(vi);
                     vi.scan();
                 }
+
                 if (nd.listeners && nd.listeners.length) {
                     this.gc.error("Event listeners are not supported on param nodes (yet)", nd);
                 }
@@ -920,6 +949,8 @@ class CntInstruction implements RuntimeInstruction {
 }
 
 class CptInstruction implements RuntimeInstruction {
+    dynamicPNodeNames: string[] = []; // name of child param nodes
+
     constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public callImmediately: boolean, public staticParamIdx: number) {
         view.gc.imports['ζcpt' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
@@ -929,7 +960,7 @@ class CptInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-        let v = this.view, stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx;
+        let v = this.view, stParams = processCptOptionalArgs(this.view, this.staticParamIdx, this.dynamicPNodeNames);
 
         body.push(`${v.indent}${funcStart("cpt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, `);
         generateExpression(body, this.node.ref as XjsExpression, this.view, this.iFlag);
@@ -938,6 +969,8 @@ class CptInstruction implements RuntimeInstruction {
 }
 
 class PndInstruction implements RuntimeInstruction {
+    dynamicPNodeNames: string[] = []; // name of child param nodes
+
     constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string) {
         view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
@@ -950,9 +983,24 @@ class PndInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
-        let v = this.view, stParams = (this.staticParamIdx === -1) ? '' : ', ζs' + this.staticParamIdx;
+        let v = this.view, stParams = processCptOptionalArgs(this.view, this.staticParamIdx, this.dynamicPNodeNames);
         body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, "${this.node.name}"${stParams});\n`);
     }
+}
+
+function processCptOptionalArgs(view: ViewInstruction, staticParamIdx: number, dynamicPNodeNames: string[]): string {
+    if (dynamicPNodeNames && dynamicPNodeNames.length) {
+        let idx = view.gc.statics.length;
+        for (let i = 0; dynamicPNodeNames.length > i; i++) {
+            dynamicPNodeNames[i] = encodeText(dynamicPNodeNames[i]);
+        }
+        view.gc.statics[idx] = "ζs" + idx + " = [" + dynamicPNodeNames.join(", ") + "]";
+
+        return `, ${(staticParamIdx > -1) ? 'ζs' + staticParamIdx : '0'}, ζs${idx}`;
+    } else if (staticParamIdx > -1) {
+        return ', ζs' + staticParamIdx;
+    }
+    return '';
 }
 
 class CallInstruction implements RuntimeInstruction {

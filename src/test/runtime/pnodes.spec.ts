@@ -40,6 +40,7 @@ describe('Param Nodes', () => {
 
     /**
      * TODO
+     * Support dynamic params (in blocks)
      * Param node for simple attribute ($value)
      * Simple param node with content only
      * Param node with attributes & content
@@ -47,6 +48,7 @@ describe('Param Nodes', () => {
      * Tree of param nodes
      * Delete value of a param node (if statement)
      * $paramNodes // list of all param nodes
+     * Support deferred versions
      */
 
 

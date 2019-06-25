@@ -412,7 +412,7 @@ export class ViewInstruction implements RuntimeInstruction {
                         vi.cpnParentLevel = parentLevel;
                         this.instructions.push(vi);
                         this.hasParamNodes = false;
-                        vi.scan();
+                        vi.scan(); // will update this.hasParamNodes
                         if (!vi.hasChildNodes && !this.hasParamNodes) {
                             callImmediately = true;
                             ci.callImmediately = true;
@@ -475,18 +475,17 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                 }
                 // add param name to contentParentInstruction.dynamicPNodeNames if in Js block
+                if (!contentParentView) {
+                    this.gc.error("Internal error: contentParentView should be defined", nd);
+                }
                 if (inJsBlock) {
-                    if (!contentParentView) {
-                        this.gc.error("Internal error: contentParentView should be defined", nd);
-                    } else {
-                        let names = contentParentView.contentParentInstruction!.dynamicPNodeNames, name = (nd as XjsParamNode).name;
-                        if (names.indexOf(name) < 0) {
-                            names.push(name);
-                        }
+                    let names = contentParentView!.contentParentInstruction!.dynamicPNodeNames, name = (nd as XjsParamNode).name;
+                    if (names.indexOf(name) < 0) {
+                        names.push(name);
                     }
                 }
-
-                let pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent)
+                let parentIdx = contentParentView!.contentParentInstruction!.idx,
+                    pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent, parentIdx);
                 this.instructions.push(pi);
                 if (containsParamExpr) {
                     this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
@@ -971,7 +970,7 @@ class CptInstruction implements RuntimeInstruction {
 class PndInstruction implements RuntimeInstruction {
     dynamicPNodeNames: string[] = []; // name of child param nodes
 
-    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string) {
+    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string, public parentIndex: number) {
         view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on param nodes", node);
@@ -984,7 +983,8 @@ class PndInstruction implements RuntimeInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
         let v = this.view, stParams = processCptOptionalArgs(this.view, this.staticParamIdx, this.dynamicPNodeNames);
-        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, "${this.node.name}"${stParams});\n`);
+        // unused: ${this.parentLevel}
+        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}"${stParams});\n`);
     }
 }
 

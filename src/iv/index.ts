@@ -809,8 +809,36 @@ export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
     addInstruction(v, ζcall, [v, idx, container]);
 }
 
-export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
+export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, staticParams?: any[]) {
     console.log("TODO ζpnode")
+    // if (cm) {
+    //     // get associated elt
+    //     let domNode = v.nodes![eltIdx].domNode;
+    //     if (!domNode) {
+    //         console.log("[ERROR] Invalid ζevt call: parent element must have a DOM node");
+    //         return;
+    //     }
+    //     // create and register event listener
+    //     let nd: IvEltListener = {
+    //         kind: "#listener",
+    //         uid: "evt" + (++uidCount),
+    //         idx: idx,
+    //         parentIdx: eltIdx,
+    //         nextSibling: undefined,
+    //         domNode: domNode,
+    //         attached: true,
+    //         callback: handler
+    //     }
+    //     v.nodes![idx] = nd;
+    //     domNode.addEventListener(eventName, function (evt: any) {
+    //         if (nd.callback) {
+    //             nd.callback(evt);
+    //         }
+    //     });
+    // } else {
+    //     // update callback as it may contain different closure values
+    //     (v.nodes![idx] as IvEltListener).callback = handler;
+    // }
 }
 
 export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {

@@ -864,12 +864,12 @@ describe('Code generator', () => {
             }`), `
             let ζ1, ζc1, ζ2, ζc2, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 5);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
-            ζpnode(ζ, ζc, 0, 1, 1, "header");
+            ζpnode(ζ, ζc, 0, 1, 0, "header");
             ζpar(ζ, 0, 1, "foo", ζe(ζ, 1, bar()));
-            ζpnode(ζ, ζc, 0, 2, 2, "foo", ζs1);
-            ζpnode(ζ, ζc, 0, 3, 3, "bar");
+            ζpnode(ζ, ζc, 0, 2, 1, "foo", ζs1);
+            ζpnode(ζ, ζc, 0, 3, 2, "bar");
             ζpar(ζ, 0, 3, "$value", ζe(ζ, 2, exp()));
-            ζpnode(ζ, ζc, 0, 4, 3, "bar");
+            ζpnode(ζ, ζc, 0, 4, 2, "bar");
             ζpar(ζ, 0, 4, "$value", ζe(ζ, 3, exp2()));
             ζcall(ζ, 0);
             ζend(ζ, ζc);
@@ -960,21 +960,21 @@ describe('Code generator', () => {
             ζfraD(ζ1, ζc1, 0, 0);
             ζcntD(ζ1, ζc1, 1, 1, 1);
             if (x) {
-                ζpnode(ζ, ζc, 0, 1, 1, "header", ζs1, ζs6);
+                ζpnode(ζ, ζc, 0, 1, 0, "header", ζs1, ζs6);
                 ζpar(ζ, 0, 1, "foo", ζe(ζ, 1, bar()));
                 ζi4 = 0;
                 ζ3 = ζviewD(ζ, 1, 1, 1, 0);
                 ζc3 = ζ3.cm;
                 ζcntD(ζ3, ζc3, 0, 0, 1);
                 if (y) {
-                    ζpnode(ζ, ζc, 0, 2, 2, "title", ζs2);
+                    ζpnode(ζ, ζc, 0, 2, 1, "title", ζs2);
                 }
                 ζendD(ζ3, ζc3, ζs7);
             }
             ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
             ζcntD(ζ1, ζc1, 3, 1, 1);
             if (z) {
-                ζpnode(ζ, ζc, 0, 3, 1, "footer", ζs3);
+                ζpnode(ζ, ζc, 0, 3, 0, "footer", ζs3);
             }
             ζendD(ζ1, ζc1, ζs5);
             ζcall(ζ, 0);
@@ -1003,9 +1003,9 @@ describe('Code generator', () => {
         }`), `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
-            ζpnode(ζ, ζc, 0, 1, 1, "paramA", ζs1);
+            ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζs1);
             let bar=foo;
-            ζpnode(ζ, ζc, 0, 2, 1, "paramB");
+            ζpnode(ζ, ζc, 0, 2, 0, "paramB");
             ζpar(ζ, 0, 2, "value", ζe(ζ, 1, exp(bar)));
             ζcall(ζ, 0);
             ζend(ζ, ζc);
@@ -1024,7 +1024,7 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 4);
             ζfra(ζ, ζc, 0, 0);
             ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, foo), 0);
-            ζpnode(ζ, ζc, 0, 2, 2, "paramA", ζs1);
+            ζpnode(ζ, ζc, 0, 2, 1, "paramA", ζs1);
             ζcall(ζ, 1);
             ζcpt(ζ, ζc, 0, 3, 1, ζe(ζ, 1, bar), 1);
             let x = 123;
@@ -1045,9 +1045,9 @@ describe('Code generator', () => {
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
             ζ1 = ζviewD(ζ, 1, 0, 2, 0);
             ζc1 = ζ1.cm;
-            ζpnode(ζ, ζc, 0, 1, 1, "paramA", ζs1);
+            ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζs1);
             ζcptD(ζ1, ζc1, 1, 0, 0, [0, bar], 0);
-            ζpnodeD(ζ1, ζc1, 1, 1, 1, "paramB", ζs2);
+            ζpnodeD(ζ1, ζc1, 1, 1, 0, "paramB", ζs2);
             ζcallD(ζ1, 0);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 0);
@@ -1073,7 +1073,7 @@ describe('Code generator', () => {
             ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, b.section), 0, ζs2);
             ζ1 = ζviewD(ζ, 1, 1, 2, 0);
             ζc1 = ζ1.cm;
-            ζpnode(ζ, ζc, 0, 2, 2, "header");
+            ζpnode(ζ, ζc, 0, 2, 1, "header");
             ζ2 = ζviewD(ζ, 1, 2, 1, 0);
             ζc2 = ζ2.cm;
             ζtxtD(ζ2, ζc2, 1, 0, 0, " The big title ", 0);

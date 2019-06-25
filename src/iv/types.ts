@@ -14,7 +14,7 @@ export interface IvTemplate {
 }
 
 export interface IvNode {
-    kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#listener";
+    kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#listener" | "#param";
     uid: string;                      // unique id (debug)
     idx: number;                      // 0 for root nodes, etc.
     parentIdx: number;                // index for parent node - -1 if undefined
@@ -67,6 +67,10 @@ export interface IvText extends IvNode {
 export interface IvEltListener extends IvNode {
     kind: "#listener";
     callback: ((e: any) => void) | undefined;
+}
+
+export interface IvParamNode extends IvNode {
+    kind: "#param";
 }
 
 export interface IvContainer extends IvNode {

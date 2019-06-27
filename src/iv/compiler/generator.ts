@@ -1,6 +1,7 @@
 import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../../xjs/parser/types';
 import { parse } from '../../xjs/parser/xjs-parser';
 import { getPropertyDefinition, getClassDecorator } from '../../trax/trax/compiler/generator';
+import { DataType } from '../../trax/trax/compiler/types';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result
@@ -182,7 +183,7 @@ function encodeText(t: string) {
 }
 
 function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
-    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [];
+    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: DataType;
     indent = reduceIndent(indent);
 
     function addImport(symbol: string) {
@@ -200,10 +201,31 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
             }
             if (arg.name === PARAMS_ARG) {
                 argInit.push(PARAMS_ARG + ' = $');
+                if (i > 0 && arg.typeRef) {
+                    gc.error("Template param class must be defined as first argument", arg);
+                }
             } else if (!argClassName) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]')
-                classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name }, "ζ", addImport));
+                switch (arg.typeRef) {
+                    case "string":
+                    case "number":
+                    case "boolean":
+                        argType = { kind: arg.typeRef }
+                        break;
+                    case "IvContent":
+                        argType = { kind: "any" }
+                        break;
+                    default:
+                        if (arg.typeRef) {
+                            argType = { kind: "reference", identifier: arg.typeRef }
+                        } else {
+                            argType = { kind: "any" }
+                        }
+                        break;
+                }
+                classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name, type: argType }, "ζ", addImport));
             } else if (i > 0) {
+                // argClassName is defined (always in 1st position)
                 argInit.push(arg.name + ' = $["' + arg.name + '"]');
             }
         }

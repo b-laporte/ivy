@@ -46,7 +46,7 @@ describe('Template compiler', () => {
         let r = await compile(src2, "test2")
 
         assert.equal(r, `\
-            import{ template, ζtxt, ζinit, ζend, ζΔp, ζΔD, ζt } from "../iv";
+            import{ template, ζtxt, ζinit, ζend, ζΔp, ζΔD, ζt, ζΔfStr, ζΔfNbr } from "../iv";
 
             let t1 = (function () {
             const ζs0 = {};
@@ -63,8 +63,8 @@ describe('Template compiler', () => {
             let x = 123, t2 = (function () {
             const ζs0 = {};
             @ζΔD class ζParams {
-                ΔΔp1: any; @ζΔp() p1: any;
-                ΔΔp2: any; @ζΔp() p2: any;
+                ΔΔp1: string; @ζΔp(ζΔfStr) p1: string;
+                ΔΔp2: number; @ζΔp(ζΔfNbr) p2: number;
             }
             return ζt(function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];

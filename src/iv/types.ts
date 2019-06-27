@@ -42,21 +42,22 @@ export interface IvProjectionHost {
 
 export interface IvView {
     kind: "#view";
-    uid: string;                                                    // unique id (debug)
-    nodes: IvNode[] | null;                                         // list of IvNodes associated to this view
-    doc: IvDocument;                                                // for test / dependency injection
-    parentView: IvView | null;                                      // parent view: null for the root view, parent view otherwise (can be in a different template)
-    cm: boolean;                                                    // creation mode
-    cmAppends: null | ((n: IvNode, domOnly: boolean) => void)[];    // array of append functions used at creation time
-    lastRefresh: number;                                            // refresh count at last refresh
-    container: IvContainer | IvElement | IvFragment | null;         // null if root view, container host otherwise
-    projectionHost: IvProjectionHost | null;                        // defined when view corresponds to a projected light-dom 
-    isTemplate: boolean;                                            // true if the VIEW is associated to a template root (will be false for sub js blocks)
-    rootDomNode: any;                                               // domNode the view is attached to - only used by the root view
-    anchorNode: any;                                                // dom node used as anchor in the domNode - only used by the root view (content will be inserted before this anchor)
-    expressions: any[] | undefined;                                 // array of expression values
-    oExpressions: any[] | undefined;                                // array of one-time expression flags
+    uid: string;                                                           // unique id (debug)
+    nodes: IvNode[] | null;                                                // list of IvNodes associated to this view
+    doc: IvDocument;                                                       // for test / dependency injection
+    parentView: IvView | null;                                             // parent view: null for the root view, parent view otherwise (can be in a different template)
+    cm: boolean;                                                           // creation mode
+    cmAppends: null | ((n: IvNode, domOnly: boolean) => void)[];           // array of append functions used at creation time
+    lastRefresh: number;                                                   // refresh count at last refresh
+    container: IvContainer | IvElement | IvFragment | null;                // null if root view, container host otherwise (i.e. where the view is projected)
+    projectionHost: IvProjectionHost | null;                               // defined when view corresponds to a projected light-dom 
+    isTemplate: boolean;                                                   // true if the VIEW is associated to a template root (will be false for sub js blocks)
+    rootDomNode: any;                                                      // domNode the view is attached to - only used by the root view
+    anchorNode: any;                                                       // dom node used as anchor in the domNode - only used by the root view (content will be inserted before this anchor)
+    expressions: any[] | undefined;                                        // array of expression values
+    oExpressions: any[] | undefined;                                       // array of one-time expression flags
     instructions: any[] | undefined;
+    paramNode: IvParamNode | undefined;                                    // the param node the view is attached to (if any)
 }
 
 export interface IvText extends IvNode {
@@ -71,6 +72,10 @@ export interface IvEltListener extends IvNode {
 
 export interface IvParamNode extends IvNode {
     kind: "#param";
+    name: string;
+    dataParent: any;
+    data: any;                         // shortcut to parent params (params object or paramNode)
+    contentView: IvView | undefined;
 }
 
 export interface IvContainer extends IvNode {
@@ -90,8 +95,8 @@ export interface IvBlockContainer extends IvContainer {
 
 export interface IvCptContainer extends IvContainer {
     subKind: "##cpt";
-    cptTemplate: IvTemplate | null;      // current component template
-    cptParams: any;                      // shortcut to cptTemplate.params
+    template: IvTemplate | null;         // current component template
+    params: any;                         // shortcut to cptTemplate.params
     contentView: IvView | null;          // light-dom / content view
 }
 

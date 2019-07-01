@@ -30,7 +30,7 @@ describe('Template compiler', () => {
             // end`, "test 1");
     });
 
-    it("should compile a multiple functions with params and partial imports", async function () {
+    it("should compile multiple functions with params and partial imports", async function () {
         let src2 = `\
             import{ template, ζtxt } from "../iv";
 
@@ -46,12 +46,12 @@ describe('Template compiler', () => {
         let r = await compile(src2, "test2")
 
         assert.equal(r, `\
-            import{ template, ζtxt, ζinit, ζend, ζΔp, ζΔD, ζt, ζΔfStr, ζΔfNbr } from "../iv";
+            import{ template, ζtxt, ζinit, ζend, ζΔD, ζt } from "../iv";
 
             let t1 = (function () {
             const ζs0 = {};
             @ζΔD class ζParams {
-                ΔΔa: any; @ζΔp() a: any;
+                a: any;
             }
             return ζt(function (ζ, $) {
                 let a = $["a"];
@@ -63,8 +63,8 @@ describe('Template compiler', () => {
             let x = 123, t2 = (function () {
             const ζs0 = {};
             @ζΔD class ζParams {
-                ΔΔp1: string; @ζΔp(ζΔfStr) p1: string;
-                ΔΔp2: number; @ζΔp(ζΔfNbr) p2: number;
+                p1: string;
+                p2: number;
             }
             return ζt(function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];

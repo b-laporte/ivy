@@ -706,8 +706,8 @@ describe('Code generator', () => {
         assert.equal(t.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = [" text ", "", " "];
         @ζΔD class ζParams {
-            ΔΔa: any; @ζΔp() a: any;
-            ΔΔb: any; @ζΔp() b: any;
+            a: any;
+            b: any;
         }
         return ζt(function (ζ, $) {
             let $params = $, a = $["a"], b = $["b"];
@@ -734,7 +734,7 @@ describe('Code generator', () => {
             <*comp/>
         }`, t1.importMap);
         assert.deepEqual(t2.importMap, {
-            "ζelt": 1, "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζcpt": 1, "ζΔD": 1, "ζΔp": 1
+            "ζelt": 1, "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζcpt": 1, "ζΔD": 1
         }, "t2 imports");
     });
 
@@ -1097,7 +1097,7 @@ describe('Code generator', () => {
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "msg"], ζs2 = [" Hello ", "", " "];
         @ζΔD class ζParams {
-            ΔΔname: any; @ζΔp() name: any;
+            name: any;
         }
         return ζt(function (ζ, $) {
             let name = $["name"];
@@ -1109,7 +1109,7 @@ describe('Code generator', () => {
         }, 0, ζParams);
         })()` , 'f2');
         assert.deepEqual(t2.importMap, {
-            "ζinit": 1, "ζelt": 1, "ζtxt": 1, "ζe": 1, "ζend": 1, "ζpro": 1, "ζΔp": 1, "ζΔD": 1, "ζt": 1
+            "ζinit": 1, "ζelt": 1, "ζtxt": 1, "ζe": 1, "ζend": 1, "ζpro": 1, "ζΔD": 1, "ζt": 1
         }, 'imports 2');
 
         let t3 = await test.template(`(firstName, lastName) => {
@@ -1118,8 +1118,8 @@ describe('Code generator', () => {
         assert.equal(t3.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " ", "", " "];
         @ζΔD class ζParams {
-            ΔΔfirstName: any; @ζΔp() firstName: any;
-            ΔΔlastName: any; @ζΔp() lastName: any;
+            firstName: any;
+            lastName: any;
         }
         return ζt(function (ζ, $) {
             let firstName = $["firstName"], lastName = $["lastName"];
@@ -1129,7 +1129,7 @@ describe('Code generator', () => {
         }, 0, ζParams);
         })()` , 'f3');
         assert.deepEqual(t3.importMap, {
-            "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζΔD": 1, "ζΔp": 1, "ζt": 1
+            "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζΔD": 1, "ζt": 1
         }, 'imports 3');
     });
 

@@ -32,8 +32,6 @@ export interface DataProperty extends DataMember {
     type: DataType | undefined;
     shallowRef: boolean;
     defaultValue: CodeFragment | undefined;
-    // getter: xxx - tbd: shall we support getter functions?
-    // setter: xxx - tbd: shall we support setter functions?
 }
 
 export interface ComputedProperty {
@@ -53,16 +51,19 @@ export type DataType = BaseType | RefType | CollectionType;
 interface BaseType {
     kind: "string" | "number" | "boolean" | "any";
     canBeNull?: boolean;
+    canBeUndefined?: boolean;
 }
 
 interface RefType {
     kind: "reference";
     identifier: string;        // e.g. "Foo"
     canBeNull?: boolean;
+    canBeUndefined?: boolean;
 }
 
 interface CollectionType {
     kind: "array" | "map" | "dictionary";
     itemType: DataType;
     canBeNull?: boolean;
+    canBeUndefined?: boolean;
 }

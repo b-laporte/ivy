@@ -1,6 +1,5 @@
 import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../../xjs/parser/types';
 import { parse } from '../../xjs/parser/xjs-parser';
-import { getPropertyDefinition, getClassDecorator } from '../../trax/trax/compiler/generator';
 import { DataType } from '../../trax/trax/compiler/types';
 
 export interface CompilationOptions {
@@ -183,7 +182,7 @@ function encodeText(t: string) {
 }
 
 function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
-    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: DataType;
+    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string;
     indent = reduceIndent(indent);
 
     function addImport(symbol: string) {
@@ -210,20 +209,21 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                     case "string":
                     case "number":
                     case "boolean":
-                        argType = { kind: arg.typeRef }
+                        argType = arg.typeRef;
                         break;
                     case "IvContent":
-                        argType = { kind: "any" }
+                        argType = "any"
                         break;
                     default:
                         if (arg.typeRef) {
-                            argType = { kind: "reference", identifier: arg.typeRef }
+                            argType = arg.typeRef;
                         } else {
-                            argType = { kind: "any" }
+                            argType = "any";
                         }
                         break;
                 }
-                classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name, type: argType }, "ζ", addImport));
+                classProps.push(`${indent + gc.indentIncrement}${arg.name}: ${argType};`);
+                //classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name, type: argType }, "ζ", addImport));
             } else if (i > 0) {
                 // argClassName is defined (always in 1st position)
                 argInit.push(arg.name + ' = $["' + arg.name + '"]');
@@ -232,7 +232,8 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         if (!argClassName) {
             // default argument class definition
             argClassName = "ζParams";
-            classDef = [indent, getClassDecorator("ζ", addImport), " class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
+            addImport("ζΔD")
+            classDef = [indent, "@ζΔD", " class ζParams {\n", classProps.join("\n"), "\n", indent, "}"].join("");
         }
     }
 

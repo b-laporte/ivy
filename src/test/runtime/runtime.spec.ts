@@ -352,8 +352,8 @@ describe('Iv Runtime', () => {
 
     it("should use simple param classes", function () {
         @ζΔD class Names {
-            ΔΔfirstName: any; @ζΔp() firstName: any;
-            ΔΔlastName: any; @ζΔp() lastName: any;
+            firstName: any;
+            lastName: any;
         }
 
         let n = new Names();

@@ -444,7 +444,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                     if (!callImmediately) {
                         this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
-                        this.instructions.push(new CallInstruction(idx, this, iFlag));
+                        this.instructions.push(new CallInstruction(idx, this, iFlag, ci));
                     }
                     // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
                     if (nd.listeners && nd.listeners.length) {
@@ -972,6 +972,7 @@ class CntInstruction implements RuntimeInstruction {
 
 class CptInstruction implements RuntimeInstruction {
     dynamicPNodeNames: string[] = []; // name of child param nodes
+    dynamicPNodeRef: string;
 
     constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public callImmediately: boolean, public staticParamIdx: number) {
         view.gc.imports['ζcpt' + getIhSuffix(iFlag)] = 1;
@@ -982,7 +983,7 @@ class CptInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-        let v = this.view, stParams = processCptOptionalArgs(this.view, this.staticParamIdx, this.dynamicPNodeNames);
+        let v = this.view, stParams = processCptOptionalArgs(this.view, this);
 
         body.push(`${v.indent}${funcStart("cpt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, `);
         generateExpression(body, this.node.ref as XjsExpression, this.view, this.iFlag);
@@ -992,6 +993,7 @@ class CptInstruction implements RuntimeInstruction {
 
 class PndInstruction implements RuntimeInstruction {
     dynamicPNodeNames: string[] = []; // name of child param nodes
+    dynamicPNodeRef: string;
 
     constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string, public parentIndex: number) {
         view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
@@ -1005,36 +1007,42 @@ class PndInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
-        let v = this.view, stParams = processCptOptionalArgs(this.view, this.staticParamIdx, this.dynamicPNodeNames);
+        let v = this.view, stParams = processCptOptionalArgs(this.view, this);
         // unused: ${this.parentLevel}
         body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}"${stParams});\n`);
     }
 }
 
-function processCptOptionalArgs(view: ViewInstruction, staticParamIdx: number, dynamicPNodeNames: string[]): string {
-    if (dynamicPNodeNames && dynamicPNodeNames.length) {
+function processCptOptionalArgs(view: ViewInstruction, ins: CptInstruction | PndInstruction): string {
+    if (ins.dynamicPNodeNames && ins.dynamicPNodeNames.length) {
         let idx = view.gc.statics.length;
-        for (let i = 0; dynamicPNodeNames.length > i; i++) {
-            dynamicPNodeNames[i] = encodeText(dynamicPNodeNames[i]);
+        for (let i = 0; ins.dynamicPNodeNames.length > i; i++) {
+            ins.dynamicPNodeNames[i] = encodeText(ins.dynamicPNodeNames[i]);
         }
-        view.gc.statics[idx] = "ζs" + idx + " = [" + dynamicPNodeNames.join(", ") + "]";
+        ins.dynamicPNodeRef = "ζs" + idx;
+        view.gc.statics[idx] = ins.dynamicPNodeRef + " = [" + ins.dynamicPNodeNames.join(", ") + "]";
 
-        return `, ${(staticParamIdx > -1) ? 'ζs' + staticParamIdx : '0'}, ζs${idx}`;
-    } else if (staticParamIdx > -1) {
-        return ', ζs' + staticParamIdx;
+        return `, ${(ins.staticParamIdx > -1) ? 'ζs' + ins.staticParamIdx : '0'}, ζs${idx}`;
+    } else if (ins.staticParamIdx > -1) {
+        return ', ζs' + ins.staticParamIdx;
     }
     return '';
 }
 
 class CallInstruction implements RuntimeInstruction {
-    constructor(public idx: number, public view: ViewInstruction, public iFlag: number) {
+    constructor(public idx: number, public view: ViewInstruction, public iFlag: number, public ci: CptInstruction) {
         view.gc.imports['ζcall' + getIhSuffix(iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζcall(ζ, 2);
-        let v = this.view;
-        body.push(`${v.indent}${funcStart("call", this.iFlag)}${v.jsVarName}, ${this.idx});\n`);
+        let v = this.view, lastArgs = "";
+
+        if (this.ci.dynamicPNodeRef) {
+            lastArgs = ", 0, " + this.ci.dynamicPNodeRef;
+        }
+
+        body.push(`${v.indent}${funcStart("call", this.iFlag)}${v.jsVarName}, ${this.idx}${lastArgs});\n`);
     }
 }
 

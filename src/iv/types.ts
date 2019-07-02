@@ -74,8 +74,9 @@ export interface IvParamNode extends IvNode {
     kind: "#param";
     name: string;
     dataParent: any;
-    data: any;                         // shortcut to parent params (params object or paramNode)
+    data: any;                                        // shortcut to parent params (params object or paramNode)
     contentView: IvView | undefined;
+    dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic sub-params that have been found while refreshing the param content (aka. light-dom)
 }
 
 export interface IvContainer extends IvNode {
@@ -95,9 +96,10 @@ export interface IvBlockContainer extends IvContainer {
 
 export interface IvCptContainer extends IvContainer {
     subKind: "##cpt";
-    template: IvTemplate | null;         // current component template
-    params: any;                         // shortcut to cptTemplate.params
-    contentView: IvView | null;          // light-dom / content view
+    template: IvTemplate | null;                      // current component template
+    params: any;                                      // shortcut to cptTemplate.params
+    contentView: IvView | null;                       // light-dom / content view
+    dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic params that have been found while refreshing the component content (aka. light-dom)
 }
 
 export interface IvAsyncContainer extends IvContainer {
@@ -107,7 +109,7 @@ export interface IvAsyncContainer extends IvContainer {
 
 export interface IvElement extends IvParentNode {
     kind: "#element";
-    contentView: IvView | null;          // set when the element is used to project a content view
+    contentView: IvView | null;                  // set when the element is used to project a content view
 }
 
 export interface IvComponent extends IvParentNode {

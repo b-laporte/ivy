@@ -921,7 +921,7 @@ describe('Code generator', () => {
             }
             ζpnode(ζ, ζc, 0, 4, 2, "footer", ζs3);
             ζendD(ζ1, ζc1, ζs5);
-            ζcall(ζ, 2);
+            ζcall(ζ, 2, 0, ζs4);
             ζtxt(ζ, ζc, 0, 5, 1, " last ", 0);
             ζend(ζ, ζc);
         `, '1');
@@ -977,7 +977,7 @@ describe('Code generator', () => {
                 ζpnode(ζ, ζc, 0, 3, 0, "footer", ζs3);
             }
             ζendD(ζ1, ζc1, ζs5);
-            ζcall(ζ, 0);
+            ζcall(ζ, 0, 0, ζs4);
             ζend(ζ, ζc);
         `, '2');
 

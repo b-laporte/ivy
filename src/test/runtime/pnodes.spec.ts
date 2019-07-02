@@ -8,9 +8,13 @@ describe('Param Nodes', () => {
     let body: ElementNode, count = 0;
 
     beforeEach(() => {
+        resetVars();
+    });
+
+    function resetVars() {
         body = reset();
         count = 0;
-    });
+    }
 
     it("should set and update normal attributes (static)", function () {
         const panel = template(`(type:string, $content) => {
@@ -68,6 +72,107 @@ describe('Param Nodes', () => {
         assert.equal(count, 2, "panel count is still 2");
     });
 
+    it("should set and update normal attributes (dynamic)", function () {
+        const panel = template(`(type:string, $content) => {
+            count++;
+            type = type || "xx";
+            <div class={"panel" + (type? " "+type : "")}>
+                # Panel message #
+            </div>
+        }`);
+
+        const tpl = template(`(panelType:string, mainType:string) => {
+            <div class={"main " + mainType}>
+                <*panel>
+                    if (mainType !== "no") {
+                        <.type $value={panelType}/>
+                    }
+                </>
+            </div>
+        }`);
+
+        // cm: condition === true
+        let t1 = getTemplate(tpl, body).refresh({ panelType: "important", mainType: "abc" });
+        assert.equal(count, 1, "count: 1");
+        assert.equal(stringify(t1), `
+            <body::E1>
+                <div::E3 a:class="main abc">
+                    <div::E4 a:class="panel important">
+                        #::T5 Panel message #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t1.refresh({ panelType: "important", mainType: "no" });
+        assert.equal(count, 2, "count: 2");
+        assert.equal(stringify(t1), `
+            <body::E1>
+                <div::E3 a:class="main no"(1)>
+                    <div::E4 a:class="panel xx"(1)>
+                        #::T5 Panel message #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t1.refresh({ panelType: "important3", mainType: "type3" });
+        assert.equal(count, 3, "count: 3");
+        assert.equal(stringify(t1), `
+            <body::E1>
+                <div::E3 a:class="main type3"(2)>
+                    <div::E4 a:class="panel important3"(2)>
+                        #::T5 Panel message #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        // cm: condition === false
+        resetVars()
+        let t2 = getTemplate(tpl, body).refresh({ panelType: "important", mainType: "no" });
+        assert.equal(count, 1, "count: 1");
+        assert.equal(stringify(t2), `
+            <body::E1>
+                <div::E3 a:class="main no">
+                    <div::E4 a:class="panel xx">
+                        #::T5 Panel message #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        t2.refresh({ panelType: "important5", mainType: "main5" });
+        assert.equal(count, 2, "count: 2");
+        assert.equal(stringify(t2), `
+            <body::E1>
+                <div::E3 a:class="main main5"(1)>
+                    <div::E4 a:class="panel important5"(1)>
+                        #::T5 Panel message #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '5');
+
+        t2.refresh({ panelType: "important", mainType: "no" });
+        assert.equal(count, 3, "count: 3");
+        assert.equal(stringify(t2), `
+            <body::E1>
+                <div::E3 a:class="main no"(2)>
+                    <div::E4 a:class="panel xx"(2)>
+                        #::T5 Panel message #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '6');
+    });
+
     it("should support content-only params (static)", function () {
         const section = template(`(type:string, header: IvContent, footer: IvContent, $content: IvContent) => {
             count++;
@@ -123,7 +228,7 @@ describe('Param Nodes', () => {
         `, '1');
         assert.equal(count, 2, "count:2");
 
-        body = reset();
+        resetVars();
         let tplB = template(`(headerText, mainText, footerText) => {
             <div class="main">
                 <*section>
@@ -171,6 +276,47 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
     });
+
+    // it("should support content-only params (dynamic)", function () {
+    //     const section = template(`(type:string, header: IvContent, footer: IvContent, $content: IvContent) => {
+    //         count++;
+    //         <div class="section">
+    //             if (header) {
+    //                 <div class="header" @content={header}/>
+    //             }
+    //             <! @content/>
+    //             if (footer) {
+    //                 <div class="footer" @content={footer}/>
+    //             }
+    //         </div>
+    //     }`);
+
+    //     const tplA = template(`(headerText, mainText) => {
+    //         <div class="main">
+    //             <*section>
+    //                 <.header> # {headerText} # </>
+    //                 # {mainText} # 
+    //             </>
+    //         </div>
+    //     }`);
+
+    //     let t = getTemplate(tplA, body).refresh({ headerText: "HEADER", mainText: "CONTENT" });
+    //     assert.equal(stringify(t), `
+    //         <body::E1>
+    //             <div::E3 a:class="main">
+    //                 <div::E4 a:class="section">
+    //                     <div::E5 a:class="header">
+    //                         #::T6 HEADER #
+    //                     </div>
+    //                     #::T7 CONTENT #
+    //                 </div>
+    //             </div>
+    //             //::C2 template anchor
+    //         </body>
+    //     `, '1');
+    //     assert.equal(count, 1, "count:1");
+        
+    // });
 
     it("should support params with attributes and content (static)", function () {
         @Data class SectionHeader {

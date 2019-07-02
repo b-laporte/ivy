@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version } from '../trax/trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -607,6 +607,7 @@ export function ζe(v: IvView, idx: number, value: any) {
         v.expressions[idx] = value;
     } else {
         let exp = v.expressions;
+        //console.log("ζe", idx, value, exp)
         if (exp.length > idx && exp[idx] === value) return ζu;
         exp[idx] = value;
     }
@@ -737,7 +738,8 @@ function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boo
             cmAppend: cmAppend,
             template: null,         // current component template
             params: null,           // shortcut to cptTemplate.params
-            contentView: null
+            contentView: null,
+            dynamicParams: undefined
         }
     } else {
         console.log("TODO: new cnt type");
@@ -767,7 +769,7 @@ export function ζcntD(v: IvView, cm: boolean, idx: number, parentLevel: number,
 
 // Component Definition (& call if no params and no content)
 // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[], pNodeParamNames?: string[]) {
+export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[] | 0, dynParamNames?: string[]) {
     let container: IvCptContainer;
     if (cm) {
         // creation mode
@@ -798,8 +800,11 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         // update mode
         container = v.nodes![idx] as IvCptContainer;
     }
+    if (dynParamNames) {
+        container.dynamicParams = {};
+    }
     if (callImmediately) {
-        ζcall(v, idx, container);
+        ζcall(v, idx, container, dynParamNames);
     }
 }
 
@@ -811,12 +816,13 @@ export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, paren
 }
 
 // Component call - used when a component has content, params or param nodes
-export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
+export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, dynParamNames?: string[]) {
     container = container || v.nodes![idx] as IvCptContainer;
     let tpl = container ? container.template as Template : null;
     if (tpl) {
         let cm = v.cm;
         tpl.view.lastRefresh = v.lastRefresh - 1; // will be incremented by refresh()
+
         if (container.contentView) {
             tpl.params.$content = container.contentView;
             let instr = container.contentView.instructions;
@@ -829,6 +835,18 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer) {
             // define cmAppend
             tpl.view.cmAppends = [container!.cmAppend!];
         } else {
+            if (dynParamNames) {
+                // reset the dynamic param nodes that have not been processed
+                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.params;
+                for (let i = 0; len > i; i++) {
+                    if (!dp[dynParamNames[i]]) {
+                        // this param node has not been called - so we need to reset it
+                        // console.log("reset", dynParamNames[i]);
+                        reset(params, dynParamNames[i]);
+                    }
+                }
+            }
+
             let root = tpl.view.nodes![0];
             if (!root.attached) {
                 // console.log("forceRefresh #3");
@@ -847,7 +865,8 @@ export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
 
 export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, staticParams?: any[]) {
     let nd: IvParamNode, vNodes = v.nodes!;
-    if (cm) {
+    // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
+    if (cm || !vNodes[idx]) {
         // create and register param node
         nd = {
             kind: "#param",
@@ -860,7 +879,8 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
             name: name,
             dataParent: undefined,
             data: undefined,
-            contentView: undefined
+            contentView: undefined,
+            dynamicParams: undefined
         }
         vNodes[idx] = nd;
     } else {
@@ -883,6 +903,11 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
                 console.log("TODO: force data creation?")
             }
         }
+    }
+    // flag the node as read
+    let dp = (parent as IvCptContainer | IvParamNode).dynamicParams;
+    if (dp) {
+        dp[name] = 1;
     }
 
     if (cm && staticParams && data) {
@@ -934,8 +959,10 @@ export function ζproD(v: IvView, iFlag: number, eltIdx: number, name: string, e
 // Param setter
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
 export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
+    // console.log("ζpar", expr === ζu, expr)
     if (expr === ζu) return;
     let val = getExprValue(v, iFlag, expr);
+
     if (val !== ζu) {
         let nd = v.nodes![eltIdx];
         if (nd.kind === "#container") {

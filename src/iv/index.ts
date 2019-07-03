@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create } from '../trax/trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -1333,6 +1333,7 @@ export const ζΔfStr = ΔfStr;
 export const ζΔfBool = ΔfBool;
 export const ζΔfNbr = ΔfNbr;
 export const ζΔlf = Δlf;
+export const ζΔu = Δu;
 
 // Physical class to represent an IvView content param
 export class IvContent implements IvView {

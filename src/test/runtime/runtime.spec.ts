@@ -193,6 +193,28 @@ describe('Iv Runtime', () => {
         `, '3');
     });
 
+    it("should support default values for template params", function () {
+        const tpl = template(`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
+            # a:{a} b:{b} c:{c} d:{d} e:{e} #
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 a:abc b:false c:123.45 d:12 e:hello #
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ a: "ABC", b: true, e: "HEY" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 a:ABC b:true c:123.45 d:12 e:HEY # (1)
+                //::C2 template anchor
+            </body>
+        `, '2');
+    });
+
     it("should generate fragments when template contains multiple root nodes", function () {
         let tpl = template(`(name) => {
             <div>
@@ -261,7 +283,7 @@ describe('Iv Runtime', () => {
     });
 
     it("should support element properties", function () {
-        let tpl = template(`(msg) => {
+        const tpl = template(`(msg) => {
             <div [className]="main" [title]={::msg}>
                 <span [className]={msg} [title]="sub"> # ... # </span>
             </div>

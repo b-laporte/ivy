@@ -190,10 +190,11 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     }
 
     if (args && args.length) {
-        let classProps: string[] = [], arg: XjsTplArgument;
+        let classProps: string[] = [], arg: XjsTplArgument, defaultValue = "";
 
         argNames = ", $";
         for (let i = 0; args.length > i; i++) {
+            defaultValue = "";
             arg = args[i];
             if (i === 0 && arg.name === PARAMS_ARG) {
                 argClassName = arg.typeRef || "";
@@ -222,8 +223,11 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                         }
                         break;
                 }
+                if (arg.defaultValue) {
+                    defaultValue = " = " + arg.defaultValue;
+                }
                 let optional = arg.optional ? "?" : "";
-                classProps.push(`${indent + gc.indentIncrement}${arg.name}${optional}: ${argType};`);
+                classProps.push(`${indent + gc.indentIncrement}${arg.name}${optional}: ${argType}${defaultValue};`);
                 //classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name, type: argType }, "ζ", addImport));
             } else if (i > 0) {
                 // argClassName is defined (always in 1st position)

@@ -1353,6 +1353,29 @@ describe('Code generator', () => {
         `, '2');
     });
 
+    it("should support default values on template params", async function () {
+        let t = await test.template(`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
+            # a:{a} b:{b} c:{c} d:{d} e:{e} #
+        }`);
+
+        assert.equal(t.function, `(function () {
+        const ζs0 = {}, ζs1 = [" a:", "", " b:", "", " c:", "", " d:", "", " e:", "", " "];
+        @ζΔD class ζParams {
+            a: string = "abc";
+            b: any = false;
+            c: any = 123.45;
+            d: any = 12;
+            e: any = 'hello';
+        }
+        return ζt(function (ζ, $) {
+            let a = $["a"], b = $["b"], c = $["c"], d = $["d"], e = $["e"];
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 5, ζe(ζ, 0, a), ζe(ζ, 1, b), ζe(ζ, 2, c), ζe(ζ, 3, d), ζe(ζ, 4, e));
+            ζend(ζ, ζc);
+        }, 0, ζParams);
+        })()` , 'f1');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });
 

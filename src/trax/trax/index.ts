@@ -305,9 +305,10 @@ export function ΔD(c: any) {
 /**
  * Property decorator
  * Adds getter / setter 
- * @param factory 
+ * @param factory the property factory (or 0 if none - e.g. for 'any' types)
+ * @param canBeNullOrUndefined: 1=can be null, 2=can be undefined, 3=can be both null or undefined
  */
-export function Δp<T>(factory?: Factory<T>, canBeNullOrUndefined?: 1 | 2 | 3) {
+export function Δp<T>(factory?: Factory<T> | 0, canBeNullOrUndefined?: 1 | 2 | 3) {
     if (!factory) {
         factory = $fNull as any;
         canBeNullOrUndefined = 3;
@@ -332,8 +333,8 @@ export function Δp<T>(factory?: Factory<T>, canBeNullOrUndefined?: 1 | 2 | 3) {
         proto[ΔΔKey] = undefined; // force the creation of a property to know if property is valid with hasProperty 
 
         addPropertyInfo(proto, key, false, {
-            get: function () { return ΔGet(<any>this, ΔΔKey, key, factory!, canBeNullOrUndefined); },
-            set: function (v) { ΔSet(<any>this, key, ΔΔKey, v, factory!, <any>this); },
+            get: function () { return ΔGet(<any>this, ΔΔKey, key, factory as Factory<T>, canBeNullOrUndefined); },
+            set: function (v) { ΔSet(<any>this, key, ΔΔKey, v, factory as Factory<T>, <any>this); },
             enumerable: true,
             configurable: true
         });

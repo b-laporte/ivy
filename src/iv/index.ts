@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset } from '../trax/trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -242,7 +242,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
                             cnt.insertFn = getViewInsertFunction(pv, cnt);
                         }
                         view = views[instanceIdx - 1] = cnt.viewPool.shift()!;
-                        insertInDom(view.nodes![0], cnt.insertFn);
+                        insertInDom(view.nodes![0], cnt.insertFn, 1);
                     } else {
                         view = views[instanceIdx - 1] = createView(pv, false, cnt);
                         view.nodes = new Array(nbrOfNodes);
@@ -401,15 +401,17 @@ function checkContainer(v: IvView, idx: number, firstTime: boolean) {
     }
 }
 
-function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void) {
+function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void, origin: number) {
     // this function can only be called when cm = false
+    // note: origin is only used for debug purposes
+    // console.log("insertInDom", origin, nd.attached, nd.domNode.uid)
     if (nd.attached) return;
     insertFn(nd, true);
     nd.attached = true;
     if (nd.kind === "#fragment") {
         let f = nd as IvFragment, ch = f.firstChild;
         while (ch) {
-            insertInDom(ch, insertFn);
+            insertInDom(ch, insertFn, 4);
             ch = ch.nextSibling;
         }
     } else if (nd.kind === "#container") {
@@ -420,18 +422,18 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
                 // console.log("forceRefresh #1");
                 tpl.forceRefresh = true;
             }
-            if (root) insertInDom(root, insertFn);
+            if (root) insertInDom(root, insertFn, 5);
         } else if (k === "##block") {
             let cb = nd as IvBlockContainer, views = cb.views;
             for (let i = 0; views.length > i; i++) {
-                insertInDom(views[i].nodes![0], insertFn);
+                insertInDom(views[i].nodes![0], insertFn, 6);
             }
         }
     }
     if (nd.kind === "#fragment" || nd.kind === "#element") {
         let cv = (nd as IvFragment | IvElement).contentView;
         if (cv) {
-            insertInDom(cv.nodes![0], insertFn);
+            insertInDom(cv.nodes![0], insertFn, 7);
         }
     }
 }
@@ -852,7 +854,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
                 // console.log("forceRefresh #3");
                 tpl.forceRefresh = true;
                 let insertFn = getViewInsertFunction(v, container!);
-                insertInDom(root, insertFn);
+                insertInDom(root, insertFn, 2);
             }
         }
         tpl.refresh();
@@ -863,7 +865,7 @@ export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
     addInstruction(v, ζcall, [v, idx, container]);
 }
 
-export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, staticParams?: any[]) {
+export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, staticParams?: any[] | 0, dynParamNames?: string[]) {
     let nd: IvParamNode, vNodes = v.nodes!;
     // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
     if (cm || !vNodes[idx]) {
@@ -887,20 +889,39 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         nd = (vNodes[idx] as IvParamNode);
     }
 
-    let parent = vNodes[parentIndex], data: any;
+    if (dynParamNames) {
+        nd.dynamicParams = {};
+    }
+
+    let parent = vNodes[parentIndex], data: any, prevData:any = undefined;
     if (parent.kind === "#container") {
         let dp = (parent as IvCptContainer).params;
         nd.dataParent = dp;
+        prevData = nd.data;
         nd.data = data = dp ? dp[name] : undefined;
+        if (!data && staticParams) {
+            // we must force data creation to host the static params
+            nd.data = data = create(dp, name);
+        }
     } else if (parent.kind === "#param") {
-        let dp = (parent as IvParamNode).data;
+        let parentPNode = parent as IvParamNode, dp = parentPNode.data;
         if (!dp) {
-            console.log("TODO: ζpnode create optional parent")
-        } else {
+            // create the parent node
+            dp = parentPNode.data = create(parentPNode.dataParent, parentPNode.name);
+            if (!dp) {
+                console.error("Invalid param node type for <." + name + "/>"); // TODO: proper error handling
+            }
+        }
+        if (dp) {
             nd.dataParent = dp;
+            prevData = nd.data;
             nd.data = data = dp[name];
             if (data === undefined) {
-                console.log("TODO: force data creation?")
+                // create the property node
+                nd.data = data = create(dp, name);
+                if (!data) {
+                    console.error("Invalid param node type for <." + name + "/>"); // TODO: proper error handling
+                }
             }
         }
     }
@@ -910,8 +931,9 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         dp[name] = 1;
     }
 
-    if (cm && staticParams && data) {
+    if (staticParams && data && (prevData !== data)) {
         // initialize static params
+        // prevData !== data is true when node data has been created or reset
         let len = staticParams.length;
         for (let i = 0; len > i; i += 2) {
             data[staticParams[i]] = staticParams[i + 1];
@@ -921,6 +943,24 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
 
 export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
     console.log("TODO ζpnodeD")
+}
+
+export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) {
+    if (cm) return;
+    let pn = v.nodes![idx] as IvParamNode;
+
+    let len = dynParamNames.length, dp = pn.dynamicParams;
+    for (let i = 0; len > i; i++) {
+        if (dp && !dp[dynParamNames[i]]) {
+            // this param node has not been called - so we need to reset it
+            // console.log("reset", dynParamNames[i]);
+            reset(pn.data, dynParamNames[i]);
+        }
+    }
+}
+
+export function ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) {
+    console.log("TODO ζpnEndD")
 }
 
 // Attribute setter
@@ -959,7 +999,6 @@ export function ζproD(v: IvView, iFlag: number, eltIdx: number, name: string, e
 // Param setter
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
 export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
-    // console.log("ζpar", expr === ζu, expr)
     if (expr === ζu) return;
     let val = getExprValue(v, iFlag, expr);
 
@@ -968,6 +1007,7 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
         if (nd.kind === "#container") {
             let p = (nd as IvCptContainer).params;
             if (p) {
+                // console.log("1:set", name, "=", val, "in", p)
                 p[name] = val;
             }
         } else if (nd.kind === "#param") {
@@ -975,10 +1015,17 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
             if (name === "$value") {
                 // console.log("previous:", p.dataParent[p.name], "new:", val, p.dataParent[p.name] !== val);
                 p.dataParent[p.name] = val;
-            } else if (p.data) {
-                p.data[name] = val;
             } else {
-                // p.data should not be null
+                if (!p.data) {
+                    // initialize the data object
+                    p.data = create(p.dataParent, p.name);
+                }
+                if (p.data) {
+                    // console.log("2:set", name, "=", val, "in", p.data)
+                    p.data[name] = val;
+                } else {
+                    // p.data should not be null -> error ?
+                }
             }
         }
     }
@@ -1086,7 +1133,7 @@ export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: an
             // fragment
             insertFn = getViewInsertFunction(v, projectionNode as IvFragment);
         }
-        insertInDom(contentView.nodes![0], insertFn);
+        insertInDom(contentView.nodes![0], insertFn, 3);
     }
 
     contentView.container = projectionNode;
@@ -1142,6 +1189,7 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
             // if not found (e.g. node not attached) we shift by 1
             nd = nd.nextSibling;
         } else {
+            // console.log("> is last")
             // nd is last sibling
             let parent = v.nodes![nd.parentIdx] as IvParentNode;
             if (parent.kind === "#element") {
@@ -1153,6 +1201,7 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
     }
 
     function findFirstDomNd(v: IvView, nd: IvNode, parentDomNd: any): SiblingDomPosition | null {
+        // console.log("findFirstDomNd", nd? nd.uid : "XX")
         if (!nd) return null;
         if (nd.kind === "#element" || nd.kind === "#text") {
             return { position: "beforeChild", nextDomNd: nd.domNode, parentDomNd: parentDomNd };
@@ -1164,6 +1213,11 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
                     return sdp;
                 }
                 ch = ch.nextSibling!;
+            }
+            if ((nd as IvFragment).contentView) {
+                // Search in projected view
+                let cv = (nd as IvFragment).contentView!;
+                if (cv.nodes) return findFirstDomNd(cv, cv.nodes[0], parentDomNd);
             }
             // not found
             return null;
@@ -1281,8 +1335,24 @@ export const ζΔfNbr = ΔfNbr;
 export const ζΔlf = Δlf;
 
 // Physical class to represent an IvView content param
-export class IvContent {
-    kind = "#view";
+export class IvContent implements IvView {
+    kind: "#view" = "#view";
+    uid = "content" + (++uidCount);
+    nodes = null;
+    doc = null as any;
+    parentView: null;
+    cm = true;
+    cmAppends = null;
+    lastRefresh = 0;
+    container = null;
+    projectionHost = null;
+    isTemplate: false;
+    rootDomNode = null;
+    anchorNode = null;
+    expressions = undefined;
+    oExpressions = undefined;
+    instructions = undefined;
+    paramNode = undefined;
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -1305,6 +1375,19 @@ function logView(v: IvView, label = "", rootId?: string) {
             console.log(label + ":")
         }
         logViewNodes(v);
+    }
+}
+
+function logViewDom(v: IvView) {
+    // only works with test dom nodes
+    if (!v || !v.nodes) {
+        console.log("No nodes");
+    } else if (!v.nodes![0].domNode) {
+        console.log("No DOM node");
+    } else if (!v.nodes![0].domNode.stringify) {
+        console.log("DOM node doesn't support stringify");
+    } else {
+        console.log(v.nodes![0].domNode!.stringify());
     }
 }
 

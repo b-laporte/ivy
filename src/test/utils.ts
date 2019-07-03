@@ -142,7 +142,7 @@ class CommentNode {
         this.uid = "C" + (++UID_COUNT);
     }
 
-    stringify(options: StringOptions): string {
+    stringify(options: StringOptions = o): string {
         let indent = options.indent || "",
             showUid = options.showUid === true,
             uid = showUid ? "::" + this.uid : "";
@@ -171,7 +171,7 @@ class TextNode {
         console.log(this.stringify({}));
     }
 
-    stringify(options: StringOptions): string {
+    stringify(options: StringOptions = o): string {
         let indent = options.indent || "",
             showUid = options.showUid === true,
             uid = showUid ? "::" + this.uid : "",
@@ -327,7 +327,7 @@ export class ElementNode {
         console.log(this.stringify({}));
     }
 
-    stringify(options: StringOptions): string {
+    stringify(options: StringOptions = o): string {
         let indent = options.indent || "",
             isRoot = options.isRoot === true,
             showUid = options.showUid === true,

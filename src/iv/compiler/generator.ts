@@ -222,7 +222,8 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                         }
                         break;
                 }
-                classProps.push(`${indent + gc.indentIncrement}${arg.name}: ${argType};`);
+                let optional = arg.optional ? "?" : "";
+                classProps.push(`${indent + gc.indentIncrement}${arg.name}${optional}: ${argType};`);
                 //classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name, type: argType }, "ζ", addImport));
             } else if (i > 0) {
                 // argClassName is defined (always in 1st position)
@@ -520,6 +521,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     vi.cpnParentLevel = cpnParentLevel + 1;
                     this.instructions.push(vi);
                     vi.scan();
+                    this.instructions.push(new PndEndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, this.indent, pi));
                 }
 
                 if (nd.listeners && nd.listeners.length) {
@@ -607,11 +609,11 @@ export class ViewInstruction implements RuntimeInstruction {
     generateParamInstructions(f: XjsFragment, idx: number, iFlag: number, isAttribute: boolean, view: ViewInstruction) {
         // dynamic params / attributes
         if (f.params && f.params.length) {
-            let len = f.params.length, p: XjsParam;
+            let len = f.params.length, p: XjsParam, isParamNode = f.kind === "#paramNode";
             for (let i = 0; len > i; i++) {
                 p = f.params[i];
                 if (p.value && p.value.kind === "#expression") {
-                    this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));
+                    this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent, isParamNode));
                 }
             }
         }
@@ -929,7 +931,7 @@ class FraInstruction implements RuntimeInstruction {
 class ParamInstruction implements RuntimeInstruction {
     funcName: "att" | "par" | "pro";
 
-    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iFlag: number, public isAttribute: boolean, public indent: string) {
+    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iFlag: number, public isAttribute: boolean, public indent: string, public targetParamNode = false) {
         this.funcName = isAttribute ? "att" : "par"
         if (node.kind === "#property") {
             this.funcName = "pro";
@@ -941,7 +943,13 @@ class ParamInstruction implements RuntimeInstruction {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
         let v = this.view, iSuffix = this.iFlag ? "D" : "";
         body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
-        generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
+        if (this.targetParamNode) {
+            // we don't use expressions in param nodes as we don't need them (trax objects will do the job)
+            // besides expressions need to be re-evaluated when an object has been reset (so expression value cannot be cached)
+            body.push(this.node.value as XjsExpression);
+        } else {
+            generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
+        }
         body.push(');\n');
     }
 }
@@ -1010,6 +1018,23 @@ class PndInstruction implements RuntimeInstruction {
         let v = this.view, stParams = processCptOptionalArgs(this.view, this);
         // unused: ${this.parentLevel}
         body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}"${stParams});\n`);
+    }
+}
+
+class PndEndInstruction implements RuntimeInstruction {
+    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public indent: string, public pi: PndInstruction) {
+        view.gc.imports['ζpnEnd' + getIhSuffix(iFlag)] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) 
+        // ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) 
+
+        // only create this instruction when there are dynamic parameter nodes
+        if (this.pi.dynamicPNodeRef) {
+            let v = this.view;
+            body.push(`${this.indent}${funcStart("pnEnd", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.pi.dynamicPNodeRef});\n`);
+        }
     }
 }
 

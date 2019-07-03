@@ -182,7 +182,9 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
         if (includePrivateDefinition) {
             privateDef = `${PRIVATE_PREFIX}${m.name}: ${typeRef}; `
         }
-
+        if (nullUndefinedArg) {
+            factory = factory || "0"; // factory arg cannot be empty if second argument is passed
+        }
         addImport(libPrefix + "Δp");
         return `${privateDef}@${libPrefix}Δp(${factory}${nullUndefinedArg}) ${m.name}${questionSymbol}: ${typeRef};`;
     }

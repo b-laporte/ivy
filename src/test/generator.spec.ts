@@ -1,6 +1,7 @@
 // iv:ignore
 import { body, statics, test } from './utils';
 import * as assert from 'assert';
+import { IvContent } from '../iv';
 
 describe('Code generator', () => {
 
@@ -808,7 +809,7 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
             ζpnode(ζ, ζc, 0, 3, 2, "header", ζs1);
-            ζpar(ζ, 0, 3, "foo", ζe(ζ, 1, bar()));
+            ζpar(ζ, 0, 3, "foo", bar());
             ζtxtD(ζ1, ζc1, 1, 0, 0, ζs2, 1, [0, baz()]);
             ζpnode(ζ, ζc, 0, 4, 2, "footer", ζs3);
             ζendD(ζ1, ζc1);
@@ -834,7 +835,7 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
             ζpnode(ζ, ζc, 0, 3, 2, "header", ζs1);
-            ζpar(ζ, 0, 3, "foo", ζe(ζ, 1, bar()));
+            ζpar(ζ, 0, 3, "foo", bar());
             ζ2 = ζviewD(ζ, 1, 3, 1, 0);
             ζc2 = ζ2.cm;
             ζpnode(ζ, ζc, 0, 4, 3, "title");
@@ -865,12 +866,12 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζ2, ζc2, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 5);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
             ζpnode(ζ, ζc, 0, 1, 0, "header");
-            ζpar(ζ, 0, 1, "foo", ζe(ζ, 1, bar()));
+            ζpar(ζ, 0, 1, "foo", bar());
             ζpnode(ζ, ζc, 0, 2, 1, "foo", ζs1);
             ζpnode(ζ, ζc, 0, 3, 2, "bar");
-            ζpar(ζ, 0, 3, "$value", ζe(ζ, 2, exp()));
+            ζpar(ζ, 0, 3, "$value", exp());
             ζpnode(ζ, ζc, 0, 4, 2, "bar");
-            ζpar(ζ, 0, 4, "$value", ζe(ζ, 3, exp2()));
+            ζpar(ζ, 0, 4, "$value", exp2());
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '3');
@@ -908,7 +909,7 @@ describe('Code generator', () => {
                 ζc2 = ζ2.cm;
                 ζtxtD(ζ2, ζc2, 2, 0, 0, " foo ", 0);
                 ζpnode(ζ, ζc, 0, 3, 2, "header", ζs1);
-                ζpar(ζ, 0, 3, "foo", ζe(ζ, 1, bar()));
+                ζpar(ζ, 0, 3, "foo", bar());
                 ζendD(ζ2, ζc2);
             }
             ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
@@ -961,7 +962,7 @@ describe('Code generator', () => {
             ζcntD(ζ1, ζc1, 1, 1, 1);
             if (x) {
                 ζpnode(ζ, ζc, 0, 1, 0, "header", ζs1, ζs6);
-                ζpar(ζ, 0, 1, "foo", ζe(ζ, 1, bar()));
+                ζpar(ζ, 0, 1, "foo", bar());
                 ζi4 = 0;
                 ζ3 = ζviewD(ζ, 1, 1, 1, 0);
                 ζc3 = ζ3.cm;
@@ -970,6 +971,7 @@ describe('Code generator', () => {
                     ζpnode(ζ, ζc, 0, 2, 1, "title", ζs2);
                 }
                 ζendD(ζ3, ζc3, ζs7);
+                ζpnEnd(ζ, ζc, 0, 1, ζs6);
             }
             ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
             ζcntD(ζ1, ζc1, 3, 1, 1);
@@ -1006,7 +1008,7 @@ describe('Code generator', () => {
             ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζs1);
             let bar=foo;
             ζpnode(ζ, ζc, 0, 2, 0, "paramB");
-            ζpar(ζ, 0, 2, "value", ζe(ζ, 1, exp(bar)));
+            ζpar(ζ, 0, 2, "value", exp(bar));
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '1');
@@ -1086,7 +1088,7 @@ describe('Code generator', () => {
         });
         })()` , 'f1');
         assert.deepEqual(t1.importMap, {
-            "ζinit": 1, "ζelt": 1, "ζeltD": 1, "ζpnode": 1, "ζtxtD": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζendD": 1, "ζviewD": 1, "ζt": 1
+            "ζinit": 1, "ζelt": 1, "ζeltD": 1, "ζpnode": 1, "ζtxtD": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζendD": 1, "ζviewD": 1, "ζpnEnd": 1, "ζt": 1
         }, 'imports 1');
 
         let t2 = await test.template(`(name) => {
@@ -1131,6 +1133,37 @@ describe('Code generator', () => {
         assert.deepEqual(t3.importMap, {
             "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζΔD": 1, "ζt": 1
         }, 'imports 3');
+    });
+
+    it("should support optional params", async function () {
+        let t1 = await test.template(`(header?: MyHeader) => {
+            <div class="main">
+                if (header) {
+                    <div class="header" @content={header}/>
+                }
+            </>
+        }`);
+
+        assert.equal(t1.function, `(function () {
+        const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = ["class", "header"], ζs3 = [1];
+        @ζΔD class ζParams {
+            header?: MyHeader;
+        }
+        return ζt(function (ζ, $) {
+            let header = $["header"];
+            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζcnt(ζ, ζc, 1, 1, 1);
+            if (header) {
+                ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
+                ζc1 = ζ1.cm;
+                ζelt(ζ1, ζc1, 0, 0, "div", 0, ζs2);
+                ζins(ζ1, 0, 0, ζe(ζ1, 0, header));
+                ζend(ζ1, ζc1);
+            }
+            ζend(ζ, ζc, ζs3);
+        }, 0, ζParams);
+        })()` , 'f1');
     });
 
     it("should support async elements", async function () {

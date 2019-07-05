@@ -1,9 +1,11 @@
 import { loader } from "webpack";
 import { compile } from "../compiler/compiler";
 import { generate } from '../../trax/trax/compiler/generator';
+import { DataMember } from '../../trax/trax/compiler/types';
 
 const RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
+    RX_LIST = /List$/,
     SEPARATOR = "-----------------------------------------------------------------------------";
 
 export default async function (this: loader.LoaderContext, source: string) {
@@ -26,7 +28,7 @@ export default async function (this: loader.LoaderContext, source: string) {
 
     // trax processing for ivy param classes
     try {
-        result = generate(result, this.resourcePath, { symbols: { Data: "ζΔD", /* todo: ref, computed */ }, libPrefix: "ζ" });
+        result = generate(result, this.resourcePath, { symbols: { Data: "ζΔD", /* todo: ref, computed */ }, libPrefix: "ζ", validator: listValidator });
     } catch (e) {
         callback(new Error(e.message));
         return;
@@ -46,4 +48,13 @@ export default async function (this: loader.LoaderContext, source: string) {
         return;
     }
     callback(null, result);
+}
+
+function listValidator(m: DataMember) {
+    if (m && m.type && m.type.kind === "array") {
+        if (!m.name.match(RX_LIST)) {
+            return "Array properties should use the List suffix, e.g. " + m.name + "List";
+        }
+    }
+    return null;
 }

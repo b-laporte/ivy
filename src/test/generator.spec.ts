@@ -844,8 +844,10 @@ describe('Code generator', () => {
             ζeltD(ζ3, ζc3, 0, 0, "b", 1);
             ζtxtD(ζ3, ζc3, 1, 1, 1, ζs2, 1, [0, exp()]);
             ζendD(ζ3, ζc3);
+            ζpnEnd(ζ, ζc, 0, 4);
             ζtxtD(ζ2, ζc2, 1, 0, 0, " header content ", 0);
             ζendD(ζ2, ζc2);
+            ζpnEnd(ζ, ζc, 0, 3);
             ζtxtD(ζ1, ζc1, 1, 0, 0, ζs3, 1, [0, foo()]);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 2);
@@ -872,6 +874,8 @@ describe('Code generator', () => {
             ζpar(ζ, 0, 3, "$value", exp());
             ζpnode(ζ, ζc, 0, 4, 2, "bar");
             ζpar(ζ, 0, 4, "$value", exp2());
+            ζpnEnd(ζ, ζc, 0, 2);
+            ζpnEnd(ζ, ζc, 0, 1);
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '3');
@@ -1080,6 +1084,7 @@ describe('Code generator', () => {
             ζc2 = ζ2.cm;
             ζtxtD(ζ2, ζc2, 1, 0, 0, " The big title ", 0);
             ζendD(ζ2, ζc2);
+            ζpnEnd(ζ, ζc, 0, 2);
             ζeltD(ζ1, ζc1, 0, 0, "span", 1, ζs3);
             ζtxtD(ζ1, ζc1, 1, 1, 1, " Section content ", 0);
             ζendD(ζ1, ζc1);

@@ -1035,10 +1035,8 @@ class PndEndInstruction implements RuntimeInstruction {
         // ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) 
 
         // only create this instruction when there are dynamic parameter nodes
-        if (this.pi.dynamicPNodeRef) {
-            let v = this.view;
-            body.push(`${this.indent}${funcStart("pnEnd", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.pi.dynamicPNodeRef});\n`);
-        }
+        let v = this.view, lastArg = this.pi.dynamicPNodeRef ? ", " + this.pi.dynamicPNodeRef : "";
+        body.push(`${this.indent}${funcStart("pnEnd", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}${lastArg});\n`);
     }
 }
 

@@ -7,7 +7,8 @@ const MP_TRACKABLE = "ΔTrackable",
     MP_PROXY = "ΔΔProxy",
     MP_IS_PROXY = "ΔIsProxy",
     MP_DEFAULT = "ΔDefault",
-    MP_CREATE_PROXY = "ΔCreateProxy";
+    MP_CREATE_PROXY = "ΔCreateProxy",
+    MP_NEW_ITEM = "$newItem";
 
 let FORCE_CREATION = false;
 
@@ -252,8 +253,11 @@ export function untrack(o: any, trackFn: TrackFunction) {
  * @param propName the property name
  * @returns the new property value
  */
-export function create(o: any, propName: string): any {
-    if (o && propName) {
+export function create(o: any, propName: string | number): any {
+    if (o && propName !== undefined) {
+        if (o[MP_NEW_ITEM]) {
+            return o[MP_NEW_ITEM](propName);
+        }
         // using a global variable is quite ugly, but still the best option to avoid making all data node instances heavier
         FORCE_CREATION = true;
         let res = o[propName]

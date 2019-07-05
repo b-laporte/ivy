@@ -836,16 +836,355 @@ describe('Param Nodes', () => {
                 //::C2 template anchor
             </body>
         `, '8');
-    }); 
+    });
+
+    @Data class MenuOption {
+        id: string;
+        text: string;
+    }
+
+    const menu = template(`(optionList: MenuOption[]) => {
+        <menu title={"count:"+optionList.length}>
+            optionList.forEach((item) => {
+                <item data-id={item.id}> # {item.text} # </item>
+            })
+        </menu>
+    }`);
+
+    it("should support a lists of param nodes on component (static)", function () {
+        const tpl = template(`(idx) => {
+            <*menu>
+                <.option id={"a"+idx} text={" Option A "+idx} />
+                <.option id={"b"+idx} text={" Option B "+idx} />
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ idx: 1 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:2">
+                    <item::E4 a:data-id="a1">
+                        #::T5  Option A 1 #
+                    </item>
+                    <item::E6 a:data-id="b1">
+                        #::T7  Option B 1 #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ idx: 2 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:2">
+                    <item::E4 a:data-id="a2"(1)>
+                        #::T5  Option A 2 # (1)
+                    </item>
+                    <item::E6 a:data-id="b2"(1)>
+                        #::T7  Option B 2 # (1)
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '2');
+    });
+
+    it("should support a lists of param nodes on component (dynamic)", function () {
+        @Data class Action {
+            name: string;
+            ref: string;
+        }
+        const tpl = template(`(actionList:Action[]) => {
+            <*menu>
+                <.option id="first" text="First Option" />
+                for (let i=0;actionList.length>i;i++) {
+                    <.option id={actionList[i].ref} text={actionList[i].name} />
+                }
+                <.option id="last" text="Last Option" />
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:2">
+                    <item::E4 a:data-id="first">
+                        #::T5 First Option #
+                    </item>
+                    <item::E6 a:data-id="last">
+                        #::T7 Last Option #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ actionList: [{ ref: "A", name: "Action A" }, { ref: "B", name: "Action B" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:4"(1)>
+                    <item::E4 a:data-id="first">
+                        #::T5 First Option #
+                    </item>
+                    <item::E6 a:data-id="A"(1)>
+                        #::T7 Action A # (1)
+                    </item>
+                    <item::E8 a:data-id="B">
+                        #::T9 Action B #
+                    </item>
+                    <item::E10 a:data-id="last">
+                        #::T11 Last Option #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ actionList: [{ ref: "A", name: "Action A" }, { ref: "C", name: "Action C" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:4"(1)>
+                    <item::E4 a:data-id="first">
+                        #::T5 First Option #
+                    </item>
+                    <item::E6 a:data-id="A"(1)>
+                        #::T7 Action A # (1)
+                    </item>
+                    <item::E8 a:data-id="C"(1)>
+                        #::T9 Action C # (1)
+                    </item>
+                    <item::E10 a:data-id="last">
+                        #::T11 Last Option #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ actionList: [{ ref: "C", name: "Action C" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:3"(2)>
+                    <item::E4 a:data-id="first">
+                        #::T5 First Option #
+                    </item>
+                    <item::E6 a:data-id="C"(2)>
+                        #::T7 Action C # (2)
+                    </item>
+                    <item::E8 a:data-id="last"(2)>
+                        #::T9 Last Option # (2)
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        t.refresh({ actionList: [{ ref: "C", name: "Action C" }, { ref: "D", name: "Action D" }, { ref: "E", name: "Action E" }] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:5"(3)>
+                    <item::E4 a:data-id="first">
+                        #::T5 First Option #
+                    </item>
+                    <item::E6 a:data-id="C"(2)>
+                        #::T7 Action C # (2)
+                    </item>
+                    <item::E8 a:data-id="D"(3)>
+                        #::T9 Action D # (3)
+                    </item>
+                    <item::E10 a:data-id="E"(1)>
+                        #::T11 Action E # (1)
+                    </item>
+                    <item::E12 a:data-id="last">
+                        #::T13 Last Option #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '5');
+
+        t.refresh({ actionList: [] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:2"(4)>
+                    <item::E4 a:data-id="first">
+                        #::T5 First Option #
+                    </item>
+                    <item::E6 a:data-id="last"(3)>
+                        #::T7 Last Option # (3)
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '6');
+    });
+
+    it("should support a lists of param nodes on component (2) (dynamic)", function () {
+        const tpl = template(`(condition=true, idx=1) => {
+            <*menu>
+                if (condition) {
+                    <.option id={"a"+idx} text={"Option A"+idx} />
+                }
+                <.option id="last" text="Last Option" />
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:2">
+                    <item::E4 a:data-id="a1">
+                        #::T5 Option A1 #
+                    </item>
+                    <item::E6 a:data-id="last">
+                        #::T7 Last Option #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ condition: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:1"(1)>
+                    <item::E4 a:data-id="last"(1)>
+                        #::T5 Last Option # (1)
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh(); // unchanged
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:1"(1)>
+                    <item::E4 a:data-id="last"(1)>
+                        #::T5 Last Option # (1)
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.refresh({ condition: true, idx: 4 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <menu::E3 a:title="count:2"(2)>
+                    <item::E4 a:data-id="a4"(2)>
+                        #::T5 Option A4 # (2)
+                    </item>
+                    <item::E6 a:data-id="last">
+                        #::T7 Last Option #
+                    </item>
+                </menu>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
+
+    @Data class GridCell {
+        text: string;
+    }
+
+    @Data class GridRow {
+        title: string;
+        cellList: GridCell[];
+    }
+
+    const grid = template(`(rowList: GridRow[]) => {
+        <ul>
+            rowList.forEach(row => {
+                <li title={row.title}>
+                    row.cellList.forEach(cell => {
+                        # [{cell.text}] #
+                    })
+                </li>
+            });
+        </ul>
+    }`);
+
+    it("should support a list of param nodes on param nodes (dynamic)", function () {
+        @Data class Action {
+            name: string;
+            ref: string;
+        }
+        const tpl = template(`(nbrOfRows=0, nbrOfCells=1, prefix="") => {
+            <*grid>
+                for (let i=0;nbrOfRows>i;i++) {
+                    <.row title={"ROW#"+i}>
+                        for (let j=0;nbrOfCells>j;j++) {
+                            <.cell text={prefix+"CELL("+i+":"+j+")"}/>
+                        }
+                    </>
+                }
+            </>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ nbrOfRows: 2 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <ul::E3>
+                    <li::E4 a:title="ROW#0">
+                        #::T5 [CELL(0:0)] #
+                    </li>
+                    <li::E6 a:title="ROW#1">
+                        #::T7 [CELL(1:0)] #
+                    </li>
+                </ul>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ nbrOfRows: 3, nbrOfCells: 3 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <ul::E3>
+                    <li::E4 a:title="ROW#0">
+                        #::T5 [CELL(0:0)] #
+                        #::T8 [CELL(0:1)] #
+                        #::T9 [CELL(0:2)] #
+                    </li>
+                    <li::E6 a:title="ROW#1">
+                        #::T7 [CELL(1:0)] #
+                        #::T10 [CELL(1:1)] #
+                        #::T11 [CELL(1:2)] #
+                    </li>
+                    <li::E12 a:title="ROW#2">
+                        #::T13 [CELL(2:0)] #
+                        #::T14 [CELL(2:1)] #
+                        #::T15 [CELL(2:2)] #
+                    </li>
+                </ul>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ nbrOfRows: 2, nbrOfCells: 2, prefix: "*" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <ul::E3>
+                    <li::E4 a:title="ROW#0">
+                        #::T5 [*CELL(0:0)] # (1)
+                        #::T8 [*CELL(0:1)] # (1)
+                    </li>
+                    <li::E6 a:title="ROW#1">
+                        #::T7 [*CELL(1:0)] # (1)
+                        #::T10 [*CELL(1:1)] # (1)
+                    </li>
+                </ul>
+                //::C2 template anchor
+            </body>
+        `, '3');
+    });
 
     /**
      * TODO
-     * Support default values in params
-     * List of param nodes
      * Support deferred versions pnodeD
      * dynamic case switching nodes for the same pnode
      * $paramNodes // list of all param nodes -> at all level: on cpt node, but also on sub-param-nodes
      */
-
 
 });

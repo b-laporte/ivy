@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu } from '../trax/trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -213,7 +213,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
     // if doesn't exist, create one and register it on the container
     let cn = pv.nodes![containerIdx], view: IvView;
     if (!cn || !cn.attached) {
-        console.log("[ERROR] Invalid ζview call: container must be attached (" + (cn ? cn.uid : "XX") + ")");
+        console.error("[ERROR] Invalid ζview call: container must be attached (" + (cn ? cn.uid : "XX") + ")");
     }
     if (cn.kind === "#container") {
         if ((cn as IvContainer).subKind === "##block") {
@@ -357,7 +357,7 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
         };
     } else {
         return function () {
-            console.log("TODO: VIEW APPEND: ", position)
+            console.warn("TODO: VALIDATE VIEW APPEND: ", position)
             logView(pv, "getViewInsertFunction for " + cnt.uid)
         }
     }
@@ -461,11 +461,11 @@ export function ζendD(v: IvView, cm: boolean, containerIndexes?: (number[] | 0)
             let pn = v.paramNode;
             if (!pn.data || pn.data.kind === "#view") {
                 // paramNode is associated to an IvContent param
-                pn.dataParent[pn.name] = v
+                pn.dataHolder[pn.dataName] = v
             } else if (pn.data) {
                 pn.data["$content"] = v;
             } else {
-                console.log("TODO: ζendD no data")
+                console.warn("TODO: ζendD no data")
             }
 
             // pn.data = pn.dataParent[pn.name] = {};
@@ -739,12 +739,12 @@ function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boo
             nextSibling: undefined,
             cmAppend: cmAppend,
             template: null,         // current component template
-            params: null,           // shortcut to cptTemplate.params
+            data: null,           // shortcut to cptTemplate.params
             contentView: null,
             dynamicParams: undefined
         }
     } else {
-        console.log("TODO: new cnt type");
+        console.warn("TODO: new cnt type");
         return null;
     }
     return nd;
@@ -790,7 +790,7 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         let tpl: Template = container.template = cptRef()!;
         setParentView(tpl.view, v, container);
         tpl.disconnectObserver();
-        let p = container.params = tpl.params;
+        let p = container.data = tpl.params;
         if (staticParams) {
             // initialize static params
             let len = staticParams.length;
@@ -801,6 +801,11 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
     } else {
         // update mode
         container = v.nodes![idx] as IvCptContainer;
+
+        // if contains list params, reset the tempLists
+        if (container.lists) {
+            container.lists.sizes = {};
+        }
     }
     if (dynParamNames) {
         container.dynamicParams = {};
@@ -824,6 +829,8 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
     if (tpl) {
         let cm = v.cm;
         tpl.view.lastRefresh = v.lastRefresh - 1; // will be incremented by refresh()
+
+        cleanDataLists(container);
 
         if (container.contentView) {
             tpl.params.$content = container.contentView;
@@ -865,12 +872,23 @@ export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
     addInstruction(v, ζcall, [v, idx, container]);
 }
 
+function identifyPNodeList(pn: IvParamNode, name: string, dataParent: any) {
+    if (!hasProperty(dataParent, name)) {
+        if (hasProperty(dataParent, name + "List")) {
+            pn.dataIsList = true;
+            pn.dataName = name + "List";
+        } else {
+            console.error("[Ivy] Invalid parameter name: " + name); // toto proper error
+        }
+    }
+}
+
 export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, staticParams?: any[] | 0, dynParamNames?: string[]) {
-    let nd: IvParamNode, vNodes = v.nodes!;
+    let pnd: IvParamNode, vNodes = v.nodes!;
     // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
     if (cm || !vNodes[idx]) {
         // create and register param node
-        nd = {
+        pnd = {
             kind: "#param",
             uid: "pnd" + (++uidCount),
             idx: idx,
@@ -878,60 +896,91 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
             nextSibling: undefined,
             domNode: undefined,
             attached: true,
-            name: name,
-            dataParent: undefined,
+            dataName: name,
+            dataHolder: undefined,
             data: undefined,
+            dataIsList: undefined,
             contentView: undefined,
             dynamicParams: undefined
         }
-        vNodes[idx] = nd;
+        vNodes[idx] = pnd;
     } else {
-        nd = (vNodes[idx] as IvParamNode);
+        pnd = (vNodes[idx] as IvParamNode);
     }
 
     if (dynParamNames) {
-        nd.dynamicParams = {};
+        pnd.dynamicParams = {};
     }
 
-    let parent = vNodes[parentIndex], data: any, prevData:any = undefined;
-    if (parent.kind === "#container") {
-        let dp = (parent as IvCptContainer).params;
-        nd.dataParent = dp;
-        prevData = nd.data;
-        nd.data = data = dp ? dp[name] : undefined;
-        if (!data && staticParams) {
-            // we must force data creation to host the static params
-            nd.data = data = create(dp, name);
+    let parent = vNodes[parentIndex] as IvCptContainer | IvParamNode,
+        data: any,
+        dataName = name,
+        prevData: any = undefined,
+        dataHolder = parent.data;
+    if (!dataHolder) {
+        console.error("Invalid param: no param node can be used in this context"); // TODO error handling
+    } else {
+        if (pnd.dataIsList === undefined) {
+            identifyPNodeList(pnd, dataName, dataHolder);
         }
-    } else if (parent.kind === "#param") {
-        let parentPNode = parent as IvParamNode, dp = parentPNode.data;
-        if (!dp) {
-            // create the parent node
-            dp = parentPNode.data = create(parentPNode.dataParent, parentPNode.name);
-            if (!dp) {
-                console.error("Invalid param node type for <." + name + "/>"); // TODO: proper error handling
-            }
-        }
-        if (dp) {
-            nd.dataParent = dp;
-            prevData = nd.data;
-            nd.data = data = dp[name];
-            if (data === undefined) {
-                // create the property node
-                nd.data = data = create(dp, name);
-                if (!data) {
-                    console.error("Invalid param node type for <." + name + "/>"); // TODO: proper error handling
+        dataName = pnd.dataName;
+        pnd.dataHolder = dataHolder;
+        prevData = pnd.data;
+
+        if (pnd.dataIsList) {
+            // data node is a list item
+            let parentLists = parent.lists;
+            if (!parentLists) {
+                // create the list meta data
+                parentLists = parent.lists = {
+                    sizes: {},      // dictionary of the temporary lists
+                    listNames: [],  // name of the lists managed by the object holding this meta data - e.g. ["list1", "list2"]
+                    listMap: {}     // map of the list names - e.g. {list1: 1, list2: 1}
                 }
             }
+
+            // register the param list in the parent
+            if (!parentLists.listMap[dataName]) {
+                parentLists.listMap[dataName] = 1;
+                parentLists.listNames.push(dataName);
+            }
+
+            let size = parentLists.sizes[dataName];
+            if (!size) {
+                size = parentLists.sizes[dataName] = 0; // temporary array
+            }
+
+            // get an existing item from the current list or create one
+            data = dataHolder[dataName][size];
+            if (!data) {
+                data = create(dataHolder[dataName], size);
+            }
+            parentLists.sizes[dataName] += 1;
+            pnd.data = data;
+        } else {
+            // data node is not a list item
+            pnd.data = data = dataHolder[dataName];
+            if (data === undefined) {
+                // create the property node
+                pnd.data = data = create(dataHolder, dataName);
+            }
         }
     }
-    // flag the node as read
-    let dp = (parent as IvCptContainer | IvParamNode).dynamicParams;
-    if (dp) {
-        dp[name] = 1;
+    // note: data may not be defined if the param node is not associated to an object 
+    // e.g. string or boolean or number that will be used with a $value param - cf. ζpar
+
+    // if contains list params, reset the tempLists
+    if (pnd.lists) {
+        pnd.lists.sizes = {};
     }
 
-    if (staticParams && data && (prevData !== data)) {
+    // if dynamic, flag the node as read
+    let dp = (parent as IvCptContainer | IvParamNode).dynamicParams;
+    if (dp) {
+        dp[dataName] = 1;
+    }
+
+    if (data && staticParams && (prevData !== data)) {
         // initialize static params
         // prevData !== data is true when node data has been created or reset
         let len = staticParams.length;
@@ -942,25 +991,44 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
 }
 
 export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
-    console.log("TODO ζpnodeD")
+    console.warn("TODO ζpnodeD")
 }
 
-export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) {
-    if (cm) return;
-    let pn = v.nodes![idx] as IvParamNode;
-
-    let len = dynParamNames.length, dp = pn.dynamicParams;
-    for (let i = 0; len > i; i++) {
-        if (dp && !dp[dynParamNames[i]]) {
-            // this param node has not been called - so we need to reset it
-            // console.log("reset", dynParamNames[i]);
-            reset(pn.data, dynParamNames[i]);
+function cleanDataLists(dataHolder: IvCptContainer | IvParamNode) {
+    if (dataHolder.lists) {
+        let lists = dataHolder.lists, lsNames = lists.listNames, nm: string, sz: number, data: any, len2: number;
+        for (let i = 0; lsNames.length > i; i++) {
+            nm = lsNames[i];
+            sz = lists.sizes[nm] || 0;
+            data = dataHolder.data[nm];
+            len2 = data.length;
+            if (sz < len2) {
+                data.splice(sz, len2 - sz);
+            }
         }
     }
 }
 
-export function ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) {
-    console.log("TODO ζpnEndD")
+export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames?: string[]) {
+    if (cm) return;
+    let pn = v.nodes![idx] as IvParamNode;
+
+    cleanDataLists(pn);
+
+    if (dynParamNames) {
+        let len = dynParamNames.length, dp = pn.dynamicParams;
+        for (let i = 0; len > i; i++) {
+            if (dp && !dp[dynParamNames[i]]) {
+                // this param node has not been called - so we need to reset it
+                // console.log("reset", dynParamNames[i]);
+                reset(pn.data, dynParamNames[i]);
+            }
+        }
+    }
+}
+
+export function ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames?: string[]) {
+    console.warn("TODO ζpnEndD")
 }
 
 // Attribute setter
@@ -1005,7 +1073,7 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
     if (val !== ζu) {
         let nd = v.nodes![eltIdx];
         if (nd.kind === "#container") {
-            let p = (nd as IvCptContainer).params;
+            let p = (nd as IvCptContainer).data;
             if (p) {
                 // console.log("1:set", name, "=", val, "in", p)
                 p[name] = val;
@@ -1014,17 +1082,13 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
             let p = (nd as IvParamNode);
             if (name === "$value") {
                 // console.log("previous:", p.dataParent[p.name], "new:", val, p.dataParent[p.name] !== val);
-                p.dataParent[p.name] = val;
+                p.dataHolder[p.dataName] = val;
             } else {
                 if (!p.data) {
-                    // initialize the data object
-                    p.data = create(p.dataParent, p.name);
-                }
-                if (p.data) {
-                    // console.log("2:set", name, "=", val, "in", p.data)
-                    p.data[name] = val;
+                    // could not be created in the ζpnode instruction => invalid parameter
+                    console.error("Invalid param node <." + name + "/>"); // TODO: proper error handling
                 } else {
-                    // p.data should not be null -> error ?
+                    p.data[name] = val;
                 }
             }
         }
@@ -1275,7 +1339,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
             // console.log("removeChild:", nd.domNode.uid, "in", pdn ? pdn.uid : "XX")
             pdn.removeChild(nd.domNode);
         } else {
-            console.log("ERROR: parent not found for: ", nd.uid);
+            console.error("ERROR: parent not found for: ", nd.uid);
         }
     } else if (nd.kind === "#container") {
         if (nd["subKind"] === "##block") {
@@ -1318,8 +1382,11 @@ function removeFromDom(v: IvView, nd: IvNode) {
                 }
             }
         f.domNode = undefined;
+    } else if (nd.kind === "#param") {
+        console.warn("TODO removeFromDom for param nodes")
     } else {
-        console.log("TODO removeFromDom for " + nd.kind)
+        // will raise an error when new node types are introduced
+        console.warn("RemoveFromDom for " + nd.kind)
     }
 }
 

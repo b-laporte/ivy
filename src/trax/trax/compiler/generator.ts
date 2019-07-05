@@ -12,7 +12,7 @@ interface GeneratorOptions {
 }
 
 export function generate(src: string, filePath: string, options?: GeneratorOptions): string {
-    const symbols = getSymbols(options ? options.symbols : undefined), libPrefix = options ? options.libPrefix : "";
+    const symbols = getSymbols(options ? options.symbols : undefined), libPrefix = options ? (options.libPrefix || "") : "";
 
     let output = src,
         outputShift = 0,

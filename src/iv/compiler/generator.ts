@@ -476,9 +476,9 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                     if (v.kind === "asyncBlock") {
                         this.gc.error("Param nodes cannot be defined in @async blocks", nd);
-                    } else if (v.kind === "jsBlock" || v.kind === "paramContent") {
+                    } else if (v.kind === "jsBlock") {
                         v = v.parentView!;
-                    } else if (v.kind === "cptContent") {
+                    } else if (v.kind === "cptContent" || v.kind === "paramContent") {
                         v = v.parentView!;
                         break;
                     } else if (v.kind === "template") {

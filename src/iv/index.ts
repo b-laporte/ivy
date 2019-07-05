@@ -918,7 +918,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         prevData: any = undefined,
         dataHolder = parent.data;
     if (!dataHolder) {
-        console.error("Invalid param: no param node can be used in this context"); // TODO error handling
+        console.error("Invalid param <." + name + "/>: no param node can be used in this context"); // TODO error handling
     } else {
         if (pnd.dataIsList === undefined) {
             identifyPNodeList(pnd, dataName, dataHolder);
@@ -1086,7 +1086,7 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
             } else {
                 if (!p.data) {
                     // could not be created in the ζpnode instruction => invalid parameter
-                    console.error("Invalid param node <." + name + "/>"); // TODO: proper error handling
+                    console.error("Invalid parameter: " + name); // TODO: proper error handling
                 } else {
                     p.data[name] = val;
                 }

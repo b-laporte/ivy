@@ -999,6 +999,49 @@ describe('Code generator', () => {
         ], "2s");
     });
 
+    it("should support components with param nodes within control statements", async function () {
+        let t1 = await test.template(`(nbrOfRows=0) => {
+            if (nbrOfRows>0) {
+                <*grid>
+                    for (let i=0;nbrOfRows>i;i++) {
+                        <.row>
+                            <.summary id={i}> # Summary {i} # </>
+                        </>
+                    }
+                </>
+            }
+        }`);
+
+        assert.equal(t1.body, `
+            let ζi1 = 0, ζ1, ζc1, ζ2, ζc2, ζi3 = 0, ζ3, ζc3, ζ4, ζc4, ζ5, ζc5, ζc = ζinit(ζ, ζs0, 1);
+            ζcnt(ζ, ζc, 0, 0, 1);
+            if (nbrOfRows>0) {
+                ζ1 = ζview(ζ, 0, 0, 3, ++ζi1);
+                ζc1 = ζ1.cm;
+                ζcpt(ζ1, ζc1, 0, 0, 0, ζe(ζ1, 0, grid), 0, 0, ζs3);
+                ζi3 = 0;
+                ζ2 = ζviewD(ζ1, 1, 0, 1, 0);
+                ζc2 = ζ2.cm;
+                ζcntD(ζ2, ζc2, 0, 0, 1);
+                for (let i=0;nbrOfRows>i;i++) {
+                    ζpnode(ζ1, ζc1, 0, 1, 0, "row");
+                    ζpnode(ζ1, ζc1, 0, 2, 1, "summary");
+                    ζpar(ζ1, 0, 2, "id", i);
+                    ζ5 = ζviewD(ζ1, 1, 2, 1, 0);
+                    ζc5 = ζ5.cm;
+                    ζtxtD(ζ5, ζc5, 1, 0, 0, ζs1, 1, [0, i]);
+                    ζendD(ζ5, ζc5);
+                    ζpnEnd(ζ1, ζc1, 0, 2);
+                    ζpnEnd(ζ1, ζc1, 0, 1);
+                }
+                ζendD(ζ2, ζc2, ζs4);
+                ζcall(ζ1, 0, 0, ζs3);
+                ζend(ζ1, ζc1);
+            }
+            ζend(ζ, ζc, ζs2);
+        `, '1');
+    });
+
     it("should not create content fragments components with only param nodes and js statements", async function () {
         assert.equal(await body.template(`() => {
             <*foo>

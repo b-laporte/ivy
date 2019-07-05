@@ -1180,6 +1180,57 @@ describe('Param Nodes', () => {
         `, '3');
     });
 
+    it("should work with components inside a control statement", function () {
+        @Data class Row {
+            id: any = "";
+            summary: IvContent;
+            $content: IvContent;
+        }
+
+        const grid = template(`(rowList:Row[]) => {
+            for (let idx=0; rowList.length>idx; idx++) {
+                let row = rowList[idx];
+        
+                # row {row.id} #
+                <div title={row.id} @content={row.summary}/> 
+            }
+        }`);
+
+        const tpl = template(`(nbrOfRows=0) => {
+            if (nbrOfRows>0) {
+                <*grid>
+                    for (let i=0;nbrOfRows>i;i++) {
+                        <.row id={i}>
+                            <.summary> # Summary {i} # </>
+                        </>
+                    }
+                </>
+            }
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({ nbrOfRows: 0 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ nbrOfRows: 2 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 row 0 #
+                <div::E4 a:title="0">
+                    #::T5 Summary 0 #
+                </div>
+                #::T6 row 1 #
+                <div::E7 a:title="1">
+                    #::T8 Summary 1 #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+    });
+
     /**
      * TODO
      * Support deferred versions pnodeD

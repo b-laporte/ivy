@@ -149,6 +149,7 @@ export class GenerationCtxt {
     localVars = {};                     // map of creation mode vars
     blockCount = 0;                     // number of js blocks - used to increment block variable suffixes
     templateArgs: string[] = [];        // name of template arguments
+    paramCounter = 0;                   // counter used to create param instance variables
 
     constructor(public options: CompilationOptions) {
         this.imports = options.importMap || {};
@@ -297,6 +298,7 @@ export class ViewInstruction implements RuntimeInstruction {
     cptIFlag: number = -1;                  // iFlag of the component associated with this view
     cpnParentLevel: number = -1;            // component or pnode parent level
     contentParentInstruction: CptInstruction | PndInstruction | undefined; // only defined for kind="cptContent" or "paramContent"
+    paramInstanceVars: { [paramName: string]: string } | undefined = undefined;    // map of the param node instance variables
 
     constructor(public kind: ViewKind, public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iFlag: number, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentView) {
@@ -466,7 +468,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (!this.parentView) {
                     this.gc.error("Param nodes cannot be defined at root level", nd); // TODO: this could change
                 }
-                let v: ViewInstruction = this, cptIFlag = 0, cpnParentLevel = 0;
+                let v: ViewInstruction = this, cptIFlag = 0, cpnParentLevel = 0, name = (nd as XjsParamNode).name;
                 while (v) {
                     if (v.cptIFlag > -1) {
                         cptIFlag = v.cptIFlag;
@@ -507,13 +509,23 @@ export class ViewInstruction implements RuntimeInstruction {
                     this.gc.error("Internal error: contentParentView should be defined", nd);
                 }
                 if (inJsBlock) {
-                    let names = contentParentView!.contentParentInstruction!.dynamicPNodeNames, name = (nd as XjsParamNode).name;
+                    let names = contentParentView!.contentParentInstruction!.dynamicPNodeNames;
                     if (names.indexOf(name) < 0) {
                         names.push(name);
                     }
                 }
+                if (!v.paramInstanceVars) {
+                    v.paramInstanceVars = {};
+                }
+                let instanceVarName: string = v.paramInstanceVars[name];
+                if (!instanceVarName) {
+                    instanceVarName = 'ζp' + this.gc.paramCounter++;
+
+                    this.gc.localVars[`${instanceVarName}`] = 1;
+                    v.paramInstanceVars[name] = instanceVarName;
+                }
                 let parentIdx = contentParentView!.contentParentInstruction!.idx,
-                    pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent, parentIdx);
+                    pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent, parentIdx, instanceVarName);
                 this.instructions.push(pi);
                 if (containsParamExpr) {
                     this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
@@ -781,7 +793,18 @@ export class ViewInstruction implements RuntimeInstruction {
                     // root block is initialized with ζinit
                     body.push(`${this.indent}${this.jsVarName} = ${funcStart("view", this.iFlag)}${parentViewVarName}, ${this.iFlag}, ${this.idx}, ${this.nodeCount}${lastArgs});\n`);
                     body.push(`${this.indent}${this.cmVarName} = ${this.jsVarName}.cm;\n`);
+
                 }
+            }
+            if (this.paramInstanceVars !== undefined) {
+                // reset the parameter instance counters
+                let arr: string[] = [];
+                for (let k in this.paramInstanceVars) {
+                    if (this.paramInstanceVars.hasOwnProperty(k)) {
+                        arr.push(this.paramInstanceVars[k]);
+                    }
+                }
+                body.push(`${this.indent}${arr.join(" = ")} = 0;\n`);
             }
 
             for (let ins of this.instructions) {
@@ -1007,7 +1030,7 @@ class PndInstruction implements RuntimeInstruction {
     dynamicPNodeNames: string[] = []; // name of child param nodes
     dynamicPNodeRef: string;
 
-    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string, public parentIndex: number) {
+    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string, public parentIndex: number, public instanceVarName: string) {
         view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on param nodes", node);
@@ -1021,7 +1044,7 @@ class PndInstruction implements RuntimeInstruction {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
         let v = this.view, stParams = processCptOptionalArgs(this.view, this);
         // unused: ${this.parentLevel}
-        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}"${stParams});\n`);
+        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}", ${this.instanceVarName}++${stParams});\n`);
     }
 }
 

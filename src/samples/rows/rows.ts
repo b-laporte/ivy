@@ -12,11 +12,16 @@ import { grid } from './grid';
     projection: string;
 }
 
+@Data class MainParams {
+    showExpandingRow=false;
+    teamList:MlbTeam[];
+}
+
 // --------------------------------------------------------------------------------------------------
 // Main template
 const mainStyle = "padding: 1;margin: 1;background-color: white;width: 1000px;display: block;";
 
-const main = template(`($params, showExpandingRow=false, teamList:MlbTeam[]) => {
+const main = template(`($params:MainParams, $state:nnn, showExpandingRow, teamList) => {
     <h2> #cfc-expanding-row initialization benchmark# </h2>
 
     <section>
@@ -51,20 +56,21 @@ const main = template(`($params, showExpandingRow=false, teamList:MlbTeam[]) => 
     </benchmark-area>
 }`);
 
-let fakeTeams: MlbTeam[] = [];
+let fakeTeams: MlbTeam[] = [], resetCount=0;
 
 function reset($params, numItems = 5000) {
     $params.showExpandingRow = false;
+    resetCount++;
 
     fakeTeams = [];
     let team: MlbTeam;
     for (let i = 0; i < numItems; i++) {
         team = new MlbTeam();
-        team.name = `name ${i}`;
+        team.name = `name ${resetCount}-${i}`;
         team.id = i;
-        team.division = `division ${i}`;
-        team.stadium = `stadium ${i}`;
-        team.projection = `projection ${i}`;
+        team.division = `division ${resetCount}-${i}`;
+        team.stadium = `stadium ${resetCount}-${i}`;
+        team.projection = `projection ${resetCount}-${i}`;
         fakeTeams.push(team);
     }
 }

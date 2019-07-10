@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { template, IvContent } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
-import { Data } from '../../trax/trax';
+import { Data, changeComplete } from '../../trax/trax';
 
 // Components with param nodes
 describe('Param Nodes', () => {
@@ -225,7 +225,7 @@ describe('Param Nodes', () => {
                 </div>
                 //::C2 template anchor
             </body>
-        `, '1');
+        `, '2');
         assert.equal(count, 2, "count:2");
 
         resetVars();
@@ -1190,7 +1190,6 @@ describe('Param Nodes', () => {
         const grid = template(`(rowList:Row[]) => {
             for (let idx=0; rowList.length>idx; idx++) {
                 let row = rowList[idx];
-        
                 # row {row.id} #
                 <div title={row.id} @content={row.summary}/> 
             }
@@ -1229,6 +1228,70 @@ describe('Param Nodes', () => {
                 //::C2 template anchor
             </body>
         `, '2');
+    });
+
+    it("should reset param nodes between each call", async function () {
+        @Data class Row {
+            id: any = "";
+            summary: IvContent;
+            $content: IvContent;
+        }
+
+        @Data class Team {
+            id: number;
+        }
+
+        let arr: Team[] = [], team: Team;
+        for (let i = 0; i < 3; i++) {
+            team = new Team();
+            team.id = i;
+            arr.push(team);
+        }
+
+        const grid = template(`(rowList:Row[]) => {
+            for (let idx=0; rowList.length>idx; idx++) {
+                let row = rowList[idx];
+                <div title={row.id} @content={row.summary}/>
+            }
+        }`);
+
+        let params: any;
+
+        const tpl = template(`($params, teamList:Team[]) => {
+            params = $params;
+            <*grid>
+                for (let team of teamList) {
+                    <.row id={team.id}>
+                        <.summary> # Team {team.id} # </>
+                    </.row>
+                }
+            </*grid>
+        }`);
+
+        let t1 = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t1), `
+            <body::E1>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        params.teamList = arr;
+        await changeComplete(params);
+        assert.equal(stringify(t1), `
+            <body::E1>
+                <div::E3 a:title="0">
+                    #::T4 Team 0 #
+                </div>
+                <div::E5 a:title="1">
+                    #::T6 Team 1 #
+                </div>
+                <div::E7 a:title="2">
+                    #::T8 Team 2 #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
     });
 
     /**

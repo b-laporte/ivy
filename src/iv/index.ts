@@ -117,6 +117,7 @@ export class Template implements IvTemplate {
 }
 
 function createView(parentView: IvView | null, isTemplateRoot: boolean, container: IvContainer | null): IvView {
+    //console.log("createView");
     let view: IvView = {
         kind: "#view",
         uid: "view" + (++uidCount),
@@ -192,6 +193,7 @@ export function ζinit(v: IvView, staticCache: Object, nbrOfNodes: number): bool
             if (v.anchorNode) {
                 // this is the root template
                 v.cmAppends[0] = function (n: IvNode, domOnly: boolean) {
+                    // console.log("cmAppends #1");
                     if (n.domNode) {
                         v.rootDomNode.insertBefore(n.domNode, v.anchorNode);
                     } else {
@@ -257,6 +259,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
             cnt.lastRefresh = view.lastRefresh = pv.lastRefresh;
         } else {
             // in this case cn is a component container and iFlag > 0
+            // console.log("view: get content view #1", pv.uid);
             let cnt = cn as IvCptContainer;
             view = cnt.contentView!;
             if (!view) {
@@ -269,8 +272,10 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
     } else if (cn.kind === "#param") {
         // cn is a param node
         let pn = cn as IvParamNode;
+        // console.log("view: get content view #2", pv.uid);
         view = pn.contentView!;
         if (!view) {
+            // console.log("create param view")
             view = pn.contentView = createView(pv, false, null);
             view.nodes = new Array(nbrOfNodes);
             view.paramNode = pn;
@@ -340,6 +345,7 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
     // console.log(`findNextSiblingDomNd of ${cnt.uid} position=${position} nextDomNd=${nextDomNd ? nextDomNd.uid : "XX"} parentDomNd=${parentDomNd ? parentDomNd.uid : "XX"}`)
     if (position === "beforeChild" || position === "lastOnRoot") {
         return function (n: IvNode, domOnly: boolean) {
+            // console.log("cmAppends #2.1", n.uid, domOnly);
             if (n.domNode) {
                 parentDomNd.insertBefore(n.domNode, nextDomNd);
             } else {
@@ -348,6 +354,7 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
         };
     } else if (position === "lastChild") {
         return function (n: IvNode, domOnly: boolean) {
+            // console.log("cmAppends #2.2", n.uid, domOnly);
             if (n.domNode) {
                 // console.log("getViewInsertFunction: appendChild", n.domNode.uid, "in", parentDomNd.uid)
                 parentDomNd.appendChild(n.domNode);
@@ -357,6 +364,7 @@ function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
         };
     } else {
         return function () {
+            // console.log("cmAppends #2.3");
             console.warn("TODO: VALIDATE VIEW APPEND: ", position)
             logView(pv, "getViewInsertFunction for " + cnt.uid)
         }
@@ -511,6 +519,7 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     v.cmAppends![parentLevel]!(nd, false); // append in the parent DOM
     if (hasChildren) {
         v.cmAppends![parentLevel + 1] = function (n: IvNode, domOnly: boolean) {
+            // console.log("cmAppends #3");
             if (n.domNode) {
                 e.appendChild(n.domNode);
                 // appendChild(e, n.domNode);
@@ -543,6 +552,7 @@ function appendChildToNode(p: IvParentNode, child: IvNode) {
 // Text creation function
 // e.g. ζtxt(ζ, ζc, 0, 1, 1, " Hello World ", 0);
 export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+    // console.log("ζtxt", idx, nbrOfValues);
     let nd: IvText;
     if (!nbrOfValues) {
         // static node: nbrOfValues === 0
@@ -565,6 +575,7 @@ export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
             }
         }
         if (cm) {
+            // console.log("create text node ", pieces.join(""));
             nd = createNode(v.doc.createTextNode(pieces.join("") as string), pieces);
         } else {
             if (changed) {
@@ -593,6 +604,7 @@ export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
 }
 
 export function ζtxtD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+    // console.log("ζtxtD");
     let args = [v, cm, iFlag, idx, parentLevel, statics, nbrOfValues]
     for (let i = 0; nbrOfValues > i; i++) {
         args.push(values[i]);
@@ -683,6 +695,7 @@ export function ζfra(v: IvView, cm: boolean, idx: number, parentLevel: number) 
     let parentCmAppend = v.cmAppends![parentLevel]!;
     parentCmAppend(nd, false);
     v.cmAppends![parentLevel + 1] = function (n: IvNode, domOnly: boolean) {
+        // console.log("cmAppends #4 ", n.uid, domOnly);
         parentCmAppend(n, true);
         if (!domOnly) {
             appendChildToNode(nd, n);
@@ -883,10 +896,11 @@ function identifyPNodeList(pn: IvParamNode, name: string, dataParent: any) {
     }
 }
 
-export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, staticParams?: any[] | 0, dynParamNames?: string[]) {
-    let pnd: IvParamNode, vNodes = v.nodes!;
+export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, staticParams?: any[] | 0, dynParamNames?: string[]) {
+    let pnd: IvParamNode, vNodes = v.nodes!, updateMode = false, prevContentView: any = null;
     // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
-    if (cm || !vNodes[idx]) {
+    // console.log(instanceIdx) // add siblings?
+    if (!vNodes[idx]) {
         // create and register param node
         pnd = {
             kind: "#param",
@@ -901,11 +915,29 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
             data: undefined,
             dataIsList: undefined,
             contentView: undefined,
-            dynamicParams: undefined
+            dynamicParams: undefined,
+            viewInstanceIdx: instanceIdx,
+            viewPool: undefined
         }
         vNodes[idx] = pnd;
     } else {
         pnd = (vNodes[idx] as IvParamNode);
+        // if (pnd.contentView) {
+        //     console.log("Remove contentView", pnd.contentView.uid)
+        //     // prevContentView=pnd.contentView;
+        // }
+        // pnd.contentView = 
+        let viewPool = pnd.viewPool;
+        if (instanceIdx > 0 && !viewPool) {
+            viewPool = pnd.viewPool = [];
+            viewPool[pnd.viewInstanceIdx] = pnd.contentView!;
+        }
+        if (viewPool) {
+            pnd.contentView = viewPool[instanceIdx];
+        }
+        pnd.viewInstanceIdx = instanceIdx;
+        pnd.dataHolder = pnd.data = undefined;
+        updateMode = true;
     }
 
     if (dynParamNames) {
@@ -965,6 +997,21 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
                 pnd.data = data = create(dataHolder, dataName);
             }
         }
+
+        if (updateMode && data) {
+            if (data["ΔΔ$content"]) {
+                // console.log(" >>>>>>>>>>>>>>>>>>>>>>>>>>>> Retrieve ")
+                pnd.contentView = data["ΔΔ$content"];
+            } else if (data === prevContentView) {
+                //console.log("DATA:", data.uid)
+                //nd.contentView = prevContentView;
+            }
+        }
+
+        // if (updateMode && data && data["ΔΔ$content"]) {
+        //     // retrieve the content view from the data
+        //     pnd.contentView = data["ΔΔ$content"];
+        // }
     }
     // note: data may not be defined if the param node is not associated to an object 
     // e.g. string or boolean or number that will be used with a $value param - cf. ζpar
@@ -990,7 +1037,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
     }
 }
 
-export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, staticParams?: any[]) {
+export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, instanceIdx: number, staticParams?: any[]) {
     console.warn("TODO ζpnodeD")
 }
 
@@ -1147,6 +1194,7 @@ export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: an
     if ((contentView as any) === ζu || exprContentView === undefined) {
         contentView = projectionNode.contentView as IvView;
     }
+    // console.log("ζins", contentView ? contentView.uid : "no content view");
 
     if (!contentView) return;
 
@@ -1171,6 +1219,7 @@ export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: an
         if (projectionNode.kind === "#element") {
             let pdn = projectionNode.domNode;
             contentView.cmAppends = [function (n: IvNode) {
+                // console.log("cmAppends #5", n.uid, n.domNode ? n.domNode.uid : "XX");
                 if (n.domNode) {
                     projectionNode.domNode.appendChild(n.domNode);
                 } else {
@@ -1435,8 +1484,8 @@ export async function asyncComplete() {
 
 const SEP = "-------------------------------------------------------------------------------";
 
-function logView(v: IvView, label = "", rootId?: string) {
-    if (!rootId || v.uid === rootId) {
+function logView(v: IvView, label = "", viewId?: string) {
+    if (!viewId || v.uid === viewId) {
         console.log("");
         console.log(SEP);
         if (label) {

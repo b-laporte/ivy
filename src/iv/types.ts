@@ -88,6 +88,8 @@ export interface IvParamNode extends IvNode, IvParamNodeParent {
     dataIsList?: boolean;                             // true if data references a list
     contentView: IvView | undefined;
     dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic sub-params that have been found while refreshing the param content (aka. light-dom)
+    viewPool: IvView[] | undefined;
+    viewInstanceIdx: number;
 }
 
 export interface IvContainer extends IvNode {

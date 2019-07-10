@@ -12,28 +12,28 @@ import { grid } from './grid';
     projection: string;
 }
 
-@Data class MainParams {
-    showExpandingRow=false;
-    teamList:MlbTeam[];
+@Data class MainState {
+    showExpandingRow = false;
+    teamList: MlbTeam[];
 }
 
 // --------------------------------------------------------------------------------------------------
 // Main template
 const mainStyle = "padding: 1;margin: 1;background-color: white;width: 1000px;display: block;";
 
-const main = template(`($params:MainParams, $state:nnn, showExpandingRow, teamList) => {
+const main = template(`($state:MainState) => {
     <h2> #cfc-expanding-row initialization benchmark# </h2>
 
     <section>
-      <button id="reset" click()={reset($params)}> #Reset# </button>
-      <button id="init" click()={init($params)}> #Init# </button>
+      <button id="reset" click()={reset($state)}> #Reset# </button>
+      <button id="init" click()={init($state)}> #Init# </button>
       <button id="run" click()={runAll()}> #Run All# </button>
     </section>
 
     <benchmark-area class="cfc-ng2-region" style={::mainStyle}>
-        if (showExpandingRow) {
+        if ($state.showExpandingRow) {
             <*grid>
-                for (let team of teamList) {
+                for (let team of $state.teamList) {
                     <.row id={team.id}>
                         <.summary> # Team {team.id} # </>
                         <.caption> 
@@ -56,10 +56,10 @@ const main = template(`($params:MainParams, $state:nnn, showExpandingRow, teamLi
     </benchmark-area>
 }`);
 
-let fakeTeams: MlbTeam[] = [], resetCount=0;
+let fakeTeams: MlbTeam[] = [], resetCount = 0;
 
-function reset($params, numItems = 5000) {
-    $params.showExpandingRow = false;
+function reset($state: MainState, numItems = 5000) {
+    $state.showExpandingRow = false;
     resetCount++;
 
     fakeTeams = [];
@@ -75,9 +75,9 @@ function reset($params, numItems = 5000) {
     }
 }
 
-function init($params) {
-    $params.teamList = fakeTeams;
-    $params.showExpandingRow = true;
+function init($state: MainState) {
+    $state.teamList = fakeTeams;
+    $state.showExpandingRow = true;
 }
 
 async function runAll() {

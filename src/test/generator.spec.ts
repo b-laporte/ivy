@@ -767,6 +767,33 @@ describe('Code generator', () => {
         })()`, 'param class + local variables initialization');
     });
 
+    it("should support external State class definition", async function () {
+        let t1 = await test.template(`($state:MyStateClass) => {
+            # Hello {$state.name} #
+        }`);
+        assert.equal(t1.function, `(function () {
+        const ζs0 = {}, ζs1 = [" Hello ", "", " "];
+        return ζt(function (ζ, $, $state) {
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $state.name));
+            ζend(ζ, ζc);
+        }, 0, 0, MyStateClass);
+        })()`, 'simple param class');
+
+        let t2 = await test.template(`($params:MyParamClass, name:string, $state:MyStateClass) => {
+            # Hello {name} #
+        }`);
+        assert.equal(t2.function, `(function () {
+        const ζs0 = {}, ζs1 = [" Hello ", "", " "];
+        return ζt(function (ζ, $, $state) {
+            let $params = $, name = $["name"];
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        }, 0, MyParamClass, MyStateClass);
+        })()`, 'param class + local variables initialization');
+    });
+
     it("should support built-in @content with expression on fragments", async function () {
         assert.equal(await body.template(`($content) => {
             <div>

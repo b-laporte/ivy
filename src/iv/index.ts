@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty } from '../trax/trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -16,14 +16,15 @@ let TPL_COUNT = 0;
 export class Template implements IvTemplate {
     uid = ++TPL_COUNT;
     view: IvView;
-    refreshArg: any = undefined;
+    tplParams: any = undefined;
+    tplState: any = undefined;
     forceRefresh = false;
     watchCb: () => void;
     activeWatch = false;
     lastRefreshVersion = 0;
     processing = false;
 
-    constructor(public refreshFn: (ζ: IvView, ζa?: any) => void | undefined, public argumentClass?: () => void, public hasHost = false) {
+    constructor(public refreshFn: (ζ: IvView, $params?: any, $state?: any) => void | undefined, public argumentClass?: () => void, public stateClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, true, null);
         let self = this;
@@ -41,11 +42,18 @@ export class Template implements IvTemplate {
         this.view.doc = d;
     }
 
-    get params(): any | undefined {
-        if (!this.refreshArg && this.argumentClass) {
-            this.refreshArg = new this.argumentClass();
+    get $params(): any | undefined {
+        if (!this.tplParams && this.argumentClass) {
+            this.tplParams = new this.argumentClass();
         }
-        return this.refreshArg;
+        return this.tplParams;
+    }
+
+    get $state(): any | undefined {
+        if (!this.tplState && this.stateClass) {
+            this.tplState = new this.stateClass();
+        }
+        return this.tplState;
     }
 
     attach(element: any) {
@@ -68,7 +76,8 @@ export class Template implements IvTemplate {
 
     disconnectObserver() {
         if (this.activeWatch) {
-            unwatch(this.params, this.watchCb);
+            unwatch(this.$params, this.watchCb);
+            unwatch(this.$state, this.watchCb);
             this.activeWatch = false;
         }
     }
@@ -77,7 +86,12 @@ export class Template implements IvTemplate {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
-        let p = this.params;
+        let p = this.$params, state = this.$state;
+
+        if (state && !isDataObject(state)) {
+            console.error("Template state must be a Data Object - please check: " + this.stateClass!.name);
+            this.tplState = this.stateClass = undefined;
+        }
 
         if (p && data) {
             if (!isMutating(p)) {
@@ -93,22 +107,25 @@ export class Template implements IvTemplate {
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
             bypassRefresh = false; // internal blocks may have to be recreated if root is not attached
         }
-        if (p && bypassRefresh && version(p) !== this.lastRefreshVersion) {
+        if (bypassRefresh && version(p) + version(state) > this.lastRefreshVersion) {
             bypassRefresh = false;
         }
         if (!bypassRefresh) {
-            // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "params version:", version(p), "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
+            // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
             this.view.lastRefresh++;
             this.view.instructions = undefined;
-            this.refreshFn(this.view, p);
+            this.refreshFn(this.view, p, state);
             // console.log(">>>>>>>>>>>>>>>>> REFRESH DONE", this.uid);
-            commitChanges(p);
+            commitChanges(p); // will change p or state version
             this.forceRefresh = false;
-            this.lastRefreshVersion = version(p);
+            this.lastRefreshVersion = version(p) + version(state);
         }
 
         if (!this.activeWatch) {
             watch(p, this.watchCb);
+            if (state) {
+                watch(state, this.watchCb);
+            }
             this.activeWatch = true;
         }
         this.processing = false;
@@ -165,9 +182,9 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param refreshFn 
  */
-export function ζt(refreshFn: (ζ: any, ζa?: any) => void, hasHost?: number, argumentClass?): () => IvTemplate {
+export function ζt(refreshFn: (ζ: any, $params?: any, $state?: any) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
     return function () {
-        return new Template(refreshFn, argumentClass || undefined, hasHost === 1);
+        return new Template(refreshFn, argumentClass || undefined, stateClass, hasHost === 1);
     }
 }
 
@@ -803,7 +820,7 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         let tpl: Template = container.template = cptRef()!;
         setParentView(tpl.view, v, container);
         tpl.disconnectObserver();
-        let p = container.data = tpl.params;
+        let p = container.data = tpl.$params;
         if (staticParams) {
             // initialize static params
             let len = staticParams.length;
@@ -846,7 +863,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
         cleanDataLists(container);
 
         if (container.contentView) {
-            tpl.params.$content = container.contentView;
+            tpl.$params.$content = container.contentView;
             let instr = container.contentView.instructions;
             if (instr && instr.length > 2) { // 2 because ζendD will always be in the instruction list if any
                 // console.log("forceRefresh #2 - ", instr.length);
@@ -859,7 +876,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
         } else {
             if (dynParamNames) {
                 // reset the dynamic param nodes that have not been processed
-                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.params;
+                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.$params;
                 for (let i = 0; len > i; i++) {
                     if (!dp[dynParamNames[i]]) {
                         // this param node has not been called - so we need to reset it

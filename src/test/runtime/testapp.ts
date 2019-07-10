@@ -8,4 +8,5 @@ import "./content-components.spec";
 import "./events.spec";
 import "./data.spec";
 import "./pnodes.spec";
+import "./state.spec";
 // import "./async.spec";

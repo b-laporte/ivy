@@ -8,9 +8,11 @@ export interface IvDocument {
 
 export interface IvTemplate {
     document: IvDocument;
-    params: any | undefined;
+    $params: any | undefined;
+    $state: any | undefined;
     attach(element: any): IvTemplate;
     refresh(data?: any): IvTemplate;
+    // get() / getAll()
 }
 
 export interface IvNode {

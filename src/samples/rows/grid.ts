@@ -15,7 +15,11 @@ import { Data } from '../../trax/trax';
     $content: IvContent;
 }
 
-export const grid = template(`(rowList:Row[]) => {
+@Data class GridState {
+    selectedRow?: Row;
+}
+
+export const grid = template(`(rowList:Row[], $state:GridState) => {
     <div focus()={focusOnLastFocusedRow()} tabindex="0"> # # </div> // todo: #firstFocusable
     
     for (let idx=0; rowList.length>idx; idx++) {
@@ -28,11 +32,11 @@ export const grid = template(`(rowList:Row[]) => {
 
             if (!row.expanded) {
                 // collapsed row: display summary
-                <*rowSummary row={row} index={idx}/>
+                <*rowSummary row={row} index={idx} gridState={$state}/>
             } else {
                 // expanded row: caption first
                 <div class="cfc-expanding-row-details-caption" 
-                    click()={handleCaptionClick(row)} 
+                    click()={handleGridClick(row, $state)} 
                     style={"color:white;background-color:"+row.caption.color} 
                     @content={row.caption.$content}
                 />
@@ -53,14 +57,18 @@ function getRowClass(row: Row) {
     return cls.join(" ");
 }
 
-function handleCaptionClick(row: Row) {
-    console.log("Caption click - row: "+row.id);
-    row.expanded = !row.expanded;
-}
-
-function handleSummaryClick(row: Row) {
-    console.log("Summary click - row: "+row.id);
-    row.expanded = !row.expanded;
+function handleGridClick(row: Row, state: GridState) {
+    // only allow one selected row at a time
+    let clickOnSelectedRow = false;
+    if (state.selectedRow) {
+        clickOnSelectedRow = (row === state.selectedRow);
+        state.selectedRow.expanded = false;
+        state.selectedRow = undefined;
+    }
+    if (!clickOnSelectedRow) {
+        state.selectedRow = row;
+        state.selectedRow.expanded = true;
+    }
 }
 
 function isPreviouslyFocusedRow(idx) {
@@ -76,9 +84,9 @@ function focusOnLastFocusedRow() {
     console.log("focusOnLastFocusedRow")
 }
 
-const rowSummary = template(`(row:Row, index:number) => {
+const rowSummary = template(`(row:Row, index:number, gridState:GridState) => {
     <div class="cfc-expanding-row-summary" tabindex="-1" // #expandingRowSummaryMainElement
-        click()={handleSummaryClick(row)} focus()={handleFocus()}>
+        click()={handleGridClick(row, gridState)} focus()={handleFocus()}>
         <! @content={row.summary}/>
         
         <div class="cfc-expanding-row-accessibility-text"> #.# </div>

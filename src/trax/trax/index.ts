@@ -15,7 +15,8 @@ let FORCE_CREATION = false;
 export interface TraxObject {
     ΔTrackable: true;
     ΔChangeVersion: number;
-    ΔMd: TraxMetaData | undefined;
+    ΔMd?: TraxMetaData;
+    ΔComputeDependencies?: { [propName: string]: boolean };
 }
 
 export interface TraxMetaData {
@@ -129,9 +130,91 @@ export function ref(proto, key: string) {
 
 }
 
-// TODO
 export function computed(proto, propName: string, descriptor: PropertyDescriptor) {
+    // we must wrap the getter with a new getter that will ensure the memoization
+    let processor: Function = descriptor.get!, ΔΔPropName = "ΔΔ" + propName;
+    if (!descriptor.get || descriptor.set !== undefined) {
+        console.error("[Trax] @computed properties must be defined on property getters only");
+        return;
+    }
+    descriptor.set = undefined;
+    descriptor.get = function () {
+        if (!isDataObject(this)) {
+            console.error("[Trax] @computed properties can only be used on Data objects");
+            return null;
+        }
+        //console.log("@computed get " + propName);
+        let callProcessor = false, storedValues: any[] | undefined = this[ΔΔPropName], result: any, dependsOnMutations = false;
 
+        // the result of the previous call is stored in the ΔΔPropName property that contains
+        // the previous result (at index 0), the sum of all previous versions (at index 1) 
+        // and then the pair of previous dependencies (name, value)  
+        // e.g. [result, 4, propName1, value1, propName2, value2]
+        if (!storedValues) {
+            callProcessor = true;
+            storedValues = [];
+        } else {
+            // check that previous dependencies haven't changed
+            let len = storedValues.length, val, sum = 0;;
+            for (let i = 2; len > i; i += 2) {
+                val = this[storedValues[i]];
+                dependsOnMutations = dependsOnMutations || isMutating(val);
+                sum += version(val);
+                if (dependsOnMutations || val !== storedValues[i + 1]) {
+                    callProcessor = true;
+                    break;
+                }
+            }
+            if (sum !== storedValues[1]) {
+                callProcessor = true;
+            } else {
+                result = storedValues[0];
+            }
+        }
+        if (callProcessor) {
+            storedValues = [];
+
+            let dependencies = {};
+
+            // call the original getter with a specific watch on getters to retrieve the list of dependencies
+            (this as TraxObject).ΔComputeDependencies = dependencies;
+            try {
+                result = processor.call(this);
+            } catch (ex) {
+                (this as TraxObject).ΔComputeDependencies = undefined;
+                this[ΔΔPropName] = undefined;
+                throw ex;
+            }
+            (this as TraxObject).ΔComputeDependencies = undefined;
+
+            if (!dependsOnMutations) {
+                let sum = 0, val: any;
+                storedValues[0] = result;
+                storedValues[1] = 0;
+                // go over all dependencies and store the new values
+                for (let key in dependencies) {
+                    if (dependencies.hasOwnProperty(key)) {
+                        if (key === propName) {
+                            console.error("[Trax] @computed property cannot be called while being calculated");
+                            storedValues = undefined;
+                            return null;
+                        }
+                        val = this[key];
+                        sum += version(val);
+                        if (isMutating(val)) {
+                            dependsOnMutations = true;
+                            break;
+                        }
+                        storedValues.push(key);
+                        storedValues.push(val);
+                    }
+                }
+                storedValues[1] = sum;
+            }
+            this[ΔΔPropName] = dependsOnMutations ? undefined : storedValues;
+        }
+        return result;
+    }
 }
 
 export function version(o: any /*DataObject*/): number {
@@ -431,9 +514,9 @@ function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc
  * @param cf [optional] the constructor or factory associated with the property Object
  */
 function ΔGet<T>(o: TraxObject, ΔΔPropName: string, propName: string, factory: Factory<T>, canBeNullOrUndefined?: 1 | 2 | 3): any {
-    // if (o.$computeDependencies) {
-    //     o.$computeDependencies[propName] = true;
-    // }
+    if (o.ΔComputeDependencies) {
+        o.ΔComputeDependencies[propName] = true;
+    }
     // if (propName && cf && o["$json"]) {
     //     // init object from json structure
     //     let json = o["$json"];
@@ -518,6 +601,11 @@ function ΔGet<T>(o: TraxObject, ΔΔPropName: string, propName: string, factory
  */
 function ΔSet<T>(o: TraxObject, propName: string | number, ΔΔPropName: string | number, newValue: any, factory: Factory<T>, propHolder: any) {
     let isTraxValue = isDataObject(newValue);
+
+    if (o.ΔComputeDependencies) {
+        console.error("[Trax] @computed properties must not mutate the Data object when calculated");
+        return;
+    }
 
     if (newValue && !isTraxValue && factory.ΔCreateProxy) {
         newValue = factory.ΔCreateProxy(newValue) || newValue;
@@ -773,7 +861,7 @@ class TraxList<T> implements TraxObject {
     ΔΔProxy: any;             // the proxy object - cf. MP_PROXY
     ΔIsProxy = false;
     ΔItemFactory: Factory<T>;
-    // $computeDependencies: any;           // object set during the processing of a computed property - undefined otherwise
+    // ΔComputeDependencies: any;           // object set during the processing of a computed property - undefined otherwise
     // $acceptsJson = true;
 
     constructor(itemFactory: Factory<T>) {

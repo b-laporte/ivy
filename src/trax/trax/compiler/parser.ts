@@ -148,6 +148,12 @@ export function parse(src: string, filePath: string, symbols?: ParserSymbols): (
 
                 if (m.kind === ts.SyntaxKind.Constructor) {
                     error("Constructors are not authorized in Data objects", m);
+                } else if (m.kind === ts.SyntaxKind.GetAccessor) {
+                    // check @computed properties
+                    if (m.decorators && m.decorators.length === 1) {
+                        if (m.decorators[0].getText() === "@computed") continue;
+                    }
+                    error("Unsupported Data accessor", m);
                 } else if (m.kind !== ts.SyntaxKind.PropertyDeclaration) {
                     error("Invalid Data object member [kind: " + m.kind + "]", m);
                 }

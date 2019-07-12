@@ -25,10 +25,10 @@ const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
     RX_LOG = /\/\/\s*log\s*/,
     PARAMS_ARG = "$params",
-    STATE_ARG = "$state",
+    CTL_ARG = "$ctl",
     ASYNC = "async",
     MD_PARAM_CLASS = "$paramsClassName",
-    MD_STATE_CLASS = "$stateClassName",
+    MD_CTL_CLASS = "$ctlClassName",
     NODE_NAMES = {
         "#tplFunction": "template function",
         "#tplArgument": "template argument",
@@ -186,7 +186,7 @@ function encodeText(t: string) {
 }
 
 function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
-    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string, stateClass = "";
+    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string, ctlClass = "";
     indent = reduceIndent(indent);
 
     function addImport(symbol: string) {
@@ -208,10 +208,10 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 if (i > 0 && arg.typeRef) {
                     gc.error("Template param class must be defined as first argument", arg);
                 }
-            } else if (arg.name === STATE_ARG) {
-                stateClass = arg.typeRef || "";
-                if (!stateClass) {
-                    gc.error("$state param requires a class as type argument", arg);
+            } else if (arg.name === CTL_ARG) {
+                ctlClass = arg.typeRef || "";
+                if (!ctlClass) {
+                    gc.error("$ctl param requires a class as type argument", arg);
                 }
             } else if (!argClassName) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]')
@@ -252,7 +252,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     }
 
     tf[MD_PARAM_CLASS] = argClassName;
-    tf[MD_STATE_CLASS] = stateClass;
+    tf[MD_CTL_CLASS] = ctlClass;
     lines.push('(function () {');
     if (gc.statics.length) {
         lines.push(`${indent}const ${gc.statics.join(", ")};`);
@@ -261,7 +261,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         lines.push(classDef);
     }
     gc.imports["ζt"] = 1;
-    lines.push(`${indent}return ζt(function (ζ${argNames}${stateClass ? ", $state" : ""}) {`);
+    lines.push(`${indent}return ζt(function (ζ${argNames}${ctlClass ? ", $ctl" : ""}) {`);
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }
@@ -269,7 +269,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
 }
 
 function templateEnd(tf: XjsTplFunction) {
-    let argClassName = tf[MD_PARAM_CLASS], stateClassName = tf[MD_STATE_CLASS];
+    let argClassName = tf[MD_PARAM_CLASS], stateClassName = tf[MD_CTL_CLASS];
     if (argClassName || stateClassName) {
         if (stateClassName && !argClassName) {
             argClassName = "0";

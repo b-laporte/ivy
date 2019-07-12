@@ -17,14 +17,14 @@ export class Template implements IvTemplate {
     uid = ++TPL_COUNT;
     view: IvView;
     tplParams: any = undefined;
-    tplState: any = undefined;
+    tplCtl: any = undefined;
     forceRefresh = false;
     watchCb: () => void;
     activeWatch = false;
     lastRefreshVersion = 0;
     processing = false;
 
-    constructor(public refreshFn: (ζ: IvView, $params?: any, $state?: any) => void | undefined, public argumentClass?: () => void, public stateClass?: () => void, public hasHost = false) {
+    constructor(public refreshFn: (ζ: IvView, $params?: any, $ctl?: any) => void | undefined, public argumentClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, true, null);
         let self = this;
@@ -49,11 +49,11 @@ export class Template implements IvTemplate {
         return this.tplParams;
     }
 
-    get $state(): any | undefined {
-        if (!this.tplState && this.stateClass) {
-            this.tplState = new this.stateClass();
+    get $ctl(): any | undefined {
+        if (!this.tplCtl && this.ctlClass) {
+            this.tplCtl = new this.ctlClass();
         }
-        return this.tplState;
+        return this.tplCtl;
     }
 
     attach(element: any) {
@@ -77,7 +77,7 @@ export class Template implements IvTemplate {
     disconnectObserver() {
         if (this.activeWatch) {
             unwatch(this.$params, this.watchCb);
-            unwatch(this.$state, this.watchCb);
+            unwatch(this.$ctl, this.watchCb);
             this.activeWatch = false;
         }
     }
@@ -86,11 +86,11 @@ export class Template implements IvTemplate {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
-        let p = this.$params, state = this.$state;
+        let p = this.$params, state = this.$ctl;
 
         if (state && !isDataObject(state)) {
-            console.error("Template state must be a Data Object - please check: " + this.stateClass!.name);
-            this.tplState = this.stateClass = undefined;
+            console.error("Template state must be a Data Object - please check: " + this.ctlClass!.name);
+            this.tplCtl = this.ctlClass = undefined;
         }
 
         if (p && data) {
@@ -182,7 +182,7 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param refreshFn 
  */
-export function ζt(refreshFn: (ζ: any, $params?: any, $state?: any) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
+export function ζt(refreshFn: (ζ: any, $params?: any, $ctl?: any) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
     return function () {
         return new Template(refreshFn, argumentClass || undefined, stateClass, hasHost === 1);
     }
@@ -1467,6 +1467,7 @@ export const ζΔfBool = ΔfBool;
 export const ζΔfNbr = ΔfNbr;
 export const ζΔlf = Δlf;
 export const ζΔu = Δu;
+export const Controller = ΔD;
 
 // Physical class to represent an IvView content param
 export class IvContent implements IvView {

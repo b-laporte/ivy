@@ -10,6 +10,12 @@ export interface ParserSymbols {
     computed?: string;
 }
 
+export interface ParserOptions {
+    symbols?: ParserSymbols;
+    acceptMethods?: boolean; // default: false
+    ignoreFunctionProperties?: boolean; // default: false
+}
+
 export function getSymbols(symbols?: ParserSymbols) {
     const Data = "Data", ref = "ref", computed = "computed";
     if (!symbols) {
@@ -23,9 +29,8 @@ export function getSymbols(symbols?: ParserSymbols) {
     }
 }
 
-
-export function parse(src: string, filePath: string, symbols?: ParserSymbols): (TraxImport | DataObject)[] | null {
-    const SYMBOLS = getSymbols(symbols);
+export function parse(src: string, filePath: string, options?: ParserOptions): (TraxImport | DataObject)[] | null {
+    const SYMBOLS = getSymbols(options ? options.symbols : undefined);
     if (!isTraxFile(src)) return null;
 
     let srcFile = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, /*setParentNodes */ true);
@@ -154,6 +159,9 @@ export function parse(src: string, filePath: string, symbols?: ParserSymbols): (
                         if (m.decorators[0].getText() === "@computed") continue;
                     }
                     error("Unsupported Data accessor", m);
+                } else if (m.kind === ts.SyntaxKind.MethodDeclaration) {
+                    if (options && options.acceptMethods) continue;
+                    error("Methods cannot be defined in this object", m);
                 } else if (m.kind !== ts.SyntaxKind.PropertyDeclaration) {
                     error("Invalid Data object member [kind: " + m.kind + "]", m);
                 }
@@ -167,7 +175,7 @@ export function parse(src: string, filePath: string, symbols?: ParserSymbols): (
                     shallowRef: hasRefDecorator(m),
                     type: undefined,
                     defaultValue: undefined
-                };
+                }, skipProperty = false;
 
                 m.forEachChild((c) => {
                     if (c.kind === ts.SyntaxKind.Identifier) {
@@ -186,6 +194,12 @@ export function parse(src: string, filePath: string, symbols?: ParserSymbols): (
                                     end: c.end,
                                     text: c.getText()
                                 }
+                            } else if (c.kind === ts.SyntaxKind.FunctionType) {
+                                if (options && options.ignoreFunctionProperties) {
+                                    skipProperty = true;
+                                } else {
+                                    error("Function properties are not supported in this context", c);
+                                }
                             } else if (c.kind !== ts.SyntaxKind.Parameter && c.getText() !== "any") {
                                 // console.log(c.getText(), c);
                                 error("Unsupported syntax", c);
@@ -199,7 +213,9 @@ export function parse(src: string, filePath: string, symbols?: ParserSymbols): (
                 if (canBeUndefined) {
                     prop.type.canBeUndefined = true;
                 }
-                obj.members.push(prop);
+                if (!skipProperty) {
+                    obj.members.push(prop);
+                }
             }
         }
 
@@ -240,6 +256,8 @@ export function parse(src: string, filePath: string, symbols?: ParserSymbols): (
                 return { kind: "boolean" }
             } else if (n.kind === ts.SyntaxKind.NumberKeyword) {
                 return { kind: "number" }
+            } else if (n.getText() === "Function") {
+                return { kind: "any" }
             } else if (n.kind === ts.SyntaxKind.TypeReference) {
                 return {
                     kind: "reference",

@@ -34,6 +34,14 @@ export default async function (this: loader.LoaderContext, source: string) {
         return;
     }
 
+    // trax processing for ivy template controller classes
+    try {
+        result = generate(result, this.resourcePath, { symbols: { Data: "Controller" }, acceptMethods:true, replaceDataDecorator:false, libPrefix: "ζ" });
+    } catch (e) {
+        callback(new Error(e.message));
+        return;
+    }
+
     if (source.match(RX_LOG)) {
         console.log();
         console.log("Ivy: Generated Code");

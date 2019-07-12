@@ -768,29 +768,29 @@ describe('Code generator', () => {
     });
 
     it("should support external State class definition", async function () {
-        let t1 = await test.template(`($state:MyStateClass) => {
-            # Hello {$state.name} #
+        let t1 = await test.template(`($ctl:MyCtlClass) => {
+            # Hello {$ctl.name} #
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt(function (ζ, $, $state) {
+        return ζt(function (ζ, $, $ctl) {
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $state.name));
+            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $ctl.name));
             ζend(ζ, ζc);
-        }, 0, 0, MyStateClass);
+        }, 0, 0, MyCtlClass);
         })()`, 'simple param class');
 
-        let t2 = await test.template(`($params:MyParamClass, name:string, $state:MyStateClass) => {
+        let t2 = await test.template(`($params:MyParamClass, name:string, $ctl:MyCtlClass) => {
             # Hello {name} #
         }`);
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt(function (ζ, $, $state) {
+        return ζt(function (ζ, $, $ctl) {
             let $params = $, name = $["name"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
-        }, 0, MyParamClass, MyStateClass);
+        }, 0, MyParamClass, MyCtlClass);
         })()`, 'param class + local variables initialization');
     });
 

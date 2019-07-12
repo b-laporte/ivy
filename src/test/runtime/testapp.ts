@@ -8,5 +8,5 @@ import "./content-components.spec";
 import "./events.spec";
 import "./data.spec";
 import "./pnodes.spec";
-import "./state.spec";
+import "./controller.spec";
 // import "./async.spec";

@@ -1,26 +1,26 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { template, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
-import { Data, changeComplete } from '../../trax/trax';
+import { changeComplete } from '../../trax/trax';
 
-describe('State', () => {
+describe('Controller', () => {
     let body: ElementNode;
 
     beforeEach(() => {
         body = reset();
     });
 
-    @Data class MyState {
+    @Controller class ControllerA {
         text: string = "Hello";
     }
 
     it("should be supported on template with no params", async function () {
-        let state: any = null;
+        let ctl: any = null;
 
-        const tpl = template(`($state: MyState) => {
-            state = $state;
+        const tpl = template(`($ctl: ControllerA) => {
+            ctl = $ctl;
             <div>
-                # Text = {$state.text} #
+                # Text = {$ctl.text} #
             </div>
         }`);
 
@@ -34,10 +34,10 @@ describe('State', () => {
             </body>
         `, '1');
 
-        assert.equal(state!.text, "Hello", "state.text==='Hello'");
-        state!.text = "Hello again!";
+        assert.equal(ctl!.text, "Hello", "ctl.text==='Hello'");
+        ctl!.text = "Hello again!";
 
-        await changeComplete(state);
+        await changeComplete(ctl);
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -49,13 +49,13 @@ describe('State', () => {
     });
 
     it("should be supported on template with params", async function () {
-        let state: any = null, params: any = null;
+        let ctl: any = null, params: any = null;
 
-        const tpl = template(`(count:number=0, $state: MyState, $params) => {
-            state = $state;
+        const tpl = template(`(count:number=0, $ctl: ControllerA, $params) => {
+            ctl = $ctl;
             params = $params;
             <div>
-                # {$state.text}/{count} #
+                # {$ctl.text}/{count} #
             </div>
         }`);
 
@@ -70,9 +70,9 @@ describe('State', () => {
         `, '1');
 
 
-        state!.text = "Hello 2";
+        ctl!.text = "Hello 2";
 
-        await changeComplete(state);
+        await changeComplete(ctl);
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -95,7 +95,7 @@ describe('State', () => {
         `, '3');
 
         params!.count++;
-        state!.text = "Hello 3";
+        ctl!.text = "Hello 3";
 
         await changeComplete(params);
         assert.equal(stringify(t), `

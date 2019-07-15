@@ -1,8 +1,8 @@
 import * as assert from 'assert';
-import { template, ζΔD, ζΔp } from '../../iv';
+import { template, ζΔD, ζΔp, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvView } from '../../iv/types';
-import { isMutating, commitChanges } from '../../trax/trax';
+import { isMutating, commitChanges, changeComplete } from '../../trax/trax';
 
 describe('Iv Runtime', () => {
     let body: ElementNode;
@@ -372,24 +372,73 @@ describe('Iv Runtime', () => {
         assert.equal((t["view"] as IvView).lastRefresh, 1, "no second refresh");
     });
 
-    it("should use simple param classes", function () {
-        @ζΔD class Names {
-            firstName: any;
-            lastName: any;
+    it("should allow to expose simple template $api", async function () {
+        @API class HelloAPI {
+            name: string;
+            changeName: () => void;
         }
 
-        let n = new Names();
-        assert.equal(isMutating(n), false, "unchanged when created");
-        n.firstName = "Homer";
-        assert.equal(isMutating(n), true, "changed (1)");
-        n.lastName = "Simpson";
-        assert.equal(isMutating(n), true, "changed (2)");
-        commitChanges(n);
-        assert.equal(isMutating(n), false, "unchanged after reset");
-        n.firstName = "Homer";
-        assert.equal(isMutating(n), false, "unchanged for identical value");
-        n.firstName = "Marge";
-        assert.equal(isMutating(n), true, "changed (3)");
+        let count = 0, lastApi:HelloAPI;
+        const hello = template(`($api:HelloAPI, name) => { // /* shortcut to $api.name */
+            if (!$api.changeName) {
+                // initialize the API
+                $api.changeName = () => {
+                    $api.name += ++count;
+                }
+            }
+            lastApi = $api;
+            <div>
+                # Hello {name} #
+            </div>
+        }`);
+
+        const greetings = template(`(names, suffix="") => {
+            for (let name of names) {
+                <*hello name={name+suffix}/>
+            }
+        }`);
+
+        let t = getTemplate(greetings, body).refresh({ names: ["Bart", "Lisa"], suffix: "X" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello BartX #
+                </div>
+                <div::E5>
+                    #::T6 Hello LisaX #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        (t.$api as any).suffix = "Y";
+
+        await changeComplete(t.$api);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello BartY # (1)
+                </div>
+                <div::E5>
+                    #::T6 Hello LisaY # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        lastApi!.changeName();
+        await changeComplete(lastApi!);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello BartY # (1)
+                </div>
+                <div::E5>
+                    #::T6 Hello LisaY1 # (2)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
     });
 
     // cpt

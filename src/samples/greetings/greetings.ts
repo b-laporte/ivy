@@ -1,10 +1,23 @@
 require('./index.html'); // webpack dependency
-import { template } from "../../iv";
+import { template, API } from "../../iv";
 
 let count = 0;
 
-const hello = template(`(name, $params) => {
-    <div click()={$params.name = name + ++count} selectstart(e)={e.preventDefault()}>
+@API class HelloAPI {
+    name: string;
+    changeName: () => void;
+}
+
+const hello = template(`($api:HelloAPI, name /* shortcut to $api.name */) => {
+    if (!$api.changeName) {
+        // initialize the API
+        $api.changeName = () => {
+            console.log("change name!");
+            $api.name = name + ++count;
+        }
+    }
+    
+    <div click()={$api.changeName()} selectstart(e)={e.preventDefault()}>
         # Hello {name} #
     </div>
 }`);

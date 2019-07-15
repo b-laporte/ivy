@@ -71,4 +71,24 @@ describe('Data', () => {
         assert.equal(changeCount, 0, "no changes notified");
         assert.equal(isMutating(d), false, "d back to unchanged");
     });
+
+    it("should work for simple api classes", function () {
+        @ζΔD class Names {
+            firstName: any;
+            lastName: any;
+        }
+
+        let n = new Names();
+        assert.equal(isMutating(n), false, "unchanged when created");
+        n.firstName = "Homer";
+        assert.equal(isMutating(n), true, "changed (1)");
+        n.lastName = "Simpson";
+        assert.equal(isMutating(n), true, "changed (2)");
+        commitChanges(n);
+        assert.equal(isMutating(n), false, "unchanged after reset");
+        n.firstName = "Homer";
+        assert.equal(isMutating(n), false, "unchanged for identical value");
+        n.firstName = "Marge";
+        assert.equal(isMutating(n), true, "changed (3)");
+    });
 });

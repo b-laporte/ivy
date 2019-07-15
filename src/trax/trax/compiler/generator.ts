@@ -31,6 +31,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
             acceptMethods: options ? options.acceptMethods : false,
             ignoreFunctionProperties: options ? options.ignoreFunctionProperties : false
         });
+    
         if (ast && ast.length) {
             initImports(ast);
 

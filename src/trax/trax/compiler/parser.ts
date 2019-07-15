@@ -39,8 +39,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     let diagnostics = srcFile['parseDiagnostics'];
     if (diagnostics && diagnostics.length) {
         let d: ts.Diagnostic = diagnostics[0] as any;
-        // TODO
-        // this.logError("TypeScript parsing error: " + d.messageText.toString(), d.start || 0)
+        error("TypeScript parsing error: " + d.messageText.toString() + " at " + d.start);
         result = null;
     } else {
         // process all parts
@@ -49,9 +48,9 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
 
     return result;
 
-    function error(message: string, node: ts.Node) {
+    function error(message: string, node?: ts.Node) {
         // TODO
-        throw new Error(message + " at pos: " + node.pos);
+        throw new Error(message + (node ? (" at pos: " + node.pos) : ""));
     }
 
     function scan(node: ts.Node) {

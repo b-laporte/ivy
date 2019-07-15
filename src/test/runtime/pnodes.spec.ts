@@ -1255,10 +1255,9 @@ describe('Param Nodes', () => {
             }
         }`);
 
-        let params: any;
-
-        const tpl = template(`($params, teamList:Team[]) => {
-            params = $params;
+        let api: any;
+        const tpl = template(`($api, teamList:Team[]) => {
+            api = $api;
             <*grid>
                 for (let team of teamList) {
                     <.row id={team.id}>
@@ -1275,8 +1274,8 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        params.teamList = arr;
-        await changeComplete(params);
+        api.teamList = arr;
+        await changeComplete(api);
         assert.equal(stringify(t1), `
             <body::E1>
                 <div::E3 a:title="0">

@@ -24,10 +24,10 @@ type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock | XjsEv
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
     RX_LOG = /\/\/\s*log\s*/,
-    PARAMS_ARG = "$params",
+    PARAMS_ARG = "$api",
     CTL_ARG = "$ctl",
     ASYNC = "async",
-    MD_PARAM_CLASS = "$paramsClassName",
+    MD_PARAM_CLASS = "$apiClassName",
     MD_CTL_CLASS = "$ctlClassName",
     NODE_NAMES = {
         "#tplFunction": "template function",
@@ -212,6 +212,8 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 ctlClass = arg.typeRef || "";
                 if (!ctlClass) {
                     gc.error("$ctl param requires a class as type argument", arg);
+                } else if (args.length > 1) {
+                    gc.error("$ctl argument cannot be combined with other template arguments", tf);
                 }
             } else if (!argClassName) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]')

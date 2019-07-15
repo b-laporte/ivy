@@ -10,13 +10,17 @@ function error(msg) {
 
 let TPL_COUNT = 0;
 
+interface TemplateController {
+    $api?: any;
+}
+
 /**
  * Template object created at runtime
  */
 export class Template implements IvTemplate {
     uid = ++TPL_COUNT;
     view: IvView;
-    tplParams: any = undefined;
+    tplApi: any = undefined;
     tplCtl: any = undefined;
     forceRefresh = false;
     watchCb: () => void;
@@ -24,7 +28,7 @@ export class Template implements IvTemplate {
     lastRefreshVersion = 0;
     processing = false;
 
-    constructor(public refreshFn: (ζ: IvView, $params?: any, $ctl?: any) => void | undefined, public argumentClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
+    constructor(public refreshFn: (ζ: IvView, $api?: any, $ctl?: any) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, true, null);
         let self = this;
@@ -42,14 +46,21 @@ export class Template implements IvTemplate {
         this.view.doc = d;
     }
 
-    get $params(): any | undefined {
-        if (!this.tplParams && this.argumentClass) {
-            this.tplParams = new this.argumentClass();
+    get $api(): any | undefined {
+        if (!this.tplApi) {
+            if (this.apiClass) {
+                this.tplApi = new this.apiClass();
+            } else {
+                let ctl = this.$ctl;
+                if (ctl && ctl.$api) {
+                    this.tplApi = ctl.$api;
+                }
+            }
         }
-        return this.tplParams;
+        return this.tplApi;
     }
 
-    get $ctl(): any | undefined {
+    get $ctl(): TemplateController | undefined {
         if (!this.tplCtl && this.ctlClass) {
             this.tplCtl = new this.ctlClass();
         }
@@ -76,7 +87,7 @@ export class Template implements IvTemplate {
 
     disconnectObserver() {
         if (this.activeWatch) {
-            unwatch(this.$params, this.watchCb);
+            unwatch(this.$api, this.watchCb);
             unwatch(this.$ctl, this.watchCb);
             this.activeWatch = false;
         }
@@ -86,7 +97,7 @@ export class Template implements IvTemplate {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
-        let p = this.$params, state = this.$ctl;
+        let p = this.$api, state = this.$ctl;
 
         if (state && !isDataObject(state)) {
             console.error("Template state must be a Data Object - please check: " + this.ctlClass!.name);
@@ -182,7 +193,7 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param refreshFn 
  */
-export function ζt(refreshFn: (ζ: any, $params?: any, $ctl?: any) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
+export function ζt(refreshFn: (ζ: any, $api?: any, $ctl?: any) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
     return function () {
         return new Template(refreshFn, argumentClass || undefined, stateClass, hasHost === 1);
     }
@@ -820,7 +831,7 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         let tpl: Template = container.template = cptRef()!;
         setParentView(tpl.view, v, container);
         tpl.disconnectObserver();
-        let p = container.data = tpl.$params;
+        let p = container.data = tpl.$api;
         if (staticParams) {
             // initialize static params
             let len = staticParams.length;
@@ -863,7 +874,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
         cleanDataLists(container);
 
         if (container.contentView) {
-            tpl.$params.$content = container.contentView;
+            tpl.$api.$content = container.contentView;
             let instr = container.contentView.instructions;
             if (instr && instr.length > 2) { // 2 because ζendD will always be in the instruction list if any
                 // console.log("forceRefresh #2 - ", instr.length);
@@ -876,7 +887,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
         } else {
             if (dynParamNames) {
                 // reset the dynamic param nodes that have not been processed
-                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.$params;
+                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.$api;
                 for (let i = 0; len > i; i++) {
                     if (!dp[dynParamNames[i]]) {
                         // this param node has not been called - so we need to reset it
@@ -1468,6 +1479,7 @@ export const ζΔfNbr = ΔfNbr;
 export const ζΔlf = Δlf;
 export const ζΔu = Δu;
 export const Controller = ΔD;
+export const API = ΔD;
 
 // Physical class to represent an IvView content param
 export class IvContent implements IvView {

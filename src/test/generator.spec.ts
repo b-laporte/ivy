@@ -564,7 +564,7 @@ describe('Code generator', () => {
             'ζs1 = ["class", "important", "position", "bottom"]'
         ], '1b');
 
-        // with dynamic params
+        // with dynamic api
         let t2 = await test.template(`() => {
             <*b.section position={getPosition()} msg={myMessage} type="big" important/>
         }`);
@@ -697,10 +697,10 @@ describe('Code generator', () => {
         assert.ok(t.importMap!["ζendD"] !== 1, '4');
     });
 
-    it("should support $params argument", async function () {
-        let t = await test.template(`($params, a, b) => {
+    it("should support $api argument", async function () {
+        let t = await test.template(`($api, a, b) => {
             <div class="main">
-                # text {$params.a} #
+                # text {$api.a} #
             </>
         }`);
 
@@ -711,10 +711,10 @@ describe('Code generator', () => {
             b: any;
         }
         return ζt(function (ζ, $) {
-            let $params = $, a = $["a"], b = $["b"];
+            let $api = $, a = $["a"], b = $["b"];
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
-            ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 0, $params.a));
+            ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 0, $api.a));
             ζend(ζ, ζc);
         }, 0, ζParams);
         })()` , '1');
@@ -739,27 +739,27 @@ describe('Code generator', () => {
         }, "t2 imports");
     });
 
-    it("should support external Param class definition", async function () {
-        let t1 = await test.template(`($params:MyParamClass) => {
+    it("should support external API class definition", async function () {
+        let t1 = await test.template(`($api:MyParamClass) => {
             # Hello {$.name} #
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         return ζt(function (ζ, $) {
-            let $params = $;
+            let $api = $;
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $.name));
             ζend(ζ, ζc);
         }, 0, MyParamClass);
         })()`, 'simple param class');
 
-        let t2 = await test.template(`($params:MyParamClass, name) => {
+        let t2 = await test.template(`($api:MyParamClass, name) => {
             # Hello {name} #
         }`);
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         return ζt(function (ζ, $) {
-            let $params = $, name = $["name"];
+            let $api = $, name = $["name"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
@@ -767,7 +767,7 @@ describe('Code generator', () => {
         })()`, 'param class + local variables initialization');
     });
 
-    it("should support external State class definition", async function () {
+    it("should support external Controller class definition", async function () {
         let t1 = await test.template(`($ctl:MyCtlClass) => {
             # Hello {$ctl.name} #
         }`);
@@ -779,19 +779,6 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         }, 0, 0, MyCtlClass);
         })()`, 'simple param class');
-
-        let t2 = await test.template(`($params:MyParamClass, name:string, $ctl:MyCtlClass) => {
-            # Hello {name} #
-        }`);
-        assert.equal(t2.function, `(function () {
-        const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt(function (ζ, $, $ctl) {
-            let $params = $, name = $["name"];
-            let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
-            ζend(ζ, ζc);
-        }, 0, MyParamClass, MyCtlClass);
-        })()`, 'param class + local variables initialization');
     });
 
     it("should support built-in @content with expression on fragments", async function () {
@@ -1439,7 +1426,7 @@ describe('Code generator', () => {
         `, '2');
     });
 
-    it("should support default values on template params", async function () {
+    it("should support default values on template api", async function () {
         let t = await test.template(`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
             # a:{a} b:{b} c:{c} d:{d} e:{e} #
         }`);

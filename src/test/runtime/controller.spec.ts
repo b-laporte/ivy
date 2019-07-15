@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, Controller } from '../../iv';
+import { template, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { changeComplete } from '../../trax/trax';
 
@@ -10,14 +10,20 @@ describe('Controller', () => {
         body = reset();
     });
 
-    @Controller class ControllerA {
+    @API class TestAPI {
+        count: number = 0;
+        msg = "";
+    }
+
+    @Controller class TestController {
+        $api: TestAPI;
         text: string = "Hello";
     }
 
     it("should be supported on template with no params", async function () {
         let ctl: any = null;
 
-        const tpl = template(`($ctl: ControllerA) => {
+        const tpl = template(`($ctl: TestController) => {
             ctl = $ctl;
             <div>
                 # Text = {$ctl.text} #
@@ -48,14 +54,14 @@ describe('Controller', () => {
         `, '2');
     });
 
-    it("should be supported on template with params", async function () {
-        let ctl: any = null, params: any = null;
+    it("may expose an api (1)", async function () {
+        let ctl: any = null, api: any = null;
 
-        const tpl = template(`(count:number=0, $ctl: ControllerA, $params) => {
+        const tpl = template(`($ctl: TestController) => {
             ctl = $ctl;
-            params = $params;
+            api = $ctl.$api;
             <div>
-                # {$ctl.text}/{count} #
+                # {$ctl.text}/{api.count} #
             </div>
         }`);
 
@@ -69,7 +75,6 @@ describe('Controller', () => {
             </body>
         `, '1');
 
-
         ctl!.text = "Hello 2";
 
         await changeComplete(ctl);
@@ -82,9 +87,9 @@ describe('Controller', () => {
             </body>
         `, '2');
 
-        params!.count++;
+        api!.count++;
 
-        await changeComplete(params);
+        await changeComplete(api);
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -94,10 +99,10 @@ describe('Controller', () => {
             </body>
         `, '3');
 
-        params!.count++;
+        api!.count++;
         ctl!.text = "Hello 3";
 
-        await changeComplete(params);
+        await changeComplete(api);
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -106,5 +111,40 @@ describe('Controller', () => {
                 //::C2 template anchor
             </body>
         `, '4');
+    });
+
+    it("may expose an api (2)", async function () {
+        let ctl: any = null, api: any = null;
+
+        const widget = template(`($ctl: TestController) => {
+            let api = $ctl.$api;
+            <div>
+                # {$ctl.text}/{api.msg}/{api.count} #
+            </div>
+        }`);
+
+        const tpl = template(`(msg="[Message]", count=42) => {
+            <*widget count={count} msg={msg}/>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello/[Message]/42 #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({ count: 123, msg: "Welcome" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 Hello/Welcome/123 # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
     });
 });

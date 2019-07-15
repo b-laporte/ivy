@@ -8,7 +8,7 @@ export interface IvDocument {
 
 export interface IvTemplate {
     document: IvDocument;
-    $params: any | undefined;
+    $api: any | undefined;
     $ctl: any | undefined;
     attach(element: any): IvTemplate;
     refresh(data?: any): IvTemplate;
@@ -86,7 +86,7 @@ export interface IvParamNode extends IvNode, IvParamNodeParent {
     kind: "#param";
     dataName: string;
     dataHolder: any;
-    data: any;                                        // shortcut to parent params (params object or paramNode)
+    data: any;                                        // shortcut to parent api (api object or paramNode)
     dataIsList?: boolean;                             // true if data references a list
     contentView: IvView | undefined;
     dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic sub-params that have been found while refreshing the param content (aka. light-dom)
@@ -112,7 +112,7 @@ export interface IvBlockContainer extends IvContainer {
 export interface IvCptContainer extends IvContainer, IvParamNodeParent {
     subKind: "##cpt";
     template: IvTemplate | null;                      // current component template
-    data: any;                                        // shortcut to cptTemplate.params
+    data: any;                                        // shortcut to cptTemplate.$api
     contentView: IvView | null;                       // light-dom / content view
     dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic params that have been found while refreshing the component content (aka. light-dom)
 }

@@ -1,18 +1,88 @@
 import * as ts from "typescript";
 import { compileTemplate } from './generator';
+import { generate } from '../../trax/trax/compiler/generator';
+import { DataMember } from '../../trax/trax/compiler/types';
 
-const SK = ts.SyntaxKind, TEMPLATE = "template", RX_START_WS = /^(\s*)/, RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/;
+const SK = ts.SyntaxKind,
+    TEMPLATE = "template",
+    RX_START_WS = /^(\s*)/,
+    RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/,
+    RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
+    RX_LOG = /\/\/\s*ivy?\:\s*log/,
+    RX_LIST = /List$/;
+
+export async function process(source: string, resourcePath: string) {
+    let result: string;
+    // ivy processing
+    try {
+        result = await compile(source, resourcePath);
+    } catch (e) {
+        throw new Error(e.message);
+    }
+
+    if (source.match(RX_LOG_ALL)) {
+        console.log();
+        console.log("Ivy: Intermediary Output");
+        console.log(result);
+    }
+
+    // trax processing for ivy param classes
+    try {
+        result = generate(result, resourcePath, { symbols: { Data: "ζΔD", /* todo: ref, computed */ }, libPrefix: "ζ", validator: listValidator });
+    } catch (e) {
+        throw new Error(e.message);
+    }
+
+    // trax processing for ivy template API classes
+    let r1 = result
+    try {
+        result = generate(result, resourcePath, { symbols: { Data: "API" }, ignoreFunctionProperties:true, acceptMethods: true, replaceDataDecorator: false, libPrefix: "ζ" });
+    } catch (e) {
+        throw new Error(e.message);
+    }
+
+    // trax processing for ivy template controller classes
+    try {
+        result = generate(result, resourcePath, { symbols: { Data: "Controller" }, acceptMethods: true, replaceDataDecorator: false, libPrefix: "ζ" });
+    } catch (e) {
+        throw new Error(e.message);
+    }
+
+    if (source.match(RX_LOG)) {
+        console.log();
+        console.log("Ivy: Generated Code");
+        console.log(result);
+    }
+
+    // trax processing for normal Data Objects
+    try {
+        result = generate(result, resourcePath);
+    } catch (e) {
+        throw new Error(e.message);
+    }
+
+    return result;
+}
+
+function listValidator(m: DataMember) {
+    if (m && m.type && m.type.kind === "array") {
+        if (!m.name.match(RX_LIST)) {
+            return "Array properties should use the List suffix, e.g. " + m.name + "List";
+        }
+    }
+    return null;
+}
 
 export async function compile(source: string, filePath: string): Promise<string> {
+    // ignore files starting with iv:ignore comment
+    if (source.match(RX_IGNORE_FILE)) return source;
+
     let srcFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true);
 
     let importStart = 0,                        // start of import clause - i.e. { template, xx, yy } in the import declaration
         importEnd = 0,                          // end of import clause
         importIds: { [key: string]: 1 } = {},   // map or import identifiers - e.g. { template:1, xx:1, yy:1 }
         templates: { start: number, end: number, src: string }[] = [];
-
-    // ignore files starting with iv:ignore comment
-    if (source.match(RX_IGNORE_FILE)) return source;
 
     scan(srcFile);
 

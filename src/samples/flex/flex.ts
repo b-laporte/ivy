@@ -12,7 +12,7 @@ window["renderFlexResults"] = function (elt, data, visible) {
     if (!mainTemplate) {
         mainTemplate = avail().attach(elt);
     }
-    let p = mainTemplate.$params;
+    let p = mainTemplate.$api;
     p.data = data;
     p.visible = visible;
     p.selectedItinerary = null;
@@ -272,7 +272,7 @@ function getValueFromList(fare, reco, listName) {
 
 function toggleFareDetails(idx, itinerary) {
     // todo: improve with no reference to mainTemplate instance
-    let p = mainTemplate.$params;
+    let p = mainTemplate.$api;
     if (p.selectedItinerary === itinerary && p.selectedFare === idx) {
         // hide
         p.selectedItinerary = null;

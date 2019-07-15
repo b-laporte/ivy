@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { compile } from '../iv/compiler/compiler';
+import { compile, process } from '../iv/compiler/compiler';
 
 describe('Template compiler', () => {
 
@@ -75,6 +75,44 @@ describe('Template compiler', () => {
             })();
             let z = "ABCD";
             `, "test 2");
+    });
+
+    it("should process $api classes", async function () {
+        let src = `\
+            import{ template, API } from "../iv";
+
+            @API class FooApi {
+                p1:string;
+                p2:number;
+
+                doSth:()=>void;
+            }
+            let tpl = template(\`($api:FooApi) => {
+                # tpl #
+            }\`);
+            `;
+
+        let r = await process(src, "test2")
+
+        assert.equal(r, `\
+            import{ template, API, ζΔfStr, ζΔp, ζΔfNbr, ζinit, ζend, ζtxt, ζt } from "../iv";
+
+            @API class FooApi {
+                ΔΔp1:string; @ζΔp(ζΔfStr) p1: string;
+                ΔΔp2:number; @ζΔp(ζΔfNbr) p2: number;
+
+                doSth:()=>void;
+            }
+            let tpl = (function () {
+            const ζs0 = {};
+            return ζt(function (ζ, $) {
+                let $api = $;
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, 0, " tpl ", 0);
+                ζend(ζ, ζc);
+            }, 0, FooApi);
+            })();
+            `, "1");
     });
 
     it("should skipped files marked with iv:ignore comment", async function () {

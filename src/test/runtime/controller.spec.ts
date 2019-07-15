@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { template, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
-import { changeComplete } from '../../trax/trax';
+import { changeComplete, computed } from '../../trax/trax';
 
 describe('Controller', () => {
     let body: ElementNode;
@@ -13,11 +13,19 @@ describe('Controller', () => {
     @API class TestAPI {
         count: number = 0;
         msg = "";
+
+        @computed get description() {
+            return "msg = " + this.msg + " / count = " + this.count;
+        }
     }
 
     @Controller class TestController {
         $api: TestAPI;
         text: string = "Hello";
+
+        @computed get description() {
+            return "text = " + this.text + " / count = " + this.$api.count;
+        }
     }
 
     it("should be supported on template with no params", async function () {
@@ -146,5 +154,41 @@ describe('Controller', () => {
                 //::C2 template anchor
             </body>
         `, '2');
+    });
+
+    it("should support @computed properties", async function () {
+        let ctl: any = null, api: any = null;
+
+        const widget = template(`($ctl: TestController) => {
+            # {$ctl.description} / {$ctl.$api.description} #
+        }`);
+
+        const tpl = template(`(msg="[Message]", count=42) => {
+            <*widget count={count} msg={msg}/>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 text = Hello / count = 42 / msg = [Message] / count = 42 #
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.refresh({count:123});
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 text = Hello / count = 123 / msg = [Message] / count = 123 # (1)
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({count:123});
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 text = Hello / count = 123 / msg = [Message] / count = 123 # (1)
+                //::C2 template anchor
+            </body>
+        `, '3');
     });
 });

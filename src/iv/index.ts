@@ -27,7 +27,7 @@ export class Template implements IvTemplate {
     activeWatch = false;
     lastRefreshVersion = 0;
     processing = false;
-    labels: { [label: string]: any | any[] } | undefined = undefined;
+    labels: { [label: string]: any[] } | undefined = undefined;
 
     constructor(public refreshFn: (ζ: IvView, $api?: any, $ctl?: any) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
@@ -82,23 +82,15 @@ export class Template implements IvTemplate {
         return this;
     }
 
-    registerLabel(label: string, object: any, isCollection: boolean) {
+    registerLabel(label: string, object: any) {
         if (!this.labels) {
             this.labels = {};
         }
         let target = this.labels[label];
         if (!target) {
-            target = this.labels[label] = isCollection ? [object] : object;
+            target = this.labels[label] = [object];
         } else {
-            if (Array.isArray(target) !== isCollection) {
-                console.error("Label types (collections or single elements) cannot be mixed: please check " + label);
-            } else {
-                if (isCollection) {
-                    target.push(object);
-                } else {
-                    this.labels[label] = object;
-                }
-            }
+            target.push(object);
         }
     }
 
@@ -106,34 +98,19 @@ export class Template implements IvTemplate {
      * Return the first element labelled as per the argument
      * e.g. for <div #foo/> -> query("#foo") will return the DIV DOM element
      * @param label 
-     * @return the DOM element or the Component $api or null if nohting is found
+     * @return the DOM element or the Component $api or null if nothing is found
      */
-    query(label: string): any | null {
-        let t = this.getLabelTarget(label);
-        if (t) {
-            return Array.isArray(t) ? t[0] : t;
-        }
-        return null;
-    }
-
-    /**
-     * Same as query() but return all the matching elements. Always return an Array (or null)
-     * @param label 
-     */
-    queryAll(label: string): any[] | null {
-        let t = this.getLabelTarget(label);
-        if (t) {
-            return Array.isArray(t) ? t : [t];
-        }
-        return null;
-    }
-
-    getLabelTarget(label: string) {
+    query(label: string, all: boolean = false): any | any[] | null {
         if (label && label.charAt(0) !== '#') {
             console.error("[$template.query()] Invalid label '" + label + "': labels must start with #");
             return null;
         }
-        return this.labels ? this.labels[label] || null : null;
+        let target = this.labels ? this.labels[label] || null : null;
+        if (target && target.length) {
+            if (!all) return target[0];
+            return target
+        }
+        return null;
     }
 
     notifyChange() {
@@ -246,7 +223,7 @@ function registerLabels(v: IvView, object: any, labels?: any[] | 0) {
         if (view) {
             let tpl = view.template!, len = labels.length;
             for (let i = 0; len > i; i += 2) {
-                (tpl as Template).registerLabel(labels[i], object, labels[i + 1] === 1);
+                (tpl as Template).registerLabel(labels[i], object); // labels[i + 1] = label value: unused for the time being
             }
         }
     }
@@ -662,13 +639,17 @@ function appendChildToNode(p: IvParentNode, child: IvNode) {
 
 // Text creation function
 // e.g. ζtxt(ζ, ζc, 0, 1, 1, " Hello World ", 0);
-export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, labels: any[] | 0, statics: string | string[], nbrOfValues: number, ...values: any[]) {
     // console.log("ζtxt", idx, nbrOfValues);
     let nd: IvText;
     if (!nbrOfValues) {
         // static node: nbrOfValues === 0
-        if (!cm) return;
+        if (!cm) {
+            if (labels) registerLabels(v, v.nodes![idx].domNode, labels);
+            return;
+        }
         nd = createNode(v.doc.createTextNode(statics as string), undefined);
+        registerLabels(v, nd.domNode, labels);
     } else {
         // dynamic node
         let pieces: string[], val: any, changed = false;
@@ -685,14 +666,17 @@ export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
                 pieces![1 + i * 2] = (val === null || val === undefined) ? "" : val;
             }
         }
+
         if (cm) {
             // console.log("create text node ", pieces.join(""));
             nd = createNode(v.doc.createTextNode(pieces.join("") as string), pieces);
+            registerLabels(v, nd.domNode, labels);
         } else {
             if (changed) {
                 // console.log("set ", idx, nd!.uid, nd!.domNode.uid, pieces.join(""))
                 nd!.domNode.textContent = pieces.join("");
             }
+            registerLabels(v, nd!.domNode, labels);
             return;
         }
     }
@@ -714,9 +698,9 @@ export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
     }
 }
 
-export function ζtxtD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, statics: string | string[], nbrOfValues: number, ...values: any[]) {
+export function ζtxtD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, labels: any[] | 0, statics: string | string[], nbrOfValues: number, ...values: any[]) {
     // console.log("ζtxtD");
-    let args = [v, cm, iFlag, idx, parentLevel, statics, nbrOfValues]
+    let args = [v, cm, iFlag, idx, parentLevel, labels, statics, nbrOfValues]
     for (let i = 0; nbrOfValues > i; i++) {
         args.push(values[i]);
     }

@@ -12,7 +12,9 @@ export interface IvTemplate {
     $ctl: any | undefined;
     attach(element: any): IvTemplate;
     refresh(data?: any): IvTemplate;
-    query(label: string, firstOnly?: boolean): any | null; // -> can query all nodes, including private nodes whereas $api.$query will only query public nodes
+
+    query(label: string): any | null;
+    query(label: string, all: true): any[] | null; // -> can query all nodes (default = false)
 }
 
 export interface IvNode {

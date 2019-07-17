@@ -1,6 +1,5 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsReference } from '../../xjs/parser/types';
+import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsLabel } from '../../xjs/parser/types';
 import { parse } from '../../xjs/parser/xjs-parser';
-import { DataType } from '../../trax/trax/compiler/types';
 
 export interface CompilationOptions {
     body?: boolean;                     // if true, will output the template function body in the result
@@ -421,7 +420,7 @@ export class ViewInstruction implements RuntimeInstruction {
         switch (nd.kind) {
             case "#textNode":
                 this.rejectAsyncDecorator(nd as XjsText);
-                this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel));
+                this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsText)));
                 this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
                 break;
             case "#fragment":
@@ -640,16 +639,16 @@ export class ViewInstruction implements RuntimeInstruction {
      * Parse the XJS node to look for labels - e.g. #foo or #bar[] or #baz[{expr()}]
      * @param nd 
      */
-    generateLabelStatics(nd: XjsElement): string {
-        if (nd.references && nd.references.length) {
-            let ref: XjsReference, refs = nd.references, len = refs.length, values: any[] = [];
-            for (let i = 0; refs.length > i; i++) {
-                ref = refs[i];
-                if (ref.colExpression) {
-                    this.gc.error("Expressions are not supported in labels (yet)", ref);
+    generateLabelStatics(nd: XjsElement | XjsText): string {
+        if (nd.labels && nd.labels.length) {
+            let lbl: XjsLabel, labels = nd.labels, len = labels.length, values: any[] = [];
+            for (let i = 0; labels.length > i; i++) {
+                lbl = labels[i];
+                if (lbl.fwdLabel) {
+                    this.gc.error("Forward labels (e.g. ##" + lbl.name + ") are not supported (yet)", lbl);
                 }
-                values.push(encodeText("#" + ref.name));
-                values.push(ref.isCollection ? 1 : 0);
+                values.push(encodeText("#" + lbl.name));
+                values.push(0); // this slot will be used to store the label value when implemented
             }
             let statics = this.gc.statics, sIdx = statics.length;
             statics[sIdx] = "ζs" + sIdx + " = [" + values!.join(", ") + "]";
@@ -907,7 +906,7 @@ class TxtInstruction implements RuntimeInstruction {
     isStatic = true;            // true when the text doesn't contain expressions
     staticsExpr: string = '""'; // '" static string "' or "ζs1"
 
-    constructor(public node: XjsText, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number) {
+    constructor(public node: XjsText, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string) {
         this.view.gc.imports['ζtxt' + getIhSuffix(iFlag)] = 1;
 
         let eLength = node.expressions ? node.expressions.length : 0;
@@ -937,7 +936,7 @@ class TxtInstruction implements RuntimeInstruction {
         // e.g. ζtxt(ζ1, ζc1, 0, 2, 1, ζs0, 1, ζe(ζ, 0, 1, name));
         let v = this.view, eLength = this.node.expressions ? this.node.expressions.length : 0;
 
-        body.push(`${v.indent}${funcStart("txt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, ${this.staticsExpr}, ${eLength}`);
+        body.push(`${v.indent}${funcStart("txt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, ${this.staticLabels}, ${this.staticsExpr}, ${eLength}`);
         for (let i = 0; eLength > i; i++) {
             body.push(', ');
             generateExpression(body, this.node.expressions![i], this.view, this.iFlag);

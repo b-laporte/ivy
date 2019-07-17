@@ -28,6 +28,8 @@ export const
     EXP_MOD = "punctuation.section.embedded.modifier.js.xjs",
     F_CALL = "meta.function-call.ts",
     FALSE = "constant.language.boolean.false.ts",
+    MOD = "entity.name.type.module.ts",
+    V_ACC = "punctuation.accessor.ts",
     NUM = "constant.numeric.decimal.ts",
     PARAM = "meta.parameters.ts",
     PARAM_OPTIONAL = "keyword.operator.optional.ts",
@@ -37,11 +39,8 @@ export const
     P_END = "punctuation.definition.parameters.end.ts",
     PR_END = "punctuation.section.embedded.property.end.js.xjs",
     PR_START = "punctuation.section.embedded.property.begin.js.xjs",
-    REF = "entity.other.attribute.ref.js.xjs",
-    R_COL = "punctuation.section.embedded.ref.collection.js.xjs",
-    R_COL_START = "punctuation.section.embedded.ref.collection.start.js.xjs",
-    R_COL_END = "punctuation.section.embedded.ref.collection.end.js.xjs",
-    R_DEF = "punctuation.section.embedded.ref.js.xjs",
+    LBL = "entity.other.attribute.label.js.xjs",
+    LBL_DEF = "punctuation.section.embedded.label.js.xjs",
     SEP = "punctuation.separator.parameter.ts",
     STR_D = "string.quoted.double.ts",
     STR_S = "string.quoted.single.ts",
@@ -106,6 +105,7 @@ export const SCOPES = {
     "entity.name.function.ts": "F_NAME",
 
     "constant.numeric.decimal.ts": "NUM",
+    "entity.name.type.module.ts": "MOD",
 
     "keyword.operator.arithmetic.ts": "OP",
 
@@ -118,6 +118,9 @@ export const SCOPES = {
     "punctuation.section.embedded.property.begin.js.xjs": "PR_START",
     "punctuation.section.embedded.property.end.js.xjs": "PR_END",
 
+
+    "entity.other.attribute.label.js.xjs": "LBL",
+    "punctuation.section.embedded.label.js.xjs": "LBL_DEF",
     "entity.other.attribute.ref.js.xjs": "REF",
     "punctuation.section.embedded.ref.js.xjs": "R_DEF",
     "punctuation.section.embedded.ref.collection.js.xjs": "R_COL",

@@ -10,7 +10,7 @@ describe('Code generator', () => {
             # Hello World #
         }`), `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, " Hello World ", 0);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, " Hello World ", 0);
             ζend(ζ, ζc);
         `, '1');
 
@@ -20,8 +20,8 @@ describe('Code generator', () => {
         }`), `
             let ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " Hello ", 0);
-            ζtxt(ζ, ζc, 0, 2, 1, " World ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " Hello ", 0);
+            ζtxt(ζ, ζc, 0, 2, 1, 0, " World ", 0);
             ζend(ζ, ζc);
         `, '2');
     });
@@ -31,7 +31,7 @@ describe('Code generator', () => {
             # Hello {name} #
         }`), `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
         `, '1');
 
@@ -48,8 +48,8 @@ describe('Code generator', () => {
         }`), `
             let ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, ζs1, 1, ζe(ζ, 0, name));
-            ζtxt(ζ, ζc, 0, 2, 1, ζs2, 2, ζe(ζ, 1, name+1), ζo(ζ, 0, ζc? name+2 : ζu));
+            ζtxt(ζ, ζc, 0, 1, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs2, 2, ζe(ζ, 1, name+1), ζo(ζ, 0, ζc? name+2 : ζu));
             ζend(ζ, ζc);
         `, '3');
 
@@ -75,9 +75,9 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 5);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζfra(ζ, ζc, 1, 1);
-            ζtxt(ζ, ζc, 0, 2, 2, ζs1, 1, ζe(ζ, 0, name));
+            ζtxt(ζ, ζc, 0, 2, 2, 0, ζs1, 1, ζe(ζ, 0, name));
             ζelt(ζ, ζc, 3, 2, "span", 1);
-            ζtxt(ζ, ζc, 0, 4, 3, ζs2, 1, ζe(ζ, 1, name));
+            ζtxt(ζ, ζc, 0, 4, 3, 0, ζs2, 1, ζe(ζ, 1, name));
             ζend(ζ, ζc);
         `, '1');
     });
@@ -93,9 +93,9 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 5);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζelt(ζ, ζc, 1, 1, "span", 1, 0, ζs2);
-            ζtxt(ζ, ζc, 0, 2, 2, " Hello ", 0);
+            ζtxt(ζ, ζc, 0, 2, 2, 0, " Hello ", 0);
             ζelt(ζ, ζc, 3, 1, "span", 1);
-            ζtxt(ζ, ζc, 0, 4, 2, " World ", 0);
+            ζtxt(ζ, ζc, 0, 4, 2, 0, " World ", 0);
             ζend(ζ, ζc);
         `, '1a');
         assert.deepEqual(t1.statics, [
@@ -114,9 +114,9 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 5);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, 0, ζs1);
             ζelt(ζ, ζc, 1, 1, "span", 1, 0, ζs2, ζs3);
-            ζtxt(ζ, ζc, 0, 2, 2, " Hello ", 0);
+            ζtxt(ζ, ζc, 0, 2, 2, 0, " Hello ", 0);
             ζelt(ζ, ζc, 3, 1, "section", 1);
-            ζtxt(ζ, ζc, 0, 4, 2, " World ", 0);
+            ζtxt(ζ, ζc, 0, 4, 2, 0, " World ", 0);
             ζend(ζ, ζc);
         `, '2a');
         assert.deepEqual(t2.statics, [
@@ -184,10 +184,10 @@ describe('Code generator', () => {
         assert.equal(t.body, `
             let ζc = ζinit(ζ, ζs0, 5);
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " fragment 1 ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " fragment 1 ", 0);
             ζfra(ζ, ζc, 2, 1);
             ζelt(ζ, ζc, 3, 2, "div", 1);
-            ζtxt(ζ, ζc, 0, 4, 3, " fragment 2 ", 0);
+            ζtxt(ζ, ζc, 0, 4, 3, 0, " fragment 2 ", 0);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -203,10 +203,10 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             let x = 42;
-            ζtxt(ζ, ζc, 0, 1, 1, " Something ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " Something ", 0);
             x++;
             let bar = { a:"xyz"};
-            ζtxt(ζ, ζc, 0, 2, 1, " Something else ", 0);
+            ζtxt(ζ, ζc, 0, 2, 1, 0, " Something else ", 0);
             ζend(ζ, ζc);
         `, 'statements first and embedded');
 
@@ -217,7 +217,7 @@ describe('Code generator', () => {
             } while (test);
         }`), `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, " Something ", 0);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, " Something ", 0);
             do {
                 callSomething();
             } while (test);
@@ -238,10 +238,10 @@ describe('Code generator', () => {
             if (test) {
                 ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
                 ζc1 = ζ1.cm;
-                ζtxt(ζ1, ζc1, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
+                ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
             }
-            ζtxt(ζ, ζc, 0, 2, 1, " \\(end) ", 0);
+            ζtxt(ζ, ζc, 0, 2, 1, 0, " \\(end) ", 0);
             ζend(ζ, ζc, ζs2);
         `, 'first position');
 
@@ -270,12 +270,12 @@ describe('Code generator', () => {
             if (test) {
                 ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
                 ζc1 = ζ1.cm;
-                ζtxt(ζ1, ζc1, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
+                ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
             } else {
                 ζ2 = ζview(ζ, 0, 2, 1, ++ζi2);
                 ζc2 = ζ2.cm;
-                ζtxt(ζ2, ζc2, 0, 0, 0, ζs2, 1, ζe(ζ2, 0, name));
+                ζtxt(ζ2, ζc2, 0, 0, 0, 0, ζs2, 1, ζe(ζ2, 0, name));
                 ζend(ζ2, ζc2);
             }
             ζend(ζ, ζc, ζs3);
@@ -303,13 +303,13 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " hello ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " hello ", 0);
             ζcnt(ζ, ζc, 2, 1, 1);
             do {
                 ζ1 = ζview(ζ, 0, 2, 1, ++ζi1);
                 ζc1 = ζ1.cm;
                 let x=123;
-                ζtxt(ζ1, ζc1, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
+                ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
             } while (test)
             ζend(ζ, ζc, ζs2);
@@ -331,13 +331,13 @@ describe('Code generator', () => {
             if (a) {
                 ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
                 ζc1 = ζ1.cm;
-                ζtxt(ζ1, ζc1, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
+                ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
             } let x=1;
             if (b) {
                 ζ2 = ζview(ζ, 0, 2, 1, ++ζi2);
                 ζc2 = ζ2.cm;
-                ζtxt(ζ2, ζc2, 0, 0, 0, ζs2, 1, ζe(ζ2, 0, name));
+                ζtxt(ζ2, ζc2, 0, 0, 0, 0, ζs2, 1, ζe(ζ2, 0, name));
                 ζend(ζ2, ζc2);
             }
             ζend(ζ, ζc, ζs3);
@@ -359,7 +359,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 2, 3, ++ζi1);
                 ζc1 = ζ1.cm;
                 ζfra(ζ1, ζc1, 0, 0);
-                ζtxt(ζ1, ζc1, 0, 1, 1, ζs1, 1, ζe(ζ1, 0, name));
+                ζtxt(ζ1, ζc1, 0, 1, 1, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζelt(ζ1, ζc1, 2, 1, "div", 0);
                 ζend(ζ1, ζc1);
             }
@@ -431,7 +431,7 @@ describe('Code generator', () => {
         }`), `
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " first ", 0);
             ζcnt(ζ, ζc, 2, 1, 1);
             if (condition) {
                 ζ1 = ζview(ζ, 0, 2, 1, ++ζi1);
@@ -592,7 +592,7 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζevt(ζ, ζc, 1, 0, "click", function (e) {doSomething()});
             ζevt(ζ, ζc, 2, 0, "mousemove", function (x,y) {doSomethingElse(y,x)});
-            ζtxt(ζ, ζc, 0, 3, 1, ζs1, 1, ζe(ζ, 0, name));
+            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
         `, '1');
     });
@@ -627,12 +627,12 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
-            ζtxtD(ζ1, ζc1, 1, 1, 1, ζs1, 1, [0, name1]);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, name1]);
             ζcptD(ζ1, ζc1, 1, 2, 1, [1, otherComponent], 0);
             ζparD(ζ1, 1, 2, "p1", [2, expr()]);
             ζ2 = ζviewD(ζ1, 1, 2, 1, 0);
             ζc2 = ζ2.cm;
-            ζtxtD(ζ2, ζc2, 1, 0, 0, ζs2, 1, [0, name2]);
+            ζtxtD(ζ2, ζc2, 1, 0, 0, 0, ζs2, 1, [0, name2]);
             ζendD(ζ2, ζc2);
             ζcallD(ζ1, 2);
             ζendD(ζ1, ζc1);
@@ -656,7 +656,7 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
-            ζtxtD(ζ1, ζc1, 1, 1, 1, " first ", 0);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, " first ", 0);
             ζcntD(ζ1, ζc1, 2, 1, 1);
             if (condition) {
                 ζ2 = ζviewD(ζ1, 2, 2, 1, ++ζi2);
@@ -714,7 +714,7 @@ describe('Code generator', () => {
             let $api = $, a = $["a"], b = $["b"];
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
-            ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 0, $api.a));
+            ζtxt(ζ, ζc, 0, 1, 1, 0, ζs2, 1, ζe(ζ, 0, $api.a));
             ζend(ζ, ζc);
         }, 0, ζParams);
         })()` , '1');
@@ -748,7 +748,7 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let $api = $;
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $.name));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $.name));
             ζend(ζ, ζc);
         }, 0, MyParamClass);
         })()`, 'simple param class');
@@ -761,7 +761,7 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let $api = $, name = $["name"];
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
         }, 0, MyParamClass);
         })()`, 'param class + local variables initialization');
@@ -775,7 +775,7 @@ describe('Code generator', () => {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         return ζt(function (ζ, $, $ctl) {
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $ctl.name));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $ctl.name));
             ζend(ζ, ζc);
         }, 0, 0, MyCtlClass);
         })()`, 'simple param class');
@@ -819,17 +819,17 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζp0, ζp1, ζc = ζinit(ζ, ζs0, 6);
             ζp0 = ζp1 = 0;
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " first ", 0);
             ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
             ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, ζs1);
             ζpar(ζ, 0, 3, "foo", bar());
-            ζtxtD(ζ1, ζc1, 1, 0, 0, ζs2, 1, [0, baz()]);
+            ζtxtD(ζ1, ζc1, 1, 0, 0, 0, ζs2, 1, [0, baz()]);
             ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, ζs3);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 2);
-            ζtxt(ζ, ζc, 0, 5, 1, " last ", 0);
+            ζtxt(ζ, ζc, 0, 5, 1, 0, " last ", 0);
             ζend(ζ, ζc);
         `, '1');
 
@@ -846,7 +846,7 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζp1, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 5);
             ζp0 = ζp1 = 0;
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " first ", 0);
             ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
@@ -858,13 +858,13 @@ describe('Code generator', () => {
             ζ3 = ζviewD(ζ, 1, 4, 2, 0);
             ζc3 = ζ3.cm;
             ζeltD(ζ3, ζc3, 0, 0, "b", 1);
-            ζtxtD(ζ3, ζc3, 1, 1, 1, ζs2, 1, [0, exp()]);
+            ζtxtD(ζ3, ζc3, 1, 1, 1, 0, ζs2, 1, [0, exp()]);
             ζendD(ζ3, ζc3);
             ζpnEnd(ζ, ζc, 0, 4);
-            ζtxtD(ζ2, ζc2, 1, 0, 0, " header content ", 0);
+            ζtxtD(ζ2, ζc2, 1, 0, 0, 0, " header content ", 0);
             ζendD(ζ2, ζc2);
             ζpnEnd(ζ, ζc, 0, 3);
-            ζtxtD(ζ1, ζc1, 1, 0, 0, ζs3, 1, [0, foo()]);
+            ζtxtD(ζ1, ζc1, 1, 0, 0, 0, ζs3, 1, [0, foo()]);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 2);
             ζend(ζ, ζc);
@@ -919,7 +919,7 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζp0, ζi3 = 0, ζ3, ζc3, ζp1, ζc = ζinit(ζ, ζs0, 6);
             ζp0 = ζp1 = 0;
             ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, " first ", 0);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " first ", 0);
             ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0, 0, ζs4);
             ζi2 = ζi3 = 0;
             ζ1 = ζviewD(ζ, 1, 2, 4, 0);
@@ -929,23 +929,23 @@ describe('Code generator', () => {
             if (x) {
                 ζ2 = ζviewD(ζ1, 2, 1, 1, ++ζi2);
                 ζc2 = ζ2.cm;
-                ζtxtD(ζ2, ζc2, 2, 0, 0, " foo ", 0);
+                ζtxtD(ζ2, ζc2, 2, 0, 0, 0, " foo ", 0);
                 ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, ζs1);
                 ζpar(ζ, 0, 3, "foo", bar());
                 ζendD(ζ2, ζc2);
             }
-            ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
+            ζtxtD(ζ1, ζc1, 1, 2, 1, 0, " abc ", 0);
             ζcntD(ζ1, ζc1, 3, 1, 1);
             if (y) {
                 ζ3 = ζviewD(ζ1, 2, 3, 1, ++ζi3);
                 ζc3 = ζ3.cm;
-                ζtxtD(ζ3, ζc3, 2, 0, 0, ζs2, 1, [0, baz()]);
+                ζtxtD(ζ3, ζc3, 2, 0, 0, 0, ζs2, 1, [0, baz()]);
                 ζendD(ζ3, ζc3);
             }
             ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, ζs3);
             ζendD(ζ1, ζc1, ζs5);
             ζcall(ζ, 2, 0, ζs4);
-            ζtxt(ζ, ζc, 0, 5, 1, " last ", 0);
+            ζtxt(ζ, ζc, 0, 5, 1, 0, " last ", 0);
             ζend(ζ, ζc);
         `, '1');
 
@@ -996,7 +996,7 @@ describe('Code generator', () => {
                 ζendD(ζ3, ζc3, ζs7);
                 ζpnEnd(ζ, ζc, 0, 1, ζs6);
             }
-            ζtxtD(ζ1, ζc1, 1, 2, 1, " abc ", 0);
+            ζtxtD(ζ1, ζc1, 1, 2, 1, 0, " abc ", 0);
             ζcntD(ζ1, ζc1, 3, 1, 1);
             if (z) {
                 ζpnode(ζ, ζc, 0, 3, 0, "footer", ζp2++, ζs3);
@@ -1049,7 +1049,7 @@ describe('Code generator', () => {
                     ζpar(ζ1, 0, 2, "id", i);
                     ζ5 = ζviewD(ζ1, 1, 2, 1, 0);
                     ζc5 = ζ5.cm;
-                    ζtxtD(ζ5, ζc5, 1, 0, 0, ζs1, 1, [0, i]);
+                    ζtxtD(ζ5, ζc5, 1, 0, 0, 0, ζs1, 1, [0, i]);
                     ζendD(ζ5, ζc5);
                     ζpnEnd(ζ1, ζc1, 0, 2);
                     ζpnEnd(ζ1, ζc1, 0, 1);
@@ -1150,11 +1150,11 @@ describe('Code generator', () => {
             ζpnode(ζ, ζc, 0, 2, 1, "header", ζp0++);
             ζ2 = ζviewD(ζ, 1, 2, 1, 0);
             ζc2 = ζ2.cm;
-            ζtxtD(ζ2, ζc2, 1, 0, 0, " The big title ", 0);
+            ζtxtD(ζ2, ζc2, 1, 0, 0, 0, " The big title ", 0);
             ζendD(ζ2, ζc2);
             ζpnEnd(ζ, ζc, 0, 2);
             ζeltD(ζ1, ζc1, 0, 0, "span", 1, 0, ζs3);
-            ζtxtD(ζ1, ζc1, 1, 1, 1, " Section content ", 0);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, " Section content ", 0);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 1);
             ζend(ζ, ζc);
@@ -1179,7 +1179,7 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζpro(ζ, 0, 0, "title", ζe(ζ, 0, "Message for " + name));
-            ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 1, name));
+            ζtxt(ζ, ζc, 0, 1, 1, 0, ζs2, 1, ζe(ζ, 1, name));
             ζend(ζ, ζc);
         }, 0, ζParams);
         })()` , 'f2');
@@ -1199,7 +1199,7 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let firstName = $["firstName"], lastName = $["lastName"];
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
             ζend(ζ, ζc);
         }, 0, ζParams);
         })()` , 'f3');
@@ -1254,7 +1254,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 1, 2, 0);
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1, 0, ζs2);
-                ζtxt(ζ1, ζc1, 0, 1, 1, ζs3, 1, ζe(ζ1, 0, msg));
+                ζtxt(ζ1, ζc1, 0, 1, 1, 0, ζs3, 1, ζe(ζ1, 0, msg));
                 ζend(ζ1, ζc1);
             });
             ζend(ζ, ζc);
@@ -1271,7 +1271,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 0, 2, 0);
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1);
-                ζtxt(ζ1, ζc1, 0, 1, 1, ζs1, 1, ζe(ζ1, 0, msg));
+                ζtxt(ζ1, ζc1, 0, 1, 1, 0, ζs1, 1, ζe(ζ1, 0, msg));
                 ζend(ζ1, ζc1);
             });
             ζend(ζ, ζc);
@@ -1291,10 +1291,10 @@ describe('Code generator', () => {
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1);
                 ζevt(ζ1, ζc1, 1, 0, "click", function (e) {doSomething(e)});
-                ζtxt(ζ1, ζc1, 0, 2, 1, ζs1, 1, ζe(ζ1, 0, msg));
+                ζtxt(ζ1, ζc1, 0, 2, 1, 0, ζs1, 1, ζe(ζ1, 0, msg));
                 ζend(ζ1, ζc1);
             });
-            ζtxt(ζ, ζc, 0, 2, 1, ζs2, 1, ζe(ζ, 1, msg));
+            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs2, 1, ζe(ζ, 1, msg));
             ζend(ζ, ζc);
         `, '3');
     });
@@ -1314,7 +1314,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 1, 2, 0);
                 ζc1 = ζ1.cm;
                 ζfra(ζ1, ζc1, 0, 0);
-                ζtxt(ζ1, ζc1, 0, 1, 1, ζs1, 1, ζe(ζ1, 0, msg));
+                ζtxt(ζ1, ζc1, 0, 1, 1, 0, ζs1, 1, ζe(ζ1, 0, msg));
                 ζend(ζ1, ζc1);
             });
             ζend(ζ, ζc);
@@ -1339,7 +1339,7 @@ describe('Code generator', () => {
                 ζpar(ζ1, 0, 0, "title", ζe(ζ1, 1, msg));
                 ζ2 = ζviewD(ζ1, 1, 0, 1, 0);
                 ζc2 = ζ2.cm;
-                ζtxtD(ζ2, ζc2, 1, 0, 0, ζs1, 1, [0, msg]);
+                ζtxtD(ζ2, ζc2, 1, 0, 0, 0, ζs1, 1, [0, msg]);
                 ζendD(ζ2, ζc2);
                 ζcall(ζ1, 0);
                 ζend(ζ1, ζc1);
@@ -1362,13 +1362,13 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
-            ζtxtD(ζ1, ζc1, 1, 1, 1, ζs1, 1, [0, msg]);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, msg]);
             ζcntD(ζ1, ζc1, 2, 1, 3);
             ζasyncD(ζ1, 2, 2, 1, function () {
                 ζ2 = ζviewD(ζ1, 2, 2, 2, 0);
                 ζc2 = ζ2.cm;
                 ζeltD(ζ2, ζc2, 0, 0, "div", 1);
-                ζtxtD(ζ2, ζc2, 2, 1, 1, " other text ", 0);
+                ζtxtD(ζ2, ζc2, 2, 1, 1, 0, " other text ", 0);
                 ζendD(ζ2, ζc2);
             });
             ζendD(ζ1, ζc1);
@@ -1396,24 +1396,24 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
-            ζtxtD(ζ1, ζc1, 1, 1, 1, ζs1, 1, [0, msg]);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, msg]);
             ζcntD(ζ1, ζc1, 2, 1, 3);
             ζasyncD(ζ1, 2, 2, 1, function () {
                 ζ2 = ζviewD(ζ1, 2, 2, 3, 0);
                 ζc2 = ζ2.cm;
                 ζeltD(ζ2, ζc2, 0, 0, "div", 1);
-                ζtxtD(ζ2, ζc2, 2, 1, 1, " other text ", 0);
+                ζtxtD(ζ2, ζc2, 2, 1, 1, 0, " other text ", 0);
                 ζcptD(ζ2, ζc2, 2, 2, 1, [0, cpt], 0);
                 ζ3 = ζviewD(ζ2, 1, 2, 3, 0);
                 ζc3 = ζ3.cm;
                 ζfraD(ζ3, ζc3, 0, 0);
-                ζtxtD(ζ3, ζc3, 1, 1, 1, ζs2, 1, [0, msg]);
+                ζtxtD(ζ3, ζc3, 1, 1, 1, 0, ζs2, 1, [0, msg]);
                 ζcntD(ζ3, ζc3, 2, 1, 3);
                 ζasyncD(ζ3, 2, 2, 1, function () {
                     ζ4 = ζviewD(ζ3, 2, 2, 2, 0);
                     ζc4 = ζ4.cm;
                     ζeltD(ζ4, ζc4, 0, 0, "div", 1);
-                    ζtxtD(ζ4, ζc4, 2, 1, 1, ζs3, 1, [0, msg]);
+                    ζtxtD(ζ4, ζc4, 2, 1, 1, 0, ζs3, 1, [0, msg]);
                     ζendD(ζ4, ζc4);
                 });
                 ζendD(ζ3, ζc3);
@@ -1443,25 +1443,24 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let a = $["a"], b = $["b"], c = $["c"], d = $["d"], e = $["e"];
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, ζs1, 5, ζe(ζ, 0, a), ζe(ζ, 1, b), ζe(ζ, 2, c), ζe(ζ, 3, d), ζe(ζ, 4, e));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 5, ζe(ζ, 0, a), ζe(ζ, 1, b), ζe(ζ, 2, c), ζe(ζ, 3, d), ζe(ζ, 4, e));
             ζend(ζ, ζc);
         }, 0, ζParams);
         })()` , 'f1');
     });
 
-    it("should support node labels on elements", async function () {
+    it("should support labels on elements", async function () {
         // support labels on elts, text nodes and components -> error otherwise
-        // multiple refs on the same elt e.g. #a #abc #def[] -> statics
         let t1 = await test.template(`() => {
             <div #divA class="main">
-                <span #spanB #col[]> # Hello # </span>
+                <span #spanB #col> # Hello # </span>
             </>
         }`);
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1, ζs2, ζs1);
             ζelt(ζ, ζc, 1, 1, "span", 1, ζs3);
-            ζtxt(ζ, ζc, 0, 2, 2, " Hello ", 0);
+            ζtxt(ζ, ζc, 0, 2, 2, 0, " Hello ", 0);
             ζend(ζ, ζc);
         `, '1a');
 
@@ -1469,9 +1468,56 @@ describe('Code generator', () => {
             "ζs0 = {}",
             "ζs1 = [\"class\", \"main\"]",
             "ζs2 = [\"#divA\", 0]",
-            "ζs3 = [\"#spanB\", 0, \"#col\", 1]"
+            "ζs3 = [\"#spanB\", 0, \"#col\", 0]"
         ], "1s");
     });
+
+    it("should support labels on text nodes", async function () {
+        let t1 = await test.template(`() => {
+            # (#txt1 #txt) Hello #
+            <div>
+                 # (#txt) World #
+            </div>
+        }`);
+        assert.equal(t1.body, `
+            let ζc = ζinit(ζ, ζs0, 4);
+            ζfra(ζ, ζc, 0, 0);
+            ζtxt(ζ, ζc, 0, 1, 1, ζs1, " Hello ", 0);
+            ζelt(ζ, ζc, 2, 1, "div", 1);
+            ζtxt(ζ, ζc, 0, 3, 2, ζs2, " World ", 0);
+            ζend(ζ, ζc);
+        `, '1a');
+
+        assert.deepEqual(t1.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"#txt1\", 0, \"#txt\", 0]",
+            "ζs2 = [\"#txt\", 0]"
+        ], "1s");
+    });
+
+    // it.only("should support labels on components", async function () {
+    //     let t1 = await test.template(`() => {
+    //         <*cpt #label1 arg1=1>
+    //             <*cpt #label2 #label3 arg2=2/>
+    //         </>
+    //     }`);
+    //     assert.equal(t1.body, `
+    //         let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
+    //         ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0, ζs1); // here?
+    //         ζ1 = ζviewD(ζ, 1, 0, 1, 0);
+    //         ζc1 = ζ1.cm;
+    //         ζcptD(ζ1, ζc1, 1, 0, 0, [0, cpt], 1, ζs2); // here?
+    //         ζendD(ζ1, ζc1);
+    //         ζcall(ζ, 0); // here?
+    //         ζend(ζ, ζc);
+    //     `, '1a');
+
+    //     // assert.deepEqual(t1.statics, [
+    //     //     "ζs0 = {}",
+    //     //     "ζs1 = [\"#txt1\", 0, \"#txt\", 0]",
+    //     //     "ζs2 = [\"#txt\", 0]"
+    //     // ], "1s");
+    // });
 
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });

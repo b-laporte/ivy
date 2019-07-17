@@ -179,6 +179,10 @@ class TextNode {
 
         return `${indent}#${uid}${this._textContent}#${chg}`;
     }
+
+    get innerText() {
+        return this._textContent;
+    }
 }
 
 class ElementClassList {

@@ -1,4 +1,4 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator } from '../../xjs/parser/types';
+import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsReference } from '../../xjs/parser/types';
 import { parse } from '../../xjs/parser/xjs-parser';
 import { DataType } from '../../trax/trax/compiler/types';
 
@@ -414,7 +414,7 @@ export class ViewInstruction implements RuntimeInstruction {
             } else if (i1 > -1) {
                 stParams = `, ζs${i1}`;
             } else if (i2 > -1) {
-                stParams = `, ζu, ζs${i2}`;
+                stParams = `, 0, ζs${i2}`;
             }
         }
 
@@ -433,7 +433,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 break;
             case "#element":
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
-                    this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, stParams));
+                    this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsElement), stParams));
                     this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
                     this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iFlag);
                     this.createListeners(nd as XjsElement, idx, iFlag);
@@ -634,6 +634,28 @@ export class ViewInstruction implements RuntimeInstruction {
             statics[sIdx] = "ζs" + sIdx + " = [" + val!.join(", ") + "]";
         }
         return [sIdx, containsExpr];
+    }
+
+    /**
+     * Parse the XJS node to look for labels - e.g. #foo or #bar[] or #baz[{expr()}]
+     * @param nd 
+     */
+    generateLabelStatics(nd: XjsElement): string {
+        if (nd.references && nd.references.length) {
+            let ref: XjsReference, refs = nd.references, len = refs.length, values: any[] = [];
+            for (let i = 0; refs.length > i; i++) {
+                ref = refs[i];
+                if (ref.colExpression) {
+                    this.gc.error("Expressions are not supported in labels (yet)", ref);
+                }
+                values.push(encodeText("#" + ref.name));
+                values.push(ref.isCollection ? 1 : 0);
+            }
+            let statics = this.gc.statics, sIdx = statics.length;
+            statics[sIdx] = "ζs" + sIdx + " = [" + values!.join(", ") + "]";
+            return "ζs" + sIdx;
+        }
+        return "0"; // no labels
     }
 
     generateParamInstructions(f: XjsFragment, idx: number, iFlag: number, isAttribute: boolean, view: ViewInstruction) {
@@ -933,7 +955,7 @@ function funcStart(name: string, iFlag: number) {
 }
 
 class EltInstruction implements RuntimeInstruction {
-    constructor(public node: XjsElement, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticArgs: string) {
+    constructor(public node: XjsElement, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string, public staticArgs: string) {
         this.view.gc.imports['ζelt' + getIhSuffix(iFlag)] = 1;
     }
 
@@ -943,8 +965,9 @@ class EltInstruction implements RuntimeInstruction {
         if (this.node.nameExpression) {
             v.gc.error("Name expressions are not yet supported", this.node);
         }
-        let hasChildren = (this.node.content && this.node.content.length) ? 1 : 0;
-        body.push(`${v.indent}${funcStart("elt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, "${this.node.name}", ${hasChildren}${this.staticArgs});\n`);
+        let hasChildren = (this.node.content && this.node.content.length) ? 1 : 0,
+            lastArgs = (this.staticLabels === "0" && !this.staticArgs) ? "" : ", " + this.staticLabels + this.staticArgs;
+        body.push(`${v.indent}${funcStart("elt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, "${this.node.name}", ${hasChildren}${lastArgs});\n`);
     }
 }
 

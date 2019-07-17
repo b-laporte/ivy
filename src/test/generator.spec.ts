@@ -91,8 +91,8 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 5);
-            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
-            ζelt(ζ, ζc, 1, 1, "span", 1, ζs2);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζelt(ζ, ζc, 1, 1, "span", 1, 0, ζs2);
             ζtxt(ζ, ζc, 0, 2, 2, " Hello ", 0);
             ζelt(ζ, ζc, 3, 1, "span", 1);
             ζtxt(ζ, ζc, 0, 4, 2, " World ", 0);
@@ -112,8 +112,8 @@ describe('Code generator', () => {
         }`);
         assert.equal(t2.body, `
             let ζc = ζinit(ζ, ζs0, 5);
-            ζelt(ζ, ζc, 0, 0, "div", 1, ζu, ζs1);
-            ζelt(ζ, ζc, 1, 1, "span", 1, ζs2, ζs3);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, 0, ζs1);
+            ζelt(ζ, ζc, 1, 1, "span", 1, 0, ζs2, ζs3);
             ζtxt(ζ, ζc, 0, 2, 2, " Hello ", 0);
             ζelt(ζ, ζc, 3, 1, "section", 1);
             ζtxt(ζ, ζc, 0, 4, 2, " World ", 0);
@@ -133,7 +133,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζelt(ζ, ζc, 0, 0, "div", 0, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 0, 0, ζs1);
             ζend(ζ, ζc);
         `, '1a');
         assert.deepEqual(t1.statics, [
@@ -713,7 +713,7 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let $api = $, a = $["a"], b = $["b"];
             let ζc = ζinit(ζ, ζs0, 2);
-            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 0, $api.a));
             ζend(ζ, ζc);
         }, 0, ζParams);
@@ -800,7 +800,7 @@ describe('Code generator', () => {
             <div class="foo" @content/>
         }`), `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζelt(ζ, ζc, 0, 0, "div", 0, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 0, 0, ζs1);
             ζins(ζ, 0, 0, ζe(ζ, 0, $content));
             ζend(ζ, ζc);
         `, '1');
@@ -1143,7 +1143,7 @@ describe('Code generator', () => {
         return ζt(function (ζ) {
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 3);
             ζp0 = 0;
-            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, b.section), 0, ζs2);
             ζ1 = ζviewD(ζ, 1, 1, 2, 0);
             ζc1 = ζ1.cm;
@@ -1153,7 +1153,7 @@ describe('Code generator', () => {
             ζtxtD(ζ2, ζc2, 1, 0, 0, " The big title ", 0);
             ζendD(ζ2, ζc2);
             ζpnEnd(ζ, ζc, 0, 2);
-            ζeltD(ζ1, ζc1, 0, 0, "span", 1, ζs3);
+            ζeltD(ζ1, ζc1, 0, 0, "span", 1, 0, ζs3);
             ζtxtD(ζ1, ζc1, 1, 1, 1, " Section content ", 0);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 1);
@@ -1177,7 +1177,7 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let name = $["name"];
             let ζc = ζinit(ζ, ζs0, 2);
-            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζpro(ζ, 0, 0, "title", ζe(ζ, 0, "Message for " + name));
             ζtxt(ζ, ζc, 0, 1, 1, ζs2, 1, ζe(ζ, 1, name));
             ζend(ζ, ζc);
@@ -1225,12 +1225,12 @@ describe('Code generator', () => {
         return ζt(function (ζ, $) {
             let header = $["header"];
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
-            ζelt(ζ, ζc, 0, 0, "div", 1, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζcnt(ζ, ζc, 1, 1, 1);
             if (header) {
                 ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
                 ζc1 = ζ1.cm;
-                ζelt(ζ1, ζc1, 0, 0, "div", 0, ζs2);
+                ζelt(ζ1, ζc1, 0, 0, "div", 0, 0, ζs2);
                 ζins(ζ1, 0, 0, ζe(ζ1, 0, header));
                 ζend(ζ1, ζc1);
             }
@@ -1253,7 +1253,7 @@ describe('Code generator', () => {
             ζasync(ζ, 0, 1, 1, function () {
                 ζ1 = ζview(ζ, 0, 1, 2, 0);
                 ζc1 = ζ1.cm;
-                ζelt(ζ1, ζc1, 0, 0, "div", 1, ζs2);
+                ζelt(ζ1, ζc1, 0, 0, "div", 1, 0, ζs2);
                 ζtxt(ζ1, ζc1, 0, 1, 1, ζs3, 1, ζe(ζ1, 0, msg));
                 ζend(ζ1, ζc1);
             });
@@ -1447,6 +1447,30 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         }, 0, ζParams);
         })()` , 'f1');
+    });
+
+    it("should support node labels on elements", async function () {
+        // support labels on elts, text nodes and components -> error otherwise
+        // multiple refs on the same elt e.g. #a #abc #def[] -> statics
+        let t1 = await test.template(`() => {
+            <div #divA class="main">
+                <span #spanB #col[]> # Hello # </span>
+            </>
+        }`);
+        assert.equal(t1.body, `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1, ζs2, ζs1);
+            ζelt(ζ, ζc, 1, 1, "span", 1, ζs3);
+            ζtxt(ζ, ζc, 0, 2, 2, " Hello ", 0);
+            ζend(ζ, ζc);
+        `, '1a');
+
+        assert.deepEqual(t1.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"class\", \"main\"]",
+            "ζs2 = [\"#divA\", 0]",
+            "ζs3 = [\"#spanB\", 0, \"#col\", 1]"
+        ], "1s");
     });
 
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes

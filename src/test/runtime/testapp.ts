@@ -9,4 +9,5 @@ import "./events.spec";
 import "./data.spec";
 import "./pnodes.spec";
 import "./controller.spec";
+import "./labels.spec";
 // import "./async.spec";

@@ -12,7 +12,7 @@ export interface IvTemplate {
     $ctl: any | undefined;
     attach(element: any): IvTemplate;
     refresh(data?: any): IvTemplate;
-    // get() / getAll()
+    query(label: string, firstOnly?: boolean): any | null; // -> can query all nodes, including private nodes whereas $api.$query will only query public nodes
 }
 
 export interface IvNode {
@@ -53,7 +53,7 @@ export interface IvView {
     lastRefresh: number;                                                   // refresh count at last refresh
     container: IvContainer | IvElement | IvFragment | null;                // null if root view, container host otherwise (i.e. where the view is projected)
     projectionHost: IvProjectionHost | null;                               // defined when view corresponds to a projected light-dom 
-    isTemplate: boolean;                                                   // true if the VIEW is associated to a template root (will be false for sub js blocks)
+    template: IvTemplate | undefined;                                      // set if the VIEW is associated to a template root (will be undefined for sub js blocks)
     rootDomNode: any;                                                      // domNode the view is attached to - only used by the root view
     anchorNode: any;                                                       // dom node used as anchor in the domNode - only used by the root view (content will be inserted before this anchor)
     expressions: any[] | undefined;                                        // array of expression values

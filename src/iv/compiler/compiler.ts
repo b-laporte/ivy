@@ -9,7 +9,8 @@ const SK = ts.SyntaxKind,
     RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
-    RX_LIST = /List$/;
+    RX_LIST = /List$/,
+    SEPARATOR = "---------------------------------------------------------------";
 
 export async function process(source: string, resourcePath: string) {
     let result: string;
@@ -20,25 +21,39 @@ export async function process(source: string, resourcePath: string) {
         throw new Error(e.message);
     }
 
-    if (source.match(RX_LOG_ALL)) {
-        console.log();
-        console.log("Ivy: Intermediary Output");
+    let logAll = source.match(RX_LOG_ALL) !== null;
+
+    if (logAll) {
+        console.log(SEPARATOR);
+        console.log("Ivy: Template Processing");
         console.log(result);
     }
 
-    // trax processing for ivy param classes
+    // trax processing for ivy api classes
     try {
         result = generate(result, resourcePath, { symbols: { Data: "ζΔD", /* todo: ref, computed */ }, libPrefix: "ζ", validator: listValidator });
     } catch (e) {
         throw new Error(e.message);
     }
 
+    if (logAll) {
+        console.log(SEPARATOR);
+        console.log("Ivy: Generated Param Classes Processing");
+        console.log(result);
+    }
+
     // trax processing for ivy template API classes
     let r1 = result
     try {
-        result = generate(result, resourcePath, { symbols: { Data: "API" }, ignoreFunctionProperties:true, acceptMethods: true, replaceDataDecorator: false, libPrefix: "ζ" });
+        result = generate(result, resourcePath, { symbols: { Data: "API" }, ignoreFunctionProperties: true, acceptMethods: true, replaceDataDecorator: false, libPrefix: "ζ" });
     } catch (e) {
         throw new Error(e.message);
+    }
+
+    if (logAll) {
+        console.log(SEPARATOR);
+        console.log("Ivy: API Classes Processing");
+        console.log(result);
     }
 
     // trax processing for ivy template controller classes
@@ -48,9 +63,9 @@ export async function process(source: string, resourcePath: string) {
         throw new Error(e.message);
     }
 
-    if (source.match(RX_LOG)) {
-        console.log();
-        console.log("Ivy: Generated Code");
+    if (logAll) {
+        console.log(SEPARATOR);
+        console.log("Ivy: Controller Classes Processing");
         console.log(result);
     }
 
@@ -59,6 +74,12 @@ export async function process(source: string, resourcePath: string) {
         result = generate(result, resourcePath);
     } catch (e) {
         throw new Error(e.message);
+    }
+
+    if (logAll || source.match(RX_LOG)) {
+        console.log(SEPARATOR);
+        console.log("Ivy: Generated Code");
+        console.log(result);
     }
 
     return result;

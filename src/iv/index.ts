@@ -27,10 +27,11 @@ export class Template implements IvTemplate {
     activeWatch = false;
     lastRefreshVersion = 0;
     processing = false;
+    labels: { [label: string]: any | any[] } | undefined = undefined;
 
     constructor(public refreshFn: (ζ: IvView, $api?: any, $ctl?: any) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
-        this.view = createView(null, true, null);
+        this.view = createView(null, null, this);
         let self = this;
         this.watchCb = function () {
             self.notifyChange();
@@ -81,6 +82,60 @@ export class Template implements IvTemplate {
         return this;
     }
 
+    registerLabel(label: string, object: any, isCollection: boolean) {
+        if (!this.labels) {
+            this.labels = {};
+        }
+        let target = this.labels[label];
+        if (!target) {
+            target = this.labels[label] = isCollection ? [object] : object;
+        } else {
+            if (Array.isArray(target) !== isCollection) {
+                console.error("Label types (collections or single elements) cannot be mixed: please check " + label);
+            } else {
+                if (isCollection) {
+                    target.push(object);
+                } else {
+                    this.labels[label] = object;
+                }
+            }
+        }
+    }
+
+    /**
+     * Return the first element labelled as per the argument
+     * e.g. for <div #foo/> -> query("#foo") will return the DIV DOM element
+     * @param label 
+     * @return the DOM element or the Component $api or null if nohting is found
+     */
+    query(label: string): any | null {
+        let t = this.getLabelTarget(label);
+        if (t) {
+            return Array.isArray(t) ? t[0] : t;
+        }
+        return null;
+    }
+
+    /**
+     * Same as query() but return all the matching elements. Always return an Array (or null)
+     * @param label 
+     */
+    queryAll(label: string): any[] | null {
+        let t = this.getLabelTarget(label);
+        if (t) {
+            return Array.isArray(t) ? t : [t];
+        }
+        return null;
+    }
+
+    getLabelTarget(label: string) {
+        if (label && label.charAt(0) !== '#') {
+            console.error("[$template.query()] Invalid label '" + label + "': labels must start with #");
+            return null;
+        }
+        return this.labels ? this.labels[label] || null : null;
+    }
+
     notifyChange() {
         this.refresh();
     }
@@ -123,6 +178,7 @@ export class Template implements IvTemplate {
         }
         if (!bypassRefresh) {
             // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
+            this.labels = undefined;
             this.view.lastRefresh++;
             this.view.instructions = undefined;
             this.refreshFn(this.view, p, state);
@@ -144,7 +200,7 @@ export class Template implements IvTemplate {
     }
 }
 
-function createView(parentView: IvView | null, isTemplateRoot: boolean, container: IvContainer | null): IvView {
+function createView(parentView: IvView | null, container: IvContainer | null, template?: IvTemplate): IvView {
     //console.log("createView");
     let view: IvView = {
         kind: "#view",
@@ -157,7 +213,7 @@ function createView(parentView: IvView | null, isTemplateRoot: boolean, containe
         lastRefresh: 0,
         container: null,
         projectionHost: null,
-        isTemplate: isTemplateRoot,
+        template: template,
         rootDomNode: null,
         anchorNode: null,
         expressions: undefined,
@@ -173,6 +229,27 @@ function createView(parentView: IvView | null, isTemplateRoot: boolean, containe
         view.doc = (typeof document !== "undefined") ? document as any : null as any;
     }
     return view;
+}
+
+/**
+ * Register a labelled object (e.g. DOM node, component...) on the view template
+ * @param v 
+ * @param labels array of names, collection indicator (e.g. ["#header", 0, "#buttons", 1])
+ */
+function registerLabels(v: IvView, object: any, labels?: any[] | 0) {
+    if (labels) {
+        // get the template view
+        let view: IvView | null = v;
+        while (view && !view.template) {
+            view = view.parentView;
+        }
+        if (view) {
+            let tpl = view.template!, len = labels.length;
+            for (let i = 0; len > i; i += 2) {
+                (tpl as Template).registerLabel(labels[i], object, labels[i + 1] === 1);
+            }
+        }
+    }
 }
 
 function setParentView(v: IvView, pv: IvView, container: IvContainer) {
@@ -274,7 +351,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
                         view = views[instanceIdx - 1] = cnt.viewPool.shift()!;
                         insertInDom(view.nodes![0], cnt.insertFn, 1);
                     } else {
-                        view = views[instanceIdx - 1] = createView(pv, false, cnt);
+                        view = views[instanceIdx - 1] = createView(pv, cnt);
                         view.nodes = new Array(nbrOfNodes);
                         if (pv.cm && cnt.cmAppend) {
                             view.cmAppends = [cnt.cmAppend];
@@ -291,7 +368,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
             let cnt = cn as IvCptContainer;
             view = cnt.contentView!;
             if (!view) {
-                view = cnt.contentView = createView(pv, false, cnt);
+                view = cnt.contentView = createView(pv, cnt);
                 view.nodes = new Array(nbrOfNodes);
             }
             // cmAppends will be already defined in ζins() as the current view is deferred
@@ -304,7 +381,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
         view = pn.contentView!;
         if (!view) {
             // console.log("create param view")
-            view = pn.contentView = createView(pv, false, null);
+            view = pn.contentView = createView(pv, null);
             view.nodes = new Array(nbrOfNodes);
             view.paramNode = pn;
         }
@@ -514,8 +591,13 @@ export function ζendD(v: IvView, cm: boolean, containerIndexes?: (number[] | 0)
 
 // Element creation function
 // e.g. ζelt(ζ, ζc, 0, 0, 0, "div", 1);
-export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, staticAttributes?: any[], staticProperties?: any[]) {
-    if (!cm) return;
+export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[] | 0, staticProperties?: any[] | 0) {
+    if (!cm) {
+        if (labels) {
+            registerLabels(v, v.nodes![idx].domNode, labels);
+        }
+        return;
+    }
     let e = v.doc.createElement(name);
     if (staticAttributes) {
         let len = staticAttributes.length;
@@ -544,6 +626,7 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
         contentView: null
     }
     v.nodes![idx] = nd;
+    registerLabels(v, e, labels);
     v.cmAppends![parentLevel]!(nd, false); // append in the parent DOM
     if (hasChildren) {
         v.cmAppends![parentLevel + 1] = function (n: IvNode, domOnly: boolean) {
@@ -561,9 +644,9 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     }
 }
 
-export function ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, staticAttributes?: any[], staticProperties?: any[]) {
+export function ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[], staticProperties?: any[]) {
     if (!cm) return;
-    addInstruction(v, ζelt, [v, cm, idx, parentLevel, name, hasChildren, staticAttributes, staticProperties]);
+    addInstruction(v, ζelt, [v, cm, idx, parentLevel, name, hasChildren, labels, staticAttributes, staticProperties]);
 }
 
 function appendChildToNode(p: IvParentNode, child: IvNode) {
@@ -1493,7 +1576,7 @@ export class IvContent implements IvView {
     lastRefresh = 0;
     container = null;
     projectionHost = null;
-    isTemplate: false;
+    template = undefined;
     rootDomNode = null;
     anchorNode = null;
     expressions = undefined;
@@ -1544,7 +1627,7 @@ export function logViewNodes(v: IvView, indent: string = "") {
         return;
     }
     let pv = v.parentView ? v.parentView.uid : "XX", ph = v.projectionHost, host = ph ? " >>> projection host: " + ph.hostNode.uid + " in " + ph.view.uid : "";
-    console.log(`${indent}*${v.uid}* cm:${v.cm} isTemplate:${v.isTemplate} parentView:${pv}${host}`);
+    console.log(`${indent}*${v.uid}* cm:${v.cm} isTemplate:${v.template !== undefined} parentView:${pv}${host}`);
     let len = v.nodes.length, nd: IvNode, space = "";
     for (let i = 0; len > i; i++) {
         nd = v.nodes[i];

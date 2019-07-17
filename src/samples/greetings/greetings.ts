@@ -8,7 +8,7 @@ let count = 0;
     changeName: () => void;
 }
 
-const hello = template(`($api:HelloAPI, name /* shortcut to $api.name */) => {
+const hello = template(`($api:HelloAPI, name) => { //  /* shortcut to $api.name */
     if (!$api.changeName) {
         // initialize the API
         $api.changeName = () => {

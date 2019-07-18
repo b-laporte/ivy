@@ -781,6 +781,24 @@ describe('Code generator', () => {
         })()`, 'simple param class');
     });
 
+    it("should support $template injection", async function () {
+        let t1 = await test.template(`(name, $template:IvTemplate) => {
+            # Hello {name} #
+        }`);
+        assert.equal(t1.function, `(function () {
+        const ζs0 = {}, ζs1 = [" Hello ", "", " "];
+        @ζΔD class ζParams {
+            name: any;
+        }
+        return ζt(function (ζ, $, $ctl, $template) {
+            let name = $["name"];
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        }, 0, ζParams);
+        })()`, 'simple param class');
+    });
+
     it("should support built-in @content with expression on fragments", async function () {
         assert.equal(await body.template(`($content) => {
             <div>

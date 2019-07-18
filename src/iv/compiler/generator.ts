@@ -23,8 +23,9 @@ type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock | XjsEv
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
     RX_LOG = /\/\/\s*log\s*/,
-    PARAMS_ARG = "$api",
+    API_ARG = "$api",
     CTL_ARG = "$ctl",
+    TPL_ARG = "$template",
     ASYNC = "async",
     MD_PARAM_CLASS = "$apiClassName",
     MD_CTL_CLASS = "$ctlClassName",
@@ -185,7 +186,7 @@ function encodeText(t: string) {
 }
 
 function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
-    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string, ctlClass = "";
+    let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string, ctlClass = "", injectTpl = false;
     indent = reduceIndent(indent);
 
     function addImport(symbol: string) {
@@ -199,11 +200,11 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         for (let i = 0; args.length > i; i++) {
             defaultValue = "";
             arg = args[i];
-            if (i === 0 && arg.name === PARAMS_ARG) {
+            if (i === 0 && arg.name === API_ARG) {
                 argClassName = arg.typeRef || "";
             }
-            if (arg.name === PARAMS_ARG) {
-                argInit.push(PARAMS_ARG + ' = $');
+            if (arg.name === API_ARG) {
+                argInit.push(API_ARG + ' = $');
                 if (i > 0 && arg.typeRef) {
                     gc.error("Template param class must be defined as first argument", arg);
                 }
@@ -214,6 +215,8 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 } else if (args.length > 1) {
                     gc.error("$ctl argument cannot be combined with other template arguments", tf);
                 }
+            } else if (arg.name === TPL_ARG) {
+                injectTpl = true;
             } else if (!argClassName) {
                 argInit.push(arg.name + ' = $["' + arg.name + '"]')
                 switch (arg.typeRef) {
@@ -262,7 +265,13 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         lines.push(classDef);
     }
     gc.imports["ζt"] = 1;
-    lines.push(`${indent}return ζt(function (ζ${argNames}${ctlClass ? ", $ctl" : ""}) {`);
+    if (ctlClass || injectTpl) {
+        argNames += ", $ctl";
+        if (injectTpl) {
+            argNames += ", $template";
+        }
+    }
+    lines.push(`${indent}return ζt(function (ζ${argNames}) {`);
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }

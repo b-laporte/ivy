@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { template, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { changeComplete, computed } from '../../trax/trax';
+import { IvTemplate } from '../../iv/types';
 
 describe('Controller', () => {
     let body: ElementNode;
@@ -22,6 +23,7 @@ describe('Controller', () => {
     @Controller class TestController {
         $api: TestAPI;
         text: string = "Hello";
+        $template: any; // IvTemplate
 
         @computed get description() {
             return "text = " + this.text + " / count = " + this.$api.count;
@@ -175,7 +177,7 @@ describe('Controller', () => {
             </body>
         `, '1');
 
-        t.refresh({count:123});
+        t.refresh({ count: 123 });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 text = Hello / count = 123 / msg = [Message] / count = 123 # (1)
@@ -183,7 +185,7 @@ describe('Controller', () => {
             </body>
         `, '2');
 
-        t.refresh({count:123});
+        t.refresh({ count: 123 });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 text = Hello / count = 123 / msg = [Message] / count = 123 # (1)
@@ -191,4 +193,26 @@ describe('Controller', () => {
             </body>
         `, '3');
     });
+
+    it("should be able to retrieve $template", async function () {
+        const tpl = template(`($ctl: TestController) => {
+            let api = $ctl.$template.$api;
+            <div>
+                # $template.$ctl is $ctl: {$ctl === $ctl.$template.$ctl} #
+                # count: {api.count} #
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh({count:42});
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 $template.$ctl is $ctl: true #
+                    #::T5 count: 42 #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+    });
+
 });

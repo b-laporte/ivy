@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { template, ζΔD, ζΔp, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
-import { IvView } from '../../iv/types';
+import { IvView, IvTemplate } from '../../iv/types';
 import { isMutating, commitChanges, changeComplete } from '../../trax/trax';
 
 describe('Iv Runtime', () => {
@@ -378,7 +378,7 @@ describe('Iv Runtime', () => {
             changeName: () => void;
         }
 
-        let count = 0, lastApi:HelloAPI;
+        let count = 0, lastApi: HelloAPI;
         const hello = template(`($api:HelloAPI, name) => { // /* shortcut to $api.name */
             if (!$api.changeName) {
                 // initialize the API
@@ -441,7 +441,25 @@ describe('Iv Runtime', () => {
         `, '3');
     });
 
-    // cpt
+    it("should allow to inject $template", async function () {
+        const greetings = template(`(names, $template:IvTemplate) => {
+            # Nbr of names: {$template.$api.names.length} #
+            for (let name of names) {
+                # Hello {name} #
+            }
+        }`);
+
+        let t = getTemplate(greetings, body).refresh({ names: ["Bart", "Lisa"] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                #::T3 Nbr of names: 2 #
+                #::T4 Hello Bart #
+                #::T5 Hello Lisa #
+                //::C2 template anchor
+            </body>
+        `, '1');
+    });
+
     // todo error if refresh before attach
     // todo validate argument names
 });

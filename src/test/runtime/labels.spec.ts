@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { template, IvContent, API, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { changeComplete } from '../../trax/trax';
+import { IvTemplate } from '../../iv/types';
 
 describe('Labels', () => {
     let body: ElementNode;
@@ -433,28 +434,26 @@ describe('Labels', () => {
         assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
     });
 
-    // it("cannot be queried during refresh", function () {
-    //     const tpl = template(`($tpl:IvTemplate) => {
-    //         <div #div1>
-    //             # div1 can be queried: {$tpl.query("#div1") !== null} #
-    //         </div>
-    //     }`);
+    it("cannot be queried during refresh", function () {
+        let $tpl: IvTemplate;
+        const tpl = template(`($template:IvTemplate) => {
+            $tpl = $template;
+            <div #div1>
+                # div1 can be queried: {$template.query("#div1") !== null} #
+            </div>
+        }`);
 
-    //     let t = getTemplate(tpl, body).refresh();
-    //     assert.equal(stringify(t), `
-    //         <body::E1>
-    //             <div::E3>
-    //                 #::T4 cpt AAA #
-    //                 #::T5 cpt BBB #
-    //                 #::T6 Hello #
-    //             </div>
-    //             //::C2 template anchor
-    //         </body>
-    //     `, '1');
-    // });
-
-    // todo
-    // no query call during execution
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 div1 can be queried: false #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+        assert.equal($tpl!.query("#div1").uid, "E3" , "div1 retrieved after refresh");
+    });
 
     // interface IvQuery<T extends Array<string>> {
     //     (selector: string, firstOnly: boolean): any | null;
@@ -470,10 +469,4 @@ describe('Labels', () => {
 
     // assigning class to sub-elements
     // <*input @class($target="#foo" blue:{isBlue()} white:{isWhite()}) // default value for $target should be "#root"
-
-    // query 
-    //           -> dig in sub-templates that provide an explicit api? 
-    //           -> $api should provide explicit valid labels?
-    // $template injection
-    // parent template can query sub-template explicitly ->
 });

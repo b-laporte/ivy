@@ -8,6 +8,7 @@ function error(msg) {
     console.log("[iv error] " + msg);
 }
 
+const TPL_PROP = "$template";
 let TPL_COUNT = 0;
 
 interface TemplateController {
@@ -29,7 +30,7 @@ export class Template implements IvTemplate {
     processing = false;
     labels: { [label: string]: any[] } | undefined = undefined;
 
-    constructor(public refreshFn: (ζ: IvView, $api?: any, $ctl?: any) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
+    constructor(public refreshFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, null, this);
         let self = this;
@@ -64,6 +65,9 @@ export class Template implements IvTemplate {
     get $ctl(): TemplateController | undefined {
         if (!this.tplCtl && this.ctlClass) {
             this.tplCtl = new this.ctlClass();
+            if (hasProperty(this.tplCtl, TPL_PROP)) {
+                this.tplCtl[TPL_PROP] = this;
+            }
         }
         return this.tplCtl;
     }
@@ -101,6 +105,7 @@ export class Template implements IvTemplate {
      * @return the DOM element or the Component $api or null if nothing is found
      */
     query(label: string, all: boolean = false): any | any[] | null {
+        if (this.processing) return null; // query cannot be used during template processing
         if (label && label.charAt(0) !== '#') {
             console.error("[$template.query()] Invalid label '" + label + "': labels must start with #");
             return null;
@@ -129,28 +134,28 @@ export class Template implements IvTemplate {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
-        let p = this.$api, state = this.$ctl;
+        let $api = this.$api, $ctl = this.$ctl;
 
-        if (state && !isDataObject(state)) {
+        if ($ctl && !isDataObject($ctl)) {
             console.error("Template state must be a Data Object - please check: " + this.ctlClass!.name);
             this.tplCtl = this.ctlClass = undefined;
         }
 
-        if (p && data) {
-            if (!isMutating(p)) {
+        if ($api && data) {
+            if (!isMutating($api)) {
                 createNewRefreshContext();
             }
             this.disconnectObserver();
             // inject data into params
             for (let k in data) if (data.hasOwnProperty(k)) {
-                p[k] = data[k];
+                $api[k] = data[k];
             }
         }
         let bypassRefresh = !this.forceRefresh, nodes = this.view.nodes;
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
             bypassRefresh = false; // internal blocks may have to be recreated if root is not attached
         }
-        if (bypassRefresh && version(p) + version(state) > this.lastRefreshVersion) {
+        if (bypassRefresh && version($api) + version($ctl) > this.lastRefreshVersion) {
             bypassRefresh = false;
         }
         if (!bypassRefresh) {
@@ -158,17 +163,17 @@ export class Template implements IvTemplate {
             this.labels = undefined;
             this.view.lastRefresh++;
             this.view.instructions = undefined;
-            this.refreshFn(this.view, p, state);
+            this.refreshFn(this.view, $api, $ctl, this);
             // console.log(">>>>>>>>>>>>>>>>> REFRESH DONE", this.uid);
-            commitChanges(p); // will change p or state version
+            commitChanges($api); // will change p or state version
             this.forceRefresh = false;
-            this.lastRefreshVersion = version(p) + version(state);
+            this.lastRefreshVersion = version($api) + version($ctl);
         }
 
         if (!this.activeWatch) {
-            watch(p, this.watchCb);
-            if (state) {
-                watch(state, this.watchCb);
+            watch($api, this.watchCb);
+            if ($ctl) {
+                watch($ctl, this.watchCb);
             }
             this.activeWatch = true;
         }
@@ -247,7 +252,7 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param refreshFn 
  */
-export function ζt(refreshFn: (ζ: any, $api?: any, $ctl?: any) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
+export function ζt(refreshFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
     return function () {
         return new Template(refreshFn, argumentClass || undefined, stateClass, hasHost === 1);
     }

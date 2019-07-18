@@ -18,7 +18,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(foo, body).refresh();
+        let t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -40,7 +40,7 @@ describe('Iv Runtime', () => {
         }`);
 
         body = reset();
-        let t2 = getTemplate(bar, body).refresh();
+        let t2 = getTemplate(bar, body).render();
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3>
@@ -64,7 +64,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(foo, body).refresh({ name: "Homer" });
+        let t = getTemplate(foo, body).render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -74,7 +74,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "World" });
+        t.render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -84,7 +84,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "World" });
+        t.render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -103,7 +103,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Homer" });
+        let t = getTemplate(tpl, body).render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -116,7 +116,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "World" });
+        t.render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -129,7 +129,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "World" });
+        t.render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -153,7 +153,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Homer" });
+        let t = getTemplate(tpl, body).render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -166,7 +166,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "World" });
+        t.render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -179,7 +179,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "World" });
+        t.render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -198,7 +198,7 @@ describe('Iv Runtime', () => {
             # a:{a} b:{b} c:{c} d:{d} e:{e} #
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 a:abc b:false c:123.45 d:12 e:hello #
@@ -206,7 +206,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ a: "ABC", b: true, e: "HEY" });
+        t.render({ a: "ABC", b: true, e: "HEY" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 a:ABC b:true c:123.45 d:12 e:HEY # (1)
@@ -223,7 +223,7 @@ describe('Iv Runtime', () => {
             # Hello {name} #
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Marge" });
+        let t = getTemplate(tpl, body).render({ name: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -236,7 +236,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Homer" });
+        t.render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -257,7 +257,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ msg: "hello" });
+        let t = getTemplate(tpl, body).render({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main" a:title="hello">
@@ -269,7 +269,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ msg: "hi" });
+        t.render({ msg: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main" a:title="hello">
@@ -289,7 +289,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ msg: "hello" });
+        let t = getTemplate(tpl, body).render({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="main" title="hello">
@@ -301,7 +301,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ msg: "hi" });
+        t.render({ msg: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="main" title="hello">
@@ -323,7 +323,7 @@ describe('Iv Runtime', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ msg: "Bart" });
+        let t = getTemplate(tpl, body).render({ msg: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -333,7 +333,7 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        t.refresh({ msg: "Marge" });
+        t.render({ msg: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -350,7 +350,7 @@ describe('Iv Runtime', () => {
             # {name2} # 
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name1: "Bart", name2: "Lisa" });
+        let t = getTemplate(tpl, body).render({ name1: "Bart", name2: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Bart #
@@ -361,7 +361,7 @@ describe('Iv Runtime', () => {
 
         assert.equal((t["view"] as IvView).lastRefresh, 1, "refreshed #1");
 
-        t.refresh({ name1: "Bart", name2: "Lisa" });
+        t.render({ name1: "Bart", name2: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Bart #
@@ -398,7 +398,7 @@ describe('Iv Runtime', () => {
             }
         }`);
 
-        let t = getTemplate(greetings, body).refresh({ names: ["Bart", "Lisa"], suffix: "X" });
+        let t = getTemplate(greetings, body).render({ names: ["Bart", "Lisa"], suffix: "X" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -449,7 +449,7 @@ describe('Iv Runtime', () => {
             }
         }`);
 
-        let t = getTemplate(greetings, body).refresh({ names: ["Bart", "Lisa"] });
+        let t = getTemplate(greetings, body).render({ names: ["Bart", "Lisa"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Nbr of names: 2 #

@@ -11,11 +11,10 @@ export interface IvContent {
 }
 
 export interface IvTemplate {
-    document: IvDocument;
     $api: any | undefined;
     $ctl: any | undefined;
     attach(element: any): IvTemplate;
-    refresh(data?: any): IvTemplate;
+    render(data?: any): IvTemplate;
 
     query(label: string): any | null;
     query(label: string, all: true): any[] | null; // -> can query all nodes (default = false)

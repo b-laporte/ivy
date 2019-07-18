@@ -57,7 +57,7 @@ function main() {
     function update() {
         let elapsed = Date.now() - start, seconds = Math.floor(elapsed / 1000) % 10 + 1;
 
-        root.refresh({ seconds: seconds, elapsed: elapsed });
+        root.render({ seconds: seconds, elapsed: elapsed });
         requestAnimationFrame(update);
     }
     requestAnimationFrame(update);

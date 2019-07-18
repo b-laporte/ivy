@@ -17,7 +17,7 @@ window["renderFlexResults"] = function (elt, data, visible) {
     p.visible = visible;
     p.selectedItinerary = null;
     p.selectedFare = -1;
-    mainTemplate.refresh();
+    mainTemplate.render();
     // if (!mainTemplate) {
     //     let body = doc.createElement("body");
     //     mainTemplate = avail();
@@ -282,5 +282,5 @@ function toggleFareDetails(idx, itinerary) {
         p.selectedItinerary = itinerary;
         p.selectedFare = idx;
     }
-    mainTemplate.refresh();
+    mainTemplate.render();
 }

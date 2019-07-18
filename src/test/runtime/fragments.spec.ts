@@ -21,7 +21,7 @@ describe('Iv Fragments', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ msg: "Hello" });
+        let t = getTemplate(tpl, body).render({ msg: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Hello #
@@ -30,7 +30,7 @@ describe('Iv Fragments', () => {
             </body>
         `, '1');
 
-        t.refresh({ msg: "Hi" });
+        t.render({ msg: "Hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Hi # (1)
@@ -58,14 +58,14 @@ describe('Iv Fragments', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: false, msg: "Hello" });
+        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '1');
 
-        t.refresh({ condition: true, msg: "Hi" });
+        t.render({ condition: true, msg: "Hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Hi #
@@ -74,14 +74,14 @@ describe('Iv Fragments', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false, msg: "Hello" });
+        t.render({ condition: false, msg: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '3');
 
-        t.refresh({ condition: true, msg: "Hi" });
+        t.render({ condition: true, msg: "Hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Hi #
@@ -90,7 +90,7 @@ describe('Iv Fragments', () => {
             </body>
         `, '4');
 
-        t.refresh({ condition: true, msg: "Greetings" });
+        t.render({ condition: true, msg: "Greetings" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Greetings # (1)
@@ -118,7 +118,7 @@ describe('Iv Fragments', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Hello" });
+        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Hello #
@@ -127,14 +127,14 @@ describe('Iv Fragments', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: false, msg: "Hello" });
+        t.render({ condition: false, msg: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hi" });
+        t.render({ condition: true, msg: "Hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Hi # (1)
@@ -143,14 +143,14 @@ describe('Iv Fragments', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: false, msg: "Hello" });
+        t.render({ condition: false, msg: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '4');
 
-        t.refresh({ condition: true, msg: "Greetings" });
+        t.render({ condition: true, msg: "Greetings" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 m1: Greetings # (2)

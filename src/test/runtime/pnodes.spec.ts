@@ -33,7 +33,7 @@ describe('Param Nodes', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ panelType: "important", mainType: "abc" });
+        let t = getTemplate(tpl, body).render({ panelType: "important", mainType: "abc" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main abc">
@@ -46,7 +46,7 @@ describe('Param Nodes', () => {
         `, '1');
         assert.equal(count, 1, "panelCount is 1");
 
-        t.refresh({ panelType: "warning", mainType: "abc" });
+        t.render({ panelType: "warning", mainType: "abc" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main abc">
@@ -59,7 +59,7 @@ describe('Param Nodes', () => {
         `, '2');
         assert.equal(count, 2, "panel count is 2");
 
-        t.refresh({ panelType: "warning", mainType: "def" });
+        t.render({ panelType: "warning", mainType: "def" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main def"(1)>
@@ -93,7 +93,7 @@ describe('Param Nodes', () => {
         }`);
 
         // cm: condition === true
-        let t1 = getTemplate(tpl, body).refresh({ panelType: "important", mainType: "abc" });
+        let t1 = getTemplate(tpl, body).render({ panelType: "important", mainType: "abc" });
         assert.equal(count, 1, "count: 1");
         assert.equal(stringify(t1), `
             <body::E1>
@@ -106,7 +106,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t1.refresh({ panelType: "important", mainType: "no" });
+        t1.render({ panelType: "important", mainType: "no" });
         assert.equal(count, 2, "count: 2");
         assert.equal(stringify(t1), `
             <body::E1>
@@ -119,7 +119,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t1.refresh({ panelType: "important3", mainType: "type3" });
+        t1.render({ panelType: "important3", mainType: "type3" });
         assert.equal(count, 3, "count: 3");
         assert.equal(stringify(t1), `
             <body::E1>
@@ -134,7 +134,7 @@ describe('Param Nodes', () => {
 
         // cm: condition === false
         resetVars()
-        let t2 = getTemplate(tpl, body).refresh({ panelType: "important", mainType: "no" });
+        let t2 = getTemplate(tpl, body).render({ panelType: "important", mainType: "no" });
         assert.equal(count, 1, "count: 1");
         assert.equal(stringify(t2), `
             <body::E1>
@@ -147,7 +147,7 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
 
-        t2.refresh({ panelType: "important5", mainType: "main5" });
+        t2.render({ panelType: "important5", mainType: "main5" });
         assert.equal(count, 2, "count: 2");
         assert.equal(stringify(t2), `
             <body::E1>
@@ -160,7 +160,7 @@ describe('Param Nodes', () => {
             </body>
         `, '5');
 
-        t2.refresh({ panelType: "important", mainType: "no" });
+        t2.render({ panelType: "important", mainType: "no" });
         assert.equal(count, 3, "count: 3");
         assert.equal(stringify(t2), `
             <body::E1>
@@ -197,7 +197,7 @@ describe('Param Nodes', () => {
             </div>
         }`);
 
-        let t = getTemplate(tplA, body).refresh({ headerText: "HEADER", mainText: "CONTENT" });
+        let t = getTemplate(tplA, body).render({ headerText: "HEADER", mainText: "CONTENT" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -213,7 +213,7 @@ describe('Param Nodes', () => {
         `, '1');
         assert.equal(count, 1, "count:1");
 
-        t.refresh({ headerText: "HEADER2", mainText: "CONTENT" });
+        t.render({ headerText: "HEADER2", mainText: "CONTENT" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -241,7 +241,7 @@ describe('Param Nodes', () => {
             </div>
         }`);
 
-        let t2 = getTemplate(tplB, body).refresh({ headerText: "HEADER", footerText: "FOOTER", mainText: "CONTENT" });
+        let t2 = getTemplate(tplB, body).render({ headerText: "HEADER", footerText: "FOOTER", mainText: "CONTENT" });
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -259,7 +259,7 @@ describe('Param Nodes', () => {
             </body>
         `, '3');
 
-        t2.refresh({ headerText: "HEADER2", footerText: "FOOTER2", mainText: "CONTENT2" });
+        t2.render({ headerText: "HEADER2", footerText: "FOOTER2", mainText: "CONTENT2" });
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -300,7 +300,7 @@ describe('Param Nodes', () => {
         }`);
 
         // init condition: true
-        let t1 = getTemplate(tplA, body).refresh({ headerText: "HEADER", mainText: "CONTENT", showHeader: true });
+        let t1 = getTemplate(tplA, body).render({ headerText: "HEADER", mainText: "CONTENT", showHeader: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -315,7 +315,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t1.refresh({ headerText: "HEADER2", mainText: "CONTENT2", showHeader: false });
+        t1.render({ headerText: "HEADER2", mainText: "CONTENT2", showHeader: false });
         assert.equal(stringify(t1), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -327,7 +327,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t1.refresh({ headerText: "HEADER3", mainText: "CONTENT3", showHeader: true });
+        t1.render({ headerText: "HEADER3", mainText: "CONTENT3", showHeader: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -344,7 +344,7 @@ describe('Param Nodes', () => {
 
         // init condition: false
         resetVars();
-        let t2 = getTemplate(tplA, body).refresh({ headerText: "HEADER", mainText: "CONTENT", showHeader: false });
+        let t2 = getTemplate(tplA, body).render({ headerText: "HEADER", mainText: "CONTENT", showHeader: false });
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -356,7 +356,7 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
 
-        t2.refresh({ headerText: "HEADER2", mainText: "CONTENT2", showHeader: true });
+        t2.render({ headerText: "HEADER2", mainText: "CONTENT2", showHeader: true });
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -371,7 +371,7 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
 
-        t2.refresh({ headerText: "HEADER3", mainText: "CONTENT3", showHeader: false });
+        t2.render({ headerText: "HEADER3", mainText: "CONTENT3", showHeader: false });
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -409,7 +409,7 @@ describe('Param Nodes', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ headerText: "HEADER", mainText: "CONTENT", type: "warning" });
+        let t = getTemplate(tpl, body).render({ headerText: "HEADER", mainText: "CONTENT", type: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -424,7 +424,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t.refresh({ headerText: "HEADER2", mainText: "CONTENT2", type: "info" });
+        t.render({ headerText: "HEADER2", mainText: "CONTENT2", type: "info" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -479,7 +479,7 @@ describe('Param Nodes', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ idx: 1 });
+        let t = getTemplate(tpl, body).render({ idx: 1 });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="section">
@@ -499,7 +499,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t.refresh({ idx: 2 });
+        t.render({ idx: 2 });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="section">
@@ -555,7 +555,7 @@ describe('Param Nodes', () => {
         }`);
 
         // init condition: false
-        let t1 = getTemplate(tpl, body).refresh({ idx: 1, condition1: false, condition2: false });
+        let t1 = getTemplate(tpl, body).render({ idx: 1, condition1: false, condition2: false });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -565,7 +565,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t1.refresh({ idx: 2, condition1: true, condition2: true });
+        t1.render({ idx: 2, condition1: true, condition2: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -585,7 +585,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t1.refresh({ idx: 2, condition1: true, condition2: false });
+        t1.render({ idx: 2, condition1: true, condition2: false });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -598,7 +598,7 @@ describe('Param Nodes', () => {
             </body>
         `, '3');
 
-        t1.refresh({ idx: 4, condition1: true, condition2: true });
+        t1.render({ idx: 4, condition1: true, condition2: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -618,7 +618,7 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
 
-        t1.refresh({ idx: 4, condition1: false, condition2: true });
+        t1.render({ idx: 4, condition1: false, condition2: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -630,7 +630,7 @@ describe('Param Nodes', () => {
 
         // init condition: true
         resetVars();
-        let t2 = getTemplate(tpl, body).refresh({ idx: 1, condition1: true, condition2: true });
+        let t2 = getTemplate(tpl, body).render({ idx: 1, condition1: true, condition2: true });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -650,7 +650,7 @@ describe('Param Nodes', () => {
             </body>
         `, '6');
 
-        t2.refresh({ idx: 2, condition1: true, condition2: false });
+        t2.render({ idx: 2, condition1: true, condition2: false });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -663,7 +663,7 @@ describe('Param Nodes', () => {
             </body>
         `, '6');
 
-        t2.refresh({ idx: 3, condition1: false, condition2: false });
+        t2.render({ idx: 3, condition1: false, condition2: false });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -673,7 +673,7 @@ describe('Param Nodes', () => {
             </body>
         `, '7');
 
-        t2.refresh({ idx: 4, condition1: true, condition2: true });
+        t2.render({ idx: 4, condition1: true, condition2: true });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -724,7 +724,7 @@ describe('Param Nodes', () => {
         }`);
 
         // init condition: false
-        let t1 = getTemplate(tpl, body).refresh({ idx: 1, condition1: false, condition2: false });
+        let t1 = getTemplate(tpl, body).render({ idx: 1, condition1: false, condition2: false });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -734,7 +734,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t1.refresh({ idx: 2, condition1: true, condition2: true });
+        t1.render({ idx: 2, condition1: true, condition2: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -748,7 +748,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t1.refresh({ idx: 3, condition1: true, condition2: false });
+        t1.render({ idx: 3, condition1: true, condition2: false });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -761,7 +761,7 @@ describe('Param Nodes', () => {
             </body>
         `, '3');
 
-        t1.refresh({ idx: 4, condition1: false, condition2: false });
+        t1.render({ idx: 4, condition1: false, condition2: false });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -771,7 +771,7 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
 
-        t1.refresh({ idx: 2, condition1: true, condition2: true });
+        t1.render({ idx: 2, condition1: true, condition2: true });
         assert.equal(stringify(t1), `
             <body::E1>
                 <section::E3>
@@ -787,7 +787,7 @@ describe('Param Nodes', () => {
 
         // init condition: true
         resetVars();
-        let t2 = getTemplate(tpl, body).refresh({ idx: 1, condition1: true, condition2: true });
+        let t2 = getTemplate(tpl, body).render({ idx: 1, condition1: true, condition2: true });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -801,7 +801,7 @@ describe('Param Nodes', () => {
             </body>
         `, '6');
 
-        t2.refresh({ idx: 2, condition1: true, condition2: false });
+        t2.render({ idx: 2, condition1: true, condition2: false });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -814,7 +814,7 @@ describe('Param Nodes', () => {
             </body>
         `, '7');
 
-        t2.refresh({ idx: 3, condition1: false, condition2: false });
+        t2.render({ idx: 3, condition1: false, condition2: false });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -824,7 +824,7 @@ describe('Param Nodes', () => {
             </body>
         `, '7');
 
-        t2.refresh({ idx: 1, condition1: true, condition2: true });
+        t2.render({ idx: 1, condition1: true, condition2: true });
         assert.equal(stringify(t2), `
             <body::E1>
                 <section::E3>
@@ -860,7 +860,7 @@ describe('Param Nodes', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ idx: 1 });
+        let t = getTemplate(tpl, body).render({ idx: 1 });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -875,7 +875,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t.refresh({ idx: 2 });
+        t.render({ idx: 2 });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -906,7 +906,7 @@ describe('Param Nodes', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -921,7 +921,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t.refresh({ actionList: [{ ref: "A", name: "Action A" }, { ref: "B", name: "Action B" }] });
+        t.render({ actionList: [{ ref: "A", name: "Action A" }, { ref: "B", name: "Action B" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:4"(1)>
@@ -942,7 +942,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t.refresh({ actionList: [{ ref: "A", name: "Action A" }, { ref: "C", name: "Action C" }] });
+        t.render({ actionList: [{ ref: "A", name: "Action A" }, { ref: "C", name: "Action C" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:4"(1)>
@@ -963,7 +963,7 @@ describe('Param Nodes', () => {
             </body>
         `, '3');
 
-        t.refresh({ actionList: [{ ref: "C", name: "Action C" }] });
+        t.render({ actionList: [{ ref: "C", name: "Action C" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:3"(2)>
@@ -981,7 +981,7 @@ describe('Param Nodes', () => {
             </body>
         `, '4');
 
-        t.refresh({ actionList: [{ ref: "C", name: "Action C" }, { ref: "D", name: "Action D" }, { ref: "E", name: "Action E" }] });
+        t.render({ actionList: [{ ref: "C", name: "Action C" }, { ref: "D", name: "Action D" }, { ref: "E", name: "Action E" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:5"(3)>
@@ -1005,7 +1005,7 @@ describe('Param Nodes', () => {
             </body>
         `, '5');
 
-        t.refresh({ actionList: [] });
+        t.render({ actionList: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2"(4)>
@@ -1031,7 +1031,7 @@ describe('Param Nodes', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -1046,7 +1046,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:1"(1)>
@@ -1058,7 +1058,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t.refresh(); // unchanged
+        t.render(); // unchanged
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:1"(1)>
@@ -1070,7 +1070,7 @@ describe('Param Nodes', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: true, idx: 4 });
+        t.render({ condition: true, idx: 4 });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2"(2)>
@@ -1124,7 +1124,7 @@ describe('Param Nodes', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ nbrOfRows: 2 });
+        let t = getTemplate(tpl, body).render({ nbrOfRows: 2 });
         assert.equal(stringify(t), `
             <body::E1>
                 <ul::E3>
@@ -1139,7 +1139,7 @@ describe('Param Nodes', () => {
             </body>
         `, '1');
 
-        t.refresh({ nbrOfRows: 3, nbrOfCells: 3 });
+        t.render({ nbrOfRows: 3, nbrOfCells: 3 });
         assert.equal(stringify(t), `
             <body::E1>
                 <ul::E3>
@@ -1163,7 +1163,7 @@ describe('Param Nodes', () => {
             </body>
         `, '2');
 
-        t.refresh({ nbrOfRows: 2, nbrOfCells: 2, prefix: "*" });
+        t.render({ nbrOfRows: 2, nbrOfCells: 2, prefix: "*" });
         assert.equal(stringify(t), `
             <body::E1>
                 <ul::E3>
@@ -1208,14 +1208,14 @@ describe('Param Nodes', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ nbrOfRows: 0 });
+        let t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '1');
 
-        t.refresh({ nbrOfRows: 2 });
+        t.render({ nbrOfRows: 2 });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 row 0 #
@@ -1268,7 +1268,7 @@ describe('Param Nodes', () => {
             </*grid>
         }`);
 
-        let t1 = getTemplate(tpl, body).refresh();
+        let t1 = getTemplate(tpl, body).render();
         assert.equal(stringify(t1), `
             <body::E1>
                 //::C2 template anchor

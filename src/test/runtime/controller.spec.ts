@@ -40,7 +40,7 @@ describe('Controller', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -75,7 +75,7 @@ describe('Controller', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -137,7 +137,7 @@ describe('Controller', () => {
             <*widget count={count} msg={msg}/>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -147,7 +147,7 @@ describe('Controller', () => {
             </body>
         `, '1');
 
-        t.refresh({ count: 123, msg: "Welcome" });
+        t.render({ count: 123, msg: "Welcome" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -169,7 +169,7 @@ describe('Controller', () => {
             <*widget count={count} msg={msg}/>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 text = Hello / count = 42 / msg = [Message] / count = 42 #
@@ -177,7 +177,7 @@ describe('Controller', () => {
             </body>
         `, '1');
 
-        t.refresh({ count: 123 });
+        t.render({ count: 123 });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 text = Hello / count = 123 / msg = [Message] / count = 123 # (1)
@@ -185,7 +185,7 @@ describe('Controller', () => {
             </body>
         `, '2');
 
-        t.refresh({ count: 123 });
+        t.render({ count: 123 });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 text = Hello / count = 123 / msg = [Message] / count = 123 # (1)
@@ -203,7 +203,7 @@ describe('Controller', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({count:42});
+        let t = getTemplate(tpl, body).render({count:42});
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>

@@ -30,4 +30,4 @@ const greetings = template(`(names) => {
 
 let tpl = greetings()
     .attach(document.getElementById("main"))
-    .refresh({ names: ["Homer", "Marge", "Bart", "Lisa", "Maggie"] });
+    .render({ names: ["Homer", "Marge", "Bart", "Lisa", "Maggie"] });

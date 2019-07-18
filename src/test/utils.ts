@@ -1,7 +1,7 @@
-import { Template, logViewNodes } from './../iv/index';
+import { logViewNodes } from './../iv/index';
 import { CompilationResult } from '../iv/compiler/generator';
 import { compileTemplate } from '../iv/compiler/generator';
-import { IvTemplate, IvNode, IvView, IvContainer } from '../iv/types';
+import { IvTemplate, IvView } from '../iv/types';
 
 export let body = {
     async template(tpl: string, log = false) {
@@ -52,9 +52,9 @@ export function reset() {
     return doc.createElement("body");
 }
 
-export function getTemplate(f: () => IvTemplate, body: any) {
+export function getTemplate(f: () => IvTemplate, body: any): IvTemplate {
     let t = f();
-    t.document = doc;
+    (t as any).document = doc;
     t.attach(body);
     return t;
 }

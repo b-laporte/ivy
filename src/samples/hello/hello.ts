@@ -5,4 +5,4 @@ const hello = template(`() => {
     # Hello World #
 }`);
 
-hello().attach(document.getElementById("main")).refresh();
+hello().attach(document.getElementById("main")).render();

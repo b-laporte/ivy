@@ -17,7 +17,7 @@ describe('Conditional Blocks', () => {
             # end #
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: false, msg: "Hello Marge" });
+        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 end #
@@ -25,7 +25,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: true, msg: "Hello Homer" });
+        t.render({ condition: true, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E4>
@@ -36,7 +36,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hello Bart" });
+        t.render({ condition: true, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E4>
@@ -47,7 +47,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: false, msg: "Hello Bart" });
+        t.render({ condition: false, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 end #
@@ -55,7 +55,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '4');
 
-        t.refresh({ condition: true, msg: "Hello Bart" });
+        t.render({ condition: true, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E4>
@@ -66,7 +66,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '5');
 
-        t.refresh({ condition: true, msg: "Hello Maggie" });
+        t.render({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E4>
@@ -86,7 +86,7 @@ describe('Conditional Blocks', () => {
             # end #
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Hello Marge" });
+        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -97,7 +97,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: false, msg: "Hello Homer" });
+        t.render({ condition: false, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T5 end #
@@ -105,7 +105,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hello Homer" });
+        t.render({ condition: true, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -116,7 +116,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: true, msg: "Hello Maggie" });
+        t.render({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -137,14 +137,14 @@ describe('Conditional Blocks', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: false, msg: "Hello Marge" });
+        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '1');
 
-        t.refresh({ condition: true, msg: "Hello Homer" });
+        t.render({ condition: true, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Homer #
@@ -156,7 +156,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hello Marge" });
+        t.render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge # (1)
@@ -168,14 +168,14 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: false, msg: "Hello Homer" });
+        t.render({ condition: false, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '4');
 
-        t.refresh({ condition: true, msg: "Hello Marge" });
+        t.render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge # (1)
@@ -187,14 +187,14 @@ describe('Conditional Blocks', () => {
             </body>
         `, '5');
 
-        t.refresh({ condition: false, msg: "Hello Homer" });
+        t.render({ condition: false, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '6');
 
-        t.refresh({ condition: true, msg: "Hello Maggie" });
+        t.render({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Maggie # (2)
@@ -216,7 +216,7 @@ describe('Conditional Blocks', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Hello Marge" });
+        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge #
@@ -228,14 +228,14 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: false, msg: "Hello Marge" });
+        t.render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hello Marge" });
+        t.render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge #
@@ -247,7 +247,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: true, msg: "Hello Bart" });
+        t.render({ condition: true, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Bart # (1)
@@ -259,14 +259,14 @@ describe('Conditional Blocks', () => {
             </body>
         `, '4');
 
-        t.refresh({ condition: false, msg: "Hello Bart" });
+        t.render({ condition: false, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '5');
 
-        t.refresh({ condition: true, msg: "Hello Maggie" });
+        t.render({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Maggie # (2)
@@ -290,7 +290,7 @@ describe('Conditional Blocks', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: false, msg: "Hello Marge" });
+        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -300,7 +300,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: true, msg: "Hello Marge" });
+        t.render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -314,7 +314,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hello Bart" });
+        t.render({ condition: true, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -328,7 +328,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: false, msg: "Hello Bart" });
+        t.render({ condition: false, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -338,7 +338,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '4');
 
-        t.refresh({ condition: true, msg: "Hello Bart" });
+        t.render({ condition: true, msg: "Hello Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -352,7 +352,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '5');
 
-        t.refresh({ condition: true, msg: "Hello Maggie" });
+        t.render({ condition: true, msg: "Hello Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -378,7 +378,7 @@ describe('Conditional Blocks', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Hello Marge" });
+        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -392,7 +392,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: false, msg: "Hello Marge" });
+        t.render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -402,7 +402,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "Hello Marge" });
+        t.render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -416,7 +416,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: true, msg: "Hello Homer" });
+        t.render({ condition: true, msg: "Hello Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -449,7 +449,7 @@ describe('Conditional Blocks', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: false, msg: "Always look on the bright side of life" });
+        let t = getTemplate(tpl, body).render({ condition: false, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -464,7 +464,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: true, msg: "Always look on the bright side of life" });
+        t.render({ condition: true, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -479,7 +479,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false, msg: "Nobody expects the Spanish Inquisition!" });
+        t.render({ condition: false, msg: "Nobody expects the Spanish Inquisition!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -494,7 +494,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: true, msg: "Nobody expects the Spanish Inquisition!" });
+        t.render({ condition: true, msg: "Nobody expects the Spanish Inquisition!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -528,7 +528,7 @@ describe('Conditional Blocks', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: true, msg: "Always look on the bright side of life" });
+        let t = getTemplate(tpl, body).render({ condition: true, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -543,7 +543,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: false, msg: "Always look on the bright side of life" });
+        t.render({ condition: false, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -558,7 +558,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: true, msg: "It's just a flesh wound" });
+        t.render({ condition: true, msg: "It's just a flesh wound" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -573,7 +573,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: false, msg: "It's just a flesh wound" });
+        t.render({ condition: false, msg: "It's just a flesh wound" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -612,7 +612,7 @@ describe('Conditional Blocks', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: false, msg: "Always look on the bright side of life" });
+        let t = getTemplate(tpl, body).render({ condition: false, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -624,7 +624,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '1');
 
-        t.refresh({ condition: true, msg: "Always look on the bright side of life" });
+        t.render({ condition: true, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -636,7 +636,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false, msg: "Nobody expects the Spanish Inquisition!" });
+        t.render({ condition: false, msg: "Nobody expects the Spanish Inquisition!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -648,7 +648,7 @@ describe('Conditional Blocks', () => {
             </body>
         `, '3');
 
-        t.refresh({ condition: true, msg: "Nobody expects the Spanish Inquisition!" });
+        t.render({ condition: true, msg: "Nobody expects the Spanish Inquisition!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>

@@ -119,7 +119,7 @@ export class Template implements IvTemplate {
     }
 
     notifyChange() {
-        this.refresh();
+        this.render();
     }
 
     disconnectObserver() {
@@ -130,7 +130,7 @@ export class Template implements IvTemplate {
         }
     }
 
-    refresh(data?: any) {
+    render(data?: any) {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
@@ -980,7 +980,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
         if (labels) {
             registerLabels(v, tpl.$api, labels);
         }
-        tpl.refresh();
+        tpl.render();
     }
 }
 

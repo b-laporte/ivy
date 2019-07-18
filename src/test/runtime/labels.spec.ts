@@ -23,7 +23,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(t.query("#foo"), null, "no foo element");
         assert.equal(t.query("#main") !== null, true, "#main is found");
         assert.equal(t.query("#main").uid, "E3", "#main");
@@ -34,7 +34,7 @@ describe('Labels', () => {
         assert.equal(col[0].uid, "E7", "col[0]");
         assert.equal(col[1].uid, "E8", "col[1]");
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(t.query("#main").uid, "E3", "#main found (2)");
         assert.equal(t.query("#child"), null, "#child not found");
 
@@ -42,7 +42,7 @@ describe('Labels', () => {
         assert.equal(col.length, 1, "1 elt");
         assert.equal(col[0].uid, "E8", "col[0] (2)");
 
-        t.refresh({ condition: true });
+        t.render({ condition: true });
         assert.equal(t.query("#main").uid, "E3", "#main (3)");
         assert.equal(t.query("#child").uid, "E5", "#child (3)");
 
@@ -62,7 +62,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
 
         assert.equal(t.query("#txt1").innerText, " Hello ", "#txt1");
         assert.equal(t.query("#txt2").innerText, " World 42 ", "#txt2");
@@ -72,7 +72,7 @@ describe('Labels', () => {
         assert.equal(col[0].innerText, " Hello ", "col[0]");
         assert.equal(col[1].innerText, " World 42 ", "col[1]");
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(t.query("#txt1").innerText, " Hello ", "#txt1 (2)");
         assert.equal(t.query("#txt2"), null, "#txt2 (2)");
 
@@ -80,7 +80,7 @@ describe('Labels', () => {
         assert.equal(col.length, 1, "col.length is 1");
         assert.equal(col[0].innerText, " Hello ", "col[0] (2)");
 
-        t.refresh({ condition: true });
+        t.render({ condition: true });
         assert.equal(t.query("#txt1").innerText, " Hello ", "#txt1 (3)");
         assert.equal(t.query("#txt2").innerText, " World 42 ", "#txt2 (3)");
         col = t.query("#txt", true) as any[];
@@ -103,7 +103,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -134,7 +134,7 @@ describe('Labels', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -149,7 +149,7 @@ describe('Labels', () => {
         assert.equal(col.length, 1, "1 comp in col");
         assert.equal(col[0], cpt1, "col[0] is cpt1");
 
-        t.refresh({ condition: true });
+        t.render({ condition: true });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -186,7 +186,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -219,7 +219,7 @@ describe('Labels', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -234,7 +234,7 @@ describe('Labels', () => {
         assert.equal(col.length, 1, "1 comp in col");
         assert.equal(col[0], cpt1, "col[0] is cpt1");
 
-        t.refresh({ condition: true });
+        t.render({ condition: true });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -278,7 +278,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -309,7 +309,7 @@ describe('Labels', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -324,7 +324,7 @@ describe('Labels', () => {
         assert.equal(col.length, 1, "1 comp in col");
         assert.equal(col[0], cpt1, "col[0] is cpt1");
 
-        t.refresh({ condition: true });
+        t.render({ condition: true });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -369,7 +369,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -400,7 +400,7 @@ describe('Labels', () => {
             </body>
         `, '2');
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -415,7 +415,7 @@ describe('Labels', () => {
         assert.equal(col.length, 1, "1 comp in col");
         assert.equal(col[0], cpt1, "col[0] is cpt1");
 
-        t.refresh({ condition: true });
+        t.render({ condition: true });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -443,7 +443,7 @@ describe('Labels', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>

@@ -121,4 +121,4 @@ function stopEditing(event, todo: ts.Todo, validateCurrentInput) {
 // bootstrap todoApp in the page body
 let tpl = todoApp()
     .attach(document.getElementById("todoMVC"))
-    .refresh({ app: new ts.TodoApp() });
+    .render({ app: new ts.TodoApp() });

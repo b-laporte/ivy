@@ -88,7 +88,7 @@ describe('Content Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -105,7 +105,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ message: "Hi!" });
+        t.render({ message: "Hi!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -122,7 +122,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ message: "Hi!" });
+        t.render({ message: "Hi!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -139,7 +139,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ message: undefined });
+        t.render({ message: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -166,7 +166,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="important">
@@ -181,7 +181,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ message: "Hi!" });
+        t.render({ message: "Hi!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="important">
@@ -196,7 +196,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ message: "Hello!" });
+        t.render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="important">
@@ -222,7 +222,7 @@ describe('Content Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ title: "Info", message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -240,7 +240,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ title: "Info 2", message: "How are you?" });
+        t.render({ title: "Info 2", message: "How are you?" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -269,7 +269,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ title: "Info", message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -285,7 +285,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ title: "Info2", message: "Hello World!" });
+        t.render({ title: "Info2", message: "Hello World!" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info2 :::: # (1)
@@ -311,7 +311,7 @@ describe('Content Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -326,7 +326,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ message: "Hi!" });
+        t.render({ message: "Hi!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -341,7 +341,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ message: "Hi!" });
+        t.render({ message: "Hi!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -356,7 +356,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ message: undefined });
+        t.render({ message: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -379,7 +379,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ message: "Hello!", messageType: "important" });
+        let t = getTemplate(tpl, body).render({ message: "Hello!", messageType: "important" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="important">
@@ -392,7 +392,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ message: "Hi!", messageType: "warning" });
+        t.render({ message: "Hi!", messageType: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="warning"(1)>
@@ -416,7 +416,7 @@ describe('Content Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ title: "Info", message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -432,7 +432,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ title: "Info2", message: "Hello2!" });
+        t.render({ title: "Info2", message: "Hello2!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -457,7 +457,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ title: "Info", message: "Hello!" });
+        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -467,7 +467,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ title: "Info2", message: "Hello2!" });
+        t.render({ title: "Info2", message: "Hello2!" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info2 :::: # (1)
@@ -485,7 +485,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ message: "Hello!", type: "info" });
+        let t = getTemplate(tpl, body).render({ message: "Hello!", type: "info" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="info">
@@ -498,7 +498,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ message: "Hello!", type: "info" });
+        t.render({ message: "Hello!", type: "info" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="info">
@@ -511,7 +511,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ message: "Hello!", type: "warning" });
+        t.render({ message: "Hello!", type: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="warning"(1)>
@@ -524,7 +524,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ message: "Hello2!", type: "warning" });
+        t.render({ message: "Hello2!", type: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="warning"(1)>
@@ -545,7 +545,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ message: "Hello!", type: "info" });
+        let t = getTemplate(tpl, body).render({ message: "Hello!", type: "info" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="info">
@@ -558,7 +558,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ message: "Hello!", type: "warning" });
+        t.render({ message: "Hello!", type: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="warning"(1)>
@@ -571,7 +571,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ message: "Hello2!", type: "warning" });
+        t.render({ message: "Hello2!", type: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="warning"(1)>
@@ -595,7 +595,7 @@ describe('Content Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", message: "" });
+        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -603,7 +603,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", message: "Message2" });
+        t.render({ text: "Info2", message: "Message2" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -613,7 +613,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -623,7 +623,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", message: "" });
+        t.render({ text: "Info4", message: "" });
 
         assert.equal(stringify(t), `
             <body::E1>
@@ -632,7 +632,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -642,7 +642,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info3", message: "Message6" });
+        t.render({ text: "Info3", message: "Message6" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -663,7 +663,7 @@ describe('Content Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", message: "" });
+        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -671,7 +671,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", message: "Message2" });
+        t.render({ text: "Info2", message: "Message2" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -683,7 +683,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -694,7 +694,7 @@ describe('Content Components', () => {
                 //::C2 template anchor
             </body>
         `, '3');
-        t.refresh({ text: "Info4", message: "" });
+        t.render({ text: "Info4", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -702,7 +702,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -714,7 +714,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info3", message: "Message6" });
+        t.render({ text: "Info3", message: "Message6" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -737,7 +737,7 @@ describe('Content Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info1", message: "Message1" });
+        let t = getTemplate(tpl, body).render({ text: "Info1", message: "Message1" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -747,7 +747,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info", message: "" });
+        t.render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -755,7 +755,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -765,7 +765,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", message: "" });
+        t.render({ text: "Info4", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -773,7 +773,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -783,7 +783,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info3", message: "Message6" });
+        t.render({ text: "Info3", message: "Message6" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -804,7 +804,7 @@ describe('Content Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info1", message: "Message1" });
+        let t = getTemplate(tpl, body).render({ text: "Info1", message: "Message1" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -816,7 +816,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info", message: "" });
+        t.render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -824,7 +824,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -836,7 +836,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", message: "" });
+        t.render({ text: "Info4", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -844,7 +844,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -856,7 +856,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info3", message: "Message6" });
+        t.render({ text: "Info3", message: "Message6" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -880,7 +880,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", message: "" });
+        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -890,7 +890,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", message: "Message2" });
+        t.render({ text: "Info2", message: "Message2" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -901,7 +901,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -912,7 +912,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info3", message: "" });
+        t.render({ text: "Info3", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -922,7 +922,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -933,7 +933,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info6", message: "" });
+        t.render({ text: "Info6", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -943,7 +943,7 @@ describe('Content Components', () => {
             </body>
         `, '6');
 
-        t.refresh({ text: "Info7", message: "Message7" });
+        t.render({ text: "Info7", message: "Message7" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -966,7 +966,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", message: "" });
+        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -978,7 +978,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", message: "Message2" });
+        t.render({ text: "Info2", message: "Message2" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -991,7 +991,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1004,7 +1004,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", message: "" });
+        t.render({ text: "Info4", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1016,7 +1016,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1029,7 +1029,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info3", message: "" });
+        t.render({ text: "Info3", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1041,7 +1041,7 @@ describe('Content Components', () => {
             </body>
         `, '6');
 
-        t.refresh({ text: "Info7", message: "Message7" });
+        t.render({ text: "Info7", message: "Message7" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1066,7 +1066,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", message: "Message" });
+        let t = getTemplate(tpl, body).render({ text: "Info", message: "Message" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1078,7 +1078,7 @@ describe('Content Components', () => {
         `, '1');
 
 
-        t.refresh({ text: "Info2", message: "" });
+        t.render({ text: "Info2", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1088,7 +1088,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1099,7 +1099,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info3", message: "" });
+        t.render({ text: "Info3", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1109,7 +1109,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1120,7 +1120,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info6", message: "" });
+        t.render({ text: "Info6", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1130,7 +1130,7 @@ describe('Content Components', () => {
             </body>
         `, '6');
 
-        t.refresh({ text: "Info7", message: "Message7" });
+        t.render({ text: "Info7", message: "Message7" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1153,7 +1153,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", message: "Message" });
+        let t = getTemplate(tpl, body).render({ text: "Info", message: "Message" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1166,7 +1166,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", message: "" });
+        t.render({ text: "Info2", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1178,7 +1178,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1191,7 +1191,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", message: "" });
+        t.render({ text: "Info4", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1203,7 +1203,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info3", message: "Message3" });
+        t.render({ text: "Info3", message: "Message3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1216,7 +1216,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info3", message: "" });
+        t.render({ text: "Info3", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1228,7 +1228,7 @@ describe('Content Components', () => {
             </body>
         `, '6');
 
-        t.refresh({ text: "Info7", message: "Message7" });
+        t.render({ text: "Info7", message: "Message7" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1250,7 +1250,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1260,7 +1260,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info", open: true, message: "Hello" });
+        t.render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1272,7 +1272,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info", open: true, message: "Hello2" });
+        t.render({ text: "Info", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1284,7 +1284,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", open: false, message: "Hello4" });
+        t.render({ text: "Info4", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1294,7 +1294,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info", open: true, message: "Hello2" });
+        t.render({ text: "Info", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1306,7 +1306,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info6", open: true, message: "Hello2" });
+        t.render({ text: "Info6", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1327,7 +1327,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: true, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1339,7 +1339,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info", open: false, message: "Hello" });
+        t.render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1349,7 +1349,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info", open: true, message: "Hello2" });
+        t.render({ text: "Info", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1361,7 +1361,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", open: false, message: "Hello4" });
+        t.render({ text: "Info4", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1371,7 +1371,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info", open: true, message: "Hello2" });
+        t.render({ text: "Info", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1383,7 +1383,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info6", open: true, message: "Hello2" });
+        t.render({ text: "Info6", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1404,7 +1404,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1414,7 +1414,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info", open: true, message: "Hello" });
+        t.render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1428,7 +1428,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info", open: true, message: "Hello3" });
+        t.render({ text: "Info", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1442,7 +1442,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", open: false, message: "Hello4" });
+        t.render({ text: "Info4", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1452,7 +1452,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info", open: true, message: "Hello3" });
+        t.render({ text: "Info", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1466,7 +1466,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info6", open: true, message: "Hello3" });
+        t.render({ text: "Info6", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1489,7 +1489,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: true, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1503,7 +1503,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info", open: false, message: "Hello" });
+        t.render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1513,7 +1513,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info", open: true, message: "Hello3" });
+        t.render({ text: "Info", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1527,7 +1527,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", open: false, message: "Hello4" });
+        t.render({ text: "Info4", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1537,7 +1537,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info", open: true, message: "Hello3" });
+        t.render({ text: "Info", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1551,7 +1551,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ text: "Info6", open: true, message: "Hello3" });
+        t.render({ text: "Info6", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1576,7 +1576,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -1585,7 +1585,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info", open: true, message: "Hello2" });
+        t.render({ text: "Info", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -1595,7 +1595,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info", open: true, message: "Hello3" });
+        t.render({ text: "Info", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -1605,7 +1605,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info", open: false, message: "Hello4" });
+        t.render({ text: "Info", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -1614,7 +1614,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info", open: true, message: "Hello5" });
+        t.render({ text: "Info", open: true, message: "Hello5" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -1632,7 +1632,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 (closed) #
@@ -1640,7 +1640,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        t.render({ text: "Info2", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E4>
@@ -1656,7 +1656,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        t.render({ text: "Info2", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E4>
@@ -1672,7 +1672,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info2", open: false, message: "Hello4" });
+        t.render({ text: "Info2", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 (closed) #
@@ -1680,7 +1680,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        t.render({ text: "Info2", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E4>
@@ -1704,7 +1704,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: true, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1720,7 +1720,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        t.render({ text: "Info2", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1736,7 +1736,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", open: false, message: "Hello3" });
+        t.render({ text: "Info3", open: false, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T9 (closed) #
@@ -1744,7 +1744,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello4" });
+        t.render({ text: "Info2", open: true, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1773,7 +1773,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: false, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1783,7 +1783,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        t.render({ text: "Info2", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1800,7 +1800,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        t.render({ text: "Info2", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1817,7 +1817,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info2", open: false, message: "Hello4" });
+        t.render({ text: "Info2", open: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1827,7 +1827,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello3" });
+        t.render({ text: "Info2", open: true, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1857,7 +1857,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ text: "Info", open: true, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1874,7 +1874,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ text: "Info2", open: true, message: "Hello2" });
+        t.render({ text: "Info2", open: true, message: "Hello2" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1891,7 +1891,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ text: "Info3", open: false, message: "Hello3" });
+        t.render({ text: "Info3", open: false, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1901,7 +1901,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ text: "Info4", open: true, message: "Hello4" });
+        t.render({ text: "Info4", open: true, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1932,7 +1932,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ type: "info", open: true, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ type: "info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1954,7 +1954,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ type: "info2", open: true, message: "Hello" });
+        t.render({ type: "info2", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1976,7 +1976,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ type: "info3", open: false, message: "Hello3" });
+        t.render({ type: "info3", open: false, message: "Hello3" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1986,7 +1986,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ type: "info2", open: true, message: "Hello" });
+        t.render({ type: "info2", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -2008,7 +2008,7 @@ describe('Content Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ type: "info5", open: false, message: "Hello5" });
+        t.render({ type: "info5", open: false, message: "Hello5" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -2018,7 +2018,7 @@ describe('Content Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ type: "info6", open: true, message: "Hello6" });
+        t.render({ type: "info6", open: true, message: "Hello6" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -2048,7 +2048,7 @@ describe('Content Components', () => {
             </>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ showFirst: true, message: "Hello" });
+        let t = getTemplate(tpl, body).render({ showFirst: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -2061,7 +2061,7 @@ describe('Content Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ showFirst: false, message: "Hello" });
+        t.render({ showFirst: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -2074,7 +2074,7 @@ describe('Content Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ showFirst: true, message: "Hello" });
+        t.render({ showFirst: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -2087,7 +2087,7 @@ describe('Content Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ showFirst: false, message: "Hello4" });
+        t.render({ showFirst: false, message: "Hello4" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>

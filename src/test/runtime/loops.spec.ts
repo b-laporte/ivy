@@ -18,7 +18,7 @@ describe('Loops', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ names: ["Marge", "Homer"] });
+        let t = getTemplate(tpl, body).render({ names: ["Marge", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -33,7 +33,7 @@ describe('Loops', () => {
             </body>
         `, '1');
 
-        t.refresh({ names: ["Bart", "Homer"] });
+        t.render({ names: ["Bart", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -48,7 +48,7 @@ describe('Loops', () => {
             </body>
         `, '2');
 
-        t.refresh({ names: [] });
+        t.render({ names: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3/>
@@ -56,7 +56,7 @@ describe('Loops', () => {
             </body>
         `, '3');
 
-        t.refresh({ names: ["Bart", "Homer"] });
+        t.render({ names: ["Bart", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -71,7 +71,7 @@ describe('Loops', () => {
             </body>
         `, '4');
 
-        t.refresh({ names: ["Bart", "Maggie", "Marge"] });
+        t.render({ names: ["Bart", "Maggie", "Marge"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -89,7 +89,7 @@ describe('Loops', () => {
             </body>
         `, '5');
 
-        t.refresh({ names: ["Homer"] });
+        t.render({ names: ["Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -101,7 +101,7 @@ describe('Loops', () => {
             </body>
         `, '6');
 
-        t.refresh({ names: ["Homer", "Maggie"] });
+        t.render({ names: ["Homer", "Maggie"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -127,7 +127,7 @@ describe('Loops', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ names: undefined });
+        let t = getTemplate(tpl, body).render({ names: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -137,7 +137,7 @@ describe('Loops', () => {
             </body>
         `, '1');
 
-        t.refresh({ names: ["Bart", "Maggie"] });
+        t.render({ names: ["Bart", "Maggie"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -153,7 +153,7 @@ describe('Loops', () => {
             </body>
         `, '2');
 
-        t.refresh({ names: [] });
+        t.render({ names: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -163,7 +163,7 @@ describe('Loops', () => {
             </body>
         `, '3');
 
-        t.refresh({ names: ["Marge"] });
+        t.render({ names: ["Marge"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -176,7 +176,7 @@ describe('Loops', () => {
             </body>
         `, '4');
 
-        t.refresh({ names: ["Marge", "Maggie", "Homer"] });
+        t.render({ names: ["Marge", "Maggie", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -195,7 +195,7 @@ describe('Loops', () => {
             </body>
         `, '5');
 
-        t.refresh({ names: ["Homer"] });
+        t.render({ names: ["Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -217,7 +217,7 @@ describe('Loops', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        let t = getTemplate(tpl, body).render({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Homer #
@@ -232,7 +232,7 @@ describe('Loops', () => {
             </body>
         `, '1');
 
-        t.refresh({ names: [{ first: "Mickey", last: "Mouse" }] });
+        t.render({ names: [{ first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Mickey # (1)
@@ -243,14 +243,14 @@ describe('Loops', () => {
             </body>
         `, '2');
 
-        t.refresh({ names: [] });
+        t.render({ names: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '3');
 
-        t.refresh({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }, { first: "Bart", last: "Simpson" }] });
+        t.render({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }, { first: "Bart", last: "Simpson" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Homer # (2)
@@ -281,7 +281,7 @@ describe('Loops', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        let t = getTemplate(tpl, body).render({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -313,7 +313,7 @@ describe('Loops', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ visible: false, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        let t = getTemplate(tpl, body).render({ visible: false, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3/>
@@ -321,7 +321,7 @@ describe('Loops', () => {
             </body>
         `, '1');
 
-        t.refresh({ visible: true });
+        t.render({ visible: true });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -341,7 +341,7 @@ describe('Loops', () => {
             </body>
         `, '2');
 
-        t.refresh({ visible: false });
+        t.render({ visible: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3/>
@@ -349,7 +349,7 @@ describe('Loops', () => {
             </body>
         `, '3');
 
-        t.refresh({ visible: true, list: [{ first: "Marge", last: "Simpson" }] });
+        t.render({ visible: true, list: [{ first: "Marge", last: "Simpson" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -385,7 +385,7 @@ describe('Loops', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        let t = getTemplate(tpl, body).render({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -405,7 +405,7 @@ describe('Loops', () => {
             </body>
         `, '1');
 
-        t.refresh({ visible: false });
+        t.render({ visible: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3/>
@@ -413,7 +413,7 @@ describe('Loops', () => {
             </body>
         `, '2');
 
-        t.refresh({ visible: true, list: [{ first: "Marge", last: "Simpson" }] });
+        t.render({ visible: true, list: [{ first: "Marge", last: "Simpson" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>

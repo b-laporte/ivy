@@ -32,7 +32,7 @@ describe('Event handlers', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
 
         assert.equal(index, 0, "index=0 before click");
         body.childNodes[0].click();
@@ -54,7 +54,7 @@ describe('Event handlers', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
 
         assert.equal(index, 0, "index=0 before click");
         assert.equal(lastType, "", "lastType is empty at init");
@@ -73,17 +73,17 @@ describe('Event handlers', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ condition: true, someVar: 1 }), mainDiv = body.childNodes[0];
+        let t = getTemplate(tpl, body).render({ condition: true, someVar: 1 }), mainDiv = body.childNodes[0];
         assert.equal(index, 0, "index=0 before click");
         assert.equal(lastArg, 0, "lastArg=0 before click");
         mainDiv.click();
         assert.equal(index, 1, "index=1 after click");
         assert.equal(lastArg, 1, "lastArg=1 after click");
 
-        t.refresh({ condition: false });
+        t.render({ condition: false });
         assert.equal(body.childNodes[0].uid, "C2", "body is empty");
 
-        t.refresh({ condition: true, someVar: 42 });
+        t.render({ condition: true, someVar: 42 });
         mainDiv.click();
         assert.equal(index, 2, "index=2 after 2nd click");
         assert.equal(lastArg, 42, "lastArg=42 after click");
@@ -98,7 +98,7 @@ describe('Event handlers', () => {
             </*panel>
         }`);
 
-        let t = getTemplate(tpl, body).refresh(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];
+        let t = getTemplate(tpl, body).render(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];
         // console.log(stringify(t));
         assert.equal(index, 0, "index=0 before click");
         mainDiv.click();

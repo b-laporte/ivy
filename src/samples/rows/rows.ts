@@ -89,4 +89,4 @@ async function runAll() {
 // bootstrap main in the page body
 let tpl = main()
     .attach(document.body)
-    .refresh();
+    .render();

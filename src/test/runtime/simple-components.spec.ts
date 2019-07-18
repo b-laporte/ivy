@@ -40,7 +40,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh();
+        let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -60,7 +60,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Lisa" });
+        let t = getTemplate(tpl, body).render({ name: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -72,7 +72,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Marge" });
+        t.render({ name: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -84,7 +84,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: undefined });
+        t.render({ name: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -106,7 +106,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "" });
+        let t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main"/>
@@ -114,7 +114,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Bart" });
+        t.render({ name: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -126,7 +126,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "Lisa" });
+        t.render({ name: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -138,7 +138,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main"/>
@@ -146,7 +146,7 @@ describe('Simple Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ name: "Homer" });
+        t.render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -168,7 +168,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Maggie" });
+        let t = getTemplate(tpl, body).render({ name: "Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -180,7 +180,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Bart" });
+        t.render({ name: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -192,7 +192,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main"/>
@@ -200,7 +200,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ name: "Bart" });
+        t.render({ name: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -223,7 +223,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "" });
+        let t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -233,7 +233,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Lisa" });
+        t.render({ name: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -246,7 +246,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "Bart" });
+        t.render({ name: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -259,7 +259,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -269,7 +269,7 @@ describe('Simple Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ name: "Bart" });
+        t.render({ name: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -293,7 +293,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Lisa" });
+        let t = getTemplate(tpl, body).render({ name: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -306,7 +306,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Bart" });
+        t.render({ name: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -319,7 +319,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -329,7 +329,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ name: "Homer" });
+        t.render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -350,14 +350,14 @@ describe('Simple Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "" });
+        let t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '1');
 
-        t.refresh({ name: "Homer" });
+        t.render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -367,7 +367,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "Marge" });
+        t.render({ name: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -377,14 +377,14 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '4');
 
-        t.refresh({ name: "Marge" });
+        t.render({ name: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -402,7 +402,7 @@ describe('Simple Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Hal" });
+        let t = getTemplate(tpl, body).render({ name: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -412,7 +412,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: "Dave" });
+        t.render({ name: "Dave" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -422,14 +422,14 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '3');
 
-        t.refresh({ name: "Hal" });
+        t.render({ name: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -449,7 +449,7 @@ describe('Simple Components', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ fn: " Homer", ln: " Simpson" });
+        let t = getTemplate(tpl, body).render({ fn: " Homer", ln: " Simpson" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -464,7 +464,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ fn: " Mickey", ln: " Mouse" });
+        t.render({ fn: " Mickey", ln: " Mouse" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -479,7 +479,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ fn: "", ln: " Duck" });
+        t.render({ fn: "", ln: " Duck" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3/>
@@ -487,7 +487,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ fn: " Donald", ln: " Duck" });
+        t.render({ fn: " Donald", ln: " Duck" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -508,14 +508,14 @@ describe('Simple Components', () => {
             <*greetings name={name}/>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "" });
+        let t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '1');
 
-        t.refresh({ name: "Hal" });
+        t.render({ name: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Hal ! #
@@ -523,7 +523,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name: "Dave" });
+        t.render({ name: "Dave" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Dave ! # (1)
@@ -531,14 +531,14 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ name: "" });
+        t.render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '4');
 
-        t.refresh({ name: "Dave" });
+        t.render({ name: "Dave" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Dave ! # (1)
@@ -552,7 +552,7 @@ describe('Simple Components', () => {
             <*greetings name={name}/>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name: "Hal" });
+        let t = getTemplate(tpl, body).render({ name: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Hal ! #
@@ -560,14 +560,14 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name: undefined });
+        t.render({ name: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
             </body>
         `, '2');
 
-        t.refresh({ name: "Dave" });
+        t.render({ name: "Dave" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Dave ! # (1)
@@ -582,7 +582,7 @@ describe('Simple Components', () => {
             <*greetings name={name2}/>
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ name1: "Marge", name2: "Homer" });
+        let t = getTemplate(tpl, body).render({ name1: "Marge", name2: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge ! #
@@ -591,7 +591,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ name1: "", name2: "Hal" });
+        t.render({ name1: "", name2: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T4 Hello Hal ! # (1)
@@ -599,7 +599,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ name1: "Marge", name2: "Homer" });
+        t.render({ name1: "Marge", name2: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge ! #
@@ -617,7 +617,7 @@ describe('Simple Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ names: [] });
+        let t = getTemplate(tpl, body).render({ names: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -625,7 +625,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ names: ["Marge", "Lisa"] });
+        t.render({ names: ["Marge", "Lisa"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -635,7 +635,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ names: ["Homer"] });
+        t.render({ names: ["Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -644,7 +644,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        t.refresh({ names: ["Homer", "Marge", "Lisa"] });
+        t.render({ names: ["Homer", "Marge", "Lisa"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -655,7 +655,7 @@ describe('Simple Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ names: undefined });
+        t.render({ names: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -663,7 +663,7 @@ describe('Simple Components', () => {
             </body>
         `, '5');
 
-        t.refresh({ names: ["Homer", "Marge", "Lisa", "Bart", "Maggie"] });
+        t.render({ names: ["Homer", "Marge", "Lisa", "Bart", "Maggie"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -685,7 +685,7 @@ describe('Simple Components', () => {
             }
         }`);
 
-        let t = getTemplate(tpl, body).refresh({ names: ["Bart", "Lisa"] });
+        let t = getTemplate(tpl, body).render({ names: ["Bart", "Lisa"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -695,7 +695,7 @@ describe('Simple Components', () => {
             </body>
         `, '1');
 
-        t.refresh({ names: [] });
+        t.render({ names: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -703,7 +703,7 @@ describe('Simple Components', () => {
             </body>
         `, '2');
 
-        t.refresh({ names: ["Bart", "Homer", "Maggie"] });
+        t.render({ names: ["Bart", "Homer", "Maggie"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -715,7 +715,7 @@ describe('Simple Components', () => {
         `, '3');
 
         
-        t.refresh({ names: ["Bart", "Homer"] });
+        t.render({ names: ["Bart", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -725,7 +725,7 @@ describe('Simple Components', () => {
             </body>
         `, '4');
 
-        t.refresh({ names: ["Bart", "Homer", "Maggie"] });
+        t.render({ names: ["Bart", "Homer", "Maggie"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #

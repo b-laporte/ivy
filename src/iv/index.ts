@@ -879,7 +879,7 @@ export function ζcntD(v: IvView, cm: boolean, idx: number, parentLevel: number,
 
 // Component Definition (& call if no params and no content)
 // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[] | 0, dynParamNames?: string[]) {
+export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
     let container: IvCptContainer;
     if (cm) {
         // creation mode
@@ -919,19 +919,19 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         container.dynamicParams = {};
     }
     if (callImmediately) {
-        ζcall(v, idx, container, dynParamNames);
+        ζcall(v, idx, container, labels, dynParamNames);
     }
 }
 
-export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, staticParams?: any[]) {
+export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[]) {
     if (cm) {
         ζcntD(v, cm, idx, parentLevel, 2);
     }
-    addInstruction(v, ζcpt, [v, cm, iFlag, idx, parentLevel, exprCptRef, callImmediately, staticParams]);
+    addInstruction(v, ζcpt, [v, cm, iFlag, idx, parentLevel, exprCptRef, callImmediately, labels, staticParams]);
 }
 
 // Component call - used when a component has content, params or param nodes
-export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, dynParamNames?: string[]) {
+export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, labels?: any[] | 0, dynParamNames?: string[]) {
     container = container || v.nodes![idx] as IvCptContainer;
     let tpl = container ? container.template as Template : null;
     if (tpl) {
@@ -943,7 +943,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
         if (container.contentView) {
             tpl.$api.$content = container.contentView;
             let instr = container.contentView.instructions;
-            if (instr && instr.length > 2) { // 2 because ζendD will always be in the instruction list if any
+            if (instr && instr.length) {
                 // console.log("forceRefresh #2 - ", instr.length);
                 tpl.forceRefresh = true;
             }
@@ -972,12 +972,15 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, d
                 insertInDom(root, insertFn, 2);
             }
         }
+        if (labels) {
+            registerLabels(v, tpl.$api, labels);
+        }
         tpl.refresh();
     }
 }
 
-export function ζcallD(v: IvView, idx: number, container?: IvCptContainer) {
-    addInstruction(v, ζcall, [v, idx, container]);
+export function ζcallD(v: IvView, idx: number, container?: IvCptContainer | 0, labels?: any[] | 0, dynParamNames?: string[]) {
+    addInstruction(v, ζcall, [v, idx, container, labels, dynParamNames]);
 }
 
 function identifyPNodeList(pn: IvParamNode, name: string, dataParent: any) {
@@ -991,7 +994,7 @@ function identifyPNodeList(pn: IvParamNode, name: string, dataParent: any) {
     }
 }
 
-export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, staticParams?: any[] | 0, dynParamNames?: string[]) {
+export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
     let pnd: IvParamNode, vNodes = v.nodes!, updateMode = false, prevContentView: any = null;
     // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
     // console.log(instanceIdx) // add siblings?
@@ -1132,7 +1135,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
     }
 }
 
-export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, name: string, instanceIdx: number, staticParams?: any[]) {
+export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
     console.warn("TODO ζpnodeD")
 }
 
@@ -1151,7 +1154,7 @@ function cleanDataLists(dataHolder: IvCptContainer | IvParamNode) {
     }
 }
 
-export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames?: string[]) {
+export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, labels?: any[] | 0, dynParamNames?: string[]) {
     if (cm) return;
     let pn = v.nodes![idx] as IvParamNode;
 
@@ -1169,7 +1172,7 @@ export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynP
     }
 }
 
-export function ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames?: string[]) {
+export function ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, labels?: any[] | 0, dynParamNames?: string[]) {
     console.warn("TODO ζpnEndD")
 }
 

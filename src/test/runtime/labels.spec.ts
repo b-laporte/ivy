@@ -1,6 +1,7 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { template, IvContent, API, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
+import { changeComplete } from '../../trax/trax';
 
 describe('Labels', () => {
     let body: ElementNode;
@@ -87,17 +88,355 @@ describe('Labels', () => {
         assert.equal(col[1].innerText, " World 42 ", "col[1] (3)");
     });
 
-    // it.only("should be supported on components with no $api", async function () {
-    //     const cpt = template(`(text:string = "") => {
-    //         # cpt {text} #
-    //     }`);
+    it("should be supported on components with no content", async function () {
+        const cpt = template(`(text:string = "") => {
+            # cpt {text} #
+        }`);
 
-    //     const tpl = template(`(condition=true) => {
-    //         <div>
-    //             <*cpt #comp1 #comp text="AAA"/>
-    //             if (condition) {
-    //                 <*cpt #comp2 #comp text="BBB"/>
-    //             }
+        const tpl = template(`(condition=true) => {
+            <div>
+                <*cpt #comp1 #comp text={"AAA"}/>
+                if (condition) {
+                    <*cpt #comp2 #comp text="BBB"/>
+                }
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt AAA #
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        assert.equal(t.query("#comp1").text, "AAA", "comp1.text=AAA");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB");
+        let col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps");
+        assert.equal(col[0].text, "AAA", "col[0] / AAA");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB");
+
+        let cpt1 = t.query("#comp1");
+        cpt1.text = "CCC";
+        await changeComplete(cpt1);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ condition: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(t.query("#comp1"), cpt1, "comp1 is cpt1");
+        assert.equal(t.query("#comp2"), null, "no comp2");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 1, "1 comp in col");
+        assert.equal(col[0], cpt1, "col[0] is cpt1");
+
+        t.refresh({ condition: true });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        assert.equal(t.query("#comp1").text, "CCC", "comp1.text=CCC (3)");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB (3)");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps (3)");
+        assert.equal(col[0].text, "CCC", "col[0] / CCC (3)");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
+    });
+
+    it("should be supported on components with content", async function () {
+        const cpt = template(`(text:string = "", $content:IvContent) => {\
+            # cpt {text} #
+            <! @content/>
+        }`);
+
+        const tpl = template(`(condition=true) => {
+            <div>
+                <*cpt #comp1 #comp text={"AAA"}>
+                    if (condition) {
+                        <*cpt #comp2 #comp text="BBB">
+                            # Hello #
+                        </>
+                    }
+                </>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt AAA #
+                    #::T5 cpt BBB #
+                    #::T6 Hello #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        assert.equal(t.query("#comp1").text, "AAA", "comp1.text=AAA");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB");
+        let col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps");
+        assert.equal(col[0].text, "AAA", "col[0] / AAA");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB");
+
+        let cpt1 = t.query("#comp1");
+        cpt1.text = "CCC";
+        await changeComplete(cpt1);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                    #::T6 Hello #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ condition: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(t.query("#comp1"), cpt1, "comp1 is cpt1");
+        assert.equal(t.query("#comp2"), null, "no comp2");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 1, "1 comp in col");
+        assert.equal(col[0], cpt1, "col[0] is cpt1");
+
+        t.refresh({ condition: true });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                    #::T6 Hello #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        assert.equal(t.query("#comp1").text, "CCC", "comp1.text=CCC (3)");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB (3)");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps (3)");
+        assert.equal(col[0].text, "CCC", "col[0] / CCC (3)");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
+    });
+
+    it("should be supported on components with $api", async function () {
+        @API class CptApi {
+            text: string = "";
+            changeText: () => void;
+        }
+
+        const cpt = template(`($api:CptApi) => {
+            if (!$api.changeText) {
+                $api.changeText = () => {
+                    $api.text = "CCC";
+                }
+            }
+            # cpt {$api.text} #
+        }`);
+
+        const tpl = template(`(condition=true) => {
+            <div>
+                <*cpt #comp1 #comp text={"AAA"}/>
+                if (condition) {
+                    <*cpt #comp2 #comp text="BBB"/>
+                }
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt AAA #
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        assert.equal(t.query("#comp1").text, "AAA", "comp1.text=AAA");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB");
+        let col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps");
+        assert.equal(col[0].text, "AAA", "col[0] / AAA");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB");
+
+        let cpt1 = t.query("#comp1") as CptApi;
+        cpt1.changeText();
+        await changeComplete(cpt1);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ condition: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(t.query("#comp1"), cpt1, "comp1 is cpt1");
+        assert.equal(t.query("#comp2"), null, "no comp2");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 1, "1 comp in col");
+        assert.equal(col[0], cpt1, "col[0] is cpt1");
+
+        t.refresh({ condition: true });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        assert.equal(t.query("#comp1").text, "CCC", "comp1.text=CCC (3)");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB (3)");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps (3)");
+        assert.equal(col[0].text, "CCC", "col[0] / CCC (3)");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
+    });
+
+    it("should be supported on components with $ctl", async function () {
+        @API class CptApi {
+            text: string = "";
+        }
+
+        @Controller class CptCtl {
+            $api: CptApi;
+
+            getText() {
+                return this.$api.text;
+            }
+        }
+
+        const cpt = template(`($ctl:CptCtl) => {
+            # cpt {$ctl.getText()} #
+        }`);
+
+        const tpl = template(`(condition=true) => {
+            <div>
+                <*cpt #comp1 #comp text={"AAA"}/>
+                if (condition) {
+                    <*cpt #comp2 #comp text="BBB"/>
+                }
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).refresh();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt AAA #
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        assert.equal(t.query("#comp1").text, "AAA", "comp1.text=AAA");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB");
+        let col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps");
+        assert.equal(col[0].text, "AAA", "col[0] / AAA");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB");
+
+        let cpt1 = t.query("#comp1") as CptApi;
+        cpt1.text = "CCC";
+        await changeComplete(cpt1);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.refresh({ condition: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(t.query("#comp1"), cpt1, "comp1 is cpt1");
+        assert.equal(t.query("#comp2"), null, "no comp2");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 1, "1 comp in col");
+        assert.equal(col[0], cpt1, "col[0] is cpt1");
+
+        t.refresh({ condition: true });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 cpt CCC # (1)
+                    #::T5 cpt BBB #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        assert.equal(t.query("#comp1").text, "CCC", "comp1.text=CCC (3)");
+        assert.equal(t.query("#comp2").text, "BBB", "comp2.text=BBB (3)");
+        col = t.query("#comp", true)!;
+        assert.equal(col.length, 2, "2 comps (3)");
+        assert.equal(col[0].text, "CCC", "col[0] / CCC (3)");
+        assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
+    });
+
+    // it("cannot be queried during refresh", function () {
+    //     const tpl = template(`($tpl:IvTemplate) => {
+    //         <div #div1>
+    //             # div1 can be queried: {$tpl.query("#div1") !== null} #
     //         </div>
     //     }`);
 
@@ -107,21 +446,22 @@ describe('Labels', () => {
     //             <div::E3>
     //                 #::T4 cpt AAA #
     //                 #::T5 cpt BBB #
+    //                 #::T6 Hello #
     //             </div>
     //             //::C2 template anchor
     //         </body>
     //     `, '1');
-
-    //     assert.equal(t.query("#comp1").text, "AAA" , "comp1.text=AAA");
     // });
 
-    interface IvQuery<T extends Array<string>> {
-        (selector: string, firstOnly: boolean): any | null;
-    }
-    class Foo {
-        $query: IvQuery<["#white", "#list"]>;
-    }
+    // todo
+    // no query call during execution
 
+    // interface IvQuery<T extends Array<string>> {
+    //     (selector: string, firstOnly: boolean): any | null;
+    // }
+    // class Foo {
+    //     $query: IvQuery<["#white", "#list"]>;
+    // }
     // label forwarding?
     // <*sub-cpt #foo/> -> means that a query on #foo should look in the sub-cpt template
     // <*sub-cpt ##foo="#bar"/> -> means that a query on #foo should look in the sub-cpt template and transform the query as query("#bar")
@@ -131,16 +471,9 @@ describe('Labels', () => {
     // assigning class to sub-elements
     // <*input @class($target="#foo" blue:{isBlue()} white:{isWhite()}) // default value for $target should be "#root"
 
-
-    // query / queryAll
+    // query 
     //           -> dig in sub-templates that provide an explicit api? 
     //           -> $api should provide explicit valid labels?
     // $template injection
-    // multiple labels
-    // collections
     // parent template can query sub-template explicitly ->
-    // no call during execution
-    // labels on text elements
-    // labels on components
-
 });

@@ -555,7 +555,7 @@ describe('Code generator', () => {
 
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, alert), 1, ζs1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, alert), 1, 0, ζs1);
             ζend(ζ, ζc);
         `, '1a');
 
@@ -570,7 +570,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t2.body, `
             let ζc = ζinit(ζ, ζs0, 1);
-            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, b.section), 0, ζs1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, b.section), 0, 0, ζs1);
             ζpar(ζ, 0, 0, "position", ζe(ζ, 1, getPosition()));
             ζpar(ζ, 0, 0, "msg", ζe(ζ, 2, myMessage));
             ζcall(ζ, 0);
@@ -823,10 +823,10 @@ describe('Code generator', () => {
             ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
-            ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, ζs1);
+            ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, 0, ζs1);
             ζpar(ζ, 0, 3, "foo", bar());
             ζtxtD(ζ1, ζc1, 1, 0, 0, 0, ζs2, 1, [0, baz()]);
-            ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, ζs3);
+            ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, 0, ζs3);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 2);
             ζtxt(ζ, ζc, 0, 5, 1, 0, " last ", 0);
@@ -850,7 +850,7 @@ describe('Code generator', () => {
             ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0);
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
-            ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, ζs1);
+            ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, 0, ζs1);
             ζpar(ζ, 0, 3, "foo", bar());
             ζ2 = ζviewD(ζ, 1, 3, 1, 0);
             ζc2 = ζ2.cm;
@@ -886,7 +886,7 @@ describe('Code generator', () => {
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
             ζpnode(ζ, ζc, 0, 1, 0, "header", ζp0++);
             ζpar(ζ, 0, 1, "foo", bar());
-            ζpnode(ζ, ζc, 0, 2, 1, "foo", ζp1++, ζs1);
+            ζpnode(ζ, ζc, 0, 2, 1, "foo", ζp1++, 0, ζs1);
             ζpnode(ζ, ζc, 0, 3, 2, "bar", ζp2++);
             ζpar(ζ, 0, 3, "$value", exp());
             ζpnode(ζ, ζc, 0, 4, 2, "bar", ζp2++);
@@ -920,7 +920,7 @@ describe('Code generator', () => {
             ζp0 = ζp1 = 0;
             ζfra(ζ, ζc, 0, 0);
             ζtxt(ζ, ζc, 0, 1, 1, 0, " first ", 0);
-            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0, 0, ζs4);
+            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 0, myComponent), 0, 0, 0, ζs4);
             ζi2 = ζi3 = 0;
             ζ1 = ζviewD(ζ, 1, 2, 4, 0);
             ζc1 = ζ1.cm;
@@ -930,7 +930,7 @@ describe('Code generator', () => {
                 ζ2 = ζviewD(ζ1, 2, 1, 1, ++ζi2);
                 ζc2 = ζ2.cm;
                 ζtxtD(ζ2, ζc2, 2, 0, 0, 0, " foo ", 0);
-                ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, ζs1);
+                ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, 0, ζs1);
                 ζpar(ζ, 0, 3, "foo", bar());
                 ζendD(ζ2, ζc2);
             }
@@ -942,9 +942,9 @@ describe('Code generator', () => {
                 ζtxtD(ζ3, ζc3, 2, 0, 0, 0, ζs2, 1, [0, baz()]);
                 ζendD(ζ3, ζc3);
             }
-            ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, ζs3);
+            ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, 0, ζs3);
             ζendD(ζ1, ζc1, ζs5);
-            ζcall(ζ, 2, 0, ζs4);
+            ζcall(ζ, 2, 0, 0, ζs4);
             ζtxt(ζ, ζc, 0, 5, 1, 0, " last ", 0);
             ζend(ζ, ζc);
         `, '1');
@@ -977,32 +977,32 @@ describe('Code generator', () => {
         assert.equal(t2.body, `
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζp0, ζ3, ζc3, ζi4 = 0, ζ4, ζc4, ζp1, ζi5 = 0, ζ5, ζc5, ζp2, ζc = ζinit(ζ, ζs0, 4);
             ζp0 = ζp1 = ζp2 = 0;
-            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0, 0, ζs4);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0, 0, 0, ζs4);
             ζi2 = ζi5 = 0;
             ζ1 = ζviewD(ζ, 1, 0, 4, 0);
             ζc1 = ζ1.cm;
             ζfraD(ζ1, ζc1, 0, 0);
             ζcntD(ζ1, ζc1, 1, 1, 1);
             if (x) {
-                ζpnode(ζ, ζc, 0, 1, 0, "header", ζp0++, ζs1, ζs6);
+                ζpnode(ζ, ζc, 0, 1, 0, "header", ζp0++, 0, ζs1, ζs6);
                 ζpar(ζ, 0, 1, "foo", bar());
                 ζi4 = 0;
                 ζ3 = ζviewD(ζ, 1, 1, 1, 0);
                 ζc3 = ζ3.cm;
                 ζcntD(ζ3, ζc3, 0, 0, 1);
                 if (y) {
-                    ζpnode(ζ, ζc, 0, 2, 1, "title", ζp1++, ζs2);
+                    ζpnode(ζ, ζc, 0, 2, 1, "title", ζp1++, 0, ζs2);
                 }
                 ζendD(ζ3, ζc3, ζs7);
-                ζpnEnd(ζ, ζc, 0, 1, ζs6);
+                ζpnEnd(ζ, ζc, 0, 1, 0, ζs6);
             }
             ζtxtD(ζ1, ζc1, 1, 2, 1, 0, " abc ", 0);
             ζcntD(ζ1, ζc1, 3, 1, 1);
             if (z) {
-                ζpnode(ζ, ζc, 0, 3, 0, "footer", ζp2++, ζs3);
+                ζpnode(ζ, ζc, 0, 3, 0, "footer", ζp2++, 0, ζs3);
             }
             ζendD(ζ1, ζc1, ζs5);
-            ζcall(ζ, 0, 0, ζs4);
+            ζcall(ζ, 0, 0, 0, ζs4);
             ζend(ζ, ζc);
         `, '2');
 
@@ -1038,7 +1038,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 0, 3, ++ζi1);
                 ζc1 = ζ1.cm;
                 ζp0 = ζp1 = 0;
-                ζcpt(ζ1, ζc1, 0, 0, 0, ζe(ζ1, 0, grid), 0, 0, ζs3);
+                ζcpt(ζ1, ζc1, 0, 0, 0, ζe(ζ1, 0, grid), 0, 0, 0, ζs3);
                 ζi3 = 0;
                 ζ2 = ζviewD(ζ1, 1, 0, 1, 0);
                 ζc2 = ζ2.cm;
@@ -1055,7 +1055,7 @@ describe('Code generator', () => {
                     ζpnEnd(ζ1, ζc1, 0, 1);
                 }
                 ζendD(ζ2, ζc2, ζs4);
-                ζcall(ζ1, 0, 0, ζs3);
+                ζcall(ζ1, 0, 0, 0, ζs3);
                 ζend(ζ1, ζc1);
             }
             ζend(ζ, ζc, ζs2);
@@ -1073,7 +1073,7 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζp0, ζp1, ζc = ζinit(ζ, ζs0, 3);
             ζp0 = ζp1 = 0;
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
-            ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζp0++, ζs1);
+            ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζp0++, 0, ζs1);
             let bar=foo;
             ζpnode(ζ, ζc, 0, 2, 0, "paramB", ζp1++);
             ζpar(ζ, 0, 2, "value", exp(bar));
@@ -1095,7 +1095,7 @@ describe('Code generator', () => {
             ζp0 = 0;
             ζfra(ζ, ζc, 0, 0);
             ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, foo), 0);
-            ζpnode(ζ, ζc, 0, 2, 1, "paramA", ζp0++, ζs1);
+            ζpnode(ζ, ζc, 0, 2, 1, "paramA", ζp0++, 0, ζs1);
             ζcall(ζ, 1);
             ζcpt(ζ, ζc, 0, 3, 1, ζe(ζ, 1, bar), 1);
             let x = 123;
@@ -1118,9 +1118,9 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 0, 2, 0);
             ζc1 = ζ1.cm;
             ζp1 = 0;
-            ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζp0++, ζs1);
+            ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζp0++, 0, ζs1);
             ζcptD(ζ1, ζc1, 1, 0, 0, [0, bar], 0);
-            ζpnodeD(ζ1, ζc1, 1, 1, 0, "paramB", ζp1++, ζs2);
+            ζpnodeD(ζ1, ζc1, 1, 1, 0, "paramB", ζp1++, 0, ζs2);
             ζcallD(ζ1, 0);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 0);
@@ -1144,7 +1144,7 @@ describe('Code generator', () => {
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 3);
             ζp0 = 0;
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
-            ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, b.section), 0, ζs2);
+            ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, b.section), 0, 0, ζs2);
             ζ1 = ζviewD(ζ, 1, 1, 2, 0);
             ζc1 = ζ1.cm;
             ζpnode(ζ, ζc, 0, 2, 1, "header", ζp0++);
@@ -1495,29 +1495,61 @@ describe('Code generator', () => {
         ], "1s");
     });
 
-    // it.only("should support labels on components", async function () {
-    //     let t1 = await test.template(`() => {
-    //         <*cpt #label1 arg1=1>
-    //             <*cpt #label2 #label3 arg2=2/>
-    //         </>
-    //     }`);
-    //     assert.equal(t1.body, `
-    //         let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
-    //         ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0, ζs1); // here?
-    //         ζ1 = ζviewD(ζ, 1, 0, 1, 0);
-    //         ζc1 = ζ1.cm;
-    //         ζcptD(ζ1, ζc1, 1, 0, 0, [0, cpt], 1, ζs2); // here?
-    //         ζendD(ζ1, ζc1);
-    //         ζcall(ζ, 0); // here?
-    //         ζend(ζ, ζc);
-    //     `, '1a');
+    it("should support labels on components", async function () {
+        // callImmediately: false
+        let t1 = await test.template(`() => {
+            <*cpt #label1 arg1=1>
+                <*cpt #label2 #label3 arg2=2>
+                    # Hello #
+                </>
+            </>
+        }`);
+        assert.equal(t1.body, `
+            let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0, 0, ζs1);
+            ζ1 = ζviewD(ζ, 1, 0, 1, 0);
+            ζc1 = ζ1.cm;
+            ζcptD(ζ1, ζc1, 1, 0, 0, [0, cpt], 0, 0, ζs3);
+            ζ2 = ζviewD(ζ1, 1, 0, 1, 0);
+            ζc2 = ζ2.cm;
+            ζtxtD(ζ2, ζc2, 1, 0, 0, 0, " Hello ", 0);
+            ζendD(ζ2, ζc2);
+            ζcallD(ζ1, 0, 0, ζs4);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 0, 0, ζs2);
+            ζend(ζ, ζc);
+        `, '1a');
 
-    //     // assert.deepEqual(t1.statics, [
-    //     //     "ζs0 = {}",
-    //     //     "ζs1 = [\"#txt1\", 0, \"#txt\", 0]",
-    //     //     "ζs2 = [\"#txt\", 0]"
-    //     // ], "1s");
-    // });
+        assert.deepEqual(t1.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"arg1\", 1]",
+            "ζs2 = [\"#label1\", 0]",
+            "ζs3 = [\"arg2\", 2]",
+            "ζs4 = [\"#label2\", 0, \"#label3\", 0]"
+        ], "1s");
+
+        // callImmediately: true
+        let t2 = await test.template(`() => {
+            <*cpt #label1 arg1=1 />
+            <*cpt #label2 #label3 arg2=2/>
+        }`);
+
+        assert.equal(t2.body, `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζfra(ζ, ζc, 0, 0);
+            ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, cpt), 1, ζs2, ζs1);
+            ζcpt(ζ, ζc, 0, 2, 1, ζe(ζ, 1, cpt), 1, ζs4, ζs3);
+            ζend(ζ, ζc);
+        `, '2a');
+
+        assert.deepEqual(t2.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"arg1\", 1]",
+            "ζs2 = [\"#label1\", 0]",
+            "ζs3 = [\"arg2\", 2]",
+            "ζs4 = [\"#label2\", 0, \"#label3\", 0]"
+        ], "2s");
+    });
 
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });

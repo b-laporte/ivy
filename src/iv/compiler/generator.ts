@@ -443,7 +443,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
                     // create a container block
                     let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length);
-                    let ci = new CptInstruction(nd as XjsComponent, idx, this, iFlag, parentLevel, callImmediately, i1)
+                    let ci = new CptInstruction(nd as XjsComponent, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsComponent), callImmediately, i1)
                     this.instructions.push(ci);
                     if (containsParamExpr) {
                         this.generateParamInstructions(nd as XjsComponent, idx, iFlag, false, this);
@@ -538,12 +538,13 @@ export class ViewInstruction implements RuntimeInstruction {
                     v.paramInstanceVars[name] = instanceVarName;
                 }
                 let parentIdx = contentParentView!.contentParentInstruction!.idx,
-                    pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, i1, this.indent, parentIdx, instanceVarName);
+                    hasContent = nd.content !== undefined && nd.content.length > 0,
+                    pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, "0", i1, this.indent, parentIdx, instanceVarName, hasContent);
                 this.instructions.push(pi);
                 if (containsParamExpr) {
                     this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
                 }
-                if (nd.content && nd.content.length) {
+                if (hasContent) {
                     let vi = new ViewInstruction("paramContent", nd as XjsParamNode, newIdx, v, 1);
                     vi.indent = this.indent;
                     vi.contentParentInstruction = pi;
@@ -639,7 +640,7 @@ export class ViewInstruction implements RuntimeInstruction {
      * Parse the XJS node to look for labels - e.g. #foo or #bar[] or #baz[{expr()}]
      * @param nd 
      */
-    generateLabelStatics(nd: XjsElement | XjsText): string {
+    generateLabelStatics(nd: XjsElement | XjsText | XjsComponent): string {
         if (nd.labels && nd.labels.length) {
             let lbl: XjsLabel, labels = nd.labels, len = labels.length, values: any[] = [];
             for (let i = 0; labels.length > i; i++) {
@@ -1045,7 +1046,7 @@ class CptInstruction implements RuntimeInstruction {
     dynamicPNodeNames: string[] = []; // name of child param nodes
     dynamicPNodeRef: string;
 
-    constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public callImmediately: boolean, public staticParamIdx: number) {
+    constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string, public callImmediately: boolean, public staticParamIdx: number) {
         view.gc.imports['ζcpt' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on components", node);
@@ -1054,11 +1055,11 @@ class CptInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
-        let v = this.view, stParams = processCptOptionalArgs(this.view, this);
+        let v = this.view, lastArgs = processCptOptionalArgs(this.view, this, this.callImmediately ? this.staticLabels : "0");
 
         body.push(`${v.indent}${funcStart("cpt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, `);
         generateExpression(body, this.node.ref as XjsExpression, this.view, this.iFlag);
-        body.push(`, ${this.callImmediately ? 1 : 0}${stParams});\n`);
+        body.push(`, ${this.callImmediately ? 1 : 0}${lastArgs});\n`);
     }
 }
 
@@ -1066,7 +1067,7 @@ class PndInstruction implements RuntimeInstruction {
     dynamicPNodeNames: string[] = []; // name of child param nodes
     dynamicPNodeRef: string;
 
-    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticParamIdx: number, public indent: string, public parentIndex: number, public instanceVarName: string) {
+    constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string, public staticParamIdx: number, public indent: string, public parentIndex: number, public instanceVarName: string, public hasEndInstruction: boolean) {
         view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on param nodes", node);
@@ -1078,9 +1079,9 @@ class PndInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
-        let v = this.view, stParams = processCptOptionalArgs(this.view, this);
+        let v = this.view, lastArgs = processCptOptionalArgs(this.view, this, this.hasEndInstruction ? "0" : this.staticLabels);
         // unused: ${this.parentLevel}
-        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}", ${this.instanceVarName}++${stParams});\n`);
+        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}", ${this.instanceVarName}++${lastArgs});\n`);
     }
 }
 
@@ -1090,16 +1091,23 @@ class PndEndInstruction implements RuntimeInstruction {
     }
 
     pushCode(body: BodyContent[]) {
-        // ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) 
-        // ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, dynParamNames: string[]) 
+        // ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, labels, dynParamNames: string[]) 
+        // ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, labels, dynParamNames: string[]) 
 
         // only create this instruction when there are dynamic parameter nodes
-        let v = this.view, lastArg = this.pi.dynamicPNodeRef ? ", " + this.pi.dynamicPNodeRef : "";
+        let v = this.view, lastArg = "";
+        if (this.pi.dynamicPNodeRef) {
+            lastArg = `, ${this.pi.staticLabels}, ${this.pi.dynamicPNodeRef}`;
+        } else if (this.pi.staticLabels !== "0") {
+            lastArg = `, ${this.pi.staticLabels}`;
+        }
+
         body.push(`${this.indent}${funcStart("pnEnd", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}${lastArg});\n`);
     }
 }
 
-function processCptOptionalArgs(view: ViewInstruction, ins: CptInstruction | PndInstruction): string {
+function processCptOptionalArgs(view: ViewInstruction, ins: CptInstruction | PndInstruction, staticLabels: string): string {
+
     if (ins.dynamicPNodeNames && ins.dynamicPNodeNames.length) {
         let idx = view.gc.statics.length;
         for (let i = 0; ins.dynamicPNodeNames.length > i; i++) {
@@ -1108,9 +1116,11 @@ function processCptOptionalArgs(view: ViewInstruction, ins: CptInstruction | Pnd
         ins.dynamicPNodeRef = "ζs" + idx;
         view.gc.statics[idx] = ins.dynamicPNodeRef + " = [" + ins.dynamicPNodeNames.join(", ") + "]";
 
-        return `, ${(ins.staticParamIdx > -1) ? 'ζs' + ins.staticParamIdx : '0'}, ζs${idx}`;
+        return `, ${staticLabels}, ${(ins.staticParamIdx > -1) ? 'ζs' + ins.staticParamIdx : '0'}, ζs${idx}`;
     } else if (ins.staticParamIdx > -1) {
-        return ', ζs' + ins.staticParamIdx;
+        return `, ${staticLabels}, ζs${ins.staticParamIdx}`;
+    } else if (staticLabels !== "0") {
+        return `, ${staticLabels}`;
     }
     return '';
 }
@@ -1125,7 +1135,9 @@ class CallInstruction implements RuntimeInstruction {
         let v = this.view, lastArgs = "";
 
         if (this.ci.dynamicPNodeRef) {
-            lastArgs = ", 0, " + this.ci.dynamicPNodeRef;
+            lastArgs = `, 0, ${this.ci.staticLabels}, ${this.ci.dynamicPNodeRef}`;
+        } else if (this.ci.staticLabels !== "0") {
+            lastArgs = `, 0, ${this.ci.staticLabels}`;
         }
 
         body.push(`${v.indent}${funcStart("call", this.iFlag)}${v.jsVarName}, ${this.idx}${lastArgs});\n`);

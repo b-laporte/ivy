@@ -1,5 +1,6 @@
-import { template, IvContent } from "../../iv";
+import { template } from "../../iv";
 import { Data } from '../../trax/trax';
+import { IvContent } from '../../iv/types';
 
 @Data class RowCaption {
     color = "#198fd8"; // lighter than 'blue' that makes link hard to see

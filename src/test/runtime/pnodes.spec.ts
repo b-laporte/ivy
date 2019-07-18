@@ -1,7 +1,8 @@
 import * as assert from 'assert';
-import { template, IvContent } from '../../iv';
+import { template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { Data, changeComplete } from '../../trax/trax';
+import { IvContent } from '../../iv/types';
 
 // Components with param nodes
 describe('Param Nodes', () => {

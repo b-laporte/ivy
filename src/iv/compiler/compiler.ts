@@ -10,6 +10,7 @@ const SK = ts.SyntaxKind,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_LIST = /List$/,
+    IV_INTERFACES = ["IvContent", "IvTemplate"],
     SEPARATOR = "---------------------------------------------------------------";
 
 export async function process(source: string, resourcePath: string) {
@@ -31,7 +32,12 @@ export async function process(source: string, resourcePath: string) {
 
     // trax processing for ivy api classes
     try {
-        result = generate(result, resourcePath, { symbols: { Data: "ζΔD", /* todo: ref, computed */ }, libPrefix: "ζ", validator: listValidator });
+        result = generate(result, resourcePath, {
+            symbols: { Data: "ζΔD", /* todo: ref, computed */ },
+            libPrefix: "ζ",
+            interfaceTypes: IV_INTERFACES,
+            validator: listValidator
+        });
     } catch (e) {
         throw new Error(e.message);
     }
@@ -45,7 +51,14 @@ export async function process(source: string, resourcePath: string) {
     // trax processing for ivy template API classes
     let r1 = result
     try {
-        result = generate(result, resourcePath, { symbols: { Data: "API" }, ignoreFunctionProperties: true, acceptMethods: true, replaceDataDecorator: false, libPrefix: "ζ" });
+        result = generate(result, resourcePath, {
+            symbols: { Data: "API" },
+            ignoreFunctionProperties: true,
+            acceptMethods: true,
+            replaceDataDecorator: false,
+            interfaceTypes: IV_INTERFACES,
+            libPrefix: "ζ"
+        });
     } catch (e) {
         throw new Error(e.message);
     }
@@ -58,7 +71,13 @@ export async function process(source: string, resourcePath: string) {
 
     // trax processing for ivy template controller classes
     try {
-        result = generate(result, resourcePath, { symbols: { Data: "Controller" }, acceptMethods: true, replaceDataDecorator: false, libPrefix: "ζ" });
+        result = generate(result, resourcePath, {
+            symbols: { Data: "Controller" },
+            acceptMethods: true,
+            replaceDataDecorator: false,
+            interfaceTypes: IV_INTERFACES,
+            libPrefix: "ζ"
+        });
     } catch (e) {
         throw new Error(e.message);
     }
@@ -71,7 +90,9 @@ export async function process(source: string, resourcePath: string) {
 
     // trax processing for normal Data Objects
     try {
-        result = generate(result, resourcePath);
+        result = generate(result, resourcePath, {
+            interfaceTypes: IV_INTERFACES
+        });
     } catch (e) {
         throw new Error(e.message);
     }

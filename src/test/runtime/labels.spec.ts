@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, IvContent, API, Controller } from '../../iv';
+import { template, API, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { changeComplete } from '../../trax/trax';
 import { IvTemplate } from '../../iv/types';

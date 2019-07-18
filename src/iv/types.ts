@@ -6,6 +6,10 @@ export interface IvDocument {
     createComment(data: string): any;
 }
 
+export interface IvContent {
+    // placeholder interface to describe content views
+}
+
 export interface IvTemplate {
     document: IvDocument;
     $api: any | undefined;

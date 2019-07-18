@@ -9,6 +9,7 @@ interface GeneratorOptions {
     acceptMethods?: boolean;           // default:false
     ignoreFunctionProperties?: boolean;// default:false
     replaceDataDecorator?: boolean;    // default:true
+    interfaceTypes?: string[];         // list of type names that should be considered as interfaces (-> any type)
     symbols?: ParserSymbols,           // redefine the symbols used to identify Data objects
     libPrefix?: string;                // define a prefix to use in the generated code
     validator?: (member: DataMember) => string | null;  // validation function
@@ -29,9 +30,9 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
         ast = parse(src, filePath, {
             symbols,
             acceptMethods: options ? options.acceptMethods : false,
+            interfaceTypes: options ? options.interfaceTypes : undefined,
             ignoreFunctionProperties: options ? options.ignoreFunctionProperties : false
         });
-    
         if (ast && ast.length) {
             initImports(ast);
 

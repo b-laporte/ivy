@@ -1556,27 +1556,6 @@ export const ζΔu = Δu;
 export const Controller = ΔD;
 export const API = ΔD;
 
-// Physical class to represent an IvView content param
-export class IvContent implements IvView {
-    kind: "#view" = "#view";
-    uid = "content" + (++uidCount);
-    nodes = null;
-    doc = null as any;
-    parentView: null;
-    cm = true;
-    cmAppends = null;
-    lastRefresh = 0;
-    container = null;
-    projectionHost = null;
-    template = undefined;
-    rootDomNode = null;
-    anchorNode = null;
-    expressions = undefined;
-    oExpressions = undefined;
-    instructions = undefined;
-    paramNode = undefined;
-}
-
 // ----------------------------------------------------------------------------------------------
 // Async functions
 

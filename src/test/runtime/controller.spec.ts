@@ -23,7 +23,7 @@ describe('Controller', () => {
     @Controller class TestController {
         $api: TestAPI;
         text: string = "Hello";
-        $template: any; // IvTemplate
+        $template: IvTemplate;
 
         @computed get description() {
             return "text = " + this.text + " / count = " + this.$api.count;

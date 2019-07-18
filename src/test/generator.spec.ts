@@ -1,7 +1,6 @@
 // iv:ignore
 import { body, statics, test } from './utils';
 import * as assert from 'assert';
-import { IvContent } from '../iv';
 
 describe('Code generator', () => {
 

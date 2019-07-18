@@ -3,7 +3,7 @@ require('./base.css'); // webpack dependency
 require('./index.css'); // webpack dependency
 
 import * as ts from "./todo";
-import { template, IvContent } from '../../iv';
+import { template } from '../../iv';
 import { changeComplete } from '../../trax/trax';
 
 const ENTER_KEY = 13, ESCAPE_KEY = 27;

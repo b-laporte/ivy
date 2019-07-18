@@ -13,6 +13,7 @@ export interface ParserSymbols {
 export interface ParserOptions {
     symbols?: ParserSymbols;
     acceptMethods?: boolean; // default: false
+    interfaceTypes?: string[];
     ignoreFunctionProperties?: boolean; // default: false
 }
 
@@ -39,7 +40,8 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     let diagnostics = srcFile['parseDiagnostics'];
     if (diagnostics && diagnostics.length) {
         let d: ts.Diagnostic = diagnostics[0] as any;
-        error("TypeScript parsing error: " + d.messageText.toString() + " at " + d.start);
+        // TODO
+        // this.logError("TypeScript parsing error: " + d.messageText.toString(), d.start || 0)
         result = null;
     } else {
         // process all parts
@@ -48,9 +50,9 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
 
     return result;
 
-    function error(message: string, node?: ts.Node) {
+    function error(message: string, node: ts.Node) {
         // TODO
-        throw new Error(message + (node ? (" at pos: " + node.pos) : ""));
+        throw new Error(message + " at pos: " + node.pos);
     }
 
     function scan(node: ts.Node) {
@@ -258,6 +260,10 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
             } else if (n.getText() === "Function") {
                 return { kind: "any" }
             } else if (n.kind === ts.SyntaxKind.TypeReference) {
+                if (options && options.interfaceTypes
+                    && options.interfaceTypes.indexOf(n.getText()) > -1) {
+                    return { kind: "any" }
+                }
                 return {
                     kind: "reference",
                     identifier: n.getText()

@@ -1466,7 +1466,7 @@ describe('Code generator', () => {
         })()` , 'f1');
     });
 
-    it("should support labels on elements", async function () {
+    it("should support static labels on elements", async function () {
         // support labels on elts, text nodes and components -> error otherwise
         let t1 = await test.template(`() => {
             <div #divA class="main">
@@ -1484,12 +1484,12 @@ describe('Code generator', () => {
         assert.deepEqual(t1.statics, [
             "ζs0 = {}",
             "ζs1 = [\"class\", \"main\"]",
-            "ζs2 = [\"#divA\", 0]",
-            "ζs3 = [\"#spanB\", 0, \"#col\", 0]"
+            "ζs2 = [\"#divA\"]",
+            "ζs3 = [\"#spanB\", \"#col\"]"
         ], "1s");
     });
 
-    it("should support labels on text nodes", async function () {
+    it("should support static labels on text nodes", async function () {
         let t1 = await test.template(`() => {
             # (#txt1 #txt) Hello #
             <div>
@@ -1507,12 +1507,12 @@ describe('Code generator', () => {
 
         assert.deepEqual(t1.statics, [
             "ζs0 = {}",
-            "ζs1 = [\"#txt1\", 0, \"#txt\", 0]",
-            "ζs2 = [\"#txt\", 0]"
+            "ζs1 = [\"#txt1\", \"#txt\"]",
+            "ζs2 = [\"#txt\"]"
         ], "1s");
     });
 
-    it("should support labels on components", async function () {
+    it("should support static labels on components", async function () {
         // callImmediately: false
         let t1 = await test.template(`() => {
             <*cpt #label1 arg1=1>
@@ -1540,9 +1540,9 @@ describe('Code generator', () => {
         assert.deepEqual(t1.statics, [
             "ζs0 = {}",
             "ζs1 = [\"arg1\", 1]",
-            "ζs2 = [\"#label1\", 0]",
+            "ζs2 = [\"#label1\"]",
             "ζs3 = [\"arg2\", 2]",
-            "ζs4 = [\"#label2\", 0, \"#label3\", 0]"
+            "ζs4 = [\"#label2\", \"#label3\"]"
         ], "1s");
 
         // callImmediately: true
@@ -1562,10 +1562,44 @@ describe('Code generator', () => {
         assert.deepEqual(t2.statics, [
             "ζs0 = {}",
             "ζs1 = [\"arg1\", 1]",
-            "ζs2 = [\"#label1\", 0]",
+            "ζs2 = [\"#label1\"]",
             "ζs3 = [\"arg2\", 2]",
-            "ζs4 = [\"#label2\", 0, \"#label3\", 0]"
+            "ζs4 = [\"#label2\", \"#label3\"]"
         ], "2s");
+    });
+
+    it("should support dynamic labels on elements, components and text nodes", async function () {
+        // support labels on elts, text nodes and components -> error otherwise
+        let t1 = await test.template(`() => {
+            <div #divA={expr()} #divB=123 class="main">
+                <span #spanB #col> # (#txt={expr2()}) Hello # </span>
+                <*cpt #foo={expr3()}> # (#txt={expr3()}) HelloD # </*cpt>
+            </>
+        }`);
+        assert.equal(t1.body, `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 4);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζlbl(ζ, 0, 0, "#divA", expr());
+            ζlbl(ζ, 0, 0, "#divB", 123);
+            ζelt(ζ, ζc, 1, 1, "span", 1, ζs2);
+            ζtxt(ζ, ζc, 0, 2, 2, 0, " Hello ", 0);
+            ζlbl(ζ, 0, 2, "#txt", expr2());
+            ζcpt(ζ, ζc, 0, 3, 1, ζe(ζ, 0, cpt), 0);
+            ζlbl(ζ, 0, 3, "#foo", expr3());
+            ζ1 = ζviewD(ζ, 1, 3, 1, 0);
+            ζc1 = ζ1.cm;
+            ζtxtD(ζ1, ζc1, 1, 0, 0, 0, " HelloD ", 0);
+            ζlblD(ζ1, 1, 0, "#txt", expr3());
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 3);
+            ζend(ζ, ζc);
+        `, '1a');
+
+        assert.deepEqual(t1.statics, [
+            "ζs0 = {}",
+            "ζs1 = [\"class\", \"main\"]",
+            "ζs2 = [\"#spanB\", \"#col\"]"
+        ], "1s");
     });
 
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes

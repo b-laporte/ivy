@@ -434,7 +434,7 @@ describe('Labels', () => {
         assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
     });
 
-    it("cannot be queried during refresh", function () {
+    it("cannot be queried during render", function () {
         let $tpl: IvTemplate;
         const tpl = template(`($template:IvTemplate) => {
             $tpl = $template;
@@ -452,7 +452,82 @@ describe('Labels', () => {
                 //::C2 template anchor
             </body>
         `, '1');
-        assert.equal($tpl!.query("#div1").uid, "E3" , "div1 retrieved after refresh");
+        assert.equal($tpl!.query("#div1").uid, "E3", "div1 retrieved after refresh");
+    });
+
+    it("should be supported with conditional expressions", async function () {
+        const tpl = template(`(condition=true) => {
+            <div #elt={!condition}>
+                # (#txt={condition}) Hello #
+                if (condition) {
+                    <div #elt> # World # </div>
+                }
+                <div #elt={condition}/>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+        assert.equal(t.query("#elt").uid, "E5", "E5 first");
+        assert.equal(t.query("#txt").uid, "T4", "T4");
+
+        let col = t.query("#elt", true)!;
+        assert.equal(col.length, 2, "2 elts");
+        assert.equal(col[0].uid, "E5", "col[0]");
+        assert.equal(col[1].uid, "E7", "col[1]");
+
+        t.render({ condition: false });
+        assert.equal(t.query("#elt").uid, "E3", "E3 first");
+        assert.equal(t.query("#txt"), null, "no T4");
+
+        col = t.query("#elt", true) as any[];
+        assert.equal(col.length, 1, "1 elt (2)");
+        assert.equal(col[0].uid, "E3", "col[0] (2)");
+
+        t.render({ condition: true });
+        assert.equal(t.query("#elt").uid, "E5", "E5 first (3)");
+        assert.equal(t.query("#txt").uid, "T4", "T4 (3)");
+
+        col = t.query("#elt", true) as any[];
+        assert.equal(col.length, 2, "2 elts");
+        assert.equal(col[0].uid, "E5", "col[0]");
+        assert.equal(col[1].uid, "E7", "col[1]");
+    });
+
+    it("should be supported with conditional expressions and components", async function () {
+        const cpt = template(`(text:string = "", $content:IvContent) => {\
+            # cpt {text} #
+            <! @content/>
+        }`);
+
+        const tpl = template(`(condition=true) => {
+            <div>
+                <*cpt #comp={condition} text={"AAA"}>
+                    if (condition) {
+                        <*cpt #comp #comp2={condition} text="BBB">
+                            # Hello #
+                        </>
+                    }
+                </>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render(), col = t.query("#comp", true);
+        assert.equal(t.query("#comp2")!.text, "BBB", "BBB from comp2");
+        assert.equal(col!.length, 2, "col has 2 elts");
+        assert.equal(col![0].text, "AAA", "AAA (1)");
+        assert.equal(col![1].text, "BBB", "BBB (1)");
+
+        t.render({ condition: false });
+        assert.equal(t.query("#comp2")!, null, "comp2 is null");
+        col = t.query("#comp", true);
+        assert.equal(col, null, "col is null");
+
+        t.render({ condition: true });
+        assert.equal(t.query("#comp2")!.text, "BBB", "BBB from comp2 (2)");
+        col = t.query("#comp", true);
+        assert.equal(col!.length, 2, "col has 2 elts (2)");
+        assert.equal(col![0].text, "AAA", "AAA (2)");
+        assert.equal(col![1].text, "BBB", "BBB (2)");
     });
 
     // interface IvQuery<T extends Array<string>> {

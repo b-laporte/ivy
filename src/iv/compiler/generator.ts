@@ -431,6 +431,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 this.rejectAsyncDecorator(nd as XjsText);
                 this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsText)));
                 this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
+                this.generateDynLabelInstructions(nd as XjsText, idx, iFlag, this);
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd as XjsFragment, idx, parentLevel, prevKind, nextKind)) {
@@ -443,6 +444,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
                     this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsElement), stParams));
                     this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
+                    this.generateDynLabelInstructions(nd as XjsElement, idx, iFlag, this);
                     this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iFlag);
                     this.createListeners(nd as XjsElement, idx, iFlag);
                     content = nd.content;
@@ -457,6 +459,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     if (containsParamExpr) {
                         this.generateParamInstructions(nd as XjsComponent, idx, iFlag, false, this);
                     }
+                    this.generateDynLabelInstructions(nd as XjsComponent, idx, iFlag, this);
                     if (nd.content && nd.content.length) {
                         let vi = new ViewInstruction("cptContent", nd as XjsComponent, idx, this, 1);
                         vi.contentParentInstruction = ci;
@@ -657,9 +660,11 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (lbl.fwdLabel) {
                     this.gc.error("Forward labels (e.g. ##" + lbl.name + ") are not supported (yet)", lbl);
                 }
-                values.push(encodeText("#" + lbl.name));
-                values.push(0); // this slot will be used to store the label value when implemented
+                if (lbl.isOrphan) {
+                    values.push(encodeText("#" + lbl.name));
+                }
             }
+            if (!values.length) return "0"; // no static labels
             let statics = this.gc.statics, sIdx = statics.length;
             statics[sIdx] = "ζs" + sIdx + " = [" + values!.join(", ") + "]";
             return "ζs" + sIdx;
@@ -685,6 +690,21 @@ export class ViewInstruction implements RuntimeInstruction {
                 p = f.properties[i];
                 if (p.value && p.value.kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));
+                }
+            }
+        }
+    }
+
+    generateDynLabelInstructions(f: XjsFragment | XjsText | XjsComponent, idx: number, iFlag: number, view: ViewInstruction) {
+        // dynamic labels
+        if (f.labels && f.labels.length) {
+            let len = f.labels.length, lbl: XjsLabel;
+            for (let i = 0; len > i; i++) {
+                lbl = f.labels[i];
+                if (!lbl.isOrphan && lbl.value) {
+                    if (!lbl.fwdLabel) {
+                        this.instructions.push(new LblInstruction(lbl, idx, view, iFlag, this.indent));
+                    }
                 }
             }
         }
@@ -1022,6 +1042,24 @@ class ParamInstruction implements RuntimeInstruction {
             body.push(this.node.value as XjsExpression);
         } else {
             generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
+        }
+        body.push(');\n');
+    }
+}
+
+class LblInstruction implements RuntimeInstruction {
+    constructor(public node: XjsLabel, public idx: number, public view: ViewInstruction, public iFlag: number, public indent: string) {
+        this.view.gc.imports["ζlbl" + getIhSuffix(iFlag)] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζlbl(ζ, 0, 0, "divA", expr());
+        let v = this.view, iSuffix = this.iFlag ? "D" : "", value = this.node.value!;
+        body.push(`${this.indent}ζlbl${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "#${this.node.name}", `);
+        if (value.kind === "#expression") {
+            body.push(value as XjsExpression);
+        } else {
+            body.push("" + value.value);
         }
         body.push(');\n');
     }

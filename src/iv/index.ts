@@ -216,6 +216,7 @@ function createView(parentView: IvView | null, container: IvContainer | null, te
 /**
  * Register a labelled object (e.g. DOM node, component...) on the view template
  * @param v 
+ * @param object the object to register on the labels
  * @param labels array of names, collection indicator (e.g. ["#header", 0, "#buttons", 1])
  */
 function registerLabels(v: IvView, object: any, labels?: any[] | 0) {
@@ -227,8 +228,8 @@ function registerLabels(v: IvView, object: any, labels?: any[] | 0) {
         }
         if (view) {
             let tpl = view.template!, len = labels.length;
-            for (let i = 0; len > i; i += 2) {
-                (tpl as Template).registerLabel(labels[i], object); // labels[i + 1] = label value: unused for the time being
+            for (let i = 0; len > i; i++) {
+                (tpl as Template).registerLabel(labels[i], object);
             }
         }
     }
@@ -1248,6 +1249,28 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
 export function ζparD(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr !== ζu) {
         addInstruction(v, ζpar, [v, iFlag, eltIdx, name, expr]);
+    }
+}
+
+// Dynamic label
+// e.g. ζlbl(ζ, 0, 0, "divA", expr());
+export function ζlbl(v: IvView, iFlag: number, idx: number, name: string, value: any) {
+    if (value && v.nodes) {
+        let o = v.nodes[idx];
+        if (o.kind === "#container" && (o as IvContainer).subKind === "##cpt") {
+            let tpl = (o as IvCptContainer).template;
+            if (tpl) {
+                registerLabels(v, tpl.$api, [name]);
+            }
+        } else if (o.domNode) {
+            registerLabels(v, o.domNode, [name]);
+        }
+    }
+}
+
+export function ζlblD(v: IvView, iFlag: number, idx: number, name: string, value: any) {
+    if (value) {
+        addInstruction(v, ζlbl, [v, iFlag, idx, name, 1]);
     }
 }
 

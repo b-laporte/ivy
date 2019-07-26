@@ -958,11 +958,11 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
     }
 }
 
-export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[]) {
+export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
     if (cm) {
         ζcntD(v, cm, idx, parentLevel, 2);
     }
-    addInstruction(v, ζcpt, [v, cm, iFlag, idx, parentLevel, exprCptRef, callImmediately, labels, staticParams]);
+    addInstruction(v, ζcpt, [v, cm, iFlag, idx, parentLevel, exprCptRef, callImmediately, labels, staticParams, dynParamNames]);
 }
 
 // Component call - used when a component has content, params or param nodes

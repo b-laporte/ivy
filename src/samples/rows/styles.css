@@ -25,16 +25,14 @@
   }
 
   .cfc-expanding-row:focus {
-    outline: none;
+    /*outline: none;*/
   }
 
   .cfc-expanding-row-summary {
-
     display: flex;
     border-left: 6 solid transparent;
     cursor: pointer;
     padding: 6 2;
-
   }
 
   .cfc-expanding-row-summary:focus {

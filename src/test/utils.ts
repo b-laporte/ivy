@@ -350,7 +350,7 @@ export class ElementNode {
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
                 && k !== "namespaceURI" && k !== "uid" && k !== "parentNode"
-                && k !== "style" && k !== "classList" && k !== "$changes") {
+                && k !== "style" && k !== "classList" && k !== "$changes"  && k !== "eListeners") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);
                 } else {

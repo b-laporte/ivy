@@ -5,20 +5,11 @@ let count = 0;
 
 @API class HelloAPI {
     name: string;
-    changeName: () => void;
 }
 
-const hello = template(`($api:HelloAPI, name) => { //  /* shortcut to $api.name */
-    if (!$api.changeName) {
-        // initialize the API
-        $api.changeName = () => {
-            console.log("change name!");
-            $api.name = name + ++count;
-        }
-    }
-    
-    <div click()={$api.changeName()} selectstart(e)={e.preventDefault()}>
-        # Hello {name} #
+const hello = template(`($api:HelloAPI) => {
+    <div click()={$api.name += ++count} selectstart(e)={e.preventDefault()}>
+        # Hello {$api.name} #
     </div>
 }`);
 

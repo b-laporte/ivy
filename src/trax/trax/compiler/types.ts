@@ -31,7 +31,7 @@ export interface DataProperty extends DataMember {
     end: number,
     type: DataType | undefined;
     shallowRef: boolean;
-    defaultValue: CodeFragment | undefined;
+    defaultValue?: CodeFragment;
 }
 
 export interface ComputedProperty {
@@ -44,6 +44,8 @@ interface CodeFragment {
     pos: number;
     end: number;
     text: string;
+    fullText: string;
+    isComplexExpression?: boolean;
 }
 
 export type DataType = BaseType | RefType | CollectionType;

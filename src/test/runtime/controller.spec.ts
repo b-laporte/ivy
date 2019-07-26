@@ -203,7 +203,7 @@ describe('Controller', () => {
             </div>
         }`);
 
-        let t = getTemplate(tpl, body).render({count:42});
+        let t = getTemplate(tpl, body).render({ count: 42 });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -213,6 +213,132 @@ describe('Controller', () => {
                 //::C2 template anchor
             </body>
         `, '1');
+    });
+
+    it("should support $init / $beforeRender / $afterRender", async function () {
+
+        @Controller class TestController2 extends TestController {
+            logs: string[] = [];
+
+            $init() {
+                this.logs.push("$init " + this.$api.count);
+            }
+            $beforeRender() {
+                this.logs.push("$beforeRender");
+            }
+            $afterRender() {
+                this.logs.push("$afterRender");
+            }
+        }
+
+        const cpt = template(`($ctl: TestController2) => {
+            let api = $ctl.$template.$api;
+            <div class="cpt">
+                # api count: {api.count} #
+                for (let log of $ctl.logs) {
+                    # > {log} #
+                }
+            </div>
+        }`);
+
+        const tpl = template(`(count=123) => {
+            <*cpt count={count}/>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="cpt">
+                    #::T4 api count: 123 #
+                    #::T5 > $init 123 #
+                    #::T6 > $beforeRender #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ count: 42 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="cpt">
+                    #::T4 api count: 42 # (1)
+                    #::T5 > $init 123 #
+                    #::T6 > $beforeRender #
+                    #::T7 > $afterRender #
+                    #::T8 > $beforeRender #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.render({ count: 42 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="cpt">
+                    #::T4 api count: 42 # (1)
+                    #::T5 > $init 123 #
+                    #::T6 > $beforeRender #
+                    #::T7 > $afterRender #
+                    #::T8 > $beforeRender #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3'); // no new render
+    });
+
+    it("should define $api functions through $init", async function () {
+        @API class Counter {
+            count: number = 0;
+            increment: (value?: number) => number; // increment the count
+        }
+
+        @Controller class CounterCtl {
+            $api: Counter;
+            logs: string[] = [];
+
+            $init() {
+                let $api = this.$api;
+                $api.increment = (value = 1) => {
+                    $api.count += value;
+                    return $api.count;
+                }
+            }
+        }
+
+        const counter = template(`($ctl: CounterCtl) => {
+            let $api = $ctl.$api;
+            <div class="cpt">
+                # count: {$api.count} #
+            </div>
+        }`);
+
+        const tpl = template(`(count=123, $template:IvTemplate) => {
+            <button #btn click()={$template.query("#cnt")!.increment(10)}/>
+            <*counter #cnt count={count}/>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <button::E3/>
+                <div::E4 a:class="cpt">
+                    #::T5 count: 123 #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.query("#btn")!.click();
+        await changeComplete(t.query("#cnt")!.$api);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <button::E3/>
+                <div::E4 a:class="cpt">
+                    #::T5 count: 133 # (1)
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
     });
 
 });

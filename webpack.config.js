@@ -39,11 +39,11 @@ module.exports = [{
         // "hello": "./src/samples/hello/hello.ts",
         // "greetings": "./src/samples/greetings/greetings.ts",
         // "todomvc": "./src/samples/todomvc/todomvc.ts",
-        "rows": "./src/samples/rows/rows.ts"
         // "triangles": "./src/samples/triangles/triangles.ts",
         // "flex": "./src/samples/flex/flex.ts",
         // "tree": "./src/samples/tree/tree.ts",
-        // "largetable": "./src/samples/largetable/largetable.ts"
+        // "largetable": "./src/samples/largetable/largetable.ts",
+        "rows": "./src/samples/rows/rows.ts"
     },
     module: {
         rules: [{

@@ -13,6 +13,9 @@ let TPL_COUNT = 0;
 
 interface TemplateController {
     $api?: any;
+    $init?: () => void;
+    $beforeRender?: () => void;
+    $afterRender?: () => void;
 }
 
 /**
@@ -28,9 +31,11 @@ export class Template implements IvTemplate {
     activeWatch = false;
     lastRefreshVersion = 0;
     processing = false;
+    rendering = false;
+    initialized = false;
     labels: { [label: string]: any[] } | undefined = undefined;
 
-    constructor(public refreshFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
+    constructor(public renderFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, null, this);
         let self = this;
@@ -81,7 +86,7 @@ export class Template implements IvTemplate {
             element.appendChild(ctxt.anchorNode);
             //appendChild(element, ctxt.anchorNode);
         } else {
-            error("template host cannot be changed yet"); // todo
+            error("Template host cannot be changed once set"); // todo
         }
         return this;
     }
@@ -105,7 +110,7 @@ export class Template implements IvTemplate {
      * @return the DOM element or the Component $api or null if nothing is found
      */
     query(label: string, all: boolean = false): any | any[] | null {
-        if (this.processing) return null; // query cannot be used during template processing
+        if (this.rendering) return null; // query cannot be used during template rendering
         if (label && label.charAt(0) !== '#') {
             console.error("[$template.query()] Invalid label '" + label + "': labels must start with #");
             return null;
@@ -151,20 +156,33 @@ export class Template implements IvTemplate {
                 $api[k] = data[k];
             }
         }
-        let bypassRefresh = !this.forceRefresh, nodes = this.view.nodes;
+        let bypassRender = !this.forceRefresh, nodes = this.view.nodes;
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
-            bypassRefresh = false; // internal blocks may have to be recreated if root is not attached
+            bypassRender = false; // internal blocks may have to be recreated if root is not attached
         }
-        if (bypassRefresh && version($api) + version($ctl) > this.lastRefreshVersion) {
-            bypassRefresh = false;
+        if (bypassRender && version($api) + version($ctl) > this.lastRefreshVersion) {
+            bypassRender = false;
         }
-        if (!bypassRefresh) {
+        if (!bypassRender) {
             // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
+            if ($ctl) {
+                if (!this.initialized) {
+                    callLCHook($ctl, "$init");
+                    this.initialized = true;
+                }
+                callLCHook($ctl, "$beforeRender");
+            }
+            this.rendering = true;
             this.labels = undefined;
             this.view.lastRefresh++;
             this.view.instructions = undefined;
-            this.refreshFn(this.view, $api, $ctl, this);
-            // console.log(">>>>>>>>>>>>>>>>> REFRESH DONE", this.uid);
+            this.renderFn(this.view, $api, $ctl, this);
+            this.rendering = false;
+
+            if ($ctl) {
+                // changes in $afterRender() cannot trigger a new render to avoid infinite loops
+                callLCHook($ctl, "$afterRender");
+            }
             commitChanges($api); // will change p or state version
             this.forceRefresh = false;
             this.lastRefreshVersion = version($api) + version($ctl);
@@ -179,6 +197,17 @@ export class Template implements IvTemplate {
         }
         this.processing = false;
         return this;
+    }
+}
+
+function callLCHook($ctl: TemplateController, hook: "$init" | "$beforeRender" | "$afterRender") {
+    // life cycle hool
+    if ($ctl[hook]) {
+        try {
+            $ctl[hook]!();
+        } catch (ex) {
+            console.error("[Error: " + hook + "]", "" + ex)
+        }
     }
 }
 
@@ -251,11 +280,11 @@ export function template(template: string): () => IvTemplate {
 /**
  * Template runtime factory
  * cf. sample code generation in generator.spec
- * @param refreshFn 
+ * @param renderFn 
  */
-export function ζt(refreshFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
+export function ζt(renderFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
     return function () {
-        return new Template(refreshFn, argumentClass || undefined, stateClass, hasHost === 1);
+        return new Template(renderFn, argumentClass || undefined, stateClass, hasHost === 1);
     }
 }
 

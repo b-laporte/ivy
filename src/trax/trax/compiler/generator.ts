@@ -108,6 +108,17 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
         }
     }
 
+    function replaceRegExp(rx: RegExp, str: string, position: number) {
+        let pos = position + outputShift, output1= output.slice(0, pos), len1=output1.length, output2 = output1.replace(rx, str);
+        // console.log("-----")
+        // console.log("output1",output1+"<<")
+        // console.log("output2",output2+"<<")
+        // console.log("shift", output2.length - len1)
+
+        outputShift += output2.length - len1;
+        output = output2 + output.slice(pos);
+    }
+
     function endsWithSemiColon(position: number): boolean {
         let pos = position + outputShift;
         if (output && output.slice(0, pos).match(/\;\s*$/)) {
@@ -140,6 +151,10 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
 
                     tp = prop.type;
                     if (tp) {
+                        if (m.defaultValue && m.defaultValue.isComplexExpression) {
+                            replaceRegExp(/\s*\=\s*$/, "", m.defaultValue.pos);
+                            replace(m.defaultValue.fullText, "", m.defaultValue.pos);
+                        }
                         if (!endsWithSemiColon(prop.end)) {
                             insert(";", prop.end);
                         }
@@ -199,7 +214,11 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
             factory = factory || "0"; // factory arg cannot be empty if second argument is passed
         }
         addImport(libPrefix + "Δp");
-        return `${privateDef}@${libPrefix}Δp(${factory}${nullUndefinedArg}) ${m.name}${questionSymbol}: ${typeRef};`;
+        let dv = '';
+        if (m.defaultValue && m.defaultValue.isComplexExpression) {
+            dv = ` = ${m.defaultValue.text}`;
+        }
+        return `${privateDef}@${libPrefix}Δp(${factory}${nullUndefinedArg}) ${m.name}${questionSymbol}: ${typeRef}${dv};`;
     }
 
 

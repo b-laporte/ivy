@@ -51,6 +51,8 @@ export interface IvView {
     kind: "#view";
     uid: string;                                                           // unique id (debug)
     nodes: IvNode[] | null;                                                // list of IvNodes associated to this view
+    namespaces: string[] | undefined;                                      // namespace stack - cf. @xmlns or xmlns attributes
+    namespace: string | undefined;                                         // current namespace - cf. @xmlns or xmlns attributes
     doc: IvDocument;                                                       // for test / dependency injection
     parentView: IvView | null;                                             // parent view: null for the root view, parent view otherwise (can be in a different template)
     cm: boolean;                                                           // creation mode
@@ -65,6 +67,7 @@ export interface IvView {
     oExpressions: any[] | undefined;                                       // array of one-time expression flags
     instructions: any[] | undefined;
     paramNode: IvParamNode | undefined;                                    // the param node the view is attached to (if any)
+    createElement: (name: string, namespace?: string) => any;              // create an element on the current namespace if none is provided as default
 }
 
 interface ListMetaData {

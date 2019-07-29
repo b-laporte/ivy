@@ -43,7 +43,8 @@ module.exports = [{
         "flex": "./src/samples/flex/flex.ts",
         "tree": "./src/samples/tree/tree.ts",
         "largetable": "./src/samples/largetable/largetable.ts",
-        "rows": "./src/samples/rows/rows.ts"
+        "rows": "./src/samples/rows/rows.ts",
+        "clock": "./src/samples/clock/clock.ts"
     },
     module: {
         rules: [{

@@ -27,6 +27,13 @@ const RX_DOUBLE_QUOTE = /\"/g,
     CTL_ARG = "$ctl",
     TPL_ARG = "$template",
     ASYNC = "async",
+    XMLNS = "xmlns",
+    XMLNS_VALUES = {
+        "xhtml": "http://www.w3.org/1999/xhtml",
+        "html": "http://www.w3.org/1999/xhtml",
+        "svg": "http://www.w3.org/2000/svg",
+        "mathml": "http://www.w3.org/1998/mathml"
+    },
     MD_PARAM_CLASS = "$apiClassName",
     MD_CTL_CLASS = "$ctlClassName",
     NODE_NAMES = {
@@ -426,6 +433,8 @@ export class ViewInstruction implements RuntimeInstruction {
             }
         }
 
+        let xmlns = "";
+
         switch (nd.kind) {
             case "#textNode":
                 this.rejectAsyncDecorator(nd as XjsText);
@@ -435,6 +444,10 @@ export class ViewInstruction implements RuntimeInstruction {
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd as XjsFragment, idx, parentLevel, prevKind, nextKind)) {
+                    xmlns = this.retrieveXmlNs(nd as XjsFragment);
+                    if (xmlns) {
+                        this.instructions.push(new XmlNsInstruction(this, iFlag, true, xmlns));
+                    }
                     this.instructions.push(new FraInstruction(nd, idx, this, iFlag, parentLevel));
                     this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
                     content = nd.content;
@@ -442,6 +455,10 @@ export class ViewInstruction implements RuntimeInstruction {
                 break;
             case "#element":
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
+                    xmlns = this.retrieveXmlNs(nd as XjsElement);
+                    if (xmlns) {
+                        this.instructions.push(new XmlNsInstruction(this, iFlag, true, xmlns));
+                    }
                     this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsElement), stParams));
                     this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
                     this.generateDynLabelInstructions(nd as XjsElement, idx, iFlag, this);
@@ -598,14 +615,55 @@ export class ViewInstruction implements RuntimeInstruction {
         }
 
         if (content) {
-            if (nd.kind === "#component") {
-                // iFlag = nd as XjsComponent;
-            } else if (nd.kind === "#paramNode") {
-                // iFlag = nd as XjsParamNode;
-            }
-
             this.scanContent(content, parentLevel + 1, iFlag);
+            if (xmlns) {
+                this.instructions.push(new XmlNsInstruction(this, iFlag, false, xmlns));
+            }
         }
+    }
+
+    retrieveXmlNs(nd: XjsElement | XjsFragment) {
+        let xmlns = "", params = nd.params;
+        if (params && params.length) {
+            for (let p of params) {
+                if (p.kind === "#param" && p.name === XMLNS) {
+                    if (xmlns) {
+                        this.gc.error("xmlns cannot be defined twice", p);
+                    } else {
+                        if (!p.value || p.value.kind !== "#string") {
+                            this.gc.error("xmlns value must be a string", p);
+                        } else {
+                            if (p.isOrphan || !p.value.value) {
+                                this.gc.error("xmlns value cannot be empty", p);
+                            }
+                            xmlns = p.value.value;
+                        }
+                    }
+                }
+            }
+        }
+        let d = nd.decorators;
+        if (d && d.length) {
+            for (let deco of d) {
+                if (deco.ref.code === XMLNS) {
+                    if (xmlns) {
+                        this.gc.error("xmlns cannot be defined twice", deco);
+                    } else {
+                        if (!deco.defaultPropValue || deco.defaultPropValue.kind !== "#string") {
+                            this.gc.error("@xmlns value must be a string", deco);
+                        } else {
+                            let v = deco.defaultPropValue.value
+                            if (XMLNS_VALUES[v]) {
+                                xmlns = XMLNS_VALUES[v];
+                            } else {
+                                this.gc.error('Invalid @xmlns value: must be "html", "xhtml", "svg" or "mathml"', deco);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return xmlns;
     }
 
     registerStatics(params: XjsParam[] | XjsProperty[] | undefined): [number, boolean] {
@@ -980,6 +1038,21 @@ function funcStart(name: string, iFlag: number) {
         return "ζ" + name + "(";
     } else {
         return "ζ" + name + "D(";
+    }
+}
+
+class XmlNsInstruction implements RuntimeInstruction {
+    constructor(public view: ViewInstruction, public iFlag: number, public startInstruction: boolean, public xmlns: string) {
+        this.view.gc.imports['ζxmlns' + getIhSuffix(iFlag)] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζxmlns
+        let v = this.view, lastArg = "";
+        if (this.startInstruction) {
+            lastArg = ', "' + this.xmlns + '"';
+        }
+        body.push(`${v.indent}${funcStart("xmlns", this.iFlag)}${v.jsVarName}, ${this.iFlag}${lastArg});\n`);
     }
 }
 

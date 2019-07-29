@@ -211,12 +211,23 @@ function callLCHook($ctl: TemplateController, hook: "$init" | "$beforeRender" | 
     }
 }
 
+// member of the view object
+function ViewCreateElement(this: IvView, name: string, namespace?: string): any {
+    namespace = namespace || this.namespace;
+    if (namespace) {
+        return this.doc.createElementNS(namespace, name);
+    }
+    return this.doc.createElement(name);
+}
+
 function createView(parentView: IvView | null, container: IvContainer | null, template?: IvTemplate): IvView {
     //console.log("createView");
     let view: IvView = {
         kind: "#view",
         uid: "view" + (++uidCount),
         nodes: null,
+        namespace: undefined,
+        namespaces: undefined,
         doc: null as any,
         parentView: parentView,
         cm: true,
@@ -230,12 +241,19 @@ function createView(parentView: IvView | null, container: IvContainer | null, te
         expressions: undefined,
         oExpressions: undefined,
         instructions: undefined,
-        paramNode: undefined
+        paramNode: undefined,
+        createElement: ViewCreateElement
     }
     if (parentView) {
-        view.rootDomNode = parentView.rootDomNode;
-        view.doc = parentView.doc;
-        view.container = container;
+        setParentView(view, parentView, container);
+        // view.rootDomNode = parentView.rootDomNode;
+        // view.doc = parentView.doc;
+        // view.container = container;
+        // if (parentView.namespace) {
+        //     let ns = parentView.namespace;
+        //     view.namespace = ns;
+        //     view.namespaces = [ns];
+        // }
     } else {
         view.doc = (typeof document !== "undefined") ? document as any : null as any;
     }
@@ -264,11 +282,16 @@ function registerLabels(v: IvView, object: any, labels?: any[] | 0) {
     }
 }
 
-function setParentView(v: IvView, pv: IvView, container: IvContainer) {
+function setParentView(v: IvView, pv: IvView, container: IvContainer | null) {
     v.parentView = pv;
     v.doc = pv.doc;
     v.container = container;
     v.rootDomNode = pv.rootDomNode;
+    if (pv.namespace) {
+        let ns = pv.namespace;
+        v.namespace = ns;
+        v.namespaces = [ns];
+    }
 }
 
 export function template(template: string): () => IvTemplate {
@@ -610,7 +633,8 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
         }
         return;
     }
-    let e = v.doc.createElement(name);
+    let e = v.createElement(name);
+
     if (staticAttributes) {
         let len = staticAttributes.length;
         for (let i = 0; len > i; i += 2) {
@@ -659,6 +683,34 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
 export function ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[], staticProperties?: any[]) {
     if (!cm) return;
     addInstruction(v, ζelt, [v, cm, idx, parentLevel, name, hasChildren, labels, staticAttributes, staticProperties]);
+}
+
+// e.g. start: ζxmlns(ζ, 0, 1, "http://www.w3.org/2000/svg");
+// or end: ζxmlns(ζ, 0, 0);
+export function ζxmlns(v: IvView, iFlag: number, ns?: string) {
+    // if ns is provided, it is the start of a new xmlns section / otherwise it is the end
+    if (ns) {
+        // start
+        if (v.namespaces) {
+            v.namespaces.push(ns);
+        } else {
+            v.namespaces = [ns];
+        }
+        v.namespace = ns;
+    } else {
+        // end
+        let len = v.namespaces!.length;
+        if (len === 1) {
+            v.namespace = v.namespaces = undefined;
+        } else {
+            v.namespaces!.pop();
+            v.namespace = v.namespaces![len - 2];
+        }
+    }
+}
+
+export function ζxmlnsD(v: IvView, iFlag: number, ns?: string) {
+    addInstruction(v, ζxmlns, [v, iFlag, ns]);
 }
 
 function appendChildToNode(p: IvParentNode, child: IvNode) {

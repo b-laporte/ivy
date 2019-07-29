@@ -10,4 +10,5 @@ import "./data.spec";
 import "./pnodes.spec";
 import "./controller.spec";
 import "./labels.spec";
+import "./xmlns.spec";
 // import "./async.spec";

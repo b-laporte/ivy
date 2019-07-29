@@ -538,7 +538,7 @@ describe('Labels', () => {
     // }
     // label forwarding?
     // <*sub-cpt #foo/> -> means that a query on #foo should look in the sub-cpt template
-    // <*sub-cpt ##foo="#bar"/> -> means that a query on #foo should look in the sub-cpt template and transform the query as query("#bar")
+    // <*sub-cpt ##bar ##foo="#bar;#baz"/> -> means that a query on #foo should look in the sub-cpt template and transform the query as query("#bar")
     // labels access-rights: public labels defined in the $api
     // query: IvQuery<["#white", "#list"]>;
 

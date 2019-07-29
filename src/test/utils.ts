@@ -222,10 +222,14 @@ function incrementChanges(e, name) {
     }
 }
 
+const NS_SVG = "http://www.w3.org/2000/svg",
+    NS_HTML = "http://www.w3.org/1999/xhtml"
+
 export class ElementNode {
     uid: string;
     childNodes: any[] = [];
-    namespaceURI: string = "http://www.w3.org/1999/xhtml";
+    namespaceURI: string = NS_HTML;
+    nsSpecified = false;
     parentNode = null;
     classList: ElementClassList;
     style = {};
@@ -236,6 +240,7 @@ export class ElementNode {
         this.uid = ((nodeName === "#doc-fragment") ? "F" : "E") + (++UID_COUNT);
         if (namespace) {
             this.namespaceURI = namespace;
+            this.nsSpecified = true;
         }
         this.classList = new ElementClassList(this);
     }
@@ -349,8 +354,8 @@ export class ElementNode {
 
         for (let k in this) {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
-                && k !== "namespaceURI" && k !== "uid" && k !== "parentNode"
-                && k !== "style" && k !== "classList" && k !== "$changes"  && k !== "eListeners") {
+                && k !== "namespaceURI" && k !== "nsSpecified" && k !== "uid" && k !== "parentNode"
+                && k !== "style" && k !== "classList" && k !== "$changes" && k !== "eListeners") {
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);
                 } else {
@@ -370,9 +375,19 @@ export class ElementNode {
             att = " " + atts.join(" ");
         }
 
+        let ns = "";
+        if (this.nsSpecified) {
+            if (this.namespaceURI === NS_HTML) {
+                ns = " HTML";
+            } else if (this.namespaceURI === NS_SVG) {
+                ns = " SVG";
+            } else {
+                ns = " " + this.namespaceURI;
+            }
+        }
         if (this.childNodes.length) {
             let options2: StringOptions = { indent: indent2 + "    ", isRoot: false, showUid: showUid };
-            lines.push(`${indent2}<${this.nodeName}${uid}${att}>`);
+            lines.push(`${indent2}<${this.nodeName}${uid}${ns}${att}>`);
             for (let ch of this.childNodes) {
                 if (ch === this) {
                     lines.push(`${indent2}CHILD=PARENT!`);
@@ -382,7 +397,7 @@ export class ElementNode {
             }
             lines.push(`${indent2}</${this.nodeName}>`);
         } else {
-            lines.push(`${indent2}<${this.nodeName}${uid}${att}/>`);
+            lines.push(`${indent2}<${this.nodeName}${uid}${ns}${att}/>`);
         }
 
         if (isRoot) {

@@ -1602,6 +1602,58 @@ describe('Code generator', () => {
         ], "1s");
     });
 
+    it("should support xmlns", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div class="foo">
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    <circle class="clock-face" r="48"/>
+                </>
+            </div>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
+            ζelt(ζ, ζc, 1, 1, "svg", 1, 0, ζs2);
+            ζelt(ζ, ζc, 2, 2, "circle", 0, 0, ζs3);
+            ζxmlns(ζ, 0);
+            ζend(ζ, ζc);
+        `, '1');
+
+        assert.equal(await body.template(`(name) => {
+            <div class="foo">
+                <svg @xmlns="svg">
+                    <circle class="clock-face" r="48"/>
+                </>
+            </div>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
+            ζelt(ζ, ζc, 1, 1, "svg", 1);
+            ζelt(ζ, ζc, 2, 2, "circle", 0, 0, ζs2);
+            ζxmlns(ζ, 0);
+            ζend(ζ, ζc);
+        `, '2');
+
+        assert.equal(await body.template(`(name) => {
+            <div class="foo">
+                <! @xmlns="svg">
+                    <svg>
+                        <circle class="clock-face" r="48"/>
+                    </>
+                </>
+            </div>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 4);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
+            ζfra(ζ, ζc, 1, 1);
+            ζelt(ζ, ζc, 2, 2, "svg", 1);
+            ζelt(ζ, ζc, 3, 3, "circle", 0, 0, ζs2);
+            ζxmlns(ζ, 0);
+            ζend(ζ, ζc);
+        `, '3');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });
-

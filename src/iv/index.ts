@@ -1223,7 +1223,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
 }
 
 export function ζpnodeD(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
-    console.warn("TODO ζpnodeD")
+    addInstruction(v, ζpnode, [v, cm, iFlag, idx, parentIndex, name, instanceIdx, labels, staticParams, dynParamNames]);
 }
 
 function cleanDataLists(dataHolder: IvCptContainer | IvParamNode) {

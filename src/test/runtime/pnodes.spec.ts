@@ -1294,6 +1294,57 @@ describe('Param Nodes', () => {
 
     });
 
+    // it.only("should work with components inside another component", function () {
+    //     @Data class Row {
+    //         id: any = "";
+    //         summary: IvContent;
+    //         $content: IvContent;
+    //     }
+
+    //     const grid = template(`(rowList:Row[]) => {
+    //         for (let idx=0; rowList.length>idx; idx++) {
+    //             let row = rowList[idx];
+    //             <div title={row.id}>
+    //                 <summary @content={row.summary}/>
+    //                 <! @content={row.$content}/>
+    //             </> 
+    //         }
+    //     }`);
+
+    //     const tpl = template(`(nbrOfRows=0, nbrOfSubRows=2) => {
+    //         // log
+    //         <*grid>
+    //             for (let i=0;nbrOfRows>i;i++) {
+    //                 <.row id={i}>
+    //                     <.summary> # Summary {i} # </>
+    //                     <*grid>
+    //                         for (let j=0;nbrOfSubRows>j;j++) {
+    //                             <.summary> # Summary {i}/{j} # </>
+    //                             # Content {i}/{j} # 
+    //                         }
+    //                     </*grid>
+    //                 </>
+    //             }
+    //         </>
+    //     }`);
+
+    //     let t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
+    //     assert.equal(stringify(t), `
+    //         <body::E1>
+    //             //::C2 template anchor
+    //         </body>
+    //     `, '1');
+
+    //     console.log("BEFORE")
+    //     t.render({ nbrOfRows: 2 });
+    //     assert.equal(stringify(t), `
+    //         <body::E1>
+
+    //             //::C2 template anchor
+    //         </body>
+    //     `, '2');
+    // });
+
     /**
      * TODO
      * Support deferred versions pnodeD

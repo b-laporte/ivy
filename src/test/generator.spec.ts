@@ -1137,7 +1137,7 @@ describe('Code generator', () => {
             ζp1 = 0;
             ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζp0++, 0, ζs1);
             ζcptD(ζ1, ζc1, 1, 0, 0, [0, bar], 0);
-            ζpnodeD(ζ1, ζc1, 1, 1, 0, "paramB", ζp1++, 0, ζs2);
+            ζpnode(ζ1, ζc1, 1, 1, 0, "paramB", ζp1++, 0, ζs2);
             ζcallD(ζ1, 0);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 0);

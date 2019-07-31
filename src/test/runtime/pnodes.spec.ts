@@ -1294,56 +1294,160 @@ describe('Param Nodes', () => {
 
     });
 
-    // it.only("should work with components inside another component", function () {
-    //     @Data class Row {
-    //         id: any = "";
-    //         summary: IvContent;
-    //         $content: IvContent;
-    //     }
+    it("should work with components inside other components", function () {
+        @Data class Row {
+            id: any = "";
+            summary: IvContent;
+            $content: IvContent;
+        }
 
-    //     const grid = template(`(rowList:Row[]) => {
-    //         for (let idx=0; rowList.length>idx; idx++) {
-    //             let row = rowList[idx];
-    //             <div title={row.id}>
-    //                 <summary @content={row.summary}/>
-    //                 <! @content={row.$content}/>
-    //             </> 
-    //         }
-    //     }`);
+        const grid = template(`(rowList:Row[]) => {
+            // grid template
+            for (let idx=0; rowList.length>idx; idx++) {
+                let row = rowList[idx];
+                <div title={row.id}>
+                    <summary @content={row.summary}/>
+                    <! @content={row.$content}/>
+                </> 
+            }
+        }`);
 
-    //     const tpl = template(`(nbrOfRows=0, nbrOfSubRows=2) => {
-    //         // log
-    //         <*grid>
-    //             for (let i=0;nbrOfRows>i;i++) {
-    //                 <.row id={i}>
-    //                     <.summary> # Summary {i} # </>
-    //                     <*grid>
-    //                         for (let j=0;nbrOfSubRows>j;j++) {
-    //                             <.summary> # Summary {i}/{j} # </>
-    //                             # Content {i}/{j} # 
-    //                         }
-    //                     </*grid>
-    //                 </>
-    //             }
-    //         </>
-    //     }`);
+        const tpl = template(`(nbrOfRows=0, nbrOfSubRows=2, txt="X") => {
+            <*grid>
+                for (let i=0;nbrOfRows>i;i++) {
+                    <.row id={i}>
+                        <.summary> # Summary {i} # </>
+                        <*grid>
+                            for (let j=0;nbrOfSubRows>j;j++) {
+                                <.row id={i+"/"+j}>
+                                    <.summary> # Row {i}/{j} {txt} # </>
+                                    # Content {i}/{j} {txt} # 
+                                </.row>
+                            }
+                        </*grid>
+                    </>
+                }
+            </>
+        }`);
 
-    //     let t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
-    //     assert.equal(stringify(t), `
-    //         <body::E1>
-    //             //::C2 template anchor
-    //         </body>
-    //     `, '1');
+        let t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                //::C2 template anchor
+            </body>
+        `, '1');
 
-    //     console.log("BEFORE")
-    //     t.render({ nbrOfRows: 2 });
-    //     assert.equal(stringify(t), `
-    //         <body::E1>
+        t.render({ nbrOfRows: 2 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:title="0">
+                    <summary::E4>
+                        #::T5 Summary 0 #
+                    </summary>
+                    <div::E6 a:title="0/0">
+                        <summary::E7>
+                            #::T8 Row 0/0 X #
+                        </summary>
+                        #::T9 Content 0/0 X #
+                    </div>
+                    <div::E10 a:title="0/1">
+                        <summary::E11>
+                            #::T12 Row 0/1 X #
+                        </summary>
+                        #::T13 Content 0/1 X #
+                    </div>
+                </div>
+                <div::E14 a:title="1">
+                    <summary::E15>
+                        #::T16 Summary 1 #
+                    </summary>
+                    <div::E17 a:title="1/0">
+                        <summary::E18>
+                            #::T19 Row 1/0 X #
+                        </summary>
+                        #::T20 Content 1/0 X #
+                    </div>
+                    <div::E21 a:title="1/1">
+                        <summary::E22>
+                            #::T23 Row 1/1 X #
+                        </summary>
+                        #::T24 Content 1/1 X #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
 
-    //             //::C2 template anchor
-    //         </body>
-    //     `, '2');
-    // });
+        t.render({ nbrOfRows: 1, nbrOfSubRows: 3, txt: "XX" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:title="0">
+                    <summary::E4>
+                        #::T5 Summary 0 #
+                    </summary>
+                    <div::E6 a:title="0/0">
+                        <summary::E7>
+                            #::T8 Row 0/0 XX # (1)
+                        </summary>
+                        #::T9 Content 0/0 XX # (1)
+                    </div>
+                    <div::E10 a:title="0/1">
+                        <summary::E11>
+                            #::T12 Row 0/1 XX # (1)
+                        </summary>
+                        #::T13 Content 0/1 XX # (1)
+                    </div>
+                    <div::E25 a:title="0/2">
+                        <summary::E26>
+                            #::T27 Row 0/2 XX #
+                        </summary>
+                        #::T28 Content 0/2 XX #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        t.render({ nbrOfRows: 3, nbrOfSubRows: 1, txt: "XXX" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:title="0">
+                    <summary::E4>
+                        #::T5 Summary 0 #
+                    </summary>
+                    <div::E6 a:title="0/0">
+                        <summary::E7>
+                            #::T8 Row 0/0 XXX # (2)
+                        </summary>
+                        #::T9 Content 0/0 XXX # (2)
+                    </div>
+                </div>
+                <div::E14 a:title="1">
+                    <summary::E15>
+                        #::T16 Summary 1 #
+                    </summary>
+                    <div::E17 a:title="1/0">
+                        <summary::E18>
+                            #::T19 Row 1/0 XXX # (1)
+                        </summary>
+                        #::T20 Content 1/0 XXX # (1)
+                    </div>
+                </div>
+                <div::E29 a:title="2">
+                    <summary::E30>
+                        #::T31 Summary 2 #
+                    </summary>
+                    <div::E32 a:title="2/0">
+                        <summary::E33>
+                            #::T34 Row 2/0 XXX #
+                        </summary>
+                        #::T35 Content 2/0 XXX #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
 
     /**
      * TODO

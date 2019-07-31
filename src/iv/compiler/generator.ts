@@ -1188,7 +1188,7 @@ class PndInstruction implements RuntimeInstruction {
     dynamicPNodeRef: string;
 
     constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string, public staticParamIdx: number, public indent: string, public parentIndex: number, public instanceVarName: string, public hasEndInstruction: boolean) {
-        view.gc.imports['ζpnode' + getIhSuffix(iFlag)] = 1;
+        view.gc.imports['ζpnode'] = 1;
         if (node.properties && node.properties.length) {
             view.gc.error("Properties cannot be used on param nodes", node);
         }
@@ -1201,19 +1201,18 @@ class PndInstruction implements RuntimeInstruction {
         // e.g. ζpnode(ζ, ζc, 2, 0, "header", ζs1);
         let v = this.view, lastArgs = processCptOptionalArgs(this.view, this, this.hasEndInstruction ? "0" : this.staticLabels);
         // unused: ${this.parentLevel}
-        body.push(`${this.indent}${funcStart("pnode", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}", ${this.instanceVarName}++${lastArgs});\n`);
+        body.push(`${this.indent}ζpnode(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentIndex}, "${this.node.name}", ${this.instanceVarName}++${lastArgs});\n`);
     }
 }
 
 class PndEndInstruction implements RuntimeInstruction {
     constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public indent: string, public pi: PndInstruction) {
-        view.gc.imports['ζpnEnd' + getIhSuffix(iFlag)] = 1;
+        view.gc.imports['ζpnEnd'] = 1;
     }
 
     pushCode(body: BodyContent[]) {
         // ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, labels, dynParamNames: string[]) 
-        // ζpnEndD(v: IvView, cm: boolean, iFlag: number, idx: number, labels, dynParamNames: string[]) 
-
+        
         // only create this instruction when there are dynamic parameter nodes
         let v = this.view, lastArg = "";
         if (this.pi.dynamicPNodeRef) {
@@ -1222,7 +1221,7 @@ class PndEndInstruction implements RuntimeInstruction {
             lastArg = `, ${this.pi.staticLabels}`;
         }
 
-        body.push(`${this.indent}${funcStart("pnEnd", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}${lastArg});\n`);
+        body.push(`${this.indent}ζpnEnd(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}${lastArg});\n`);
     }
 }
 

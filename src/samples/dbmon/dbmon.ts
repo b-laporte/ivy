@@ -12,7 +12,6 @@ perfMonitor.startMemMonitor()
 perfMonitor.initProfiler("render")
 
 const DbMon = template(`(databases) => {
-    perfMonitor.startProfile("render");
     <div>
         <table class="table table-striped latest-data">
             <tbody>
@@ -38,7 +37,6 @@ const DbMon = template(`(databases) => {
             </tbody>
         </table>
     </div>
-    perfMonitor.endProfile("render")
 }`);
 
 let tpl = DbMon()
@@ -47,6 +45,11 @@ let tpl = DbMon()
 
 function update() {
     requestAnimationFrame(update);
-    tpl.$api.databases = ENV.generateData().toArray();
+    // explicit synchronous rendering
+    perfMonitor.startProfile("render");
+    tpl.render({ databases: ENV.generateData().toArray() })
+    perfMonitor.endProfile("render");
+    // implicit asynchronous rendering would be done like this (identical performance):
+    // tpl.$api.databases = ENV.generateData().toArray();
 }
 update();

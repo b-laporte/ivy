@@ -1,7 +1,8 @@
 import { logViewNodes } from './../iv/index';
-import { CompilationResult } from '../iv/compiler/generator';
+import { CompilationResult, IvError } from '../iv/compiler/generator';
 import { compileTemplate } from '../iv/compiler/generator';
 import { IvTemplate, IvView } from '../iv/types';
+import { process } from '../iv/compiler/compiler';
 
 export let body = {
     async template(tpl: string, log = false) {
@@ -31,18 +32,39 @@ export let test = {
     }
 }
 
-export let error = {
-    async template(tpl: string, log = false) {
-        let err = "NO ERROR";
+export const error = {
+    // this api allows to trigger the vs-code text mate completion
+    async template(tpl: string) {
+        let r: string;
         try {
-            await compileTemplate(tpl, { body: true });
+            r = await process(`\
+                import{ template } from "../iv";
+                const t = template(\`${tpl}\`);
+            `, "file.ts", false);
         } catch (e) {
-            err = e.message;
+            let err = e as IvError;
+            if (err.kind === "#Error") {
+                err.line -= 1; // remove the import line
+                return formatError(err);
+            }
+            return " Non Ivy error: " + e.message;
         }
-        return err;
-    }
+        return 'No Error';
+    },
+    template2: async function (s: string) { return '' }
 }
+error.template2 = error.template; // to avoid TextMate highlighting for some wrong templates
 
+
+export function formatError(e?: IvError, indentLevel = 2) {
+    if (!e) return "NO ERROR";
+    let indents = ["", "    ", "        ", "            ", "                "];
+    let ls = "\n" + indents[indentLevel];
+    return `${ls}    ${e.message}`
+        + `${ls}    File: ${e.file} - Line ${e.line} / Col ${e.column}`
+        + `${ls}    Extract: >> ${e.lineExtract} <<`
+        + `${ls}`;
+}
 
 // ------------------------------------------------------------------------------------------------
 let o = { indent: '        ', showUid: true, isRoot: true };

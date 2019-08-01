@@ -1,5 +1,7 @@
 import * as assert from 'assert';
 import { compile, process } from '../iv/compiler/compiler';
+import { IvError } from '../iv/compiler/generator';
+import { formatError } from './utils';
 
 describe('Template compiler', () => {
 
@@ -139,32 +141,43 @@ describe('Template compiler', () => {
     });
 
     it("should raise errors with file name and line numbers", async function () {
-        let errMsg = "";
+        let err: IvError | undefined;
         try {
-            await compile(` import{ template } from "../iv";
-    
-                            let t = template(\`(a) => {
-                                # T1 
-                            }\`);
-                            `, "file-name.ts")
+            await compile(` 
+                import{ template } from "../iv";
+
+                let t = template(\`(a) => {
+                    # T1 
+
+                }\`);
+                `, "file-name.ts")
         } catch (e) {
-            errMsg = e.message
+            err = e as IvError;
         }
-        assert.equal(errMsg, 'Invalid text node - Unexpected end of template at line #5 in file-name.ts', "error 1"); // XJS error
+        assert.equal(formatError(err, 2), `
+            Invalid text node - Unexpected end of template
+            File: file-name.ts - Line 7 / Col 17
+            Extract: >> } <<
+        `, '1');
 
         try {
-            await compile(` import{ template } from "../iv";
-    
-                            let t = template(\`(a) => {
-                                <! foo="bar">
-                                    # Hello #
-                                </>
-                            }\`);
-                            `, "file-name.ts")
+            await compile(` 
+                import{ template } from "../iv";
+
+                let t = template(\`(a) => {
+                    <! foo="bar">
+                        # Hello #
+                    </>
+                }\`);
+                `, "file-name.ts")
         } catch (e) {
-            errMsg = e.message
+            err = e as IvError;
         }
-        assert.equal(errMsg, 'Invalid fragment - Params cannot be used on fragments (line #4 in file-name.ts)', "error 2");
+        assert.equal(formatError(err, 2), `
+            Invalid fragment - Params cannot be used on fragments
+            File: file-name.ts - Line 5 / Col 21
+            Extract: >> <! foo="bar"> <<
+        `, '2');
     });
 
 });

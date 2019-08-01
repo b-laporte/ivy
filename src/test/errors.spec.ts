@@ -4,6 +4,18 @@ import * as assert from 'assert';
 
 describe('Code generation errors', () => {
 
+    it("should be raised for invalid fragments", async function () {
+        assert.equal(await error.template(`($content) => {
+            <! foo="bar"> # abc # </>
+        }`), `
+            Invalid fragment - Params cannot be used on fragments
+            File: file.ts - Line 2 / Col 13
+            Extract: >> <! foo="bar"> # abc # </> <<
+        `);
+    });
+
+    // errors on 1st template line (col number)
+
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {
     //         <div @content/>

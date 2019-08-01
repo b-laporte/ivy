@@ -1,5 +1,5 @@
 import * as ts from "typescript";
-import { compileTemplate } from './generator';
+import { compileTemplate, IvError } from './generator';
 import { generate } from '../../trax/trax/compiler/generator';
 import { DataMember } from '../../trax/trax/compiler/types';
 
@@ -11,46 +11,26 @@ const SK = ts.SyntaxKind,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_LIST = /List$/,
     IV_INTERFACES = ["IvContent", "IvTemplate"],
-    SEPARATOR = "---------------------------------------------------------------";
+    SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
-export async function process(source: string, resourcePath: string) {
-    let result: string;
-    // ivy processing
+export async function process(source: string, resourcePath: string, logErrors = true) {
+    let result: string = "", logAll = !!source.match(RX_LOG_ALL);
+
     try {
+        // ivy processing
         result = await compile(source, resourcePath);
-    } catch (e) {
-        throw new Error(e.message);
-    }
+        log("Ivy: Template Processing");
 
-    let logAll = source.match(RX_LOG_ALL) !== null;
-
-    if (logAll) {
-        console.log(SEPARATOR);
-        console.log("Ivy: Template Processing");
-        console.log(result);
-    }
-
-    // trax processing for ivy api classes
-    try {
+        // trax processing for ivy api classes
         result = generate(result, resourcePath, {
             symbols: { Data: "ζΔD", /* todo: ref, computed */ },
             libPrefix: "ζ",
             interfaceTypes: IV_INTERFACES,
             validator: listValidator
         });
-    } catch (e) {
-        throw new Error(e.message);
-    }
+        log("Ivy: Generated Param Classes Processing");
 
-    if (logAll) {
-        console.log(SEPARATOR);
-        console.log("Ivy: Generated Param Classes Processing");
-        console.log(result);
-    }
-
-    // trax processing for ivy template API classes
-    let r1 = result
-    try {
+        // trax processing for ivy template API classes
         result = generate(result, resourcePath, {
             symbols: { Data: "API" },
             ignoreFunctionProperties: true,
@@ -59,18 +39,9 @@ export async function process(source: string, resourcePath: string) {
             interfaceTypes: IV_INTERFACES,
             libPrefix: "ζ"
         });
-    } catch (e) {
-        throw new Error(e.message);
-    }
+        log("Ivy: API Classes Processing");
 
-    if (logAll) {
-        console.log(SEPARATOR);
-        console.log("Ivy: API Classes Processing");
-        console.log(result);
-    }
-
-    // trax processing for ivy template controller classes
-    try {
+        // trax processing for ivy template controller classes
         result = generate(result, resourcePath, {
             symbols: { Data: "Controller" },
             acceptMethods: true,
@@ -78,32 +49,38 @@ export async function process(source: string, resourcePath: string) {
             interfaceTypes: IV_INTERFACES,
             libPrefix: "ζ"
         });
-    } catch (e) {
-        throw new Error(e.message);
-    }
+        log("Ivy: Controller Classes Processing");
 
-    if (logAll) {
-        console.log(SEPARATOR);
-        console.log("Ivy: Controller Classes Processing");
-        console.log(result);
-    }
-
-    // trax processing for normal Data Objects
-    try {
+        // trax processing for normal Data Objects
         result = generate(result, resourcePath, {
             interfaceTypes: IV_INTERFACES
         });
+        log("Ivy: Generated Code", !!source.match(RX_LOG));
     } catch (e) {
-        throw new Error(e.message);
-    }
-
-    if (logAll || source.match(RX_LOG)) {
-        console.log(SEPARATOR);
-        console.log("Ivy: Generated Code");
-        console.log(result);
+        if (logErrors) {
+            let err = e as IvError, msg: string;
+            if (err.kind === "#Error") {
+                let ls = "  >  ";
+                msg = `${ls} ${e.message}\n`
+                    + `${ls} File: ${e.file} - Line ${e.line} / Col ${e.column}\n`
+                    + `${ls} Extract: >> ${e.lineExtract} <<`;
+            } else {
+                msg = e.message || e;
+            }
+            console.error(`\n${SEPARATOR}\n${msg}\n${SEPARATOR}`);
+        }
+        throw e;
     }
 
     return result;
+
+    function log(title: string, forceLog = false) {
+        if (logAll || forceLog) {
+            console.log(SEPARATOR);
+            console.log(title);
+            console.log(result);
+        }
+    }
 }
 
 function listValidator(m: DataMember) {

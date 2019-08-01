@@ -56,7 +56,8 @@ const RX_DOUBLE_QUOTE = /\"/g,
         "#boolean": "boolean",
         "#string": "string",
         "#eventListener": "event listener"
-    };
+    },
+    CR = "\n";
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
     options.lineOffset = options.lineOffset || 0;
@@ -66,7 +67,7 @@ export async function compileTemplate(template: string, options: CompilationOpti
         template = template.replace(RX_LOG, "");
     }
     let root = await parse(template, options.filePath || "", options.lineOffset || 0);
-    let res = generate(root, options);
+    let res = generate(root, template, options);
     if (log) {
         let importMap = res.importMap || options.importMap, imports: string[] = []
         for (let k in importMap) {
@@ -83,14 +84,14 @@ export async function compileTemplate(template: string, options: CompilationOpti
     return res;
 }
 
-function generate(tf: XjsTplFunction, options: CompilationOptions) {
+function generate(tf: XjsTplFunction, template: string, options: CompilationOptions) {
     let body: BodyContent[] = []; // parts composing the function body (generated strings + included expressions/statements)
     let root: ViewInstruction;
 
     return generateAll();
 
     function generateAll() {
-        let gc = new GenerationCtxt(options), args = tf.arguments;
+        let gc = new GenerationCtxt(template, options), args = tf.arguments;
         if (args) {
             for (let i = 0; args.length > i; i++) {
                 gc.templateArgs.push(args[i].name);
@@ -152,6 +153,16 @@ export interface CompilationOptions {
     lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
 }
 
+export interface IvError extends Error {
+    kind: "#Error";
+    origin: "IVY";
+    message: string;
+    line: number;
+    column: number;
+    lineExtract: string;
+    file: string;
+}
+
 export class GenerationCtxt {
     indentIncrement = "    ";
     imports: { [key: string]: 1 };      // map of required imports
@@ -161,14 +172,24 @@ export class GenerationCtxt {
     templateArgs: string[] = [];        // name of template arguments
     paramCounter = 0;                   // counter used to create param instance variables
 
-    constructor(public options: CompilationOptions) {
+    constructor(public template: string, public options: CompilationOptions) {
         this.imports = options.importMap || {};
     }
 
     error(msg, nd: XjsNode) {
-        let fileInfo = this.options.filePath ? " in " + this.options.filePath : "",
-            lineOffset = this.options.lineOffset || 0;
-        throw new Error(`Invalid ${NODE_NAMES[nd.kind]} - ${msg} (line #${nd.lineNumber + lineOffset}${fileInfo})`);
+        let fileInfo = this.options.filePath || "",
+            lineOffset = this.options.lineOffset || 0,
+            lines = this.template.split(CR);
+
+        throw {
+            kind: "#Error",
+            origin: "IVY",
+            message: `Invalid ${NODE_NAMES[nd.kind]} - ${msg}`,
+            line: nd.lineNumber + lineOffset,
+            column: nd.colNumber,
+            lineExtract: ("" + lines[nd.lineNumber - 1]).trim(),
+            file: fileInfo
+        } as IvError;
     }
 
     decreaseIndent(indent: string) {
@@ -1212,7 +1233,7 @@ class PndEndInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, labels, dynParamNames: string[]) 
-        
+
         // only create this instruction when there are dynamic parameter nodes
         let v = this.view, lastArg = "";
         if (this.pi.dynamicPNodeRef) {

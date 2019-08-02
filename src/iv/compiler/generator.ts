@@ -153,9 +153,9 @@ export interface CompilationOptions {
     lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
 }
 
-export interface IvError extends Error {
+export interface IvError {
     kind: "#Error";
-    origin: "IVY";
+    origin: "IVY" | "TS";
     message: string;
     line: number;
     column: number;

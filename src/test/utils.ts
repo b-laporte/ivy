@@ -32,24 +32,28 @@ export let test = {
     }
 }
 
+export async function compilationError(src: string, lineOffset = 0) {
+    let r: string;
+    try {
+        r = await process(src, "file.ts", false);
+    } catch (e) {
+        let err = e as IvError;
+        if (err.kind === "#Error") {
+            err.line += lineOffset;
+            return formatError(err);
+        }
+        return " Non Ivy error: " + e.message;
+    }
+    return 'No Error';
+}
+
 export const error = {
     // this api allows to trigger the vs-code text mate completion
     async template(tpl: string) {
-        let r: string;
-        try {
-            r = await process(`\
-                import{ template } from "../iv";
-                const t = template(\`${tpl}\`);
-            `, "file.ts", false);
-        } catch (e) {
-            let err = e as IvError;
-            if (err.kind === "#Error") {
-                err.line -= 1; // remove the import line
-                return formatError(err);
-            }
-            return " Non Ivy error: " + e.message;
-        }
-        return 'No Error';
+        return compilationError(`\
+            import{ template } from "../iv";
+            const t = template(\`${tpl}\`);
+        `, -1); // offset -1 to remove the import line
     },
     template2: async function (s: string) { return '' }
 }
@@ -60,7 +64,7 @@ export function formatError(e?: IvError, indentLevel = 2) {
     if (!e) return "NO ERROR";
     let indents = ["", "    ", "        ", "            ", "                "];
     let ls = "\n" + indents[indentLevel];
-    return `${ls}    ${e.message}`
+    return `${ls}    ${e.origin}: ${e.message}`
         + `${ls}    File: ${e.file} - Line ${e.line} / Col ${e.column}`
         + `${ls}    Extract: >> ${e.lineExtract} <<`
         + `${ls}`;

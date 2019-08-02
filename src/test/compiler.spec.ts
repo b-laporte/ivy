@@ -17,7 +17,7 @@ describe('Template compiler', () => {
 
         let r = await compile(src1, "test1")
 
-        assert.equal(r, `\// start
+        assert.equal(r.fileContent, `\// start
             import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
 
             const x = (function () {
@@ -47,7 +47,7 @@ describe('Template compiler', () => {
 
         let r = await compile(src2, "test2")
 
-        assert.equal(r, `\
+        assert.equal(r.fileContent, `\
             import{ template, ζtxt, ζinit, ζend, ζΔD, ζt } from "../iv";
 
             let t1 = (function () {
@@ -131,13 +131,13 @@ describe('Template compiler', () => {
             let z = "ABCD";
             `;
         let r = await compile(src, "test3")
-        assert.equal(r, src, "test 3");
+        assert.equal(r.fileContent, src, "test 3");
     });
 
     it("should not change files that don't contain templates", async function () {
         let src = `let x=123;`;
         let r = await compile(src, "test3")
-        assert.equal(r, src, "test 3");
+        assert.equal(r.fileContent, src, "test 3");
     });
 
     it("should raise errors with file name and line numbers", async function () {
@@ -155,7 +155,7 @@ describe('Template compiler', () => {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
-            Invalid text node - Unexpected end of template
+            XJS: Invalid text node - Unexpected end of template
             File: file-name.ts - Line 7 / Col 17
             Extract: >> } <<
         `, '1');
@@ -174,7 +174,7 @@ describe('Template compiler', () => {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
-            Invalid fragment - Params cannot be used on fragments
+            IVY: Invalid fragment - Params cannot be used on fragments
             File: file-name.ts - Line 5 / Col 21
             Extract: >> <! foo="bar"> <<
         `, '2');

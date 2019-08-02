@@ -11,14 +11,16 @@ const SK = ts.SyntaxKind,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_LIST = /List$/,
     IV_INTERFACES = ["IvContent", "IvTemplate"],
+    CR = "\n",
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
 export async function process(source: string, resourcePath: string, logErrors = true) {
-    let result: string = "", logAll = !!source.match(RX_LOG_ALL);
+    let ivyResult: CompilationResult | undefined, result: string = "", logAll = !!source.match(RX_LOG_ALL);
 
     try {
         // ivy processing
-        result = await compile(source, resourcePath);
+        ivyResult = await compile(source, resourcePath);
+        result = ivyResult.fileContent;
         log("Ivy: Template Processing");
 
         // trax processing for ivy api classes
@@ -26,7 +28,8 @@ export async function process(source: string, resourcePath: string, logErrors = 
             symbols: { Data: "ζΔD", /* todo: ref, computed */ },
             libPrefix: "ζ",
             interfaceTypes: IV_INTERFACES,
-            validator: listValidator
+            validator: listValidator,
+            logErrors: false
         });
         log("Ivy: Generated Param Classes Processing");
 
@@ -37,7 +40,8 @@ export async function process(source: string, resourcePath: string, logErrors = 
             acceptMethods: true,
             replaceDataDecorator: false,
             interfaceTypes: IV_INTERFACES,
-            libPrefix: "ζ"
+            libPrefix: "ζ",
+            logErrors: false
         });
         log("Ivy: API Classes Processing");
 
@@ -47,27 +51,40 @@ export async function process(source: string, resourcePath: string, logErrors = 
             acceptMethods: true,
             replaceDataDecorator: false,
             interfaceTypes: IV_INTERFACES,
-            libPrefix: "ζ"
+            libPrefix: "ζ",
+            logErrors: false
         });
         log("Ivy: Controller Classes Processing");
 
         // trax processing for normal Data Objects
         result = generate(result, resourcePath, {
-            interfaceTypes: IV_INTERFACES
+            interfaceTypes: IV_INTERFACES,
+            logErrors: false
         });
         log("Ivy: Generated Code", !!source.match(RX_LOG));
     } catch (e) {
+        if (ivyResult && e.kind === "#Error") {
+            // shift line numbers
+            (e as IvError).line = ivyResult.convertLineNbr(e.line);
+        }
         if (logErrors) {
             let err = e as IvError, msg: string;
             if (err.kind === "#Error") {
                 let ls = "  >  ";
-                msg = `${ls} ${e.message}\n`
+                msg = `${ls} ${err.origin}: ${e.message}\n`
                     + `${ls} File: ${e.file} - Line ${e.line} / Col ${e.column}\n`
                     + `${ls} Extract: >> ${e.lineExtract} <<`;
             } else {
                 msg = e.message || e;
             }
             console.error(`\n${SEPARATOR}\n${msg}\n${SEPARATOR}`);
+
+            // if (result) {
+            //     console.log(`\n${SEPARATOR}`);
+            //     console.log("// Last code generation: " + resourcePath);
+            //     console.log(result)
+            //     console.log(`${SEPARATOR}`);
+            // }
         }
         throw e;
     }
@@ -92,9 +109,14 @@ function listValidator(m: DataMember) {
     return null;
 }
 
-export async function compile(source: string, filePath: string): Promise<string> {
+export interface CompilationResult {
+    fileContent: string;
+    convertLineNbr: (newLineNbr: number) => number;
+}
+
+export async function compile(source: string, filePath: string): Promise<CompilationResult> {
     // ignore files starting with iv:ignore comment
-    if (source.match(RX_IGNORE_FILE)) return source;
+    if (source.match(RX_IGNORE_FILE)) return { fileContent: source, convertLineNbr: sameLineNbr };
 
     let srcFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true);
 
@@ -103,12 +125,35 @@ export async function compile(source: string, filePath: string): Promise<string>
         importIds: { [key: string]: 1 } = {},   // map or import identifiers - e.g. { template:1, xx:1, yy:1 }
         templates: { start: number, end: number, src: string }[] = [];
 
+    let diagnostics = srcFile['parseDiagnostics'];
+    if (diagnostics && diagnostics.length) {
+        let d: ts.Diagnostic = diagnostics[0] as any;
+        let info = getLineInfo(source, d.start || -1);
+        throw {
+            kind: "#Error",
+            origin: "TS",
+            message: d.messageText.toString(),
+            line: info.lineNbr,
+            column: info.columnNbr,
+            lineExtract: info.lineContent.trim(),
+            file: filePath
+        } as IvError;
+    }
+
     scan(srcFile);
 
     return await generateNewFile(filePath);
 
-    function error(msg) {
-        throw new Error("IV compilation error: " + msg);
+    function error(msg: string) {
+        throw {
+            kind: "#Error",
+            origin: "IVY",
+            message: msg,
+            line: 0,
+            column: 0,
+            lineExtract: "",
+            file: filePath
+        } as IvError;
     }
 
     function scan(node: ts.Node) {
@@ -160,18 +205,20 @@ export async function compile(source: string, filePath: string): Promise<string>
         }
     }
 
-    async function generateNewFile(filePath: string): Promise<string> {
+    async function generateNewFile(filePath: string): Promise<CompilationResult> {
         if (!templates.length) {
-            return source;
+            return { fileContent: source, convertLineNbr: sameLineNbr };
         }
         if (!importStart) {
             error("Missing 'template' import statement");
         }
-        let slices: string[] = [], importPos = 1, pos = 0;
+        let slices: string[] = [], importPos = 1, pos = 0, fragment = "", carriageReturns: number[] = [];
 
-        // import up
-        slices[0] = source.substring(0, importStart);
-        slices[importPos] = ""; // will be replaced after the template processing
+        // part before import
+        addSlice(source.substring(0, importStart));
+
+        // import section
+        addSlice("", source.substring(importStart, importEnd)); // "" will be replaced after the template processing
         pos = importEnd;
 
         // manage templates
@@ -179,28 +226,84 @@ export async function compile(source: string, filePath: string): Promise<string>
         for (let i = 0; len > i; i++) {
             let tpl = templates[i];
 
-            slices.push(source.substring(pos, tpl.start + 1));
+            addSlice(source.substring(pos, tpl.start + 1));
             let r = await compileTemplate(tpl.src, { function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1 });
-            slices.push(r.function!);
+            addSlice(r.function!, tpl.src);
             pos = tpl.end;
         }
 
         // last part
-        slices.push(source.substring(pos));
+        addSlice(source.substring(pos));
 
         // import insertion
         let imp: string[] = [];
         for (let k in importIds) if (importIds.hasOwnProperty(k)) {
             imp.push(k);
         }
-        slices[1] = '{ ' + imp.join(", ") + ' }';
+        slices[1] = '{ ' + imp.join(", ") + ' }'; // new import
 
-        return slices.join("");
+        return { fileContent: slices.join(""), convertLineNbr: getLineNbr };
+
+        function addSlice(newFragment: string, oldFragment?: string) {
+            slices.push(newFragment);
+            let crs = newFragment.split(CR).length - 1;
+            carriageReturns.push(crs);
+            if (oldFragment === undefined) {
+                carriageReturns.push(crs);
+            } else {
+                carriageReturns.push(oldFragment.split(CR).length - 1);
+            }
+        }
+
+        function getLineNbr(newLineNbr: number): number {
+            let idx = 0, oldCRs = 0, newCRs = 0, newCount = 0, oldCount = 0, target = newLineNbr - 1;
+            while (idx < carriageReturns.length) {
+                newCRs = carriageReturns[idx];
+                oldCRs = carriageReturns[idx + 1];
+                if (newCount + newCRs < target) {
+                    newCount += newCRs;
+                    oldCount += oldCRs;
+                } else {
+                    return 1 + oldCount + target - newCount;
+                }
+                idx += 2;
+            }
+            return newLineNbr;
+        }
     }
 
     function getLineNumber(pos: number) {
         let src2 = source.substring(0, pos);
         return src2.split("\n").length;
     }
+
+    function sameLineNbr(newLineNbr: number): number {
+        return newLineNbr;
+    }
 }
 
+function getLineInfo(src: string, pos: number): { lineNbr: number, lineContent: string, columnNbr: number } {
+    let lines = src.split("\n"), lineLen = 0, posCount = 0, idx = 0;
+    if (pos > -1) {
+        while (idx < lines.length) {
+            lineLen = lines[idx].length;
+            if (posCount + lineLen < pos) {
+                // continue
+                idx++;
+                posCount += lineLen + 1; // +1 for carriage return
+            } else {
+                // stop
+                return {
+                    lineNbr: idx + 1,
+                    lineContent: lines[idx],
+                    columnNbr: 1 + pos - posCount
+                }
+            }
+        }
+    }
+    return {
+        lineNbr: 0,
+        lineContent: "",
+        columnNbr: 0
+    }
+}

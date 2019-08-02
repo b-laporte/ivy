@@ -1,8 +1,19 @@
 
 export interface TraxImport {
     kind: "import";
+    pos: number;
     insertPos: number;              // position after the Data import
     values: { [key: string]: 1 };   // list of identifiers defined in the import statement
+}
+
+export interface TraxError {
+    kind: "#Error";
+    origin: "TRAX" | "TS";
+    message: string;
+    line: number;
+    column: number;
+    lineExtract: string;
+    file: string;
 }
 
 export interface DataObject {
@@ -12,7 +23,7 @@ export interface DataObject {
     log: boolean;
     className: string;
     classNameEnd: number;
-    members: (DataProperty | ComputedProperty)[];
+    members: (DataProperty)[];
     // constructor: xxx - tbd: shall we support constructor?
     // validator: xxx - tbd: validator function?
 }
@@ -34,11 +45,12 @@ export interface DataProperty extends DataMember {
     defaultValue?: CodeFragment;
 }
 
-export interface ComputedProperty {
-    kind: "computedProperty",
-    name: string;
-    code: CodeFragment;
-}
+// export interface ComputedProperty {
+//     kind: "computedProperty",
+//     name: string;
+//     code: CodeFragment;
+//     pos: number;
+// }
 
 interface CodeFragment {
     pos: number;

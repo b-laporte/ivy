@@ -1,9 +1,11 @@
-import { parse, ParserSymbols, getSymbols } from './parser';
-import { DataObject, TraxImport, DataProperty, ComputedProperty, DataType, DataMember } from './types';
+import { parse, ParserSymbols, getSymbols, getLineInfo } from './parser';
+import { DataObject, TraxImport, DataProperty, DataType, DataMember, TraxError } from './types';
 
 const PRIVATE_PREFIX = "ΔΔ",
     CLASS_DECO = "ΔD", RX_LOG = /\/\/\s*trax\:\s*log/,
-    RX_NULL_TYPE = /\|\s*null$/;
+    RX_NULL_TYPE = /\|\s*null$/,
+    SEPARATOR = "----------------------------------------------------------------------------------------------------";
+
 
 interface GeneratorOptions {
     acceptMethods?: boolean;           // default:false
@@ -12,11 +14,14 @@ interface GeneratorOptions {
     interfaceTypes?: string[];         // list of type names that should be considered as interfaces (-> any type)
     symbols?: ParserSymbols,           // redefine the symbols used to identify Data objects
     libPrefix?: string;                // define a prefix to use in the generated code
+    logErrors?: boolean;               // default:true
     validator?: (member: DataMember) => string | null;  // validation function
 }
 
 export function generate(src: string, filePath: string, options?: GeneratorOptions): string {
-    const symbols = getSymbols(options ? options.symbols : undefined), libPrefix = options ? (options.libPrefix || "") : "";
+    const symbols = getSymbols(options ? options.symbols : undefined),
+        libPrefix = options ? (options.libPrefix || "") : "",
+        logErrors = options ? (options.logErrors !== false) : true;
 
     let output = src,
         outputShift = 0,
@@ -46,21 +51,41 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
             }
             updateImports();
         }
-    } catch (ex) {
-        error(ex);
+    } catch (e) {
+        if (logErrors) {
+            let err = e as TraxError, msg: string;
+            if (err.kind === "#Error") {
+                let ls = "  >  ";
+                msg = `${ls} ${err.origin}: ${e.message}\n`
+                    + `${ls} File: ${e.file} - Line ${e.line} / Col ${e.column}\n`
+                    + `${ls} Extract: >> ${e.lineExtract} <<`;
+            } else {
+                msg = e.message || e;
+            }
+            console.error(`\n${SEPARATOR}\n${msg}\n${SEPARATOR}`);
+        }
+        throw e;
     }
 
     if (src.match(RX_LOG)) {
-        console.log("-----------------------------------------------------------------------------");
-        console.log("Trax Ouput:");
+        console.log(SEPARATOR);
+        console.log("Trax Output:");
         console.log(output);
     }
 
     return output;
 
-    function error(msg: string, node: DataObject | TraxImport | null = null) {
-        // todo
-        throw new Error("[TRAX]" + msg + " - file: " + filePath);
+    function error(msg: string, node: DataObject | TraxImport | DataProperty | null = null) {
+        let info = getLineInfo(src, node ? node["pos"] || node["namePos"] || -1 : -1);
+        throw {
+            kind: "#Error",
+            origin: "TRAX",
+            message: msg,
+            line: info.lineNbr,
+            column: info.columnNbr,
+            lineExtract: info.lineContent.trim(),
+            file: filePath
+        } as TraxError;
     }
 
     function initImports(ast: (TraxImport | DataObject)[]) {
@@ -109,7 +134,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
     }
 
     function replaceRegExp(rx: RegExp, str: string, position: number) {
-        let pos = position + outputShift, output1= output.slice(0, pos), len1=output1.length, output2 = output1.replace(rx, str);
+        let pos = position + outputShift, output1 = output.slice(0, pos), len1 = output1.length, output2 = output1.replace(rx, str);
         // console.log("-----")
         // console.log("output1",output1+"<<")
         // console.log("output2",output2+"<<")
@@ -138,7 +163,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
 
         let len = n.members.length,
             prop: DataProperty,
-            m: DataProperty | ComputedProperty,
+            m: DataProperty,
             tp: DataType | undefined,
             defaultValues: string[] = [],
             lastInsertPos = -1;
@@ -177,7 +202,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
             if (options && options.validator) {
                 let errMsg = options.validator(m);
                 if (errMsg) {
-                    error(errMsg, n);
+                    error(errMsg, m);
                 }
             }
         }

@@ -1,4 +1,4 @@
-import { TraxImport, DataObject, DataProperty, DataType } from './types';
+import { TraxImport, DataObject, DataProperty, DataType, TraxError } from './types';
 import * as ts from "typescript";
 
 const LOG = "log",
@@ -41,9 +41,16 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     let diagnostics = srcFile['parseDiagnostics'];
     if (diagnostics && diagnostics.length) {
         let d: ts.Diagnostic = diagnostics[0] as any;
-        // TODO
-        // this.logError("TypeScript parsing error: " + d.messageText.toString(), d.start || 0)
-        result = null;
+        let info = getLineInfo(src, d.start || -1);
+        throw {
+            kind: "#Error",
+            origin: "TS",
+            message: d.messageText.toString(),
+            line: info.lineNbr,
+            column: info.columnNbr,
+            lineExtract: info.lineContent.trim(),
+            file: filePath
+        } as TraxError;
     } else {
         // process all parts
         scan(srcFile);
@@ -52,12 +59,17 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     return result;
 
     function error(message: string, node: ts.Node) {
-        // TODO
-        let info = getLineInfo(node.pos);
-        if (info) {
-            throw new Error(`${message}\n - Line #${info.lineNbr} / Column #${info.columnNbr}\n - Line content: >>${info.lineContent}<<\n`);
-        }
-        throw new Error(message + " at pos: " + node.pos);
+        let info = getLineInfo(src, node.pos);
+
+        throw {
+            kind: "#Error",
+            origin: "TRAX",
+            message: message,
+            line: info.lineNbr,
+            column: info.columnNbr,
+            lineExtract: info.lineContent.trim(),
+            file: filePath
+        } as TraxError;
     }
 
     function scan(node: ts.Node) {
@@ -88,7 +100,6 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     }
 
     function processImport(node: ts.ImportClause) {
-        if (traxImportFound) return;
         if (node.namedBindings) {
             let nmi = <ts.NamedImports>node.namedBindings;
             if (nmi.elements) {
@@ -97,9 +108,10 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                     if (nmi.elements[idx].name.text === SYMBOLS.Data) {
                         traxImport = {
                             kind: "import",
+                            pos: nmi.elements[idx].pos,
                             insertPos: nmi.elements[idx].end,
                             values: {}
-                        }
+                        } as TraxImport
                         break;
                     }
                 }
@@ -158,7 +170,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 // processedPropData = this.processProcessorDecorator(m);
 
                 if (m.kind === SK.Constructor) {
-                    error("Constructors are not authorized in Data objects", m);
+                    error("Constructors are not authorized in Data objects", m["body"] || m);
                 } else if (m.kind === SK.GetAccessor) {
                     // check @computed properties
                     if (m.decorators && m.decorators.length === 1) {
@@ -372,9 +384,11 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
         }
         return false;
     }
+}
 
-    function getLineInfo(pos: number): { lineNbr: number, lineContent: string, columnNbr: number } | null {
-        let lines = src.split("\n"), lineLen = 0, posCount = 0, idx = 0;
+export function getLineInfo(src: string, pos: number): { lineNbr: number, lineContent: string, columnNbr: number } {
+    let lines = src.split("\n"), lineLen = 0, posCount = 0, idx = 0;
+    if (pos > -1) {
         while (idx < lines.length) {
             lineLen = lines[idx].length;
             if (posCount + lineLen < pos) {
@@ -390,7 +404,10 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 }
             }
         }
-        return null;
+    }
+    return {
+        lineNbr: 0,
+        lineContent: "",
+        columnNbr: 0
     }
 }
-

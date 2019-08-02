@@ -1,14 +1,64 @@
 // iv:ignore
-import { error } from './utils';
+import { error, compilationError } from './utils';
 import * as assert from 'assert';
 
 describe('Code generation errors', () => {
+
+    const tplFile5 = `\
+        import{ template, API } from "../iv";
+
+        const hello = template(\`(name) => {
+            # Hello {name} # 
+        }\`);
+    `;
+
+    it("should be raised for invalid typescript content", async function () {
+        assert.equal(await compilationError(`
+            import{ template } from "../iv";
+            a.
+            const t = template(\`() => { # Hello # }\`);
+        `), `
+            TS: Identifier expected.
+            File: file.ts - Line 3 / Col 15
+            Extract: >> a. <<
+        `);
+    });
+
+    it("should be raised for missing template import", async function () {
+        assert.equal(await compilationError(`
+            import{ foo } from "../iv";
+            const t = template(\` # Hello # \`);
+        `), `
+            IVY: Missing 'template' import statement
+            File: file.ts - Line 0 / Col 0
+            Extract: >>  <<
+        `);
+    });
+
+    it("should be raised for TRAX errors following IVY compilation", async function () {
+        assert.equal(await compilationError(tplFile5 + `\
+            @API class GreetingsAPI {
+                name: string
+                constructor() {
+                    this.name = "foo";
+                }
+            }
+            
+            const hello = template(\`($api:GreetingsAPI) => {
+                # Hi {$api.name} # 
+            }\`);
+        `), `
+            TRAX: Constructors are not authorized in Data objects
+            File: file.ts - Line 8 / Col 30
+            Extract: >> constructor() { <<
+        `);
+    });
 
     it("should be raised for invalid fragments", async function () {
         assert.equal(await error.template(`($content) => {
             <! foo="bar"> # abc # </>
         }`), `
-            Invalid fragment - Params cannot be used on fragments
+            IVY: Invalid fragment - Params cannot be used on fragments
             File: file.ts - Line 2 / Col 13
             Extract: >> <! foo="bar"> # abc # </> <<
         `);

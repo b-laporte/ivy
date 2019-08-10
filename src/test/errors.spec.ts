@@ -54,17 +54,96 @@ describe('Code generation errors', () => {
         `);
     });
 
-    it("should be raised for invalid fragments", async function () {
-        assert.equal(await error.template(`($content) => {
-            <! foo="bar"> # abc # </>
+    it("should be raised for nodes that are not yet supported", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <{someVar} foo="bar"/>
         }`), `
-            IVY: Invalid fragment - Params cannot be used on fragments
+            IVY: Invalid element - Dynamic element nodes are not supported yet
             File: file.ts - Line 2 / Col 13
-            Extract: >> <! foo="bar"> # abc # </> <<
+            Extract: >> <{someVar} foo="bar"/> <<
         `);
     });
 
-    // errors on 1st template line (col number)
+    it("should be raised when params are not supported on some node types", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <! foo="bar"/>
+        }`), `
+            IVY: Invalid param - Parameters are not supported on Fragment nodes
+            File: file.ts - Line 2 / Col 16
+            Extract: >> <! foo="bar"/> <<
+        `);
+    });
+
+    it("should be raised when decorators are not supported on some node types", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            # (@foo) Hello #
+        }`), `
+            IVY: Invalid decorator - Decorators are not yet supported on Text nodes
+            File: file.ts - Line 2 / Col 16
+            Extract: >> # (@foo) Hello # <<
+        `);
+    });
+
+    it("should be raised if properties are used on fragments", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <! [foo]="bar"/>
+        }`), `
+            IVY: Invalid property - Properties are not supported on Fragment nodes
+            File: file.ts - Line 2 / Col 26
+            Extract: >> <! [foo]="bar"/> <<
+        `);
+    });
+
+    it("should be raised on invalid label usage", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <*cpt>
+                <.foo #bar> # Hello # </>
+            </>
+        }`), `
+            IVY: Invalid label - Labels are not supported on Parameter nodes
+            File: file.ts - Line 3 / Col 23
+            Extract: >> <.foo #bar> # Hello # </> <<
+        `);
+
+        assert.equal(await error.template(`(someVar) => {
+            # (##foo) Hello #
+        }`), `
+            XJS: Invalid label - Forward labels (e.g. ##foo) can only be used on component calls
+            File: file.ts - Line 2 / Col 18
+            Extract: >> # (##foo) Hello # <<
+        `);
+    });
+
+    it("should be raised on invalid label values", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <*cpt #bar=123/>
+        }`), `
+            IVY: Invalid label - Labels values must be expressions or booleans
+            File: file.ts - Line 2 / Col 19
+            Extract: >> <*cpt #bar=123/> <<
+        `);
+
+        assert.equal(await error.template(`(someVar) => {
+            <*cpt ##bar=123/>
+        }`), `
+            IVY: Invalid label - Forward labels values must be strings or expressions
+            File: file.ts - Line 2 / Col 19
+            Extract: >> <*cpt ##bar=123/> <<
+        `);
+    });
+
+    it("should be properly raised on 1st template line", async function () {
+        assert.equal(await compilationError(tplFile5 + `\
+            // here
+            const hello = template(\`(someVar:ABC()) => {
+                <div/>
+            }\`);
+        `), `
+            XJS: Invalid template params - Unexpected token ''
+            File: file.ts - Line 7 / Col 49
+            Extract: >> (someVar:ABC()) => { <<
+        `);
+    });
 
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {

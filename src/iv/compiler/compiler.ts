@@ -222,12 +222,14 @@ export async function compile(source: string, filePath: string): Promise<Compila
         pos = importEnd;
 
         // manage templates
-        let len = templates.length;
+        let len = templates.length, tpl: any, lastSlice: string, colOffset: number;
         for (let i = 0; len > i; i++) {
-            let tpl = templates[i];
+            tpl = templates[i];
 
             addSlice(source.substring(pos, tpl.start + 1));
-            let r = await compileTemplate(tpl.src, { function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1 });
+            lastSlice = slices[slices.length - 1]!;
+            colOffset = 9 + (lastSlice.length - lastSlice.lastIndexOf(CR)); // 9 = length of "template("
+            let r = await compileTemplate(tpl.src, { function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1, columnOffset: colOffset });
             addSlice(r.function!, tpl.src);
             pos = tpl.end;
         }

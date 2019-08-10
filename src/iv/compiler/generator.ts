@@ -9,6 +9,7 @@ export interface CompilationOptions {
     importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
     filePath?: string;                  // file name - used for error reporting
     lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
+    columnOffset?: number;              // shift error column number on the first template line
 }
 
 export interface CompilationResult {
@@ -55,9 +56,44 @@ const RX_DOUBLE_QUOTE = /\"/g,
         "#number": "number",
         "#boolean": "boolean",
         "#string": "string",
-        "#eventListener": "event listener"
+        "#eventListener": "event listener",
+        "#label": "label"
     },
     CR = "\n";
+
+// Generic validation
+const NO = 0,
+    YES = 1,
+    LATER = 2,
+    SOMETIMES = 3,
+    VALIDATION_NAMES = {
+        "#textNode": "Text nodes",
+        "#element": "Element nodes",
+        "#component": "Component nodes",
+        "#fragment": "Fragment nodes",
+        "#paramNode": "Parameter nodes",
+        "#decoratorNode": "Decorator nodes",
+        "#{element}": "Dynamic element nodes",
+        "#{paramNode}": "Dynamic parameter nodes",
+        "#param": "Parameters",
+        "#property": "Properties",
+        "#label": "Labels",
+        "##label": "Forward labels",
+        "#decorator": "Decorators"
+    }, SUPPORTED_NODE_ATTRIBUTES: {
+        [type: string]: 2 | {
+            "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3
+        }
+    } = {
+        "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER },
+        "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES },
+        "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES },
+        "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES },
+        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": NO },
+        "#decoratorNode": LATER,
+        "#{element}": LATER,
+        "#{paramNode}": LATER
+    };
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
     options.lineOffset = options.lineOffset || 0;
@@ -66,7 +102,7 @@ export async function compileTemplate(template: string, options: CompilationOpti
         log = true;
         template = template.replace(RX_LOG, "");
     }
-    let root = await parse(template, options.filePath || "", options.lineOffset || 0);
+    let root = await parse(template, options.filePath || "", options.lineOffset || 0, options.columnOffset || 0);
     let res = generate(root, template, options);
     if (log) {
         let importMap = res.importMap || options.importMap, imports: string[] = []
@@ -434,12 +470,73 @@ export class ViewInstruction implements RuntimeInstruction {
         }
     }
 
+    checkContentNode(nd: XjsContentNode) {
+        let nk = getNodeKind(), attSupport = SUPPORTED_NODE_ATTRIBUTES[nk], gc = this.gc;
+        if (attSupport) {
+            if (attSupport === LATER) {
+                gc.error(`${VALIDATION_NAMES[nk]} are not supported yet`, nd);
+            } else {
+                let f = nd as XjsFragment;
+                if (f.params) {
+                    checkAttribute(f, "#param", f.params[0]);
+                }
+                if (f.properties) {
+                    checkAttribute(f, "#property", f.properties[0]);
+                }
+                if (f.decorators) {
+                    checkAttribute(f, "#decorator", f.decorators[0]);
+                }
+                if (f.labels) {
+                    let l: XjsLabel | undefined, fl: XjsLabel | undefined;
+                    for (let lbl of f.labels) {
+                        if (lbl.fwdLabel) {
+                            if (!lbl.isOrphan && lbl.value!.kind !== "#string" && lbl.value!.kind !== "#expression") {
+                                gc.error(`Forward labels values must be strings or expressions`, lbl);
+                            }
+                            fl = fl || lbl;
+                        } else {
+                            if (!lbl.isOrphan && lbl.value!.kind !== "#boolean" && lbl.value!.kind !== "#expression") {
+                                gc.error(`Labels values must be expressions or booleans`, lbl);
+                            }
+                            l = l || lbl;
+                        }
+                    }
+                    if (l) {
+                        checkAttribute(f, "#label", l);
+                    }
+                    if (fl) {
+                        checkAttribute(f, "##label", fl);
+                    }
+                }
+            }
+        }
+
+        function getNodeKind() {
+            let k = nd.kind;
+            if (k === "#element" && (nd as XjsElement).nameExpression) return "#{element}";
+            if (k === "#paramNode" && (nd as XjsParamNode).nameExpression) return "#{paramNode}";
+            return k;
+        }
+
+        function checkAttribute(f: XjsFragment, attKind: string, errNd: XjsNode) {
+            if (errNd) {
+                switch (attSupport![attKind]) {
+                    case NO:
+                        gc.error(`${VALIDATION_NAMES[attKind]} are not supported on ${VALIDATION_NAMES[nk]}`, errNd);
+                    case LATER:
+                        gc.error(`${VALIDATION_NAMES[attKind]} are not yet supported on ${VALIDATION_NAMES[nk]}`, errNd);
+                }
+            }
+        }
+    }
+
     generateInstruction(siblings: XjsContentNode[], siblingIdx: number, parentLevel: number, iFlag: number, prevKind: string, nextKind: string) {
         let nd: XjsContentNode = siblings[siblingIdx], content: XjsContentNode[] | undefined = undefined, idx = this.nodeCount;
         if (nd.kind !== "#jsStatements" && nd.kind !== "#paramNode") {
             this.nodeCount++;
             this.hasChildNodes = true;
         }
+        this.checkContentNode(nd);
 
         let stParams = "", i1 = -1, i2 = -1, containsParamExpr = false;
         if (nd.kind === "#element" || nd.kind === "#component" || nd.kind === "#paramNode") {
@@ -1097,12 +1194,6 @@ class EltInstruction implements RuntimeInstruction {
 class FraInstruction implements RuntimeInstruction {
     constructor(public node: XjsFragment | null, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number) {
         let gc = this.view.gc;
-        if (node && node.params && node.params.length) {
-            gc.error("Params cannot be used on fragments", node);
-        }
-        if (node && node.properties && node.properties.length) {
-            gc.error("Properties cannot be used on fragments", node);
-        }
         if (node && node.listeners && node.listeners.length) {
             gc.error("Event listeners cannot be used on fragments", node);
         }

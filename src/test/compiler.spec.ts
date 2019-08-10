@@ -174,8 +174,8 @@ describe('Template compiler', () => {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
-            IVY: Invalid fragment - Params cannot be used on fragments
-            File: file-name.ts - Line 5 / Col 21
+            IVY: Invalid param - Parameters are not supported on Fragment nodes
+            File: file-name.ts - Line 5 / Col 24
             Extract: >> <! foo="bar"> <<
         `, '2');
     });

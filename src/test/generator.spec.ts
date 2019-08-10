@@ -1571,17 +1571,16 @@ describe('Code generator', () => {
     it("should support dynamic labels on elements, components and text nodes", async function () {
         // support labels on elts, text nodes and components -> error otherwise
         let t1 = await test.template(`() => {
-            <div #divA={expr()} #divB=123 class="main">
+            <div #divA={expr()} #divB class="main">
                 <span #spanB #col> # (#txt={expr2()}) Hello # </span>
                 <*cpt #foo={expr3()}> # (#txt={expr3()}) HelloD # </*cpt>
             </>
         }`);
         assert.equal(t1.body, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 4);
-            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζelt(ζ, ζc, 0, 0, "div", 1, ζs2, ζs1);
             ζlbl(ζ, 0, 0, "#divA", expr());
-            ζlbl(ζ, 0, 0, "#divB", 123);
-            ζelt(ζ, ζc, 1, 1, "span", 1, ζs2);
+            ζelt(ζ, ζc, 1, 1, "span", 1, ζs3);
             ζtxt(ζ, ζc, 0, 2, 2, 0, " Hello ", 0);
             ζlbl(ζ, 0, 2, "#txt", expr2());
             ζcpt(ζ, ζc, 0, 3, 1, ζe(ζ, 0, cpt), 0);
@@ -1598,7 +1597,8 @@ describe('Code generator', () => {
         assert.deepEqual(t1.statics, [
             "ζs0 = {}",
             "ζs1 = [\"class\", \"main\"]",
-            "ζs2 = [\"#spanB\", \"#col\"]"
+            "ζs2 = [\"#divB\"]",
+            "ζs3 = [\"#spanB\", \"#col\"]"
         ], "1s");
     });
 

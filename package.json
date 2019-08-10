@@ -27,7 +27,7 @@
         "webpack-cli": "^3.3.4",
         "ts-loader": "^6.0.3",
         "file-loader": "^4.0.0",
-        "vscode-textmate": "^4.1.1"
+        "vscode-textmate": "^4.2.2"
     },
     "dependencies": {
         "typescript": "^3.5.2",

@@ -10,7 +10,7 @@ describe('Iv Fragments', () => {
     });
 
     it("should work as root nodes", function () {
-        let tpl = template(`(condition, msg) => {
+        const tpl = template(`(condition, msg) => {
             <!>
                 <!>
                     <!>

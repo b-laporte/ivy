@@ -20,6 +20,11 @@ export interface IvTemplate {
     query(label: string, all: true): any[] | null; // -> can query all nodes (default = false)
 }
 
+export interface IvLogger {
+    log(message?: any, ...optionalParams: any[]): void;
+    error(error?: any, ...optionalParams: any[]): void;
+}
+
 export interface IvNode {
     kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#listener" | "#param";
     uid: string;                      // unique id (debug)

@@ -10,7 +10,7 @@ const SK = ts.SyntaxKind,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_LIST = /List$/,
-    IV_INTERFACES = ["IvContent", "IvTemplate"],
+    IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger"],
     CR = "\n",
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
@@ -221,15 +221,25 @@ export async function compile(source: string, filePath: string): Promise<Compila
         addSlice("", source.substring(importStart, importEnd)); // "" will be replaced after the template processing
         pos = importEnd;
 
+        let paths = filePath.split(/\/|\\/);
+        if (paths.length > 2) {
+            filePath = paths[paths.length - 2] + "/" + paths[paths.length - 1];
+        }
+
         // manage templates
-        let len = templates.length, tpl: any, lastSlice: string, colOffset: number;
+        let len = templates.length, tpl: any, lastSlice: string, colOffset: number, tplName = "";
         for (let i = 0; len > i; i++) {
             tpl = templates[i];
 
             addSlice(source.substring(pos, tpl.start + 1));
             lastSlice = slices[slices.length - 1]!;
             colOffset = 9 + (lastSlice.length - lastSlice.lastIndexOf(CR)); // 9 = length of "template("
-            let r = await compileTemplate(tpl.src, { function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1, columnOffset: colOffset });
+            if (lastSlice.match(/(\$?\w+)[\s\n]*\=[\s\n]*$/)) {
+                tplName = RegExp.$1;
+            } else {
+                tplName = "";
+            }
+            let r = await compileTemplate(tpl.src, { templateName: tplName, function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1, columnOffset: colOffset });
             addSlice(r.function!, tpl.src);
             pos = tpl.end;
         }

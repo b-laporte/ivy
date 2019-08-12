@@ -2,12 +2,13 @@ import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, Xj
 import { parse } from '../../xjs/parser/xjs-parser';
 
 export interface CompilationOptions {
+    templateName: string;
+    filePath: string;                   // file name - used for error reporting
     body?: boolean;                     // if true, will output the template function body in the result
     statics?: boolean;                  // if true, the statics array will be in the result
     function?: boolean;                 // if true the js function will be in the result
     imports?: boolean;                  // if true the imports will be added as comment to the js function
     importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
-    filePath?: string;                  // file name - used for error reporting
     lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
     columnOffset?: number;              // shift error column number on the first template line
 }
@@ -179,16 +180,6 @@ function reduceIndent(indent: string) {
     return indent;
 }
 
-export interface CompilationOptions {
-    body?: boolean;                     // if true, will output the template function body in the result
-    statics?: boolean;                  // if true, the statics array will be in the result
-    function?: boolean;                 // if true the js function will be in the result
-    imports?: boolean;                  // if true the imports will be added as comment to the js function
-    importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
-    filePath?: string;                  // file name - used for error reporting
-    lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
-}
-
 export interface IvError {
     kind: "#Error";
     origin: "IVY" | "TS";
@@ -201,6 +192,8 @@ export interface IvError {
 
 export class GenerationCtxt {
     indentIncrement = "    ";
+    templateName = "";
+    filePath = "";
     imports: { [key: string]: 1 };      // map of required imports
     statics: string[] = [];             // list of static resources
     localVars = {};                     // map of creation mode vars
@@ -210,6 +203,8 @@ export class GenerationCtxt {
 
     constructor(public template: string, public options: CompilationOptions) {
         this.imports = options.importMap || {};
+        this.templateName = options.templateName.replace(RX_DOUBLE_QUOTE, "");
+        this.filePath = options.filePath.replace(RX_DOUBLE_QUOTE, "");
     }
 
     error(msg, nd: XjsNode) {
@@ -335,7 +330,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
             argNames += ", $template";
         }
     }
-    lines.push(`${indent}return ζt(function (ζ${argNames}) {`);
+    lines.push(`${indent}return ζt("${gc.templateName}", "${gc.filePath}", function (ζ${argNames}) {`);
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }
@@ -1220,7 +1215,13 @@ class ParamInstruction implements RuntimeInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
         let v = this.view, iSuffix = this.iFlag ? "D" : "";
-        body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
+        if (this.funcName === "par") {
+            // par takes the cm argument
+            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
+        
+        } else {
+            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
+        }
         if (this.targetParamNode) {
             // we don't use expressions in param nodes as we don't need them (trax objects will do the job)
             // besides expressions need to be re-evaluated when an object has been reset (so expression value cannot be cached)

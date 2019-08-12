@@ -570,8 +570,8 @@ describe('Code generator', () => {
         assert.equal(t2.body, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, b.section), 0, 0, ζs1);
-            ζpar(ζ, 0, 0, "position", ζe(ζ, 1, getPosition()));
-            ζpar(ζ, 0, 0, "msg", ζe(ζ, 2, myMessage));
+            ζpar(ζ, ζc, 0, 0, "position", ζe(ζ, 1, getPosition()));
+            ζpar(ζ, ζc, 0, 0, "msg", ζe(ζ, 2, myMessage));
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '2a');
@@ -628,7 +628,7 @@ describe('Code generator', () => {
             ζfraD(ζ1, ζc1, 0, 0);
             ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, name1]);
             ζcptD(ζ1, ζc1, 1, 2, 1, [1, otherComponent], 0);
-            ζparD(ζ1, 1, 2, "p1", [2, expr()]);
+            ζparD(ζ1, ζc1, 1, 2, "p1", [2, expr()]);
             ζ2 = ζviewD(ζ1, 1, 2, 1, 0);
             ζc2 = ζ2.cm;
             ζtxtD(ζ2, ζc2, 1, 0, 0, 0, ζs2, 1, [0, name2]);
@@ -709,7 +709,7 @@ describe('Code generator', () => {
             a: any;
             b: any;
         }
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let $api = $, a = $["a"], b = $["b"];
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
@@ -744,7 +744,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let $api = $;
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $.name));
@@ -757,7 +757,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let $api = $, name = $["name"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
@@ -772,7 +772,7 @@ describe('Code generator', () => {
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt(function (ζ, $, $ctl) {
+        return ζt("testTpl", "test.ts", function (ζ, $, $ctl) {
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $ctl.name));
             ζend(ζ, ζc);
@@ -789,7 +789,7 @@ describe('Code generator', () => {
         @ζΔD class ζParams {
             name: any;
         }
-        return ζt(function (ζ, $, $ctl, $template) {
+        return ζt("testTpl", "test.ts", function (ζ, $, $ctl, $template) {
             let name = $["name"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
@@ -841,7 +841,7 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
             ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, 0, ζs1);
-            ζpar(ζ, 0, 3, "foo", bar());
+            ζpar(ζ, ζc, 0, 3, "foo", bar());
             ζtxtD(ζ1, ζc1, 1, 0, 0, 0, ζs2, 1, [0, baz()]);
             ζpnode(ζ, ζc, 0, 4, 2, "footer", ζp1++, 0, ζs3);
             ζendD(ζ1, ζc1);
@@ -868,7 +868,7 @@ describe('Code generator', () => {
             ζ1 = ζviewD(ζ, 1, 2, 1, 0);
             ζc1 = ζ1.cm;
             ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, 0, ζs1);
-            ζpar(ζ, 0, 3, "foo", bar());
+            ζpar(ζ, ζc, 0, 3, "foo", bar());
             ζ2 = ζviewD(ζ, 1, 3, 1, 0);
             ζc2 = ζ2.cm;
             ζpnode(ζ, ζc, 0, 4, 3, "title", ζp1++);
@@ -902,12 +902,12 @@ describe('Code generator', () => {
             ζp0 = ζp1 = ζp2 = 0;
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
             ζpnode(ζ, ζc, 0, 1, 0, "header", ζp0++);
-            ζpar(ζ, 0, 1, "foo", bar());
+            ζpar(ζ, ζc, 0, 1, "foo", bar());
             ζpnode(ζ, ζc, 0, 2, 1, "foo", ζp1++, 0, ζs1);
             ζpnode(ζ, ζc, 0, 3, 2, "bar", ζp2++);
-            ζpar(ζ, 0, 3, "$value", exp());
+            ζpar(ζ, ζc, 0, 3, "$value", exp());
             ζpnode(ζ, ζc, 0, 4, 2, "bar", ζp2++);
-            ζpar(ζ, 0, 4, "$value", exp2());
+            ζpar(ζ, ζc, 0, 4, "$value", exp2());
             ζpnEnd(ζ, ζc, 0, 2);
             ζpnEnd(ζ, ζc, 0, 1);
             ζcall(ζ, 0);
@@ -948,7 +948,7 @@ describe('Code generator', () => {
                 ζc2 = ζ2.cm;
                 ζtxtD(ζ2, ζc2, 2, 0, 0, 0, " foo ", 0);
                 ζpnode(ζ, ζc, 0, 3, 2, "header", ζp0++, 0, ζs1);
-                ζpar(ζ, 0, 3, "foo", bar());
+                ζpar(ζ, ζc, 0, 3, "foo", bar());
                 ζendD(ζ2, ζc2);
             }
             ζtxtD(ζ1, ζc1, 1, 2, 1, 0, " abc ", 0);
@@ -1002,7 +1002,7 @@ describe('Code generator', () => {
             ζcntD(ζ1, ζc1, 1, 1, 1);
             if (x) {
                 ζpnode(ζ, ζc, 0, 1, 0, "header", ζp0++, 0, ζs1, ζs6);
-                ζpar(ζ, 0, 1, "foo", bar());
+                ζpar(ζ, ζc, 0, 1, "foo", bar());
                 ζi4 = 0;
                 ζ3 = ζviewD(ζ, 1, 1, 1, 0);
                 ζc3 = ζ3.cm;
@@ -1063,7 +1063,7 @@ describe('Code generator', () => {
                 for (let i=0;nbrOfRows>i;i++) {
                     ζpnode(ζ1, ζc1, 0, 1, 0, "row", ζp0++);
                     ζpnode(ζ1, ζc1, 0, 2, 1, "summary", ζp1++);
-                    ζpar(ζ1, 0, 2, "id", i);
+                    ζpar(ζ1, ζc1, 0, 2, "id", i);
                     ζ5 = ζviewD(ζ1, 1, 2, 1, 0);
                     ζc5 = ζ5.cm;
                     ζtxtD(ζ5, ζc5, 1, 0, 0, 0, ζs1, 1, [0, i]);
@@ -1093,7 +1093,7 @@ describe('Code generator', () => {
             ζpnode(ζ, ζc, 0, 1, 0, "paramA", ζp0++, 0, ζs1);
             let bar=foo;
             ζpnode(ζ, ζc, 0, 2, 0, "paramB", ζp1++);
-            ζpar(ζ, 0, 2, "value", exp(bar));
+            ζpar(ζ, ζc, 0, 2, "value", exp(bar));
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '1');
@@ -1157,7 +1157,7 @@ describe('Code generator', () => {
 
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = ["type", "important"], ζs3 = ["class", "content"];
-        return ζt(function (ζ) {
+        return ζt("testTpl", "test.ts", function (ζ) {
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 3);
             ζp0 = 0;
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
@@ -1191,7 +1191,7 @@ describe('Code generator', () => {
         @ζΔD class ζParams {
             name: any;
         }
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let name = $["name"];
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
@@ -1213,7 +1213,7 @@ describe('Code generator', () => {
             firstName: any;
             lastName: any;
         }
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let firstName = $["firstName"], lastName = $["lastName"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
@@ -1239,7 +1239,7 @@ describe('Code generator', () => {
         @ζΔD class ζParams {
             header?: MyHeader;
         }
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let header = $["header"];
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
@@ -1353,7 +1353,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 1, 1, 0);
                 ζc1 = ζ1.cm;
                 ζcpt(ζ1, ζc1, 0, 0, 0, ζe(ζ1, 0, section), 0);
-                ζpar(ζ1, 0, 0, "title", ζe(ζ1, 1, msg));
+                ζpar(ζ1, ζc1, 0, 0, "title", ζe(ζ1, 1, msg));
                 ζ2 = ζviewD(ζ1, 1, 0, 1, 0);
                 ζc2 = ζ2.cm;
                 ζtxtD(ζ2, ζc2, 1, 0, 0, 0, ζs1, 1, [0, msg]);
@@ -1457,7 +1457,7 @@ describe('Code generator', () => {
             d: any = 12;
             e: any = 'hello';
         }
-        return ζt(function (ζ, $) {
+        return ζt("testTpl", "test.ts", function (ζ, $) {
             let a = $["a"], b = $["b"], c = $["c"], d = $["d"], e = $["e"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 5, ζe(ζ, 0, a), ζe(ζ, 1, b), ζe(ζ, 2, c), ζe(ζ, 3, d), ζe(ζ, 4, e));

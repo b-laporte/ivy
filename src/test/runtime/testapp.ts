@@ -11,4 +11,6 @@ import "./pnodes.spec";
 import "./controller.spec";
 import "./labels.spec";
 import "./xmlns.spec";
+import "./errors.spec";
+import "./logger.spec";
 // import "./async.spec";

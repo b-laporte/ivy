@@ -15,14 +15,14 @@ describe('Template compiler', () => {
 
             // end`;
 
-        let r = await compile(src1, "test1")
+        let r = await compile(src1, "a/b/c.ts")
 
         assert.equal(r.fileContent, `\// start
             import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
 
             const x = (function () {
             const ζs0 = {};
-            return ζt(function (ζ) {
+            return ζt("x", "b/c.ts", function (ζ) {
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " hello world ", 0);
                 ζend(ζ, ζc);
@@ -45,7 +45,7 @@ describe('Template compiler', () => {
             let z = "ABCD";
             `;
 
-        let r = await compile(src2, "test2")
+        let r = await compile(src2, "test2.ts")
 
         assert.equal(r.fileContent, `\
             import{ template, ζtxt, ζinit, ζend, ζΔD, ζt } from "../iv";
@@ -55,7 +55,7 @@ describe('Template compiler', () => {
             @ζΔD class ζParams {
                 a: any;
             }
-            return ζt(function (ζ, $) {
+            return ζt("t1", "test2.ts", function (ζ, $) {
                 let a = $["a"];
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " T1 ", 0);
@@ -68,7 +68,7 @@ describe('Template compiler', () => {
                 p1: string;
                 p2: number;
             }
-            return ζt(function (ζ, $) {
+            return ζt("t2", "test2.ts", function (ζ, $) {
                 let p1 = $["p1"], p2 = $["p2"];
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " T1 ", 0);
@@ -107,7 +107,7 @@ describe('Template compiler', () => {
             }
             let tpl = (function () {
             const ζs0 = {};
-            return ζt(function (ζ, $) {
+            return ζt("tpl", "test2", function (ζ, $) {
                 let $api = $;
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " tpl ", 0);

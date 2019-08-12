@@ -1,14 +1,31 @@
-import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode } from './types';
+import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
-function error(msg) {
-    // temporary error management
-    console.log("[iv error] " + msg);
+export const logger: IvLogger = {
+    log(msg: string, ...optionalParams: any[]) {
+        console.log.apply(console, arguments);
+    },
+    error(msg: string, ...optionalParams: any[]) {
+        console.error.apply(console, arguments);
+    }
 }
 
-const TPL_PROP = "$template";
+function error(view: IvView, msg: string) {
+    // temporary error management
+    let v: IvView | null = view, infos: string[] = [];
+    while (v) {
+        if (v.template) {
+            let t = v.template as Template;
+            infos.push(`\n>> Template: "${t.templateName}" - File: "${t.filePath}"`);
+        }
+        v = v.parentView;
+    }
+    logger.error("IVY: " + msg + infos.join(""));
+}
+
+const PROP_TEMPLATE = "$template", PROP_LOGGER = "$logger";
 let TPL_COUNT = 0;
 
 interface TemplateController {
@@ -35,7 +52,7 @@ export class Template implements IvTemplate {
     initialized = false;
     labels: { [label: string]: any[] } | undefined = undefined;
 
-    constructor(public renderFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
+    constructor(public templateName: string, public filePath: string, public renderFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, null, 1, this);
         let self = this;
@@ -70,8 +87,17 @@ export class Template implements IvTemplate {
     get $ctl(): TemplateController | undefined {
         if (!this.tplCtl && this.ctlClass) {
             this.tplCtl = new this.ctlClass();
-            if (hasProperty(this.tplCtl, TPL_PROP)) {
-                this.tplCtl[TPL_PROP] = this;
+            if (hasProperty(this.tplCtl, PROP_TEMPLATE)) {
+                this.tplCtl[PROP_TEMPLATE] = this;
+            }
+            if (hasProperty(this.tplCtl, PROP_LOGGER)) {
+                let v = this.view;
+                this.tplCtl[PROP_LOGGER] = <IvLogger>{
+                    log: logger.log,
+                    error(msg: string, ...optionalParams: any[]) {
+                        error(v, msg + (optionalParams.length ? " " + optionalParams.join(" ") : ""));
+                    }
+                };
             }
         }
         return this.tplCtl;
@@ -86,7 +112,7 @@ export class Template implements IvTemplate {
             element.appendChild(ctxt.anchorNode);
             //appendChild(element, ctxt.anchorNode);
         } else {
-            error("Template host cannot be changed once set"); // todo
+            error(this.view, "Template host cannot be changed once set");
         }
         return this;
     }
@@ -112,7 +138,7 @@ export class Template implements IvTemplate {
     query(label: string, all: boolean = false): any | any[] | null {
         if (this.rendering) return null; // query cannot be used during template rendering
         if (label && label.charAt(0) !== '#') {
-            console.error("[$template.query()] Invalid label '" + label + "': labels must start with #");
+            error(this.view, "[$template.query()] Invalid label argument: '" + label + "' (labels must start with #)");
             return null;
         }
         let target = this.labels ? this.labels[label] || null : null;
@@ -139,10 +165,10 @@ export class Template implements IvTemplate {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
-        let $api = this.$api, $ctl = this.$ctl;
+        let $api = this.$api, $ctl = this.$ctl, view = this.view;
 
         if ($ctl && !isDataObject($ctl)) {
-            console.error("Template state must be a Data Object - please check: " + this.ctlClass!.name);
+            error(view, "Template controller must be a @Controller Object - please check: " + this.ctlClass!.name);
             this.tplCtl = this.ctlClass = undefined;
         }
 
@@ -156,7 +182,7 @@ export class Template implements IvTemplate {
                 $api[k] = data[k];
             }
         }
-        let bypassRender = !this.forceRefresh, nodes = this.view.nodes;
+        let bypassRender = !this.forceRefresh, nodes = view.nodes;
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
             bypassRender = false; // internal blocks may have to be recreated if root is not attached
         }
@@ -167,21 +193,26 @@ export class Template implements IvTemplate {
             // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
             if ($ctl) {
                 if (!this.initialized) {
-                    callLCHook($ctl, "$init");
+                    callLCHook(view, $ctl, "$init");
                     this.initialized = true;
                 }
-                callLCHook($ctl, "$beforeRender");
+                callLCHook(view, $ctl, "$beforeRender");
             }
             this.rendering = true;
             this.labels = undefined;
-            this.view.lastRefresh++;
-            this.view.instructions = undefined;
-            this.renderFn(this.view, $api, $ctl, this);
+            view.lastRefresh++;
+            view.instructions = undefined;
+            try {
+                this.renderFn(view, $api, $ctl, this);
+            } catch (ex) {
+                error(view, "Template execution error\n" + (ex.message || ex));
+            }
+
             this.rendering = false;
 
             if ($ctl) {
                 // changes in $afterRender() cannot trigger a new render to avoid infinite loops
-                callLCHook($ctl, "$afterRender");
+                callLCHook(view, $ctl, "$afterRender");
             }
             commitChanges($api); // will change p or state version
             this.forceRefresh = false;
@@ -200,13 +231,13 @@ export class Template implements IvTemplate {
     }
 }
 
-function callLCHook($ctl: TemplateController, hook: "$init" | "$beforeRender" | "$afterRender") {
-    // life cycle hool
+function callLCHook(view: IvView, $ctl: TemplateController, hook: "$init" | "$beforeRender" | "$afterRender") {
+    // life cycle hook
     if ($ctl[hook]) {
         try {
             $ctl[hook]!();
         } catch (ex) {
-            console.error("[Error: " + hook + "]", "" + ex)
+            error(view, hook + " hook execution error\n" + (ex.message || ex));
         }
     }
 }
@@ -289,7 +320,7 @@ function setParentView(v: IvView, pv: IvView, container: IvContainer | null) {
 
 export function template(template: string): () => IvTemplate {
     return function () {
-        return new Template(() => { })
+        return new Template("", "", () => { })
     }
 };
 
@@ -298,9 +329,9 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param renderFn 
  */
-export function ζt(renderFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
+export function ζt(tplName: string, tplFile: string, renderFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
     return function () {
-        return new Template(renderFn, argumentClass || undefined, stateClass, hasHost === 1);
+        return new Template(tplName, tplFile, renderFn, argumentClass || undefined, stateClass, hasHost === 1);
     }
 }
 
@@ -348,7 +379,7 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
     // container must exist otherwise the view cannot be retrieved
     let cn = pv.nodes![containerIdx], view: IvView;
     if (!cn || !cn.attached) {
-        console.error("[ERROR] Invalid ζview call: container must be attached (" + (cn ? cn.uid : "XX") + ") - pview: " + pv.uid + " containerIdx: " + containerIdx);
+        error(pv, "Invalid ζview call: container must be attached (" + (cn ? cn.uid : "XX") + ") - pview: " + pv.uid + " containerIdx: " + containerIdx);
     }
     if (cn.kind === "#container") {
         if ((cn as IvContainer).subKind === "##block") {
@@ -520,11 +551,7 @@ function checkContainer(v: IvView, idx: number, firstTime: boolean) {
         removeFromDom(v, bc);
     } else {
         let views = bc.views, nbrOfViews = views.length;
-        if (firstTime) {
-            //     for (let i = 0; nbrOfBlocks > i; i++) {
-            //         runInstructions(blocks[i][1] as IvNode, "checkContainer 1");
-            //     }
-        } else {
+        if (!firstTime) {
             // console.log("previousNbrOfViews", bc.previousNbrOfViews, "nbrOfViews", nbrOfViews);
             if (nbrOfViews !== bc.previousNbrOfViews) {
                 // disconnect the nodes that are still attached in the pool
@@ -535,11 +562,6 @@ function checkContainer(v: IvView, idx: number, firstTime: boolean) {
                 }
             }
             bc.previousNbrOfViews = nbrOfViews; // all views are immediately inserted
-
-            //   for (let i = 0; nbrOfBlocks > i; i++) {
-            //         nodes = blocks[i];
-            //         runInstructions(nodes[1] as IvNode, "checkContainer 2");
-            //     }
         }
     }
 }
@@ -600,7 +622,7 @@ export function ζendD(v: IvView, cm: boolean, containerIndexes?: (number[] | 0)
     if (v.paramNode) {
         let pn = v.paramNode;
         if (!pn.dataHolder) {
-            console.error("ζendD dataHoler should be defined");
+            error(v, "ζendD dataHoler should be defined");
         } else if (v.instructions && v.instructions.length) {
             addInstruction(v, ζend, [v, cm, containerIndexes]);
             if (!pn.data || pn.data.kind === "#view") {
@@ -1001,8 +1023,16 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
             if (staticParams) {
                 // initialize static params
                 let len = staticParams.length;
-                for (let i = 0; len > i; i += 2) {
-                    p[staticParams[i]] = staticParams[i + 1];
+                if (!p && len) {
+                    error(v, "Invalid parameter: " + staticParams[0]);
+                } else {
+                    for (let i = 0; len > i; i += 2) {
+                        if (hasProperty(p, staticParams[i])) {
+                            p[staticParams[i]] = staticParams[i + 1];
+                        } else {
+                            error(v, "Invalid parameter: " + staticParams[i])
+                        }
+                    }
                 }
             }
         }
@@ -1082,15 +1112,14 @@ export function ζcallD(v: IvView, idx: number, container?: IvCptContainer | 0, 
     addInstruction(v, ζcall, [v, idx, container, labels, dynParamNames]);
 }
 
-function identifyPNodeList(pn: IvParamNode, name: string, dataParent: any) {
+function identifyPNodeList(v: IvView, pn: IvParamNode, name: string, dataParent: any) {
     if (!hasProperty(dataParent, name)) {
         if (hasProperty(dataParent, name + "List")) {
             pn.dataIsList = true;
             pn.dataName = name + "List";
         } else {
-            console.error("[Ivy] Invalid parameter name: " + name); // todo proper error
+            error(v, "Invalid parameter node: <." + name + ">");
             // console.log(pn.uid, ">>>", dataParent)
-            console.log(pn)
         }
     } else {
         pn.dataIsList = false;
@@ -1098,7 +1127,7 @@ function identifyPNodeList(pn: IvParamNode, name: string, dataParent: any) {
 }
 
 export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
-    let pnd: IvParamNode, vNodes = v.nodes!, updateMode = false, prevContentView: any = null;
+    let pnd: IvParamNode, vNodes = v.nodes!, updateMode = false;
     // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
     // console.log("ζpnode", v.uid, cm, "idx: " + idx, "parentIndex: " + parentIndex)
     if (!vNodes[idx]) {
@@ -1150,12 +1179,12 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         prevData: any = undefined,
         dataHolder = parent.data;
     if (!dataHolder) {
-        console.error("Invalid param <." + name + "/>: no param node can be used in this context"); // TODO error handling
+        error(v, "Invalid parameter node <." + name + "/>: no param node can be used in this context"); // TODO error handling
     } else {
         // for (let k in dataHolder) console.log(" >>> ", k)
         pnd.dataHolder = dataHolder;
         if (pnd.dataIsList === undefined) {
-            identifyPNodeList(pnd, dataName, dataHolder);
+            identifyPNodeList(v, pnd, dataName, dataHolder);
         }
         dataName = pnd.dataName; // changed by identifyPNodeList
         prevData = pnd.data;
@@ -1220,12 +1249,20 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         dp[dataName] = 1;
     }
 
-    if (data && staticParams && (prevData !== data)) {
-        // initialize static params
-        // prevData !== data is true when node data has been created or reset
-        let len = staticParams.length;
-        for (let i = 0; len > i; i += 2) {
-            data[staticParams[i]] = staticParams[i + 1];
+    if (staticParams) {
+        if (!data) {
+            // TODO: remove when @value is used instead of $value
+            // error(v, "Invalid param node parameter: " + staticParams[0]);
+        } else if (prevData !== data) {
+            // initialize static params
+            // prevData !== data is true when node data has been created or reset
+            let len = staticParams.length;
+            for (let i = 0; len > i; i += 2) {
+                if (cm && !hasProperty(data, staticParams[i])) {
+                    error(v, "Invalid param node parameter: " + staticParams[i]);
+                }
+                data[staticParams[i]] = staticParams[i + 1];
+            }
         }
     }
 }
@@ -1296,7 +1333,7 @@ export function ζproD(v: IvView, iFlag: number, eltIdx: number, name: string, e
 
 // Param setter
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
+export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr === ζu) return;
     let val = getExprValue(v, iFlag, expr);
 
@@ -1306,7 +1343,12 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
             let p = (nd as IvCptContainer).data;
             if (p) {
                 // console.log("1:set", name, "=", val, "in", p)
+                if (cm && !hasProperty(p, name)) {
+                    error(v, "Invalid parameter: " + name);
+                }
                 p[name] = val;
+            } else {
+                error(v, "Invalid parameter: " + name);
             }
         } else if (nd.kind === "#param") {
             let p = (nd as IvParamNode);
@@ -1316,8 +1358,11 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
             } else {
                 if (!p.data) {
                     // could not be created in the ζpnode instruction => invalid parameter
-                    console.error("Invalid parameter: " + name); // TODO: proper error handling
+                    error(v, "Invalid param node parameter: " + name);
                 } else {
+                    if (cm && !hasProperty(p.data, name)) {
+                        error(v, "Invalid param node parameter: " + name);
+                    }
                     p.data[name] = val;
                 }
             }
@@ -1325,13 +1370,13 @@ export function ζpar(v: IvView, iFlag: number, eltIdx: number, name: string, ex
     }
 }
 
-export function ζparD(v: IvView, iFlag: number, eltIdx: number, name: string, expr: any) {
+export function ζparD(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr !== ζu) {
         let nd = v.nodes![eltIdx];
         if (nd.kind === "#param") {
-            ζpar(v, 0, eltIdx, name, expr);
+            ζpar(v, cm, 0, eltIdx, name, expr);
         } else {
-            addInstruction(v, ζpar, [v, iFlag, eltIdx, name, expr]);
+            addInstruction(v, ζpar, [v, cm, iFlag, eltIdx, name, expr]);
         }
     }
 }
@@ -1478,7 +1523,7 @@ interface SiblingDomPosition {
 function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
     while (true) {
         if (!nd) {
-            console.log("[ERROR] findNextSiblingDomNd: nd cannot be undefined")
+            error(v, "Internal error - findNextSiblingDomNd: nd cannot be undefined");
         }
         // console.log("findNextSiblingDomNd", nd.uid)
         if (nd.idx === 0) {
@@ -1600,7 +1645,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
             // console.log("removeChild:", nd.domNode.uid, "in", pdn ? pdn.uid : "XX")
             pdn.removeChild(nd.domNode);
         } else {
-            console.error("ERROR: parent not found for: ", nd.uid);
+            error(v, "Internal error - parent not found for: " + nd.uid);
         }
     } else if (nd.kind === "#container") {
         if (nd["subKind"] === "##block") {

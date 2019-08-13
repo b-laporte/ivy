@@ -887,13 +887,12 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '2');
 
-        // todo $value should be natively interpreted and included into pnode instead of par
         assert.equal(await body.template(`() => {
             <*myComponent>
                 <.header foo={bar()}>
                     <.foo position="top">
-                        <.bar $value={exp()}/>
-                        <.bar $value={exp2()}/>
+                        <.bar @value={exp()}/>
+                        <.bar @value={exp2()}/>
                     </>
                 </>
             </>
@@ -905,9 +904,9 @@ describe('Code generator', () => {
             ζpar(ζ, ζc, 0, 1, "foo", bar());
             ζpnode(ζ, ζc, 0, 2, 1, "foo", ζp1++, 0, ζs1);
             ζpnode(ζ, ζc, 0, 3, 2, "bar", ζp2++);
-            ζpar(ζ, ζc, 0, 3, "$value", exp());
+            ζpar(ζ, ζc, 0, 3, 1, exp());
             ζpnode(ζ, ζc, 0, 4, 2, "bar", ζp2++);
-            ζpar(ζ, ζc, 0, 4, "$value", exp2());
+            ζpar(ζ, ζc, 0, 4, 1, exp2());
             ζpnEnd(ζ, ζc, 0, 2);
             ζpnEnd(ζ, ζc, 0, 1);
             ζcall(ζ, 0);

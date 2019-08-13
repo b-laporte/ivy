@@ -28,7 +28,7 @@ describe('Param Nodes', () => {
         const tpl = template(`(panelType, mainType) => {
             <div class={"main " + mainType}>
                 <*panel>
-                    <.type $value={panelType}/>
+                    <.type @value={panelType}/>
                 </>
             </div>
         }`);
@@ -86,7 +86,7 @@ describe('Param Nodes', () => {
             <div class={"main " + mainType}>
                 <*panel>
                     if (mainType !== "no") {
-                        <.type $value={panelType}/>
+                        <.type @value={panelType}/>
                     }
                 </>
             </div>

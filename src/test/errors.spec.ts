@@ -145,6 +145,48 @@ describe('Code generation errors', () => {
         `);
     });
 
+    it("should be raised if built-in decorators are improperly used", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <div @value={someVar}/>
+        }`), `
+            IVY: Invalid decorator - @value is not supported on Element nodes
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div @value={someVar}/> <<
+        `);
+    });
+
+    it("should be raised when decorators are improperly used on param nodes", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <*cpt>
+                <.paramA @value=123 text="abc"/>
+            </>
+        }`), `
+            IVY: Invalid decorator - @value cannot be mixed with other parameters
+            File: file.ts - Line 3 / Col 26
+            Extract: >> <.paramA @value=123 text="abc"/> <<
+        `);
+
+        assert.equal(await error.template(`(someVar) => {
+            <*cpt>
+                <.paramA @text="abc"/>
+            </>
+        }`), `
+            IVY: Invalid decorator - Only @value decorator can be used on Parameter nodes
+            File: file.ts - Line 3 / Col 26
+            Extract: >> <.paramA @text="abc"/> <<
+        `);
+
+        assert.equal(await error.template(`(someVar) => {
+            <*cpt>
+                <.paramA @value/>
+            </>
+        }`), `
+            IVY: Invalid decorator - Incorrect value for @value
+            File: file.ts - Line 3 / Col 26
+            Extract: >> <.paramA @value/> <<
+        `);
+    });
+
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {
     //         <div @content/>

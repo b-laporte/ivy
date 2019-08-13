@@ -83,17 +83,22 @@ const NO = 0,
         "#decorator": "Decorators"
     }, SUPPORTED_NODE_ATTRIBUTES: {
         [type: string]: 2 | {
-            "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3
+            "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3 | 4
         }
     } = {
         "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER },
         "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES },
         "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES },
         "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES },
-        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": NO },
+        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES },
         "#decoratorNode": LATER,
         "#{element}": LATER,
         "#{paramNode}": LATER
+    }, SUPPORTED_BUILT_IN_DECORATORS = {
+        "value": { "#textNode": NO, "#element": NO, "#component": NO, "#fragment": NO, "#paramNode": YES, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
+        "xmlns": { "#textNode": NO, "#element": YES, "#component": YES, "#fragment": YES, "#paramNode": NO, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
+        "content": { "#textNode": NO, "#element": YES, "#component": NO, "#fragment": YES, "#paramNode": NO, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO }
+        // async
     };
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
@@ -503,6 +508,18 @@ export class ViewInstruction implements RuntimeInstruction {
                         checkAttribute(f, "##label", fl);
                     }
                 }
+                if (f.decorators) {
+                    let codeRef: string;
+                    for (let d of f.decorators) {
+                        codeRef = d.ref.code;
+                        let values = SUPPORTED_BUILT_IN_DECORATORS[d.ref.code];
+                        if (nk === "#paramNode" && codeRef !== "value") {
+                            gc.error(`Only @value decorator can be used on Parameter nodes`, d);
+                        } else if (values && values[nk] === NO) {
+                            gc.error(`@${d.ref.code} is not supported on ${VALIDATION_NAMES[nk]}`, d);
+                        }
+                    }
+                }
             }
         }
 
@@ -683,9 +700,8 @@ export class ViewInstruction implements RuntimeInstruction {
                     hasContent = nd.content !== undefined && nd.content.length > 0,
                     pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, "0", i1, this.indent, parentIdx, instanceVarName, hasContent);
                 this.instructions.push(pi);
-                if (containsParamExpr) {
-                    this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
-                }
+                this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
+
                 if (hasContent) {
                     let vi = new ViewInstruction("paramContent", nd as XjsParamNode, newIdx, v, 1);
                     vi.indent = this.indent;
@@ -851,6 +867,18 @@ export class ViewInstruction implements RuntimeInstruction {
                 p = f.params[i];
                 if (p.value && p.value.kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent, isParamNode));
+                }
+            }
+        }
+
+        if (f.kind === "#paramNode" && f.decorators) {
+            // look for @value decorator
+            for (let d of f.decorators) {
+                if (d.ref.code === "value") {
+                    if (f.params) {
+                        this.gc.error("@value cannot be mixed with other parameters", d);
+                    }
+                    this.instructions.push(new ParamInstruction(d, idx, view, iFlag, false, this.indent, true));
                 }
             }
         }
@@ -1204,9 +1232,9 @@ class FraInstruction implements RuntimeInstruction {
 class ParamInstruction implements RuntimeInstruction {
     funcName: "att" | "par" | "pro";
 
-    constructor(public node: XjsParam | XjsProperty, public idx: number, public view: ViewInstruction, public iFlag: number, public isAttribute: boolean, public indent: string, public targetParamNode = false) {
+    constructor(public node: XjsParam | XjsProperty | XjsDecorator, public idx: number, public view: ViewInstruction, public iFlag: number, public isAttribute: boolean, public indent: string, public targetParamNode = false) {
         this.funcName = isAttribute ? "att" : "par"
-        if (node.kind === "#property") {
+        if (node && node.kind === "#property") {
             this.funcName = "pro";
         }
         this.view.gc.imports["ζ" + this.funcName + getIhSuffix(iFlag)] = 1;
@@ -1214,15 +1242,25 @@ class ParamInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-        let v = this.view, iSuffix = this.iFlag ? "D" : "";
+        let v = this.view, iSuffix = this.iFlag ? "D" : "", name = "1";
+        if (this.node.kind !== "#decorator") {
+            name = '"' + this.node.name + '"';
+        }
         if (this.funcName === "par") {
             // par takes the cm argument
-            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
-        
+            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${name}, `);
         } else {
-            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "${this.node.name}", `);
+            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${name}, `);
         }
-        if (this.targetParamNode) {
+        if (this.node.kind === "#decorator") {
+            // @value decorator - in this case targetParamNode is true
+            let dfp = this.node.defaultPropValue;
+            if (!dfp) {
+                v.gc.error(`Incorrect value for @${this.node.ref.code}`, this.node);
+            } else {
+                pushExpressionValue(body, dfp);
+            }
+        } else if (this.targetParamNode) {
             // we don't use expressions in param nodes as we don't need them (trax objects will do the job)
             // besides expressions need to be re-evaluated when an object has been reset (so expression value cannot be cached)
             body.push(this.node.value as XjsExpression);
@@ -1230,6 +1268,18 @@ class ParamInstruction implements RuntimeInstruction {
             generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
         }
         body.push(');\n');
+    }
+}
+
+function pushExpressionValue(body: BodyContent[], value: XjsNumber | XjsBoolean | XjsString | XjsExpression) {
+    if (value.kind === "#expression") {
+        body.push(value as XjsExpression);
+    } else {
+        if (value.kind === "#string") {
+            body.push(encodeText(value.value));
+        } else {
+            body.push("" + value.value);
+        }
     }
 }
 
@@ -1242,11 +1292,7 @@ class LblInstruction implements RuntimeInstruction {
         // e.g. ζlbl(ζ, 0, 0, "divA", expr());
         let v = this.view, iSuffix = this.iFlag ? "D" : "", value = this.node.value!;
         body.push(`${this.indent}ζlbl${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, "#${this.node.name}", `);
-        if (value.kind === "#expression") {
-            body.push(value as XjsExpression);
-        } else {
-            body.push("" + value.value);
-        }
+        pushExpressionValue(body, value);
         body.push(');\n');
     }
 }

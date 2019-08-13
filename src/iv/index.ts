@@ -1236,7 +1236,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         }
     }
     // note: data may not be defined if the param node is not associated to an object 
-    // e.g. string or boolean or number that will be used with a $value param - cf. ζpar
+    // e.g. string or boolean or number that will be used with a @value param - cf. ζpar
 
     // if contains list params, reset the tempLists
     if (pnd.lists) {
@@ -1251,8 +1251,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
 
     if (staticParams) {
         if (!data) {
-            // TODO: remove when @value is used instead of $value
-            // error(v, "Invalid param node parameter: " + staticParams[0]);
+            error(v, "Invalid param node parameter: " + staticParams[0]);
         } else if (prevData !== data) {
             // initialize static params
             // prevData !== data is true when node data has been created or reset
@@ -1333,7 +1332,7 @@ export function ζproD(v: IvView, iFlag: number, eltIdx: number, name: string, e
 
 // Param setter
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string, expr: any) {
+export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string | 1, expr: any) {
     if (expr === ζu) return;
     let val = getExprValue(v, iFlag, expr);
 
@@ -1342,19 +1341,22 @@ export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, nam
         if (nd.kind === "#container") {
             let p = (nd as IvCptContainer).data;
             if (p) {
-                // console.log("1:set", name, "=", val, "in", p)
-                if (cm && !hasProperty(p, name)) {
+                // name is 1 for @value that can only be used on param nodes
+                if (cm && !hasProperty(p, name as string)) {
                     error(v, "Invalid parameter: " + name);
+                } else {
+                    p[name] = val;
                 }
-                p[name] = val;
             } else {
                 error(v, "Invalid parameter: " + name);
             }
         } else if (nd.kind === "#param") {
             let p = (nd as IvParamNode);
-            if (name === "$value") {
-                // console.log("previous:", p.dataParent[p.name], "new:", val, p.dataParent[p.name] !== val);
-                p.dataHolder[p.dataName] = val;
+            if (name === 1) {
+                // @value parameter
+                if (p.dataHolder) {
+                    p.dataHolder[p.dataName] = val;
+                }
             } else {
                 if (!p.data) {
                     // could not be created in the ζpnode instruction => invalid parameter

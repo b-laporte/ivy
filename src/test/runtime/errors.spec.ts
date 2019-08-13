@@ -119,7 +119,7 @@ describe('Errors', () => {
 
         const test = template(`() => {
             <*hello>
-                <.txt $value="World"/>
+                <.txt @value="World"/>
             </>
         }`);
 
@@ -137,7 +137,7 @@ describe('Errors', () => {
 
         const test = template(`() => {
             <*hello>
-                <.txt $value="World"/>
+                <.txt @value="World"/>
             </>
         }`);
 
@@ -148,24 +148,23 @@ describe('Errors', () => {
             , "1");
     });
 
-    // TODO: activate when @value is implemented
-    // it("should be raised in when invalid parameter nodes are used (3)", function () {
-    //     const hello = template(`(msg:string) => {
-    //         # Hello {msg} #
-    //     }`);
+    it("should be raised in when invalid parameter nodes are used (3)", function () {
+        const hello = template(`(msg:string) => {
+            # Hello {msg} #
+        }`);
 
-    //     const test = template(`() => {
-    //         <*hello>
-    //             <.msg $value="World" text="ABC"/>
-    //         </>
-    //     }`);
+        const test = template(`() => {
+            <*hello>
+                <.msg text="ABC"/>
+            </>
+        }`);
 
-    //     let t = getTemplate(test, body).render();
-    //     assert.equal(error, `\
-    //         IVY: Invalid xxx
-    //         >> Template: "test" - File: "runtime/errors.spec.ts"`
-    //         , "1");
-    // });
+        let t = getTemplate(test, body).render();
+        assert.equal(error, `\
+            IVY: Invalid param node parameter: text
+            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
 
     it("should be raised in when invalid parameter nodes are used (4)", function () {
         @Data class Msg {
@@ -205,24 +204,6 @@ describe('Errors', () => {
         let t = getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid param node parameter: valueZ
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
-            , "1");
-    });
-
-    it("should be raised in when invalid parameter nodes are used (4)", function () {
-        const hello = template(`(msg:string) => {
-            # Hello {msg} #
-        }`);
-
-        const test = template(`() => {
-            <*hello>
-                <.msg $value="World" text={"ABC"}/>
-            </>
-        }`);
-
-        let t = getTemplate(test, body).render();
-        assert.equal(error, `\
-            IVY: Invalid param node parameter: text
             >> Template: "test" - File: "runtime/errors.spec.ts"`
             , "1");
     });

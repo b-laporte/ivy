@@ -8,7 +8,7 @@ let count = 0;
 }
 
 const hello = template(`($api:HelloAPI) => {
-    <div click()={$api.name += ++count} selectstart(e)={e.preventDefault()}>
+    <div @onclick={e=>$api.name += ++count} @onselectstart={e=>e.preventDefault()}>
         # Hello {$api.name} #
     </div>
 }`);

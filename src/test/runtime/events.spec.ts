@@ -27,7 +27,7 @@ describe('Event handlers', () => {
 
     it("can be called on elements", function () {
         const tpl = template(`() => {
-            <div class="main" click(e)={doSomething(e)}>
+            <div class="main" @onclick={e=>doSomething(e)}>
                 # Click me #
             </div>
         }`);
@@ -49,7 +49,7 @@ describe('Event handlers', () => {
         }
 
         const tpl = template(`() => {
-            <div class="main" click(e)={doSomething(e)} click(x)={doSomethingElse(x.type)}>
+            <div class="main" @onclick={e=>doSomething(e)} @onclick={x=>doSomethingElse(x.type)}>
                 # Click me #
             </div>
         }`);
@@ -67,7 +67,7 @@ describe('Event handlers', () => {
 
         const tpl = template(`(condition, someVar) => {
             if (condition) {
-                <div class="main" click(e)={doSomething(e, someVar)}>
+                <div class="main" @onclick={e=>doSomething(e, someVar)}>
                     # Click me #
                 </div>
             }
@@ -92,7 +92,7 @@ describe('Event handlers', () => {
     it("can be defined in deferred content", function () {
         const tpl = template(`() => {
             <*panel type="info">
-                <div class="main" click(e)={doSomething(e)}>
+                <div class="main" @onclick={e=>doSomething(e)}>
                     # Click me #
                 </div>
             </*panel>

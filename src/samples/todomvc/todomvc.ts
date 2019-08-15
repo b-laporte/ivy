@@ -15,13 +15,13 @@ const todoApp = template(`(app) => {
         <header class="header">
             <h1> # todos # </h1>
             <input type="text" class="new-todo" placeholder="What needs to be done?" autofocus="true" 
-                autocomplete="off" text={app.newEntry} keyup(e)={addTodoOnEnter(e,app)} />
+                autocomplete="off" text={app.newEntry} @onkeyup={e=>addTodoOnEnter(e,app)} />
         </header>
 
         if (todos.length) {
             <section class="main">
                 <input id="toggle-all" class="toggle-all" type="checkbox" [checked]={app.itemsLeft===0}/>
-                <label for="toggle-all" click()={ts.toggleAllCompleted(app)}> # Mark all as complete # </label>
+                <label for="toggle-all" @onclick={e=>ts.toggleAllCompleted(app)}> # Mark all as complete # </label>
                 <ul class="todo-list">
                     for (let i=0;app.listView!.length>i;i++) {
                         <*todoItem app={app} todo={app.listView[i]}/>
@@ -40,7 +40,7 @@ const todoApp = template(`(app) => {
                 </ul>
     
                 if (todos.length > app.itemsLeft) {
-                    <button class="clear-completed" click()={ts.clearCompleted(app)}> # Clear completed # </button>
+                    <button class="clear-completed" @onclick={e=>ts.clearCompleted(app)}> # Clear completed # </button>
                 }
           </footer>
         }
@@ -53,7 +53,7 @@ const filter = template(`(app, filterCode:string, $content: IvContent) => {
     <li>
         <a class={app.filter===filterCode? 'selected':''} 
             href={"#/"+filterCode.toLowerCase()}
-            click()={ts.setFilter(app,filterCode)}
+            @onclick={e=>ts.setFilter(app,filterCode)}
             @content/>
     </li>
 }`);
@@ -61,13 +61,13 @@ const filter = template(`(app, filterCode:string, $content: IvContent) => {
 const todoItem = template(`(app, todo) => {
     <li class={"todo " + (todo.editing? 'editing ':'') + (todo.completed?'completed':'')}>
         <div class="view">
-            <input class="toggle" type="checkbox" [checked]={todo.completed} click()={ts.toggleCompletion(todo)} />
-            <label dblclick(e)={startEditing(e, app, todo)}> #{todo.description}# </label>
-            <button class="destroy" click()={ts.deleteTodo(app, todo)}></button>
+            <input class="toggle" type="checkbox" [checked]={todo.completed} @onclick={e=>ts.toggleCompletion(todo)} />
+            <label @ondblclick={e=>startEditing(e, app, todo)}> #{todo.description}# </label>
+            <button class="destroy" @onclick={e=>ts.deleteTodo(app, todo)}></button>
         </div>
         <input type="text" class="edit" value={todo.description} 
-            keyup(e)={editTodo(e, app, todo)} 
-            blur(e)={stopEditing(e, todo, true)}/>
+            @onkeyup={e=>editTodo(e, app, todo)} 
+            @onblur={e=>stopEditing(e, todo, true)}/>
     </li>
 }`);
 

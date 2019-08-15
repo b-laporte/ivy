@@ -131,10 +131,10 @@ export const grid = template(`($ctl:GridCtl) => {
                     // collapsed row: display summary
                     <div class="cfc-expanding-row-summary" tabindex={(expandedCount===0 && row===defaultFocusedRow)? '0' : '-1'} 
                         style={row.focused? "color:"+$ctl.focusColor : ""}
-                        click()={$ctl.toggleRow(row)}
-                        focus()={$ctl.rowFocused(row)}
-                        keydown(e)={$ctl.rowKeyDown(e,row)}
-                        blur()={$ctl.rowBlurred(row)} 
+                        @onclick={e=>$ctl.toggleRow(row)}
+                        @onfocus={e=>$ctl.rowFocused(row)}
+                        @onkeydown={e=>$ctl.rowKeyDown(e,row)}
+                        @onblur={e=>$ctl.rowBlurred(row)} 
                         #focusedRow={row.focused}
                     >
                         <! @content={row.summary}/>
@@ -155,10 +155,10 @@ export const grid = template(`($ctl:GridCtl) => {
                 } else {
                     // expanded row: caption first
                     <div class="cfc-expanding-row-details-caption" 
-                        click()={$ctl.toggleRow(row)}
-                        focus()={$ctl.rowFocused(row)}
-                        blur()={$ctl.rowBlurred(row)}
-                        keydown(e)={$ctl.rowKeyDown(e,row)}
+                        @onclick={e=>$ctl.toggleRow(row)}
+                        @onfocus={e=>$ctl.rowFocused(row)}
+                        @onblur={e=>$ctl.rowBlurred(row)}
+                        @onkeydown={e=>$ctl.rowKeyDown(e,row)}
                         tabindex="0" // always focusable when expanded
                         style={"color:white;background-color:"+row.caption.color} 
                         @content={row.caption.$content}

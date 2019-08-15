@@ -100,7 +100,7 @@ const itineraryLine = template(`(itinerary, selectedFare, showFareDetails: boole
                 if (fare.isMarginal) clsList += " fare-inactive";
                 if (showFareDetails && selectedFare === index) clsList += " fare-selected";
 
-                <div class={clsList} [style]={"border-color:" + fare.color} click()={toggleFareDetails(index,itinerary)}>
+                <div class={clsList} [style]={"border-color:" + fare.color} @onclick={e=>toggleFareDetails(index,itinerary)}>
                     if (hasRecommendation(itinerary,fare)) {
                         if (itinerary.isJQOnlyFlight && !fare.isMarginal) {
                             <span>
@@ -152,7 +152,7 @@ const flightSummary = template(`(departureAirport, departureTime, arrivalAirport
             </h3>
         </header>
         <footer>
-            <div class="flight-number as-link with-icon" click()={flightDetails()}>
+            <div class="flight-number as-link with-icon" @onclick={e=>flightDetails()}>
                 <img class="icon" src={"https://book.qantas.com.au/go/2017.3-8/airlinesicons/"+airline.code.toLowerCase() + ".png"} 
                     width="14" height="14"/>
                 #{airline.code.toUpperCase()}{flightNumber}#

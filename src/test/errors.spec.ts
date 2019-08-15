@@ -187,6 +187,24 @@ describe('Code generation errors', () => {
         `);
     });
 
+    it("should be raised if event listeners are improperly used", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <! @onclick={someFun}/>
+        }`), `
+            IVY: Invalid decorator - Event handlers are not supported on Fragment nodes
+            File: file.ts - Line 2 / Col 16
+            Extract: >> <! @onclick={someFun}/> <<
+        `);
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick/>
+        }`), `
+            IVY: Invalid decorator - Missing event handler value for @onclick
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div @onclick/> <<
+        `);
+    });
+
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {
     //         <div @content/>

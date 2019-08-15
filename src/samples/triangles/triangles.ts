@@ -14,7 +14,7 @@ const triangle = template(`(x: number, y: number, size: number, seconds: number)
 
 const dot = template(`(x: number, y: number, size: number, text: string, hover:boolean, $api) => {
     <div class="dot" style={getDotStyle(x,y,size,hover)} 
-        mouseenter()={$api.hover = true} mouseleave()={$api.hover = false}>
+        @onmouseenter={e=>$api.hover = true} @onmouseleave={e=>$api.hover = false}>
         if (hover) {
             #**{text}**#
         } else {

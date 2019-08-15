@@ -313,7 +313,7 @@ describe('Controller', () => {
         }`);
 
         const tpl = template(`(count=123, $template:IvTemplate) => {
-            <button #btn click()={$template.query("#cnt")!.increment(10)}/>
+            <button #btn @onclick={e=>$template.query("#cnt")!.increment(10)}/>
             <*counter #cnt count={count}/>
         }`);
 

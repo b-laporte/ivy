@@ -25,7 +25,7 @@ const main = template(`(data:MainData) => {
     <h2> #cfc-expanding-row initialization benchmark# </h2>
 
     <section>
-        <button id="run" click()={runAll(data)}> #Run All# </button>
+        <button id="run" @onclick={e=>runAll(data)}> #Run All# </button>
     </section>
 
     <benchmark-area class="cfc-ng2-region" style={::mainStyle}>
@@ -53,8 +53,8 @@ const main = template(`(data:MainData) => {
         }
     </benchmark-area>
     <section>
-        <button id="reset" click()={reset(data)}> #Reset# </button>
-        <button id="init" click()={init(data)}> #Init# </button>
+        <button id="reset" @onclick={e=>reset(data)}> #Reset# </button>
+        <button id="init" @onclick={e=>init(data)}> #Init# </button>
     </section>
 }`);
 
@@ -92,5 +92,5 @@ async function runAll(data: MainData) {
 let tpl = main()
     .attach(document.body)
     .render();
-    
+
 document.getElementById("run")!.focus(); // focus first button to test keyboard navigation

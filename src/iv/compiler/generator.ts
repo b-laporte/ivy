@@ -25,6 +25,7 @@ type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock | XjsEv
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
     RX_LOG = /\/\/\s*log\s*/,
+    RX_EVT_HANDLER_DECORATOR = /^on(\w+)$/,
     API_ARG = "$api",
     CTL_ARG = "$ctl",
     TPL_ARG = "$template",
@@ -83,14 +84,14 @@ const NO = 0,
         "#decorator": "Decorators"
     }, SUPPORTED_NODE_ATTRIBUTES: {
         [type: string]: 2 | {
-            "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3 | 4
+            "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3 | 4, "@onevent": 0 | 1
         }
     } = {
-        "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER },
-        "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES },
-        "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES },
-        "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES },
-        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES },
+        "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER, "@onevent": 0},
+        "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES, "@onevent": 1 },
+        "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES, "@onevent": 0 },
+        "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 0 },
+        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 0 },
         "#decoratorNode": LATER,
         "#{element}": LATER,
         "#{paramNode}": LATER
@@ -486,6 +487,9 @@ export class ViewInstruction implements RuntimeInstruction {
                 if (f.decorators) {
                     checkAttribute(f, "#decorator", f.decorators[0]);
                 }
+                if (f.listeners) {
+                    gc.error(`Listeners are deprecated`, f.listeners[0]);
+                }
                 if (f.labels) {
                     let l: XjsLabel | undefined, fl: XjsLabel | undefined;
                     for (let lbl of f.labels) {
@@ -517,6 +521,10 @@ export class ViewInstruction implements RuntimeInstruction {
                             gc.error(`Only @value decorator can be used on Parameter nodes`, d);
                         } else if (values && values[nk] === NO) {
                             gc.error(`@${d.ref.code} is not supported on ${VALIDATION_NAMES[nk]}`, d);
+                        } else if (codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
+                            if (!SUPPORTED_NODE_ATTRIBUTES[nk]["@onevent"]) {
+                                gc.error(`Event handlers are not supported on ${VALIDATION_NAMES[nk]}`, d);
+                            }
                         }
                     }
                 }
@@ -626,9 +634,6 @@ export class ViewInstruction implements RuntimeInstruction {
                         this.instructions.push(new CallInstruction(idx, this, iFlag, ci));
                     }
                     // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
-                    if (nd.listeners && nd.listeners.length) {
-                        this.gc.error("Event listeners are not supported on components (yet)", nd);
-                    }
                 }
                 break;
             case "#paramNode":
@@ -710,10 +715,6 @@ export class ViewInstruction implements RuntimeInstruction {
                     this.instructions.push(vi);
                     vi.scan();
                     this.instructions.push(new PndEndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, this.indent, pi));
-                }
-
-                if (nd.listeners && nd.listeners.length) {
-                    this.gc.error("Event listeners are not supported on param nodes (yet)", nd);
                 }
                 break;
             case "#jsStatements":
@@ -979,9 +980,12 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     createListeners(nd: XjsElement, parentIdx: number, iFlag: number) {
-        if (nd.listeners && nd.listeners.length) {
-            for (let listener of nd.listeners) {
-                this.instructions.push(new EvtInstruction(listener, this.nodeCount++, parentIdx, this, iFlag));
+        if (!nd.decorators) return;
+        let name: string;
+        for (let d of nd.decorators) {
+            name = d.ref.code;
+            if (name.match(RX_EVT_HANDLER_DECORATOR)) {
+                this.instructions.push(new EvtInstruction(d, RegExp.$1, this.nodeCount++, parentIdx, this, iFlag));
             }
         }
     }
@@ -1217,9 +1221,6 @@ class EltInstruction implements RuntimeInstruction {
 class FraInstruction implements RuntimeInstruction {
     constructor(public node: XjsFragment | null, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number) {
         let gc = this.view.gc;
-        if (node && node.listeners && node.listeners.length) {
-            gc.error("Event listeners cannot be used on fragments", node);
-        }
         gc.imports['ζfra' + getIhSuffix(iFlag)] = 1;
     }
 
@@ -1423,19 +1424,20 @@ class CallInstruction implements RuntimeInstruction {
 }
 
 class EvtInstruction implements RuntimeInstruction {
-    constructor(public listener: XjsEvtListener, public idx: number, public parentIdx, public view: ViewInstruction, public iFlag: number) {
+    constructor(public decorator: XjsDecorator, public name: string, public idx: number, public parentIdx, public view: ViewInstruction, public iFlag: number) {
         view.gc.imports['ζevt' + getIhSuffix(iFlag)] = 1;
+
+        if (!this.decorator.hasDefaultPropValue) {
+            view.gc.error("Missing event handler value for @" + decorator.ref.code, decorator);
+        }
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζevt(ζ, ζc, 1, 0, function (e) {doSomething()});
-        let v = this.view, listener = this.listener, args = "";
-        if (listener.argumentNames) {
-            args = listener.argumentNames.join(",");
-        }
-        body.push(`${v.indent}${funcStart("evt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${listener.name}", function (${args}) {`);
-        body.push(listener);
-        body.push(`});\n`);
+        let v = this.view;
+        body.push(`${v.indent}${funcStart("evt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${this.name}", `);
+        pushExpressionValue(body, this.decorator.defaultPropValue!);
+        body.push(`);\n`);
     }
 }
 

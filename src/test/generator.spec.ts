@@ -583,14 +583,14 @@ describe('Code generator', () => {
 
     it("should support event handlers on elements", async function () {
         assert.equal(await body.template(`(name) => {
-            <div click(e)={doSomething()} mousemove( x, y )={doSomethingElse(y,x)}>
+            <div @onclick={e=>doSomething()} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
                 # Click {name} #
             </div>
             }`), `
             let ζc = ζinit(ζ, ζs0, 4);
             ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζevt(ζ, ζc, 1, 0, "click", function (e) {doSomething()});
-            ζevt(ζ, ζc, 2, 0, "mousemove", function (x,y) {doSomethingElse(y,x)});
+            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething());
+            ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
             ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
         `, '1');
@@ -1294,7 +1294,7 @@ describe('Code generator', () => {
         `, '2');
 
         assert.equal(await body.template(`(msg) => {
-            <div @async={expr()} click(e)={doSomething(e)}>
+            <div @async={expr()} @onclick={e=>doSomething(e)}>
                 # Message1: {msg} #
             </div>
             # Message2: {msg} #
@@ -1306,7 +1306,7 @@ describe('Code generator', () => {
                 ζ1 = ζview(ζ, 0, 1, 3, 0);
                 ζc1 = ζ1.cm;
                 ζelt(ζ1, ζc1, 0, 0, "div", 1);
-                ζevt(ζ1, ζc1, 1, 0, "click", function (e) {doSomething(e)});
+                ζevt(ζ1, ζc1, 1, 0, "click", e=>doSomething(e));
                 ζtxt(ζ1, ζc1, 0, 2, 1, 0, ζs1, 1, ζe(ζ1, 0, msg));
                 ζend(ζ1, ζc1);
             });

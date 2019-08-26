@@ -223,6 +223,16 @@ describe('Code generation errors', () => {
         `, "2");
     });
 
+    it("should be raised for [innerHTML]", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <div [innerHTML]={expr()}/>
+        }`), `
+            IVY: Invalid property - innerHTML is not authorized (security restriction)
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div [innerHTML]={expr()}/> <<
+        `, "1");
+    });
+
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {
     //         <div @content/>

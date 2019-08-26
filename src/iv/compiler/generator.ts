@@ -87,7 +87,7 @@ const NO = 0,
             "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3 | 4, "@onevent": 0 | 1
         }
     } = {
-        "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER, "@onevent": 0},
+        "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER, "@onevent": 0 },
         "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES, "@onevent": 1 },
         "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES, "@onevent": 0 },
         "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 0 },
@@ -890,6 +890,9 @@ export class ViewInstruction implements RuntimeInstruction {
                 p = f.properties[i];
                 if (p.isSpread) {
                     this.gc.error("Spread operator is no supported yet", p);
+                }
+                if (p.name === "innerHTML") {
+                    this.gc.error("innerHTML is not authorized (security restriction)", p);
                 }
                 if (p.value && p.value.kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));

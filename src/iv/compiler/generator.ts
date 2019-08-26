@@ -1,4 +1,4 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsEvtListener, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsLabel } from '../../xjs/parser/types';
+import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsLabel } from '../../xjs/parser/types';
 import { parse } from '../../xjs/parser/xjs-parser';
 
 export interface CompilationOptions {
@@ -20,7 +20,7 @@ export interface CompilationResult {
     importMap?: { [key: string]: 1 },   // imports as a map
 }
 
-type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock | XjsEvtListener;
+type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock;
 
 const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
@@ -168,7 +168,7 @@ function generate(tf: XjsTplFunction, template: string, options: CompilationOpti
         for (let part of body) {
             if (typeof part === 'string') {
                 parts.push(part);
-            } else if (part.kind === "#expression" || part.kind === "#jsStatements" || part.kind === "#eventListener") {
+            } else if (part.kind === "#expression" || part.kind === "#jsStatements") {
                 parts.push(part.code);
             } else if (part.kind === "#jsBlock") {
                 parts.push(part.startCode.replace(RX_START_CR, ""));
@@ -486,9 +486,6 @@ export class ViewInstruction implements RuntimeInstruction {
                 }
                 if (f.decorators) {
                     checkAttribute(f, "#decorator", f.decorators[0]);
-                }
-                if (f.listeners) {
-                    gc.error(`Listeners are deprecated`, f.listeners[0]);
                 }
                 if (f.labels) {
                     let l: XjsLabel | undefined, fl: XjsLabel | undefined;
@@ -866,6 +863,9 @@ export class ViewInstruction implements RuntimeInstruction {
             let len = f.params.length, p: XjsParam, isParamNode = f.kind === "#paramNode";
             for (let i = 0; len > i; i++) {
                 p = f.params[i];
+                if (p.isSpread) {
+                    this.gc.error("Spread operator is no supported yet", p);
+                }
                 if (p.value && p.value.kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent, isParamNode));
                 }
@@ -888,6 +888,9 @@ export class ViewInstruction implements RuntimeInstruction {
             let len = f.properties.length, p: XjsProperty;
             for (let i = 0; len > i; i++) {
                 p = f.properties[i];
+                if (p.isSpread) {
+                    this.gc.error("Spread operator is no supported yet", p);
+                }
                 if (p.value && p.value.kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));
                 }

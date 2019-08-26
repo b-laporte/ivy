@@ -89,7 +89,7 @@ describe('Code generation errors', () => {
             <! [foo]="bar"/>
         }`), `
             IVY: Invalid property - Properties are not supported on Fragment nodes
-            File: file.ts - Line 2 / Col 26
+            File: file.ts - Line 2 / Col 16
             Extract: >> <! [foo]="bar"/> <<
         `);
     });
@@ -203,6 +203,24 @@ describe('Code generation errors', () => {
             File: file.ts - Line 2 / Col 18
             Extract: >> <div @onclick/> <<
         `);
+    });
+
+    it("should be raised for spread operators", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <div {...exp()}/>
+        }`), `
+            IVY: Invalid param - Spread operator is no supported yet
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div {...exp()}/> <<
+        `, "1");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div {...[ exp() ]}/>
+        }`), `
+            IVY: Invalid property - Spread operator is no supported yet
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div {...[ exp() ]}/> <<
+        `, "2");
     });
 
     // it("should be raised for invalid @content", async function () {

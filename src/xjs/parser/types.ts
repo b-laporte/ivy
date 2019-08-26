@@ -1,6 +1,6 @@
 
 export interface XjsNode {
-    kind: "#tplFunction" | "#jsStatements" | "#jsBlock" | "#fragment" | "#element" | "#component" | "#paramNode" | "#decoratorNode" | "#textNode" | "#param" | "#property" | "#decorator" | "#label" | "#expression" | "#number" | "#boolean" | "#string" | "#eventListener" | "#tplArgument";
+    kind: "#tplFunction" | "#jsStatements" | "#jsBlock" | "#fragment" | "#element" | "#component" | "#paramNode" | "#decoratorNode" | "#textNode" | "#param" | "#property" | "#decorator" | "#label" | "#expression" | "#number" | "#boolean" | "#string" | "#tplArgument";
     lineNumber: number;
     colNumber: number;
 }
@@ -71,7 +71,6 @@ export interface XjsJsBlock extends XjsNode {
 export interface XjsFragment extends XjsNode {
     kind: "#fragment" | "#element" | "#component" | "#paramNode" | "#decoratorNode";
     params: XjsParam[] | undefined;
-    listeners: XjsEvtListener[] | undefined;
     properties: XjsProperty[] | undefined;
     decorators: XjsDecorator[] | undefined;
     labels: XjsLabel[] | undefined;
@@ -86,6 +85,7 @@ export interface XjsParam extends XjsNode {
     kind: "#param";
     name: string;      // e.g. "title" or "disabled"
     isOrphan: boolean; // true if no value is defined
+    isSpread: boolean; // true if is spread operator (in this case name will be "#spread")
     value: XjsNumber | XjsBoolean | XjsString | XjsExpression | undefined;
 }
 
@@ -96,6 +96,7 @@ export interface XjsParam extends XjsNode {
 export interface XjsProperty extends XjsNode {
     kind: "#property";
     name: string;
+    isSpread:boolean; // true if is spread operator 
     value: XjsNumber | XjsBoolean | XjsString | XjsExpression;
 }
 
@@ -148,17 +149,6 @@ export interface XjsBoolean extends XjsNode {
 export interface XjsString extends XjsNode {
     kind: "#string";
     value: string;    // e.g. "some value"
-}
-
-/**
- * Event listener - e.g.
- * click(e)={doSomething(); doSomethingElse()}
- */
-export interface XjsEvtListener extends XjsNode {
-    kind: "#eventListener";
-    name: string;                        // e.g. "click"
-    argumentNames: string[] | undefined; // e.g. [evt]
-    code: string;                        // e.g. "doSomething(evt)"
 }
 
 /**

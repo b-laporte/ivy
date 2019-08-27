@@ -583,17 +583,54 @@ describe('Code generator', () => {
 
     it("should support event handlers on elements", async function () {
         assert.equal(await body.template(`(name) => {
-            <div @onclick={e=>doSomething()} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
+            <div @onclick={e=>doSomething(e)} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
                 # Click {name} #
             </div>
             }`), `
             let ζc = ζinit(ζ, ζs0, 4);
             ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething());
+            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething(e));
             ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
             ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
         `, '1');
+
+        assert.equal(await body.template(`(name) => {
+            <div @onclick={=>doSomething()} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
+                # Click {name} #
+            </div>
+            }`), `
+            let ζc = ζinit(ζ, ζs0, 4);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", ()=>doSomething(), 1);
+            ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
+            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '2');
+
+        assert.equal(await body.template(`(name) => {
+            <div @onclick(listener={e=>doSomething(e)} options={{capture:true}})>
+                # Click {name} #
+            </div>
+            }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething(e), 0, {capture:true});
+            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '3');
+
+        assert.equal(await body.template(`(name) => {
+            <div @onclick(listener={=>doSomething()} options={{capture:true}})>
+                # Click {name} #
+            </div>
+            }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", ()=>doSomething(), 1, {capture:true});
+            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '4');
     });
 
     it("should support components with content & no param nodes", async function () {

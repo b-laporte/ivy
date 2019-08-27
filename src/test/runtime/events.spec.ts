@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { template } from '../../iv';
-import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
+import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 
 describe('Event handlers', () => {
     let body: ElementNode, index = 0, lastEvent: any = null, lastArg: number = 0;
@@ -33,7 +33,7 @@ describe('Event handlers', () => {
         }`);
 
         let t = getTemplate(tpl, body).render();
-
+        assert.equal(testData.lastEventListenerOptions, undefined , "no options registered on event listener");
         assert.equal(index, 0, "index=0 before click");
         body.childNodes[0].click();
         assert.equal(index, 1, "index=1 after click");
@@ -99,7 +99,6 @@ describe('Event handlers', () => {
         }`);
 
         let t = getTemplate(tpl, body).render(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];
-        // console.log(stringify(t));
         assert.equal(index, 0, "index=0 before click");
         mainDiv.click();
         assert.equal(index, 1, "index=1 after click");
@@ -107,4 +106,64 @@ describe('Event handlers', () => {
         assert.equal(index, 2, "index=2 after 2nd click");
         assert.equal(lastEvent.type, "click", "event properly passed");
     });
+
+    it("should detect passive listeners", function () {
+        function doStuff() {
+            index++;
+        }
+
+        const tpl = template(`() => {
+            <div class="main" @onclick={=>doStuff()}>
+                # Click me #
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+        assert.deepEqual(testData.lastEventListenerOptions!.passive, true , "onclick registered as passive");
+        assert.equal(index, 0, "index=0 before click");
+        body.childNodes[0].click();
+        assert.equal(index, 1, "index=1 after click");
+        body.childNodes[0].click();
+        assert.equal(index, 2, "index=2 after 2nd click");
+    });
+
+    it("should accept event listener options", function () {
+        function doStuff(e?:any) {}
+
+        const tpl = template(`() => {
+            <div class="main" @onclick(listener={=>doStuff()} options={{capture:true}})>
+                # Click me #
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+        assert.deepEqual(testData.lastEventListenerOptions, {
+            capture:true,
+            passive:true
+        } , "1");
+
+        const tpl2 = template(`() => {
+            <div class="main" @onclick(listener={=>doStuff()} options={{capture:true, passive:false}})>
+                # Click me #
+            </div>
+        }`);
+
+        let t2 = getTemplate(tpl2, body).render();
+        assert.deepEqual(testData.lastEventListenerOptions, {
+            capture:true,
+            passive:false
+        } , "2");
+
+        const tpl3 = template(`() => {
+            <div class="main" @onclick(listener={e=>doStuff(e)} options={{once:true}})>
+                # Click me #
+            </div>
+        }`);
+
+        let t3 = getTemplate(tpl3, body).render();
+        assert.deepEqual(testData.lastEventListenerOptions, {
+            once:true
+        } , "3");
+    });
+
 });

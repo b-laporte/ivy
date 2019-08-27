@@ -1433,17 +1433,60 @@ class EvtInstruction implements RuntimeInstruction {
     constructor(public decorator: XjsDecorator, public name: string, public idx: number, public parentIdx, public view: ViewInstruction, public iFlag: number) {
         view.gc.imports['ζevt' + getIhSuffix(iFlag)] = 1;
 
-        if (!this.decorator.hasDefaultPropValue) {
+        if (!decorator.hasDefaultPropValue && !decorator.params) {
             view.gc.error("Missing event handler value for @" + decorator.ref.code, decorator);
         }
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζevt(ζ, ζc, 1, 0, function (e) {doSomething()});
-        let v = this.view;
-        body.push(`${v.indent}${funcStart("evt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${this.name}", `);
-        pushExpressionValue(body, this.decorator.defaultPropValue!);
-        body.push(`);\n`);
+        let v = this.view, d = this.decorator;
+
+        let listener: XjsExpression | undefined, options: XjsExpression | undefined;
+
+        if (d.defaultPropValue) {
+            if (d.defaultPropValue.kind !== "#expression") {
+                v.gc.error('Event listeners must be function expressions - e.g. @onclick={e=>doSomething(e)}', d);
+            } else {
+                listener = d.defaultPropValue! as XjsExpression;
+            }
+        } else {
+            for (let p of d.params!) {
+                if (p.name === "listener") {
+                    if (!p.value) {
+                        v.gc.error("listener value cannot be empty", p);
+                    } else if (p.value.kind !== "#expression") {
+                        v.gc.error('listeners must be function expressions - e.g. listener={e=>doSomething(e)}', p);
+                    } else {
+                        listener = p.value;
+                    }
+                } else if (p.name === "options") {
+                    if (!p.value) {
+                        v.gc.error("options value cannot be empty", p);
+                    } else if (p.value.kind !== "#expression") {
+                        v.gc.error('options value must be an expression - e.g. options={{passive:true, once:true}}', p);
+                    } else {
+                        options = p.value;
+                    }
+                }
+            }
+        }
+
+        if (!listener) {
+            v.gc.error("Missing listener parameter", d);
+        } else {
+            let passiveArg = "", optionsArg = "";
+            if (listener.code.match(/^\s*(\=\>)|(\(\s*\)\s*\=\>)/)) {
+                passiveArg = ", 1"
+            }
+            if (options) {
+                optionsArg = ", " + options.code;
+                passiveArg = passiveArg || ", 0";
+            }
+            body.push(`${v.indent}${funcStart("evt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentIdx}, "${this.name}", `);
+            pushExpressionValue(body, listener);
+            body.push(`${passiveArg}${optionsArg});\n`);
+        }
     }
 }
 

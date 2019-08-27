@@ -32,6 +32,10 @@ export let test = {
     }
 }
 
+export let testData: { lastEventListenerOptions: any } = {
+    lastEventListenerOptions: undefined
+}
+
 export async function compilationError(src: string, lineOffset = 0) {
     let r: string;
     try {
@@ -433,11 +437,12 @@ export class ElementNode {
         }
     }
 
-    addEventListener(evtName, func) {
+    addEventListener(evtName, func, options) {
         if (!this.eListeners) {
             this.eListeners = [];
         }
         this.eListeners.push({ name: evtName, func: func });
+        testData.lastEventListenerOptions = options;
     }
 
     click() {

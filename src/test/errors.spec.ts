@@ -233,6 +233,64 @@ describe('Code generation errors', () => {
         `, "1");
     });
 
+    it("should be raised for invalid event handlers", async function () {
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick=true/>
+        }`), `
+            IVY: Invalid decorator - Event listeners must be function expressions - e.g. @onclick={e=>doSomething(e)}
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div @onclick=true/> <<
+        `, "1");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick(listener options={{}})/>
+        }`), `
+            IVY: Invalid param - listener value cannot be empty
+            File: file.ts - Line 2 / Col 27
+            Extract: >> <div @onclick(listener options={{}})/> <<
+        `, "2");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick(listener=123 options={{}})/>
+        }`), `
+            IVY: Invalid param - listeners must be function expressions - e.g. listener={e=>doSomething(e)}
+            File: file.ts - Line 2 / Col 27
+            Extract: >> <div @onclick(listener=123 options={{}})/> <<
+        `, "3");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick(listener={=>foo()} options)/>
+        }`), `
+            IVY: Invalid param - options value cannot be empty
+            File: file.ts - Line 2 / Col 46
+            Extract: >> <div @onclick(listener={=>foo()} options)/> <<
+        `, "4");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick(listener={=>foo()} options=123)/>
+        }`), `
+            IVY: Invalid param - options value must be an expression - e.g. options={{passive:true, once:true}}
+            File: file.ts - Line 2 / Col 46
+            Extract: >> <div @onclick(listener={=>foo()} options=123)/> <<
+        `, "5");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick/>
+        }`), `
+            IVY: Invalid decorator - Missing event handler value for @onclick
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div @onclick/> <<
+        `, "6");
+
+        assert.equal(await error.template(`(someVar) => {
+            <div @onclick(options={{passive:true}})/>
+        }`), `
+            IVY: Invalid decorator - Missing listener parameter
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div @onclick(options={{passive:true}})/> <<
+        `, "7");
+    });
+
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {
     //         <div @content/>

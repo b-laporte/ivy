@@ -1407,7 +1407,7 @@ export function ζlblD(v: IvView, iFlag: number, idx: number, name: string, valu
 
 // Event listener
 // ζevt(ζ, ζc, 1, 0, function (e) {doSomething()});
-export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void) {
+export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void, passive?: 0 | 1, options?: any) {
     if (cm) {
         // get associated elt
         let domNode = v.nodes![eltIdx].domNode;
@@ -1427,19 +1427,25 @@ export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, event
             callback: handler
         }
         v.nodes![idx] = nd;
+        if (passive) {
+            options = options || {};
+            if (options.passive !== false) {
+                options.passive = true;
+            }
+        }
         domNode.addEventListener(eventName, function (evt: any) {
             if (nd.callback) {
                 nd.callback(evt);
             }
-        });
+        }, options);
     } else {
         // update callback as it may contain different closure values
-        (v.nodes![idx] as IvEltListener).callback = handler;
+        (v.nodes![idx] as IvEltListener).callback = handler; // TODO: optimize if options.once
     }
 }
 
-export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void) {
-    addInstruction(v, ζevt, [v, cm, idx, eltIdx, eventName, handler]);
+export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void, passive?: 0 | 1, options?: any) {
+    addInstruction(v, ζevt, [v, cm, idx, eltIdx, eventName, handler, passive, options]);
 }
 
 // Insert / Content projection instruction

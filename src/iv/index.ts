@@ -25,7 +25,7 @@ function error(view: IvView, msg: string) {
     logger.error("IVY: " + msg + infos.join(""));
 }
 
-const PROP_TEMPLATE = "$template", PROP_LOGGER = "$logger";
+const PROP_TEMPLATE = "$template", PROP_LOGGER = "$logger", RX_EVENT_EMITTER = /^ΔΔ(\w+)Emitter$/;
 let TPL_COUNT = 0;
 
 interface TemplateController {
@@ -52,7 +52,7 @@ export class Template implements IvTemplate {
     initialized = false;
     labels: { [label: string]: any[] } | undefined = undefined;
 
-    constructor(public templateName: string, public filePath: string, public renderFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
+    constructor(public templateName: string, public filePath: string, public staticCache: Object, public renderFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
         // document is undefined in a node environment
         this.view = createView(null, null, 1, this);
         let self = this;
@@ -74,6 +74,7 @@ export class Template implements IvTemplate {
         if (!this.tplApi) {
             if (this.apiClass) {
                 this.tplApi = new this.apiClass();
+                initApi(this.view, this.tplApi, this.staticCache);
             } else {
                 let ctl = this.$ctl;
                 if (ctl && ctl.$api) {
@@ -86,18 +87,21 @@ export class Template implements IvTemplate {
 
     get $ctl(): TemplateController | undefined {
         if (!this.tplCtl && this.ctlClass) {
-            this.tplCtl = new this.ctlClass();
-            if (hasProperty(this.tplCtl, PROP_TEMPLATE)) {
-                this.tplCtl[PROP_TEMPLATE] = this;
+            let ctl = this.tplCtl = new this.ctlClass();
+            if (hasProperty(ctl, PROP_TEMPLATE)) {
+                ctl[PROP_TEMPLATE] = this;
             }
-            if (hasProperty(this.tplCtl, PROP_LOGGER)) {
+            if (hasProperty(ctl, PROP_LOGGER)) {
                 let v = this.view;
-                this.tplCtl[PROP_LOGGER] = <IvLogger>{
+                ctl[PROP_LOGGER] = <IvLogger>{
                     log: logger.log,
                     error(msg: string, ...optionalParams: any[]) {
                         error(v, msg + (optionalParams.length ? " " + optionalParams.join(" ") : ""));
                     }
                 };
+            }
+            if (ctl.$api) {
+                initApi(this.view, ctl.$api, this.staticCache);
             }
         }
         return this.tplCtl;
@@ -231,6 +235,41 @@ export class Template implements IvTemplate {
     }
 }
 
+/**
+ * Initializes the api object (e.g. event Emitters)
+ * @param api 
+ * @param staticCache 
+ */
+function initApi(view: IvView, api: Object, staticCache: Object) {
+    let events: string[] | null | undefined = staticCache["events"];
+    if (events === undefined) {
+        // first time call - scan api object to look for event emitters
+        let arr: string[] | undefined;
+        for (let k in api) {
+            if (k.match(RX_EVENT_EMITTER)) {
+                let eventName = RegExp.$1;
+                if (!arr) {
+                    arr = [];
+                }
+                if (typeof api[eventName + "Emitter"]["init"] !== "function") {
+                    error(view, "Invalid EventEmitter: " + eventName + "Emitter");
+                } else {
+                    arr.push(eventName + "Emitter");
+                    arr.push(eventName);
+                    api[eventName + "Emitter"].init(eventName, api);
+                }
+            }
+        }
+        staticCache["events"] = arr ? arr : null;
+    } else if (events !== null) {
+        let len = events.length;
+        // events contains event emitter names / event name - e.g. ["clickEmitter", "click", "hoverEmitter", "hover"]
+        for (let i = 0; len > i; i += 2) {
+            api[events[i]].init(events[i + 1], api);
+        }
+    }
+}
+
 function callLCHook(view: IvView, $ctl: TemplateController, hook: "$init" | "$beforeRender" | "$afterRender") {
     // life cycle hook
     if ($ctl[hook]) {
@@ -318,9 +357,13 @@ function setParentView(v: IvView, pv: IvView, container: IvContainer | null) {
     }
 }
 
+/**
+ * Placeholder function - will replace with ζt(...) at compilation time
+ * @param template 
+ */
 export function template(template: string): () => IvTemplate {
     return function () {
-        return new Template("", "", () => { })
+        return new Template("", "", {}, () => { })
     }
 };
 
@@ -329,9 +372,9 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param renderFn 
  */
-export function ζt(tplName: string, tplFile: string, renderFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, stateClass?): () => IvTemplate {
+export function ζt(tplName: string, tplFile: string, staticCache: Object, renderFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, ctlClass?): () => IvTemplate {
     return function () {
-        return new Template(tplName, tplFile, renderFn, argumentClass || undefined, stateClass, hasHost === 1);
+        return new Template(tplName, tplFile, staticCache, renderFn, argumentClass || undefined, ctlClass, hasHost === 1);
     }
 }
 
@@ -1013,7 +1056,7 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
 
             let cptRef = getExprValue(v, iFlag, exprCptRef);
             if (cptRef === ζu) {
-                console.error("[iv] Invalid component ref")
+                error(v, "Invalid component ref")
                 return;
             }
             let tpl: Template = container.template = cptRef()!;
@@ -1062,8 +1105,8 @@ export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, paren
 // Component call - used when a component has content, params or param nodes
 export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, labels?: any[] | 0, dynParamNames?: string[]) {
     container = container || v.nodes![idx] as IvCptContainer;
-    let tpl = container ? container.template as Template : null;
-    if (tpl) {
+    let tpl = container ? container.template as Template : undefined;
+    if (tpl !== undefined) {
         let cm = v.cm;
         tpl.view.lastRefresh = v.lastRefresh - 1; // will be incremented by refresh()
 
@@ -1410,12 +1453,66 @@ export function ζlblD(v: IvView, iFlag: number, idx: number, name: string, valu
 export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, eventName: string, handler: (e: any) => void, passive?: 0 | 1, options?: any) {
     if (cm) {
         // get associated elt
-        let domNode = v.nodes![eltIdx].domNode;
-        if (!domNode) {
-            console.log("[ERROR] Invalid ζevt call: parent element must have a DOM node");
-            return;
+        let parent = v.nodes![eltIdx];
+        if (parent.kind === "#element") {
+            let domNode = parent.domNode;
+            if (!domNode) {
+                error(v, "Cannot set " + eventName + " event listener: undefined DOM node");
+                return;
+            }
+            // create and register event listener
+            let nd = createListener(domNode);
+            if (passive) {
+                options = options || {};
+                if (options.passive !== false) {
+                    options.passive = true;
+                }
+            }
+            domNode.addEventListener(eventName, function (evt: any) {
+                if (nd.callback) {
+                    nd.callback(evt);
+                }
+            }, options);
+        } else if (parent.kind === "#container") {
+            let template = (parent as IvCptContainer).template;
+            if (!template) {
+                error(v, "Cannot set " + eventName + " event listener: undefined component template");
+            } else {
+                addListener(template!.$api, false);
+            }
+        } else if (parent.kind === "#param") {
+            addListener((parent as IvParamNode).data, true);
         }
-        // create and register event listener
+
+    } else {
+        // update callback as it may contain different closure values
+        (v.nodes![idx] as IvEltListener).callback = handler; // TODO: optimize if options.once
+    }
+
+    function addListener(api: any, initEmitter: boolean) {
+        if (!api || !hasProperty(api, eventName + "Emitter")) {
+            error(v, "Unsupported event: " + eventName);
+        } else {
+            let emitter = api[eventName + "Emitter"];
+            if (!emitter.addListener || typeof (emitter.addListener) !== "function") {
+                error(v, "Invalid event emitter for: " + eventName);
+            } else {
+                // emitter.addListener
+                let nd = createListener(null);
+                emitter.addListener(function (evt: any) {
+                    if (nd.callback) {
+                        nd.callback(evt);
+                    }
+                });
+                if (initEmitter && typeof emitter.init === "function") {
+                    // this should be done earlier, but there is no easy hook for param nodes for the time being
+                    emitter.init(eventName, api);
+                }
+            }
+        }
+    }
+
+    function createListener(domNode) {
         let nd: IvEltListener = {
             kind: "#listener",
             uid: "evt" + (++uidCount),
@@ -1427,20 +1524,7 @@ export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, event
             callback: handler
         }
         v.nodes![idx] = nd;
-        if (passive) {
-            options = options || {};
-            if (options.passive !== false) {
-                options.passive = true;
-            }
-        }
-        domNode.addEventListener(eventName, function (evt: any) {
-            if (nd.callback) {
-                nd.callback(evt);
-            }
-        }, options);
-    } else {
-        // update callback as it may contain different closure values
-        (v.nodes![idx] as IvEltListener).callback = handler; // TODO: optimize if options.once
+        return nd;
     }
 }
 

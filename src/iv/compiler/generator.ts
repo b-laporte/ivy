@@ -89,9 +89,9 @@ const NO = 0,
     } = {
         "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER, "@onevent": 0 },
         "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES, "@onevent": 1 },
-        "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES, "@onevent": 0 },
+        "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES, "@onevent": 1 },
         "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 0 },
-        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 0 },
+        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 1 },
         "#decoratorNode": LATER,
         "#{element}": LATER,
         "#{paramNode}": LATER
@@ -336,7 +336,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
             argNames += ", $template";
         }
     }
-    lines.push(`${indent}return ζt("${gc.templateName}", "${gc.filePath}", function (ζ${argNames}) {`);
+    lines.push(`${indent}return ζt("${gc.templateName}", "${gc.filePath}", ζs0, function (ζ${argNames}) {`);
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }
@@ -344,12 +344,12 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
 }
 
 function templateEnd(tf: XjsTplFunction) {
-    let argClassName = tf[MD_PARAM_CLASS], stateClassName = tf[MD_CTL_CLASS];
-    if (argClassName || stateClassName) {
-        if (stateClassName && !argClassName) {
+    let argClassName = tf[MD_PARAM_CLASS], ctlClassName = tf[MD_CTL_CLASS];
+    if (argClassName || ctlClassName) {
+        if (ctlClassName && !argClassName) {
             argClassName = "0";
         }
-        return `}, 0, ${argClassName}${stateClassName ? ", " + stateClassName : ""});\n${reduceIndent(tf.indent)}})()`;
+        return `}, 0, ${argClassName}${ctlClassName ? ", " + ctlClassName : ""});\n${reduceIndent(tf.indent)}})()`;
     }
     return '});\n' + reduceIndent(tf.indent) + '})()';
 }
@@ -514,8 +514,8 @@ export class ViewInstruction implements RuntimeInstruction {
                     for (let d of f.decorators) {
                         codeRef = d.ref.code;
                         let values = SUPPORTED_BUILT_IN_DECORATORS[d.ref.code];
-                        if (nk === "#paramNode" && codeRef !== "value") {
-                            gc.error(`Only @value decorator can be used on Parameter nodes`, d);
+                        if (nk === "#paramNode" && codeRef !== "value" && !codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
+                            gc.error(`Only @value and event listener decorators can be used on Parameter nodes`, d);
                         } else if (values && values[nk] === NO) {
                             gc.error(`@${d.ref.code} is not supported on ${VALIDATION_NAMES[nk]}`, d);
                         } else if (codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
@@ -598,7 +598,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
                     this.generateDynLabelInstructions(nd as XjsElement, idx, iFlag, this);
                     this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iFlag);
-                    this.createListeners(nd as XjsElement, idx, iFlag);
+                    this.createListeners(nd as XjsElement, idx, iFlag, this);
                     content = nd.content;
                 }
                 break;
@@ -625,6 +625,10 @@ export class ViewInstruction implements RuntimeInstruction {
                             ci.callImmediately = true;
                         }
                         this.hasParamNodes = false;
+                    }
+                    if (this.createListeners(nd as XjsComponent, idx, iFlag, this)) {
+                        callImmediately = false;
+                        ci.callImmediately = false;
                     }
                     if (!callImmediately) {
                         this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
@@ -703,6 +707,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     pi = new PndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, cpnParentLevel + 1, "0", i1, this.indent, parentIdx, instanceVarName, hasContent);
                 this.instructions.push(pi);
                 this.generateParamInstructions(nd as XjsParamNode, newIdx, cptIFlag, false, v);
+                this.createListeners(nd as XjsParamNode, newIdx, cptIFlag, v);
 
                 if (hasContent) {
                     let vi = new ViewInstruction("paramContent", nd as XjsParamNode, newIdx, v, 1);
@@ -985,15 +990,18 @@ export class ViewInstruction implements RuntimeInstruction {
         }
     }
 
-    createListeners(nd: XjsElement, parentIdx: number, iFlag: number) {
-        if (!nd.decorators) return;
-        let name: string;
+    // return true if some listeners have been created
+    createListeners(nd: XjsElement | XjsComponent | XjsParamNode, parentIdx: number, iFlag: number, view: ViewInstruction): boolean {
+        if (!nd.decorators) return false;
+        let name: string, result = false;
         for (let d of nd.decorators) {
             name = d.ref.code;
             if (name.match(RX_EVT_HANDLER_DECORATOR)) {
-                this.instructions.push(new EvtInstruction(d, RegExp.$1, this.nodeCount++, parentIdx, this, iFlag));
+                this.instructions.push(new EvtInstruction(d, RegExp.$1, view.nodeCount++, parentIdx, view, iFlag));
+                result = true;
             }
         }
+        return result;
     }
 
     rejectAsyncDecorator(nd: XjsText | XjsParamNode) {

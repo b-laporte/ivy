@@ -171,7 +171,7 @@ describe('Code generation errors', () => {
                 <.paramA @text="abc"/>
             </>
         }`), `
-            IVY: Invalid decorator - Only @value decorator can be used on Parameter nodes
+            IVY: Invalid decorator - Only @value and event listener decorators can be used on Parameter nodes
             File: file.ts - Line 3 / Col 26
             Extract: >> <.paramA @text="abc"/> <<
         `);

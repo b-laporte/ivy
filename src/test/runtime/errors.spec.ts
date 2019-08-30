@@ -1,14 +1,18 @@
 import * as assert from 'assert';
-import { template, logger, Controller } from '../../iv';
+import { template, logger, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { Data } from '../../trax/trax';
 import { IvLogger } from '../../iv/types';
+import { IvEventEmitter } from '../../iv/events';
 
 describe('Errors', () => {
     let body: ElementNode, defaultLog = logger.error, error = "";
 
     function logError(msg: string) {
-        error = "            " + msg.replace(/\n/g, "\n            ");
+        if (error) {
+            error += "\n";
+        }
+        error += "            " + msg.replace(/\n/g, "\n            ");
     }
 
     beforeEach(() => {
@@ -271,4 +275,128 @@ describe('Errors', () => {
             >> Template: "test" - File: "runtime/errors.spec.ts"`
             , "1");
     });
+
+    it("should be raised in case of invalid event handler (1)", function () {
+        function doSomething() { }
+
+        const cpt = template(`() => {
+            # Hello #
+        }`);
+
+        const err = template(`() => {
+            <*cpt @onclick={=>doSomething()} />
+        }`);
+
+        getTemplate(err, body).render();
+        assert.equal(error, `\
+            IVY: Unsupported event: click
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised in case of invalid event handler (2)", function () {
+        function doSomething() { }
+
+        @API class CptAPI {
+            fooEmitter: IvEventEmitter;
+        }
+        const cpt = template(`($api:CptAPI) => {
+            # Hello #
+        }`);
+
+        const err = template(`() => {
+            <*cpt @onclick={=>doSomething()} />
+        }`);
+
+        getTemplate(err, body).render();
+        assert.equal(error, `\
+            IVY: Unsupported event: click
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised in case of invalid event handler (3)", function () {
+        class Foo {
+            bar = 123;
+        }
+
+        @API class CptAPI {
+            clickEmitter: Foo;
+        }
+        const cpt = template(`($api:CptAPI) => {
+            # Hello #
+        }`);
+
+        const err = template(`() => {
+            <*cpt @onclick={=>123} />
+        }`);
+
+        getTemplate(err, body).render();
+        assert.equal(error, `\
+            IVY: Invalid EventEmitter: clickEmitter
+            >> Template: "cpt" - File: "runtime/errors.spec.ts"
+            >> Template: "err" - File: "runtime/errors.spec.ts"
+            IVY: Invalid event emitter for: click
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised in case of invalid event handler (4)", function () {
+        class Foo {
+            init() { }
+        }
+
+        @API class CptAPI {
+            clickEmitter: Foo;
+        }
+        const cpt = template(`($api:CptAPI) => {
+            # Hello #
+        }`);
+
+        const err = template(`() => {
+            <*cpt @onclick={=>123} />
+        }`);
+
+        getTemplate(err, body).render();
+        assert.equal(error, `\
+            IVY: Invalid event emitter for: click
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised in case of invalid event handler (5)", function () {
+        @Data class HelloHeader {
+            title: string;
+            clickEmitter: IvEventEmitter;
+        }
+        @API class HelloAPI {
+            name: string = "";
+            header: HelloHeader;
+            clickOnHeader: () => boolean;
+        }
+        @Controller class HelloCtl {
+            $api: HelloAPI;
+            $init() {
+                this.$api.clickOnHeader = () => {
+                    return this.$api.header.clickEmitter.emit("HEADER CLICKED");
+                }
+            }
+        }
+        const hello = template(`($ctl:HelloCtl) => {
+            let api = $ctl.$api
+            # Hello {api.name} #
+        }`);
+        const err = template(`() => {
+            <*hello #hello name="World">
+                <.header title={"Header"} @onfoobar={=>123} />
+            </*hello>
+        }`);
+
+        getTemplate(err, body).render();
+        assert.equal(error, `\
+            IVY: Unsupported event: foobar
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
 });

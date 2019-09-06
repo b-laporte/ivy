@@ -14,4 +14,5 @@ import "./xmlns.spec";
 import "./errors.spec";
 import "./logger.spec";
 import "./event-emitters.spec";
+import "./decorators.spec";
 // import "./async.spec";

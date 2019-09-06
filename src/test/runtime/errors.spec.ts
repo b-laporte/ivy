@@ -110,7 +110,7 @@ describe('Errors', () => {
 
         let t = getTemplate(err, body).render();
         assert.equal(error, `\
-            IVY: $afterRender hook execution error
+            IVY: controller $afterRender hook execution error
             Cannot read property 'foo' of undefined
             >> Template: "err" - File: "runtime/errors.spec.ts"`
             , "1");

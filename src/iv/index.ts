@@ -1,4 +1,4 @@
-import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvElement, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger } from './types';
+import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax/trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
@@ -25,7 +25,18 @@ function error(view: IvView, msg: string) {
     logger.error("IVY: " + msg + infos.join(""));
 }
 
-const PROP_TEMPLATE = "$template", PROP_LOGGER = "$logger", RX_EVENT_EMITTER = /^ΔΔ(\w+)Emitter$/;
+const U = undefined,
+    PROP_TEMPLATE = "$template",
+    PROP_LOGGER = "$logger",
+    RX_EVENT_EMITTER = /^ΔΔ(\w+)Emitter$/,
+    RX_TRAX_PROP_PREFIX = /^ΔΔ/,
+    RX_ERROR_ARGS = /([^ ]+)\s([^ ]+)/,
+    DEFAULT_DECO_PARAM = "ΔDefaultParam",
+    REQUIRED_PROPS = "ΔRequiredProps",
+    DECORATOR_ERRORS = {
+        "$targetApi": "$1 cannot be used on DOM nodes",
+        "$targetElt": "$1 cannot be used on components that don't define #main elements"
+    }
 let TPL_COUNT = 0;
 
 interface TemplateController {
@@ -197,10 +208,10 @@ export class Template implements IvTemplate {
             // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
             if ($ctl) {
                 if (!this.initialized) {
-                    callLCHook(view, $ctl, "$init");
+                    callLcHook(view, $ctl, "$init", "controller");
                     this.initialized = true;
                 }
-                callLCHook(view, $ctl, "$beforeRender");
+                callLcHook(view, $ctl, "$beforeRender", "controller");
             }
             this.rendering = true;
             this.labels = undefined;
@@ -216,7 +227,7 @@ export class Template implements IvTemplate {
 
             if ($ctl) {
                 // changes in $afterRender() cannot trigger a new render to avoid infinite loops
-                callLCHook(view, $ctl, "$afterRender");
+                callLcHook(view, $ctl, "$afterRender", "controller");
             }
             commitChanges($api); // will change p or state version
             this.forceRefresh = false;
@@ -270,13 +281,13 @@ function initApi(view: IvView, api: Object, staticCache: Object) {
     }
 }
 
-function callLCHook(view: IvView, $ctl: TemplateController, hook: "$init" | "$beforeRender" | "$afterRender") {
+function callLcHook(view: IvView, hookHolder: any, hook: "$init" | "$render" | "$beforeRender" | "$afterRender", context: string) {
     // life cycle hook
-    if ($ctl[hook]) {
+    if (typeof hookHolder[hook] === "function") {
         try {
-            $ctl[hook]!();
+            hookHolder[hook]!();
         } catch (ex) {
-            error(view, hook + " hook execution error\n" + (ex.message || ex));
+            error(view, context + " " + hook + " hook execution error\n" + (ex.message || ex));
         }
     }
 }
@@ -324,25 +335,41 @@ function createView(parentView: IvView | null, container: IvContainer | null, sr
 }
 
 /**
- * Register a labelled object (e.g. DOM node, component...) on the view template
+ * Register a labelled object (e.g. DOM node, component, decorator...) on the view template
  * @param v 
  * @param object the object to register on the labels
- * @param labels array of names, collection indicator (e.g. ["#header", 0, "#buttons", 1])
+ * @param labels array of names, forward indicator (e.g. ["#header", 0, "#buttons", 1])
  */
 function registerLabels(v: IvView, object: any, labels?: any[] | 0) {
     if (labels) {
         // get the template view
-        let view: IvView | null = v;
-        while (view && !view.template) {
-            view = view.parentView;
-        }
-        if (view) {
+        let view = getTemplateView(v);
+        if (view !== U && view !== null) {
             let tpl = view.template!, len = labels.length;
             for (let i = 0; len > i; i++) {
                 (tpl as Template).registerLabel(labels[i], object);
             }
         }
     }
+}
+
+function registerLabel(v: IvView, object: any, label: any | 0) {
+    if (label !== 0) {
+        // get the template view
+        let view = getTemplateView(v);
+        if (view !== U && view !== null) {
+            (view.template! as Template).registerLabel(label, object);
+        }
+    }
+}
+
+function getTemplateView(v: IvView): IvView | null {
+    let view: IvView | null = v;
+    while (view && !view.template) {
+        view = view.parentView;
+    }
+    return view!;
+
 }
 
 function setParentView(v: IvView, pv: IvView, container: IvContainer | null) {
@@ -639,7 +666,7 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
         }
     }
     if (nd.kind === "#fragment" || nd.kind === "#element") {
-        let cv = (nd as IvFragment | IvElement).contentView;
+        let cv = (nd as IvFragment | IvEltNode).contentView;
         if (cv) {
             insertInDom(cv.nodes![0], insertFn, 7);
         }
@@ -719,7 +746,7 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
             e[staticProperties[j]] = staticProperties[j + 1];
         }
     }
-    let nd: IvElement = {
+    let nd: IvEltNode = {
         kind: "#element",
         uid: "elt" + (++uidCount),
         idx: idx,
@@ -1380,8 +1407,8 @@ export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, nam
     let val = getExprValue(v, iFlag, expr);
 
     if (val !== ζu) {
-        let nd = v.nodes![eltIdx];
-        if (nd.kind === "#container") {
+        let nd = v.nodes![eltIdx], k = nd.kind;
+        if (k === "#container") {
             let p = (nd as IvCptContainer).data;
             if (p) {
                 // name is 1 for @value that can only be used on param nodes
@@ -1393,7 +1420,7 @@ export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, nam
             } else {
                 error(v, "Invalid parameter: " + name);
             }
-        } else if (nd.kind === "#param") {
+        } else if (k === "#param") {
             let p = (nd as IvParamNode);
             if (name === 1) {
                 // @value parameter
@@ -1411,6 +1438,15 @@ export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, nam
                     p.data[name] = val;
                 }
             }
+        } else if (k === "#decorator") {
+            let d = (nd as IvDecoNode);
+            if (cm) {
+                if (!hasProperty(d.api, name as string)) {
+                    error(v, "Invalid decorator parameter: " + name);
+                    return;
+                }
+            }
+            d.api[name] = val;
         }
     }
 }
@@ -1418,7 +1454,7 @@ export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, nam
 export function ζparD(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string, expr: any) {
     if (expr !== ζu) {
         let nd = v.nodes![eltIdx];
-        if (nd.kind === "#param") {
+        if (nd !== U && nd.kind === "#param") {
             ζpar(v, cm, 0, eltIdx, name, expr);
         } else {
             addInstruction(v, ζpar, [v, cm, iFlag, eltIdx, name, expr]);
@@ -1434,10 +1470,12 @@ export function ζlbl(v: IvView, iFlag: number, idx: number, name: string, value
         if (o.kind === "#container" && (o as IvContainer).subKind === "##cpt") {
             let tpl = (o as IvCptContainer).template;
             if (tpl) {
-                registerLabels(v, tpl.$api, [name]);
+                registerLabel(v, tpl.$api, name);
             }
         } else if (o.domNode) {
-            registerLabels(v, o.domNode, [name]);
+            registerLabel(v, o.domNode, name);
+        } else if (o.kind === "#decorator") {
+            registerLabel(v, (o as IvDecoNode).api, name);
         }
     }
 }
@@ -1446,6 +1484,110 @@ export function ζlblD(v: IvView, iFlag: number, idx: number, name: string, valu
     if (value) {
         addInstruction(v, ζlbl, [v, iFlag, idx, name, 1]);
     }
+}
+
+// Decorator
+// ζdeco(ζ, ζc, 0, 1, 0, REF, VAL);
+export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, parentIdx: number, decoName: string, decoRef: any, paramMode: 0 | 1 | 2, defaultValue?: any | 0, staticParams?: any[] | 0, labels?: any[]) {
+    // paramMode: 0=no params, 1=default param, 2=multiple params
+    let nd: IvDecoNode | undefined;
+    if (cm) {
+        // create decorator
+        let nodes = v.nodes!, parent = nodes[parentIdx], targetElt: any = null, targetApi: any = null, invalidTarget = false;
+        if (parent.kind === "#element") {
+            // todo: check type validity
+            targetElt = parent.domNode;
+        } else if (parent.kind === "#container" && (parent as IvContainer).subKind === "##cpt") {
+            let tpl = (parent as IvCptContainer).template!;
+            targetApi = tpl.$api;
+            targetElt = tpl.query("#main");
+        } else {
+            invalidTarget = true;
+        }
+        if (typeof decoRef !== "function" && decoRef["$isDecorator"] !== true) {
+            error(v, "Invalid decorator reference: @" + decoName);
+        } else if (invalidTarget) {
+            error(v, "Invalid decorator target for @" + decoName);
+        } else {
+            let api = new (decoRef as IvDecorator<any>).$apiClass();
+            if (targetElt !== null && hasProperty(api, "$targetElt")) {
+                api.$targetElt = targetElt;
+            }
+            if (targetApi !== null && hasProperty(api, "$targetApi")) {
+                api.$targetApi = targetApi;
+            }
+            // todo: check @required
+            let deco = (decoRef as IvDecorator<any>)(api);
+            nd = {
+                kind: "#decorator",
+                uid: "deco" + (++uidCount),
+                idx: idx,
+                parentIdx: parentIdx,
+                attached: true,
+                nextSibling: undefined,
+                domNode: undefined,
+                instance: deco,
+                api: api,
+                refName: "@" + decoName,
+                validProps: true
+            }
+            nodes[idx] = nd;
+
+            if (staticParams) {
+                let len = staticParams.length;
+                for (let i = 0; len > i; i += 2) {
+                    if (!hasProperty(api, staticParams[i])) {
+                        error(v, "Invalid decorator parameter: " + staticParams[i]);
+                    }
+                    api[staticParams[i]] = staticParams[i + 1];
+                }
+            }
+        }
+    } else {
+        nd = v.nodes![idx] as IvDecoNode;
+    }
+    if (nd !== U) {
+        let api = nd.api;
+        if (paramMode === 1) {
+            let dp = api[DEFAULT_DECO_PARAM];
+            if (dp === U) {
+                error(v, "@" + decoName + " doesn't define any default parameter");
+            } else {
+                api[dp] = defaultValue;
+            }
+        }
+        if (paramMode !== 2) {
+            callDecoInstance(v, cm, nd);
+        }
+        registerLabels(v, api, labels);
+    }
+}
+
+function callDecoInstance(v: IvView, cm: boolean, d: IvDecoNode) {
+    if (cm) {
+        d.validProps = checkRequiredProps(v, d.api, d.refName, DECORATOR_ERRORS);
+        if (d.validProps) {
+            callLcHook(v, d.instance, "$init", d.refName);
+        }
+    }
+    if (d.validProps) {
+        callLcHook(v, d.instance, "$render", d.refName);
+    }
+}
+
+export function ζdecoD(v: IvView, cm: boolean, iFlag: number, idx: number, parentIdx: number, decoName: string, decoRef: any, paramMode: 0 | 1 | 2, defaultValue?: any | 0, staticParams?: any[] | 0, labels?: any[]) {
+    addInstruction(v, ζdeco, [v, cm, iFlag, idx, parentIdx, decoName, decoRef, paramMode, defaultValue, staticParams, labels]);
+}
+
+export function ζdecoEnd(v: IvView, cm: boolean, iFlag: number, idx: number) {
+    let nd = v.nodes![idx] as IvDecoNode;
+    if (nd !== U) {
+        callDecoInstance(v, cm, nd);
+    }
+}
+
+export function ζdecoEndD(v: IvView, cm: boolean, iFlag: number, idx: number) {
+    addInstruction(v, ζdecoEnd, [v, cm, iFlag, idx]);
 }
 
 // Event listener
@@ -1482,6 +1624,8 @@ export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, event
             }
         } else if (parent.kind === "#param") {
             addListener((parent as IvParamNode).data, true);
+        } else if (parent.kind === "#decorator") {
+            addListener((parent as IvDecoNode).api, true);
         }
 
     } else {
@@ -1535,7 +1679,7 @@ export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, even
 // Insert / Content projection instruction
 // e.g. ζins(ζ, 1, ζe(ζ, 0, $content));
 export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: any) {
-    let projectionNode = v.nodes![idx] as (IvElement | IvFragment); // node with @content decorator: either a fragment or an element
+    let projectionNode = v.nodes![idx] as (IvEltNode | IvFragment); // node with @content decorator: either a fragment or an element
     let contentView = getExprValue(v, iFlag, exprContentView) as IvView;
 
     if ((contentView as any) === ζu || exprContentView === undefined) {
@@ -1803,6 +1947,87 @@ export const Controller = ΔD;
 export const API = ΔD;
 
 // ----------------------------------------------------------------------------------------------
+// Decorators
+
+export function decorator<ApiClass>(apiClass: { new(): ApiClass }, createInstance: (api: ApiClass) => IvDecoratorInstance): IvDecorator<ApiClass> {
+    createInstance["$apiClass"] = apiClass;
+    createInstance["$isDecorator"] = true;
+    return createInstance as IvDecorator<ApiClass>;
+}
+
+export interface IvElement {
+    // subset of typescript HTMLElement to simplify tests / mocking
+
+    className: string;
+    readonly clientHeight: number;
+    readonly clientLeft: number;
+    readonly clientTop: number;
+    readonly clientWidth: number;
+
+    id: string;
+
+    readonly scrollHeight: number;
+    scrollLeft: number;
+    scrollTop: number;
+    readonly scrollWidth: number;
+
+    readonly tagName: string;
+    title: string;
+
+    setAttribute(qualifiedName: string, value: string): void;
+    removeAttribute(qualifiedName: string): void;
+
+    addEventListener(type: string, listener: (e?: any) => void, options?: boolean | any): void;
+    removeEventListener(type: string, listener: (e?: any) => void, options?: boolean | any): void;
+}
+
+/** 
+ * Default value API decorator @defaultValue
+ */
+export function defaultValue(proto, key: string) {
+    // proto = object prototype
+    // key = the property name (e.g. "value")
+    proto[DEFAULT_DECO_PARAM] = key.replace(RX_TRAX_PROP_PREFIX, "");
+}
+
+/**
+ * API decorator to indicate that some properties are expected to be set
+ * Ivy will use this indication to raise automatic errors 
+ * (e.g. missing $targetElt or $targetApi)
+ */
+export function required(proto, key: string) {
+    // proto = object prototype
+    // key = the property name (e.g. "ΔΔ$targetElt")
+
+    let requiredProps = proto[REQUIRED_PROPS] as string[];
+    if (requiredProps === U) {
+        requiredProps = proto[REQUIRED_PROPS] = []
+    }
+    requiredProps.push(key);
+}
+
+function checkRequiredProps(v: IvView, o: Object, context: string, msgMap?: { [propName: string]: string }): boolean {
+    // return true if ok
+    if (o[REQUIRED_PROPS] !== U) {
+        let requiredProps = o[REQUIRED_PROPS] as string[], val: any, ok = true;
+        for (let idx in requiredProps) {
+            val = o[requiredProps[idx]];
+            if (val === U || val === null) {
+                let propName = requiredProps[idx].replace(RX_TRAX_PROP_PREFIX, "");
+                if (msgMap !== U && msgMap[propName] !== U) {
+                    error(v, (context + " " + propName).replace(RX_ERROR_ARGS, msgMap[propName])); // todo RegEx
+                } else {
+                    error(v, propName + " property is required for " + context);
+                }
+                ok = false;
+            }
+        }
+        return ok;
+    }
+    return true;
+}
+
+// ----------------------------------------------------------------------------------------------
 // Async functions
 
 export async function asyncComplete() {
@@ -1906,7 +2131,7 @@ export function logViewNodes(v: IvView, indent: string = "") {
                     ch = ch.nextSibling;
                 }
                 lastArg = " children:[" + children.join(", ") + "]";
-                let cnView = (nd as IvFragment | IvElement).contentView;
+                let cnView = (nd as IvFragment | IvEltNode).contentView;
                 if (cnView) {
                     lastArg += " >>> content view: " + cnView.uid;
                 }

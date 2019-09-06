@@ -286,6 +286,10 @@ export class ElementNode {
         incrementChanges(this, "$className");
     }
 
+    get tagName() {
+        return this.nodeName.toUpperCase();
+    }
+
     appendChild(node) {
         if (!node) return;
         if (node.nodeName && node.nodeName === "#doc-fragment") {

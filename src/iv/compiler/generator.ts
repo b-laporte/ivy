@@ -574,7 +574,7 @@ export class ViewInstruction implements RuntimeInstruction {
             case "#textNode":
                 this.rejectAsyncDecorator(nd as XjsText);
                 this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsText)));
-                this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
+                this.generateDecoratorInstructions(nd, idx, iFlag);
                 this.generateDynLabelInstructions(nd as XjsText, idx, iFlag, this);
                 break;
             case "#fragment":
@@ -584,7 +584,7 @@ export class ViewInstruction implements RuntimeInstruction {
                         this.instructions.push(new XmlNsInstruction(this, iFlag, true, xmlns));
                     }
                     this.instructions.push(new FraInstruction(nd, idx, this, iFlag, parentLevel));
-                    this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
+                    this.generateDecoratorInstructions(nd, idx, iFlag);
                     content = nd.content;
                 }
                 break;
@@ -597,7 +597,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsElement), stParams));
                     this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
                     this.generateDynLabelInstructions(nd as XjsElement, idx, iFlag, this);
-                    this.generateBuiltInDecoratorsInstructions(nd as XjsElement, idx, iFlag);
+                    this.generateDecoratorInstructions(nd as XjsElement, idx, iFlag);
                     this.createListeners(nd as XjsElement, idx, iFlag, this);
                     content = nd.content;
                 }
@@ -605,7 +605,7 @@ export class ViewInstruction implements RuntimeInstruction {
             case "#component":
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
                     // create a container block
-                    let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length);
+                    let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length) && !nd.decorators;
                     let ci = new CptInstruction(nd as XjsComponent, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsComponent), callImmediately, i1)
                     this.instructions.push(ci);
                     if (containsParamExpr) {
@@ -621,20 +621,17 @@ export class ViewInstruction implements RuntimeInstruction {
                         this.hasParamNodes = false;
                         vi.scan(); // will update this.hasParamNodes
                         if (!vi.hasChildNodes && !this.hasParamNodes) {
-                            callImmediately = true;
-                            ci.callImmediately = true;
+                            ci.callImmediately = callImmediately = true;
                         }
                         this.hasParamNodes = false;
                     }
                     if (this.createListeners(nd as XjsComponent, idx, iFlag, this)) {
-                        callImmediately = false;
-                        ci.callImmediately = false;
+                        ci.callImmediately = callImmediately = false;
                     }
                     if (!callImmediately) {
-                        this.generateBuiltInDecoratorsInstructions(nd, idx, iFlag);
                         this.instructions.push(new CallInstruction(idx, this, iFlag, ci));
                     }
-                    // this.createContentFragment(nd as XjsComponent, nd as XjsComponent);
+                    this.generateDecoratorInstructions(nd, idx, iFlag, false, true);
                 }
                 break;
             case "#paramNode":
@@ -842,7 +839,7 @@ export class ViewInstruction implements RuntimeInstruction {
      * Parse the XJS node to look for labels - e.g. #foo or #bar[] or #baz[{expr()}]
      * @param nd 
      */
-    generateLabelStatics(nd: XjsElement | XjsText | XjsComponent): string {
+    generateLabelStatics(nd: XjsElement | XjsText | XjsComponent | XjsDecorator): string {
         if (nd.labels && nd.labels.length) {
             let lbl: XjsLabel, labels = nd.labels, len = labels.length, values: any[] = [];
             for (let i = 0; labels.length > i; i++) {
@@ -862,12 +859,12 @@ export class ViewInstruction implements RuntimeInstruction {
         return "0"; // no labels
     }
 
-    generateParamInstructions(f: XjsFragment, idx: number, iFlag: number, isAttribute: boolean, view: ViewInstruction) {
+    generateParamInstructions(nd: XjsFragment | XjsDecorator, idx: number, iFlag: number, isAttribute: boolean, view: ViewInstruction) {
         // dynamic params / attributes
-        if (f.params && f.params.length) {
-            let len = f.params.length, p: XjsParam, isParamNode = f.kind === "#paramNode";
+        if (nd.params && nd.params.length) {
+            let len = nd.params.length, p: XjsParam, isParamNode = nd.kind === "#paramNode";
             for (let i = 0; len > i; i++) {
-                p = f.params[i];
+                p = nd.params[i];
                 if (p.isSpread) {
                     this.gc.error("Spread operator is no supported yet", p);
                 }
@@ -877,11 +874,11 @@ export class ViewInstruction implements RuntimeInstruction {
             }
         }
 
-        if (f.kind === "#paramNode" && f.decorators) {
+        if (nd.kind === "#paramNode" && nd.decorators) {
             // look for @value decorator
-            for (let d of f.decorators) {
+            for (let d of nd.decorators) {
                 if (d.ref.code === "value") {
-                    if (f.params) {
+                    if (nd.params) {
                         this.gc.error("@value cannot be mixed with other parameters", d);
                     }
                     this.instructions.push(new ParamInstruction(d, idx, view, iFlag, false, this.indent, true));
@@ -889,10 +886,10 @@ export class ViewInstruction implements RuntimeInstruction {
             }
         }
         // dynamic properties
-        if (f.properties && f.properties.length) {
-            let len = f.properties.length, p: XjsProperty;
+        if (nd.kind !== "#decorator" && nd.properties && nd.properties.length) {
+            let len = nd.properties.length, p: XjsProperty;
             for (let i = 0; len > i; i++) {
-                p = f.properties[i];
+                p = nd.properties[i];
                 if (p.isSpread) {
                     this.gc.error("Spread operator is no supported yet", p);
                 }
@@ -906,12 +903,12 @@ export class ViewInstruction implements RuntimeInstruction {
         }
     }
 
-    generateDynLabelInstructions(f: XjsFragment | XjsText | XjsComponent, idx: number, iFlag: number, view: ViewInstruction) {
+    generateDynLabelInstructions(nd: XjsFragment | XjsText | XjsComponent | XjsDecorator, idx: number, iFlag: number, view: ViewInstruction) {
         // dynamic labels
-        if (f.labels && f.labels.length) {
-            let len = f.labels.length, lbl: XjsLabel;
+        if (nd.labels && nd.labels.length) {
+            let len = nd.labels.length, lbl: XjsLabel;
             for (let i = 0; len > i; i++) {
-                lbl = f.labels[i];
+                lbl = nd.labels[i];
                 if (!lbl.isOrphan && lbl.value) {
                     if (!lbl.fwdLabel) {
                         this.instructions.push(new LblInstruction(lbl, idx, view, iFlag, this.indent));
@@ -973,17 +970,39 @@ export class ViewInstruction implements RuntimeInstruction {
         this.asyncValue = asyncValue;
     }
 
-    generateBuiltInDecoratorsInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iFlag: number) {
-        let d = nd.decorators;
+    generateDecoratorInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iFlag: number, includeBuiltIn = true, includeCustomDecorators = true) {
+        let d = nd.decorators, len1 = this.instructions.length;
         if (d) {
-            let len = d.length, deco: XjsDecorator;
+            let len = d.length, deco: XjsDecorator, kind = nd.kind, decoRef = "";
             for (let i = 0; len > i; i++) {
                 deco = d[i];
-                if (deco.ref && deco.ref.code === "content") {
-                    if (nd.kind == "#textNode") {
-                        this.gc.error("@content can not be used on text nodes", nd);
-                    } else {
-                        this.instructions.push(new InsInstruction(deco, nd, idx, this, iFlag));
+                decoRef = deco.ref ? deco.ref.code : "";
+                if (decoRef === "content") {
+                    if (includeBuiltIn) {
+                        // todo: @content on components, param nodes and decorator nodes
+                        if (kind === "#element" || kind === "#fragment") {
+                            this.instructions.push(new InsInstruction(deco, nd as XjsElement | XjsFragment, idx, this, iFlag));
+                        } else {
+                            this.gc.error("@content can not be used on " + VALIDATION_NAMES[kind], nd);
+                        }
+                    }
+                } else if (decoRef === "async" || decoRef === "key" || decoRef === "value" || decoRef === "xmlns" || decoRef.match(RX_EVT_HANDLER_DECORATOR)) {
+                    // built-in decorators: @async, @key, @onXXX, @xmlns, @value
+                    continue;
+                } else if (includeCustomDecorators) {
+                    // custom decorator
+                    let sIdx = -1, containsParamExpr = false;
+                    [sIdx, containsParamExpr] = this.registerStatics(deco.params);
+                    let decoIdx = this.nodeCount++,
+                        decoInstr = new DecoInstruction(deco, decoIdx, idx, this, iFlag, this.indent, sIdx, this.generateLabelStatics(deco));
+                    this.instructions.push(decoInstr);
+                    if (containsParamExpr) {
+                        this.generateParamInstructions(deco, decoIdx, iFlag, false, this);
+                    }
+                    this.generateDynLabelInstructions(deco, decoIdx, iFlag, this);
+                    this.createListeners(deco, decoIdx, iFlag, this);
+                    if (decoInstr.paramMode === 2) {
+                        this.instructions.push(new DecoCallInstruction(decoInstr));
                     }
                 }
             }
@@ -991,7 +1010,7 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     // return true if some listeners have been created
-    createListeners(nd: XjsElement | XjsComponent | XjsParamNode, parentIdx: number, iFlag: number, view: ViewInstruction): boolean {
+    createListeners(nd: XjsElement | XjsComponent | XjsParamNode | XjsDecorator, parentIdx: number, iFlag: number, view: ViewInstruction): boolean {
         if (!nd.decorators) return false;
         let name: string, result = false;
         for (let d of nd.decorators) {
@@ -1283,6 +1302,63 @@ class ParamInstruction implements RuntimeInstruction {
             generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
         }
         body.push(');\n');
+    }
+}
+
+class DecoInstruction implements RuntimeInstruction {
+    paramMode: 0 | 1 | 2 = 0; // 0=no params, 1=default param, 2=multiple params
+
+    constructor(public node: XjsDecorator, public idx: number, public parentIdx: number, public view: ViewInstruction, public iFlag: number, public indent: string, public staticsIdx: number, public staticLabels: string) {
+        this.view.gc.imports["ζdeco" + getIhSuffix(iFlag)] = 1;
+
+        if (node.defaultPropValue) {
+            this.paramMode = 1; // default property value
+        } else if (this.node.params && this.node.params.length) {
+            this.paramMode = 2;
+        }
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
+        let v = this.view, iSuffix = this.iFlag ? "D" : "", dfp = this.node.defaultPropValue, hasStaticLabels = (this.staticLabels !== "0");
+
+        body.push(`${this.indent}ζdeco${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${this.parentIdx}, `);
+        body.push(`${encodeText(this.node.ref.code)}, `);
+
+        pushExpressionValue(body, this.node.ref);
+
+        body.push(", " + this.paramMode);
+        if (dfp || this.staticsIdx > -1 || hasStaticLabels) {
+            body.push(', ');
+            if (dfp) {
+                pushExpressionValue(body, dfp);
+            } else {
+                body.push('0');
+            }
+            if (this.staticsIdx > -1) {
+                body.push(', ζs' + this.staticsIdx);
+            } else if (hasStaticLabels) {
+                body.push(', 0');
+            }
+            if (hasStaticLabels) {
+                body.push(', ' + this.staticLabels);
+            }
+        }
+        body.push(');\n');
+    }
+}
+
+class DecoCallInstruction implements RuntimeInstruction {
+    constructor(public di: DecoInstruction) {
+        di.view.gc.imports["ζdecoEnd" + getIhSuffix(di.iFlag)] = 1;
+    }
+
+    pushCode(body: BodyContent[]) {
+        // e.g. ζdecoEnd(ζ, ζc, 0, 1);
+        let di = this.di, v = di.view, iSuffix = di.iFlag ? "D" : "";
+
+        body.push(`${di.indent}ζdecoEnd${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${di.iFlag ? 1 : 0}, ${di.idx});\n`);
+
     }
 }
 

@@ -10,7 +10,7 @@ const SK = ts.SyntaxKind,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_LIST = /List$/,
-    IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger"],
+    IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement"],
     CR = "\n",
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 

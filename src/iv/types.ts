@@ -1,3 +1,4 @@
+import { IvDecoNode } from './types';
 
 export interface IvDocument {
     createTextNode(data: string): any;
@@ -26,7 +27,7 @@ export interface IvLogger {
 }
 
 export interface IvNode {
-    kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#listener" | "#param";
+    kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#decorator" | "#listener" | "#param";
     uid: string;                      // unique id (debug)
     idx: number;                      // 0 for root nodes, etc.
     parentIdx: number;                // index for parent node - -1 if undefined
@@ -49,7 +50,7 @@ export interface IvFragment extends IvParentNode {
 
 export interface IvProjectionHost {
     view: IvView;
-    hostNode: IvElement | IvFragment;
+    hostNode: IvEltNode | IvFragment;
 }
 
 export interface IvView {
@@ -63,7 +64,7 @@ export interface IvView {
     cm: boolean;                                                           // creation mode
     cmAppends: null | ((n: IvNode, domOnly: boolean) => void)[];           // array of append functions used at creation time
     lastRefresh: number;                                                   // refresh count at last refresh
-    container: IvContainer | IvElement | IvFragment | null;                // null if root view, container host otherwise (i.e. where the view is projected)
+    container: IvContainer | IvEltNode | IvFragment | null;                // null if root view, container host otherwise (i.e. where the view is projected)
     projectionHost: IvProjectionHost | null;                               // defined when view corresponds to a projected light-dom 
     template: IvTemplate | undefined;                                      // set if the VIEW is associated to a template root (will be undefined for sub js blocks)
     rootDomNode: any;                                                      // domNode the view is attached to - only used by the root view
@@ -135,11 +136,34 @@ export interface IvAsyncContainer extends IvContainer {
     priority: number;    // 0=immediate, >0=async
 }
 
-export interface IvElement extends IvParentNode {
+export interface IvEltNode extends IvParentNode {
     kind: "#element";
     contentView: IvView | null;                  // set when the element is used to project a content view
 }
 
-export interface IvComponent extends IvParentNode {
+export interface IvCptNode extends IvParentNode {
     kind: "#component";
+}
+
+export interface IvDecoNode extends IvNode {
+    kind: "#decorator";
+    instance: IvDecoratorInstance;
+    api: any;
+    refName: string; // e.g. @x.foo
+    validProps: boolean;
+}
+
+/**
+ * Decorator interface
+ */
+export interface IvDecorator<ApiClass> {
+    (api: ApiClass): IvDecoratorInstance;
+    $isDecorator: true;
+    $apiClass: { new(): ApiClass };
+}
+
+export interface IvDecoratorInstance {
+    $init?: () => void;
+    $render?: () => void;
+    $dispose?: () => void;
 }

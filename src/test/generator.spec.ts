@@ -1713,5 +1713,167 @@ describe('Code generator', () => {
         `, '3');
     });
 
+    it("should support simple decorators - default param with expression", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div @x.y.foo={exp()}/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "x.y.foo", x.y.foo, 1, exp());
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support simple decorators - no values", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div @a.something/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "a.something", a.something, 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support simple decorators - literal value", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div @foo = "bar"/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 1, "bar");
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support simple decorators - multiple params", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div @foo(x="abc" y={exp1()} z={exp2()})/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
+            ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 0, exp1()));
+            ζpar(ζ, ζc, 0, 1, "z", ζe(ζ, 1, exp2()));
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support simple decorators - multiple params w/ listener", async function () {
+        let t1 = await test.template(`() => {
+            <div @foo(x="abc" @onclick={=>doSomething()})/>
+        }`);
+        assert.equal(t1.body, `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
+            ζevt(ζ, ζc, 2, 1, "click", ()=>doSomething(), 1);
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζend(ζ, ζc);
+        `, '1a');
+        assert.deepEqual(t1.statics, [
+            'ζs0 = {}',
+            'ζs1 = ["x", "abc"]'
+        ], '1b');
+    });
+
+    it("should support simple decorators - multiple params w/ static label", async function () {
+        let t1 = await test.template(`() => {
+            <div @foo(#theKing)/>
+        }`);
+        assert.equal(t1.body, `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 0, 0, 0, ζs1);
+            ζend(ζ, ζc);
+        `, '1a');
+        assert.deepEqual(t1.statics, [
+            'ζs0 = {}',
+            'ζs1 = ["#theKing"]'
+        ], '1b');
+    });
+
+    it("should support simple decorators - multiple params w/ dynamic label", async function () {
+        let t1 = await test.template(`() => {
+            <div @foo(#theThing={exp()} baz)/>
+        }`);
+        assert.equal(t1.body, `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
+            ζlbl(ζ, 0, 1, "#theThing", exp());
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζend(ζ, ζc);
+        `, '1a');
+        assert.deepEqual(t1.statics, [
+            'ζs0 = {}',
+            'ζs1 = ["baz", true]'
+        ], '1b');
+    });
+
+    it("should support decorators on components - no content", async function () {
+        assert.equal(await body.template(`(name) => {
+            <*cpt @foo(x="abc" y={exp1()} z={exp2()})/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζcall(ζ, 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
+            ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 1, exp1()));
+            ζpar(ζ, ζc, 0, 1, "z", ζe(ζ, 2, exp2()));
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support decorators on components - with content", async function () {
+        assert.equal(await body.template(`(name) => {
+            <*cpt @foo(x={exp1()} y={exp2()})>
+                <div>
+                    # Hello {exp3()} #
+                </>
+            </>
+        }`), `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζ1 = ζviewD(ζ, 1, 0, 2, 0);
+            ζc1 = ζ1.cm;
+            ζeltD(ζ1, ζc1, 0, 0, "div", 1);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, exp3()]);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
+            ζpar(ζ, ζc, 0, 1, "x", ζe(ζ, 1, exp1()));
+            ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 2, exp2()));
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support decorators inside component content", async function () {
+        assert.equal(await body.template(`(name) => {
+            <*cpt>
+                <div @foo(x={exp1()} y={exp2()})>
+                    # Hello {exp3()} #
+                </>
+            </>
+        }`), `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
+            ζc1 = ζ1.cm;
+            ζeltD(ζ1, ζc1, 0, 0, "div", 1);
+            ζdecoD(ζ1, ζc1, 1, 1, 0, "foo", foo, 2);
+            ζparD(ζ1, ζc1, 1, 1, "x", [0, exp1()]);
+            ζparD(ζ1, ζc1, 1, 1, "y", [1, exp2()]);
+            ζdecoEndD(ζ1, ζc1, 1, 1);
+            ζtxtD(ζ1, ζc1, 1, 2, 1, 0, ζs1, 1, [2, exp3()]);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });

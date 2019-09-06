@@ -290,6 +290,15 @@ export class ElementNode {
         return this.nodeName.toUpperCase();
     }
 
+    set innerHTML(s: string) {
+        // partial implementation: remove all child nodes and create a single text node instead
+        for (let child of this.childNodes) {
+            child.parentNode = null;
+        }
+        this.childNodes = [];
+        this.appendChild(new TextNode(s));
+    }
+
     appendChild(node) {
         if (!node) return;
         if (node.nodeName && node.nodeName === "#doc-fragment") {

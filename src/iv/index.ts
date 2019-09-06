@@ -1965,6 +1965,7 @@ export interface IvElement {
     readonly clientWidth: number;
 
     id: string;
+    innerHTML: string;
 
     readonly scrollHeight: number;
     scrollLeft: number;

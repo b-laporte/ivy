@@ -1,4 +1,3 @@
-
 import "./runtime.spec";
 import "./conditions.spec";
 import "./fragments.spec";
@@ -15,4 +14,5 @@ import "./errors.spec";
 import "./logger.spec";
 import "./event-emitters.spec";
 import "./decorators.spec";
-// import "./async.spec";
+import "./innerHTML.spec";
+// import "./async.spec";yarn 

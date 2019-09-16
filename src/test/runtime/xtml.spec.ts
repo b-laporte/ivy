@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { createXtmlFragment, addElement, addText, XtmlFragment, addParam, addDecorator, addLabel, addComponent, addParamNode } from '../../iv/xtml'
+import { createXtmlFragment, addElement, addText, XtmlFragment, addParam, addDecorator, addLabel, addComponent, addParamNode } from '../../iv/xtml-ast'
 import { parse } from '../../iv/xtml-parser';
 
 describe('XTML', () => {
@@ -149,7 +149,7 @@ describe('XTML', () => {
                     <span baz='a b \\'c\\' d' x=true   
                         y  =  false/>
                     <span #foo   #bar = 'xxx'>
-                        <div foo=123  bar=12.345 baz = +123 blah=-42/>
+                        <div _foo=123  bar=12.345 ba_z = +123 blah=-42/>
                         <div #xyz = {blah}  @required/>
                         <div @foo={ xyz }  @bar(a="b" c=123) @blah(  a=123  @abc   )  @baz(   )   />
                     </span>
@@ -158,7 +158,7 @@ describe('XTML', () => {
                 <div foo='bar' disabled baz='abc'>
                   <span baz='a b \\'c\\' d' x=true y=false/>
                   <span #foo #bar='xxx'>
-                    <div foo=123 bar=12.345 baz=123 blah=-42/>
+                    <div _foo=123 bar=12.345 ba_z=123 blah=-42/>
                     <div #xyz={blah}/>
                     <div @foo={xyz} @bar(a='b' c=123) @blah(a=123 @abc) @baz/>
                   </>
@@ -190,11 +190,11 @@ describe('XTML', () => {
                 `, "1");
 
             assert.equal(error(`
-                <*cpt @foo_bar/>
+                <*cpt @foo+bar/>
             `), `
-                XTML: Invalid character: '_'
+                XTML: Invalid character: '+'
                 Line 2 / Col 27
-                Extract: >> <*cpt @foo_bar/> <<
+                Extract: >> <*cpt @foo+bar/> <<
                 `, "2");
         });
 

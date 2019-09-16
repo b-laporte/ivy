@@ -1,5 +1,6 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax/trax';
+import { logNodes } from '../test/utils';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -301,7 +302,7 @@ function ViewCreateElement(this: IvView, name: string, namespace?: string): any 
     return this.doc.createElement(name);
 }
 
-function createView(parentView: IvView | null, container: IvContainer | null, srcUID: number, template?: IvTemplate): IvView {
+export function createView(parentView: IvView | null, container: IvContainer | null, srcUID: number, template?: IvTemplate): IvView {
     // srcUID is a unique number to help debugging
     let view: IvView = {
         kind: "#view",
@@ -520,9 +521,8 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
     return view!;
 }
 
-export function ζviewD(pv: IvView, iFlag: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number) {
-    let v = ζview(pv, iFlag, containerIdx, nbrOfNodes, instanceIdx);
-    // console.log("viewD - created:", v.uid, v.instructions ? v.instructions.length : "XX")
+export function ζviewD(pv: IvView, iFlag: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number, view?: IvView) {
+    let v = view || ζview(pv, iFlag, containerIdx, nbrOfNodes, instanceIdx);
 
     // reset instructions
     if (iFlag === 1) {
@@ -884,7 +884,6 @@ export function ζtxt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
 }
 
 export function ζtxtD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, labels: any[] | 0, statics: string | string[], nbrOfValues: number, ...values: any[]) {
-    // console.log("ζtxtD");
     let args = [v, cm, iFlag, idx, parentLevel, labels, statics, nbrOfValues]
     for (let i = 0; nbrOfValues > i; i++) {
         args.push(values[i]);
@@ -972,11 +971,11 @@ export function ζfra(v: IvView, cm: boolean, idx: number, parentLevel: number) 
         contentView: null
     }
     v.nodes![idx] = nd;
-    let parentCmAppend = v.cmAppends![parentLevel]!;
-    parentCmAppend(nd, false);
+    let parentCmAppend0 = v.cmAppends![parentLevel]!;
+    parentCmAppend0(nd, false);
     v.cmAppends![parentLevel + 1] = function (n: IvNode, domOnly: boolean) {
         // console.log("cmAppends #4 ", n.uid, domOnly);
-        parentCmAppend(n, true);
+        parentCmAppend0(n, true);
         if (!domOnly) {
             appendChildToNode(nd, n);
         }
@@ -1045,7 +1044,7 @@ function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boo
 }
 
 function initContainer(v: IvView, container: IvContainer, parentLevel: number) {
-    // called when 
+    // called when
     if (v.cmAppends) {
         let parentCmAppend = v.cmAppends![parentLevel]!,
             cmAppend = function (n: IvNode, domOnly: boolean) {
@@ -1119,6 +1118,7 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         container.dynamicParams = {};
     }
     if (callImmediately) {
+        // callImmediately must be false when iFlag>0
         ζcall(v, idx, container, labels, dynParamNames);
     }
 }
@@ -1199,7 +1199,7 @@ function identifyPNodeList(v: IvView, pn: IvParamNode, name: string, dataParent:
 export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
     let pnd: IvParamNode, vNodes = v.nodes!, updateMode = false;
     // Warning: this function may not be called during cm (e.g. if defined in a conditional block)
-    // console.log("ζpnode", v.uid, cm, "idx: " + idx, "parentIndex: " + parentIndex)
+    // console.log("ζpnode - view:", v.uid, cm, "idx: " + idx, "parentIndex: " + parentIndex)
     if (!vNodes[idx]) {
         // create and register param node
         pnd = {

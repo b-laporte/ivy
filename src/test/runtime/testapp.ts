@@ -16,4 +16,5 @@ import "./event-emitters.spec";
 import "./decorators.spec";
 import "./innerHTML.spec";
 import "./xtml.spec";
-// import "./async.spec";yarn
+import "./xtml-renderer.spec";
+// import "./async.spec";

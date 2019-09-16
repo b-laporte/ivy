@@ -1,5 +1,3 @@
-
-
 const U = undefined, NO_VALUE: XtmlRef = { kind: "#ref", identifier: "" };
 
 // -------------------------------------------------------------------------------------
@@ -7,8 +5,8 @@ const U = undefined, NO_VALUE: XtmlRef = { kind: "#ref", identifier: "" };
 
 export interface XtmlFragment {
     children: (XtmlElement | XtmlText)[];
-    noValue: XtmlRef; // NO_VALUE indicator
     ref(value: string): XtmlRef;
+    refs: XtmlRef[];
     toString(indent?: string): string;
 }
 
@@ -77,19 +75,28 @@ export function addLabel(parent: (XtmlElement | XtmlParam), name: string, value?
 }
 
 class XFragment implements XtmlFragment {
-    refs: { [refName: string]: XtmlRef };
+    _refs: { [refName: string]: XtmlRef } = {};
 
     children: (XtmlElement | XtmlText)[] = [];
-    get noValue() {
-        return NO_VALUE;
-    }
-    ref(value: string): XtmlRef {
+    ref(name: string): XtmlRef {
         let ref: XtmlRef = {
             kind: "#ref",
-            identifier: value
+            identifier: name
         }
+        this._refs[name] = ref;
         return ref;
     }
+
+    get refs(): XtmlRef[] {
+        let r: XtmlRef[] = [], refs = this._refs;
+        for (let k in refs) {
+            if (refs.hasOwnProperty(k)) {
+                r.push(refs[k]);
+            }
+        }
+        return r;
+    }
+
     toString(indent?: string): string {
         return serialize(this.children, "", indent === U ? "  " : indent, true) + "\n";
     }

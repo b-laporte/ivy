@@ -1,4 +1,4 @@
-import { XtmlFragment, createXtmlFragment, XtmlElement, addText, addElement, addComponent, addParamNode, XtmlParam, addParam, addDecorator, addLabel } from './xtml';
+import { XtmlFragment, createXtmlFragment, XtmlElement, addText, addElement, addComponent, addParamNode, XtmlParam, addParam, addDecorator, addLabel } from './xtml-ast';
 
 const CHAR_EOS = -1, // end of string
     CHAR_NL = 10,      // \n new line
@@ -17,6 +17,7 @@ const CHAR_EOS = -1, // end of string
     CHAR_BSLA = 92,    // back slash: \
     CHAR_SBRS = 91,    // [
     CHAR_SBRE = 93,    // ]
+    CHAR_UNDER = 95,   // _
     CHAR_LT = 60,      // <
     CHAR_EQ = 61,      // =
     CHAR_GT = 62,      // >
@@ -204,10 +205,10 @@ export function parse(xtml: string): XtmlFragment {
         // they cannot start with $ on the contrary to JS identifiers
         let charCodes: number[] = [];
         // first char cannot be a number
-        if (ccIsChar()) {
+        if (ccIsChar() || cc === CHAR_UNDER) {
             charCodes.push(cc);
             moveNext();
-            while (ccIsChar() || ccIsNumber() || (acceptDashes && cc === CHAR_MINUS)) {
+            while (ccIsChar() || ccIsNumber() || cc === CHAR_UNDER || (acceptDashes && cc === CHAR_MINUS)) {
                 charCodes.push(cc);
                 moveNext();
             }

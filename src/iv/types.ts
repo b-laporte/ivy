@@ -74,6 +74,7 @@ export interface IvView {
     instructions: any[] | undefined;
     paramNode: IvParamNode | undefined;                                    // the param node the view is attached to (if any)
     createElement: (name: string, namespace?: string) => any;              // create an element on the current namespace if none is provided as default
+    nodeCount?: number;                                                    // used by XTML renderer
 }
 
 interface ListMetaData {

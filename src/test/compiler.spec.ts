@@ -103,7 +103,7 @@ describe('Template compiler', () => {
                 ΔΔp1:string; @ζΔp(ζΔfStr) p1: string;
                 ΔΔp2:number; @ζΔp(ζΔfNbr) p2: number;
 
-                doSth:()=>void;
+                ΔΔdoSth:()=>void; @ζΔp() doSth: any;
             }
             let tpl = (function () {
             const ζs0 = {};

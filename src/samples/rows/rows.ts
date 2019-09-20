@@ -1,7 +1,7 @@
 require('./index.html'); // webpack dependency
 require('./styles.css'); // webpack dependency
 import { template } from "../../iv";
-import { Data, changeComplete } from '../../trax/trax';
+import { Data, changeComplete } from '../../trax';
 import { grid } from './grid';
 
 @Data class MlbTeam {

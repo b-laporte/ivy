@@ -1,7 +1,7 @@
 import * as ts from "typescript";
 import { compileTemplate, IvError } from './generator';
-import { generate } from '../../trax/trax/compiler/generator';
-import { DataMember } from '../../trax/trax/compiler/types';
+import { generate } from '../../trax/compiler/generator';
+import { DataMember } from '../../trax/compiler/types';
 
 const SK = ts.SyntaxKind,
     TEMPLATE = "template",
@@ -10,7 +10,7 @@ const SK = ts.SyntaxKind,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_LIST = /List$/,
-    IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement"],
+    IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"],
     CR = "\n",
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
@@ -36,7 +36,6 @@ export async function process(source: string, resourcePath: string, logErrors = 
         // trax processing for ivy template API classes
         result = generate(result, resourcePath, {
             symbols: { Data: "API" },
-            ignoreFunctionProperties: true,
             acceptMethods: true,
             replaceDataDecorator: false,
             interfaceTypes: IV_INTERFACES,

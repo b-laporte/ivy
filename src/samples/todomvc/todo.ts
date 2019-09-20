@@ -1,4 +1,4 @@
-import { Data, computed } from '../../trax/trax';
+import { Data, computed } from '../../trax';
 
 @Data export class Todo {
     description = "";

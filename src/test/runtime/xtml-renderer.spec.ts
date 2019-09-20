@@ -1,9 +1,10 @@
 import { IvContent, IvTemplate } from './../../iv/types';
 import * as assert from 'assert';
-import { ElementNode, reset, getTemplate, stringify, logNodes, doc } from '../utils';
-import { renderXtml } from '../../iv/xtml-renderer';
+import { ElementNode, reset, getTemplate, stringify, doc } from '../utils';
+import { renderXtml, innerXTML } from '../../iv/xtml-renderer';
+import { parse } from '../../iv/xtml-parser';
 import { template } from '../../iv';
-import { Data } from '../../trax/trax';
+import { Data } from '../../trax';
 
 describe('Renderer', () => {
     let body: ElementNode;
@@ -11,6 +12,30 @@ describe('Renderer', () => {
     beforeEach(() => {
         body = reset();
     });
+
+    let xtmlA = `
+        <div class="the_div">
+            <*section>
+                <.header type={min}>
+                    Main section header
+                </>
+                Main section content
+                <.footer type={max}>
+                    Footer content
+                </>
+            </>
+        </>
+        Some text after the_div
+    `;
+
+    let xtmlB = `
+        <*section>
+            <.header type={min}>
+                Main section header
+            </>
+            Main section content
+        </>
+    `;
 
     async function resolver(ref: string): Promise<any> {
         if (ref === "the_title") return "THE TITLE";
@@ -21,6 +46,7 @@ describe('Renderer', () => {
         if (ref === "min") return "MIN";
         if (ref === "max") return "MAX";
         if (ref === "some_number") return 42;
+        if (ref === "doubleSection") return doubleSection;
         console.log("UNRESOLVED REF: " + ref);
         return null;
     }
@@ -62,6 +88,11 @@ describe('Renderer', () => {
                 }
             }
         </>
+    }`);
+
+    const doubleSection = template(`(sectionA:IvContent, sectionB:IvContent)=>{
+        <div class="a" @content={sectionA}/>
+        <div class="b" @content={sectionB}/>
     }`);
 
     @Data class ListItem {
@@ -336,6 +367,37 @@ describe('Renderer', () => {
         `, "1");
     });
 
+    it("should render components w/ components in content (sub-content + param nodes as IvContent)", async function () {
+        assert.equal(await renderTest(`
+            <div class="main">
+                <*doubleSection>
+                    <.sectionA>
+                        <div> Section A </div>
+                    </>
+                    <.sectionB>
+                        <div> Section B </div>
+                    </>
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="a">
+                        <div::E5>
+                            #::T6 Section A #
+                        </div>
+                    </div>
+                    <div::E7 a:class="b">
+                        <div::E8>
+                            #::T9 Section B #
+                        </div>
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "1");
+    });
+
     it("should render components w/ param node lists", async function () {
         assert.equal(await renderTest(`
             <div class="main">
@@ -426,6 +488,71 @@ describe('Renderer', () => {
                 </div>
             </body>
         `, "2");
+    });
+
+    it("should allow rendering XTML through @innerXTML", async function () {
+        let resolve: (() => void) | undefined;
+        function done() {
+            if (resolve) {
+                resolve()
+            } else {
+                throw "DONE";
+            }
+        }
+        const tpl = template(`() => {
+            <div class="main" @innerXTML(xtml={xtmlA} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+
+        // @innerXTML is async, so we need to wait for its completion
+        await new Promise((r: () => void) => {
+            resolve = r; // will be called by done()
+        });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="the_div">
+                        <div::E6 a:class="section">
+                            <h1::E7 a:class="header" a:data-type="MIN">
+                                #::T8 Main section header #
+                            </h1>
+                            #::T9 Main section content #
+                            <h1::E10 a:class="footer" a:data-type="MAX">
+                                #::T11 Footer content #
+                            </h1>
+                        </div>
+                        //::C5 template anchor
+                    </div>
+                    #::T12 Some text after the_div #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        body = reset();
+
+        const tpl2 = template(`() => {
+            <div class="main" @innerXTML(fragment={parse(xtmlB)} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`);
+        let t2 = getTemplate(tpl2, body).render();
+        await new Promise((r: () => void) => {
+            resolve = r; // will be called by done()
+        });
+        assert.equal(stringify(t2), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E5 a:class="section">
+                        <h1::E6 a:class="header" a:data-type="MIN">
+                            #::T7 Main section header #
+                        </h1>
+                        #::T8 Main section content #
+                    </div>
+                    //::C4 template anchor
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
     });
 
     // comments in XTML

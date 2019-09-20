@@ -1,5 +1,5 @@
 import { template, Controller, API } from "../../iv";
-import { Data, isMutating } from '../../trax/trax';
+import { Data, isMutating } from '../../trax';
 import { IvContent, IvTemplate } from '../../iv/types';
 
 const KEY_SPACE = 32,

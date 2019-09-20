@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { template, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
-import { changeComplete, computed } from '../../trax/trax';
+import { changeComplete, computed } from '../../trax';
 import { IvTemplate } from '../../iv/types';
 
 describe('Controller', () => {

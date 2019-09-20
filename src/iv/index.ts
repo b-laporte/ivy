@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax/trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax';
 import { logNodes } from '../test/utils';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
@@ -1046,13 +1046,17 @@ function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boo
 function initContainer(v: IvView, container: IvContainer, parentLevel: number) {
     // called when
     if (v.cmAppends) {
-        let parentCmAppend = v.cmAppends![parentLevel]!,
-            cmAppend = function (n: IvNode, domOnly: boolean) {
+        let parentCmAppend = v.cmAppends![parentLevel]!;
+        if(parentCmAppend) {
+            container.cmAppend = function (n: IvNode, domOnly: boolean) {
                 // console.log("initContainer: append", n.uid, n.domNode ? n.domNode.uid : "XX", "parentLevel:", parentLevel, "in", v.uid, "(container: " + container.uid + ")");
                 parentCmAppend(n, true); // append container content
             };
-        container.cmAppend = cmAppend;
-        parentCmAppend(container, false); // append container in parent view
+            parentCmAppend(container, false); // append container in parent view
+        } else {
+            console.log("ERROR?", parentCmAppend===U)
+        }
+        
     }
 }
 

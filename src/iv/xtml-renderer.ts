@@ -1,8 +1,9 @@
 import { XtmlFragment, XtmlElement, XtmlParam, XtmlText } from './xtml-ast';
 import { parse } from './xtml-parser';
 import { IvDocument, IvTemplate, IvView, IvNode } from './types';
-import { hasProperty, create } from '../trax/trax';
-import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode } from '.';
+import { hasProperty, create } from '../trax';
+import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultValue, required, IvElement, decorator } from '.';
+import { IvEventEmitter } from './events';
 
 interface RenderOptions {
     doc?: IvDocument;
@@ -134,7 +135,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
                         if (!pnd) {
                             pnd = create(api, ch.name);
                         }
-                        setParamNode(ch, pnd);
+                        setParamNode(ch, pnd, api, ch.name);
                     } else if (hasProperty(api, ch.name + "List")) {
                         // first ensure data list exists
                         let list = api[ch.name + "List"];
@@ -172,8 +173,8 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
                 let callImmediately = 0;
                 updateParamsAndProperties(ch);
                 // ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
-                let idx = v.nodeCount!++;
-                ζcptD(v, true, 1, idx, parentLevel, [0, refs[ch.nameRef!]], callImmediately, labels, params);
+                let idx = v.nodeCount!++, eCount = v.expressions ? v.expressions.length : 0;
+                ζcptD(v, true, 1, idx, parentLevel, [eCount, refs[ch.nameRef!]], callImmediately, labels, params);
                 if (ch.children) {
                     // (pv: IvView, iFlag: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number, view?: IvView) 
                     let v2 = ζviewD(v, 1, idx, 10, 0); // todo: nbr of nodes instead of 10
@@ -190,7 +191,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
 
         return;
 
-        function setParamNode(ch: XtmlElement, paramNode: any) {
+        function setParamNode(ch: XtmlElement, paramNode: any, api?: any, name?: string) {
             let idx = v.nodeCount!++;
             updateParamsAndProperties(ch);
             v.nodes![idx] = paramNode;
@@ -205,7 +206,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
                 pnContentView.parentView = v;
                 // ζviewD(v, 1, 0, 0, 0, pnView);
                 renderCptContent(ch, pnContentView, 0, v, idx, paramNode);
-                assignContent(paramNode, pnContentView);
+                assignContent(paramNode, pnContentView, api, name);
             }
         }
 
@@ -251,16 +252,59 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
         v.nodes = new Array(10); // todo: count actual number of nodes instead of 10
         if (container !== U) {
             v.cmAppends = [function (n: IvNode) {
-                container.appendChild(n.domNode);
+                if (n.domNode) {
+                    container.appendChild(n.domNode);
+                }
             }];
         }
         return v;
     }
 
-    function assignContent(api: any, v: IvView) {
+    function assignContent(holder: any, v: IvView, api?: any, name?: string) {
         if (v.nodeCount! > 0) {
-            api["$content"] = v;
+            if (holder === null && api !== U && name !== U) {
+                // we assume name refers to an IvContent property
+                api[name] = v;
+            } else {
+                holder["$content"] = v;
+            }
         }
     }
 
 }
+
+@API class InnerXtml {
+    xtml?: string;
+    fragment?: any; // XtmlFragment; -> non iv interfaces cannot be used in @API and @Data
+    // todo: support timeout;
+    @required resolver: (ref: string) => Promise<any>;
+    doc?: IvDocument;
+    @required $targetElt: IvElement;
+    completeEmitter: IvEventEmitter;
+}
+export const innerXTML = decorator(InnerXtml, (api: InnerXtml) => {
+    let firstRender = true;
+    return {
+        async $render() {
+            if (firstRender) {
+                //let d1 = new Date();
+                let f: XtmlFragment;
+                if (api.xtml !== undefined) {
+                    f = parse(api.xtml);
+                } else if (api.fragment !== undefined) {
+                    f = api.fragment! as XtmlFragment;
+                } else {
+                    throw "Invalid arguments: either xtml or fragment params must be provided";
+                }
+                //let d2 = new Date();
+                //console.log("@innerXTML - parsing: ", d2.getTime() - d1.getTime(), "ms");
+                await renderXtmlFragment(f, api.$targetElt, api.resolver, { doc: api.doc });
+                api.completeEmitter.emit();
+                //let d3 = new Date();
+                //console.log("@innerXTML - generation: ", d3.getTime() - d2.getTime(), "ms");
+            } else {
+                // todo: check if property changed and if new content should be injected
+            }
+        }
+    }
+});

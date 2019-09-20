@@ -45,7 +45,8 @@ module.exports = [{
         "largetable": "./src/samples/largetable/largetable.ts",
         "rows": "./src/samples/rows/rows.ts",
         "clock": "./src/samples/clock/clock.ts",
-        "dbmon": "./src/samples/dbmon/dbmon.ts"
+        "dbmon": "./src/samples/dbmon/dbmon.ts",
+        "search": "./src/samples/search/search.ts"
     },
     module: {
         rules: [{

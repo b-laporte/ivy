@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 import { IvEventEmitter, IvEvent, IvCancelableEventEmitter } from '../../iv/events';
 import { template, API, Controller } from '../../iv';
-import { hasProperty, Data } from '../../trax/trax';
+import { hasProperty, Data } from '../../trax';
 
 describe('Event emitters', () => {
     let body: ElementNode, eventLog: string[];

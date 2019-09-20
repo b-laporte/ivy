@@ -26,6 +26,7 @@
 		"noEmitOnError": true
 	},
 	"include": [
-		"src"
+		"src",
+        "src/samples"
 	]
 }

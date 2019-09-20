@@ -9,7 +9,6 @@ const PRIVATE_PREFIX = "ΔΔ",
 
 interface GeneratorOptions {
     acceptMethods?: boolean;           // default:false
-    ignoreFunctionProperties?: boolean;// default:false
     replaceDataDecorator?: boolean;    // default:true
     interfaceTypes?: string[];         // list of type names that should be considered as interfaces (-> any type)
     symbols?: ParserSymbols,           // redefine the symbols used to identify Data objects
@@ -35,8 +34,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
         ast = parse(src, filePath, {
             symbols,
             acceptMethods: options ? options.acceptMethods : false,
-            interfaceTypes: options ? options.interfaceTypes : undefined,
-            ignoreFunctionProperties: options ? options.ignoreFunctionProperties : false
+            interfaceTypes: options ? options.interfaceTypes : undefined
         });
         if (ast && ast.length) {
             initImports(ast);

@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { template, logger, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
-import { Data } from '../../trax/trax';
+import { Data } from '../../trax';
 import { IvLogger } from '../../iv/types';
 import { IvEventEmitter } from '../../iv/events';
 

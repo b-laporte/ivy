@@ -15,7 +15,6 @@ export interface ParserOptions {
     symbols?: ParserSymbols;
     acceptMethods?: boolean; // default: false
     interfaceTypes?: string[];
-    ignoreFunctionProperties?: boolean; // default: false
 }
 
 export function getSymbols(symbols?: ParserSymbols) {
@@ -36,7 +35,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     if (!isTraxFile(src)) return null;
 
     let srcFile = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, /*setParentNodes */ true);
-    let traxImportFound = false, result: (TraxImport | DataObject)[] | null = [];
+    let result: (TraxImport | DataObject)[] | null = [];
 
     let diagnostics = srcFile['parseDiagnostics'];
     if (diagnostics && diagnostics.length) {
@@ -116,7 +115,6 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                     }
                 }
                 if (traxImport) {
-                    traxImportFound = true;
                     idx = nmi.elements.length;
                     while (idx--) {
                         traxImport.values[nmi.elements[idx].name.text] = 1
@@ -215,11 +213,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                                     isComplexExpression: true
                                 }
                             } else if (c.kind === SK.FunctionType) {
-                                if (options && options.ignoreFunctionProperties) {
-                                    skipProperty = true;
-                                } else {
-                                    error("Function properties are not supported in this context", c);
-                                }
+                                prop.type = { kind: "any" };
                             } else if (c.kind !== SK.Parameter && c.getText() !== "any") {
                                 // console.log(c.getText(), c);
                                 error("Unsupported Syntax [" + c.kind + "]", c);

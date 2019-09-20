@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { template, ζΔD, ζΔp, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvView, IvTemplate } from '../../iv/types';
-import { isMutating, commitChanges, changeComplete } from '../../trax/trax';
+import { isMutating, commitChanges, changeComplete } from '../../trax';
 
 describe('Iv Runtime', () => {
     let body: ElementNode;

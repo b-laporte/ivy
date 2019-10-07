@@ -45,7 +45,7 @@ const mainPanel = `
         <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAB6BAgAEAE" keywords="bart simpson supreme"/>
         <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAF6BAgAEAI" keywords="bart simpson drawing"/>
         <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAJ6BAgAEAM" keywords="bart simpson sad"/>
-        <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAN6BAgAEAQ" keywords="bart simpson hypebeast"/>
+        <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAN6BAgAEAQ" keywords="bart simpson hyperbeast"/>
         <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAR6BAgAEAU" keywords="bart simpson wallpaper"/>
         <.similar ved="2ahUKEwiz4bfuwNXkAhVHzhoKHREADLoQsKwBKAV6BAgAEAY" keywords="bart simpson voice"/>
     </>
@@ -307,7 +307,7 @@ const banner = `
             </a>
         </>
         <.account>
-            # TODO #
+             TODO 
         </>
     </>
 `;

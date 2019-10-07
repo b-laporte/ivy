@@ -27,6 +27,7 @@
 	},
 	"include": [
 		"src",
-        "src/samples"
+        "src/samples",
+        "src/doc"
 	]
 }

@@ -941,9 +941,9 @@ describe('Code generator', () => {
             ζpar(ζ, ζc, 0, 1, "foo", bar());
             ζpnode(ζ, ζc, 0, 2, 1, "foo", ζp1++, 0, ζs1);
             ζpnode(ζ, ζc, 0, 3, 2, "bar", ζp2++);
-            ζpar(ζ, ζc, 0, 3, 1, exp());
+            ζpar(ζ, ζc, 0, 3, 0, exp());
             ζpnode(ζ, ζc, 0, 4, 2, "bar", ζp2++);
-            ζpar(ζ, ζc, 0, 4, 1, exp2());
+            ζpar(ζ, ζc, 0, 4, 0, exp2());
             ζpnEnd(ζ, ζc, 0, 2);
             ζpnEnd(ζ, ζc, 0, 1);
             ζcall(ζ, 0);
@@ -1870,6 +1870,126 @@ describe('Code generator', () => {
             ζdecoEndD(ζ1, ζc1, 1, 1);
             ζtxtD(ζ1, ζc1, 1, 2, 1, 0, ζs1, 1, [2, exp3()]);
             ζendD(ζ1, ζc1);
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should support bindings on components", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div>
+                <*cpt prop={=a.b.c}/>
+            </>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, cpt), 0);
+            ζbind(ζ, ζc, 0, 1, 0, "prop", a.b, "c");
+            ζcall(ζ, 1);
+            ζend(ζ, ζc);
+        `, '1');
+
+        assert.equal(await body.template(`(name) => {
+            <*section>
+                # text {name} #
+                <*cpt prop={=a[b()](123).c}/>
+            </>
+        }`), `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, section), 0);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
+            ζc1 = ζ1.cm;
+            ζfraD(ζ1, ζc1, 0, 0);
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, name]);
+            ζcptD(ζ1, ζc1, 1, 2, 1, [1, cpt], 0);
+            ζbindD(ζ1, ζc1, 1, 2, 0, "prop", a[b()](123), "c");
+            ζcallD(ζ1, 2);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '2');
+
+        assert.equal(await body.template(`(name) => {
+            <*cpt prop1={=a.b.c} prop2={exp()} prop3={=d.e}/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζbind(ζ, ζc, 0, 0, 0, "prop1", a.b, "c");
+            ζpar(ζ, ζc, 0, 0, "prop2", ζe(ζ, 1, exp()));
+            ζbind(ζ, ζc, 0, 0, 1, "prop3", d, "e");
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '3');
+    });
+
+    it("should support bindings on decorators", async function () {
+        assert.equal(await body.template(`(name) => {
+            <div @foo = {=a.b} @bar(prop={=c.d})/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
+            ζbind(ζ, ζc, 0, 1, 0, 0, a, "b");
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζdeco(ζ, ζc, 0, 2, 0, "bar", bar, 2);
+            ζbind(ζ, ζc, 0, 2, 0, "prop", c, "d");
+            ζdecoEnd(ζ, ζc, 0, 2);
+            ζend(ζ, ζc);
+        `, '1');
+
+        assert.equal(await body.template(`(name) => {
+            <*cpt>
+                <div @foo = {=a.b} @bar(prop={=c.d})/>
+            </>
+        }`), `
+            let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζ1 = ζviewD(ζ, 1, 0, 3, 0);
+            ζc1 = ζ1.cm;
+            ζeltD(ζ1, ζc1, 0, 0, "div", 0);
+            ζdecoD(ζ1, ζc1, 1, 1, 0, "foo", foo, 2);
+            ζbindD(ζ1, ζc1, 1, 1, 0, 0, a, "b");
+            ζdecoEndD(ζ1, ζc1, 1, 1);
+            ζdecoD(ζ1, ζc1, 1, 2, 0, "bar", bar, 2);
+            ζbindD(ζ1, ζc1, 1, 2, 0, "prop", c, "d");
+            ζdecoEndD(ζ1, ζc1, 1, 2);
+            ζendD(ζ1, ζc1);
+            ζcall(ζ, 0);
+            ζend(ζ, ζc);
+        `, '2');
+
+        assert.equal(await body.template(`(name) => {
+            <*cpt xx={=x.x} @foo(prop1={=c.d} prop2=123 prop3={=e.f}) yy={=y.y} @bar(propA={=a.b} propB={=c.d}) zz={=z.z}/>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζbind(ζ, ζc, 0, 0, 0, "xx", x, "x");
+            ζbind(ζ, ζc, 0, 0, 1, "yy", y, "y");
+            ζbind(ζ, ζc, 0, 0, 2, "zz", z, "z");
+            ζcall(ζ, 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
+            ζbind(ζ, ζc, 0, 1, 0, "prop1", c, "d");
+            ζbind(ζ, ζc, 0, 1, 1, "prop3", e, "f");
+            ζdecoEnd(ζ, ζc, 0, 1);
+            ζdeco(ζ, ζc, 0, 2, 0, "bar", bar, 2);
+            ζbind(ζ, ζc, 0, 2, 0, "propA", a, "b");
+            ζbind(ζ, ζc, 0, 2, 1, "propB", c, "d");
+            ζdecoEnd(ζ, ζc, 0, 2);
+            ζend(ζ, ζc);
+        `, '3');
+    });
+
+    it("should support bindings on param nodes", async function () {
+        assert.equal(await body.template(`(name) => {
+            <*cpt>
+                <.foo @value={=a.b}/>
+            </>
+        }`), `
+            let ζ1, ζc1, ζp0, ζc = ζinit(ζ, ζs0, 2);
+            ζp0 = 0;
+            ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζpnode(ζ, ζc, 0, 1, 0, "foo", ζp0++);
+            ζbind(ζ, ζc, 0, 1, 0, 0, a, "b");
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '1');

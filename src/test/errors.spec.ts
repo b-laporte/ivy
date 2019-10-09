@@ -291,6 +291,35 @@ describe('Code generation errors', () => {
         `, "7");
     });
 
+    it("should be raised for invalid 2-way binding expressions", async function () {
+        // invalid binding expression
+        assert.equal(await error.template(`(someVar) => {
+            <div @foo={=abcd}/>
+        }`), `
+            IVY: Invalid decorator - Invalid binding expression: {=abcd}
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div @foo={=abcd}/> <<
+        `, "1");
+
+        // binding on an element attribute
+        assert.equal(await error.template(`(someVar) => {
+            <div title={=a.b}/>
+        }`), `
+            IVY: Invalid param - Binding expressions cannot be used on element attributes
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div title={=a.b}/> <<
+        `, "2");
+
+        // binding on an element property
+        assert.equal(await error.template(`(someVar) => {
+            <div [title]={=a.b}/>
+        }`), `
+            IVY: Invalid property - Binding expressions cannot be used on element properties
+            File: file.ts - Line 2 / Col 18
+            Extract: >> <div [title]={=a.b}/> <<
+        `, "3");
+    });
+
     // it("should be raised for invalid @content", async function () {
     //     assert.equal(await error.template(`() => {
     //         <div @content/>

@@ -301,11 +301,7 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
                 nd.defaultValue = num;
             } else if (lookup(STR_S) || lookup(STR_D)) {
                 // string with single or double quotes
-                if (lookup(STR_S)) {
-                    advance(STR_S);
-                } else {
-                    advance(STR_D);
-                }
+                lookup(STR_S) ? advance(STR_S) : advance(STR_D);
                 nd.defaultValue = currentText(false);
                 advance(S_START);
                 if (lookup(CONTENT)) {
@@ -521,6 +517,7 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
         let nd: XjsExpression = {
             kind: "#expression",
             oneTime: false,
+            isBinding: false,
             code: "",
             lineNumber: cLine,
             colNumber: cCol
@@ -533,6 +530,8 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
                 nd.oneTime = true;
             } else if (modText === "=>") {
                 isFunctionShortcut = true;
+            } else if (modText === "=") {
+                nd.isBinding = true;
             }
         }
         let code = xjsExpressionCode();
@@ -788,6 +787,7 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
             let exp: XjsExpression = {
                 kind: "#expression",
                 oneTime: oneTime,
+                isBinding: false,
                 code: varName,
                 lineNumber: cLine,
                 colNumber: cCol
@@ -809,6 +809,7 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
             let exp: XjsExpression = {
                 kind: "#expression",
                 oneTime: false,
+                isBinding: false,
                 lineNumber: cLine,
                 colNumber: cCol,
                 code: xjsExpressionCode()
@@ -876,6 +877,7 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
             let exp: XjsExpression = {
                 kind: "#expression",
                 oneTime: oneTime,
+                isBinding: false,
                 code: varName,
                 lineNumber: cLine,
                 colNumber: cCol
@@ -896,6 +898,7 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
             let exp: XjsExpression = {
                 kind: "#expression",
                 oneTime: false,
+                isBinding: false,
                 lineNumber: cLine,
                 colNumber: cCol,
                 code: xjsExpressionCode()
@@ -1046,8 +1049,8 @@ export async function parse(tpl: string, filePath = "", lineOffset = 0, columnOf
                 kind: "#boolean",
                 value: false
             };
-        } else if (lookup(STR_D)) {
-            advance(STR_D);
+        } else if (lookup(STR_S) || lookup(STR_D)) {
+            lookup(STR_D) ? advance(STR_D) : advance(STR_S);
             advance(S_START);
             advance(CONTENT, false);
             let nd: XjsString = {

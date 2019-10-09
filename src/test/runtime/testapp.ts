@@ -17,4 +17,5 @@ import "./decorators.spec";
 import "./innerHTML.spec";
 import "./xtml.spec";
 import "./xtml-renderer.spec";
+import "./io-bindings.spec";
 // import "./async.spec";

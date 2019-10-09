@@ -107,6 +107,7 @@ export interface IvParamNode extends IvNode, IvParamNodeParent {
     dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic sub-params that have been found while refreshing the param content (aka. light-dom)
     viewPool: IvView[] | undefined;
     viewInstanceIdx: number;
+    bindings?: IvBinding[];                           // binding expressions associated to this data node
 }
 
 export interface IvContainer extends IvNode {
@@ -130,6 +131,13 @@ export interface IvCptContainer extends IvContainer, IvParamNodeParent {
     data: any;                                        // shortcut to cptTemplate.$api
     contentView: IvView | null;                       // light-dom / content view
     dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic params that have been found while refreshing the component content (aka. light-dom)
+    bindings?: IvBinding[];                           // binding expressions associated to this container
+}
+
+export interface IvBinding {
+    propertyHolder: Object,
+    propertyName: string | number;
+    watchFn: (() => void) | null;
 }
 
 export interface IvAsyncContainer extends IvContainer {
@@ -152,6 +160,7 @@ export interface IvDecoNode extends IvNode {
     api: any;
     refName: string; // e.g. @x.foo
     validProps: boolean;
+    bindings?: IvBinding[];                           // binding expressions associated to this decorator
 }
 
 /**

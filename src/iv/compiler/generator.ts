@@ -386,6 +386,7 @@ export class ViewInstruction implements RuntimeInstruction {
     cpnParentLevel: number = -1;            // component or pnode parent level
     contentParentInstruction: CptInstruction | PndInstruction | undefined; // only defined for kind="cptContent" or "paramContent"
     paramInstanceVars: { [paramName: string]: string } | undefined = undefined;    // map of the param node instance variables
+    bindingsCount = 0;                      // counter used by ParamInstruction to count the number of bindings on a component / decorator
 
     constructor(public kind: ViewKind, public node: XjsTplFunction | XjsJsBlock | XjsElement | XjsFragment | XjsComponent, public idx: number, public parentView: ViewInstruction | null, public iFlag: number, generationCtxt?: GenerationCtxt, indent?: string) {
         if (parentView) {
@@ -1276,32 +1277,70 @@ class ParamInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-        let v = this.view, iSuffix = this.iFlag ? "D" : "", name = "1";
+        let v = this.view, iSuffix = this.iFlag ? "D" : "", name = "0", generateLastExpressionArg = true;
         if (this.node.kind !== "#decorator") {
             name = '"' + this.node.name + '"';
         }
+        let val = (this.node as XjsParam).value as XjsExpression;
         if (this.funcName === "par") {
-            // par takes the cm argument
-            body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${name}, `);
+            if (this.node.kind === "#decorator") {
+                // @value reserved decorator for param nodes
+                let dfp = this.node.defaultPropValue;
+                if (dfp) {
+                    val = dfp as XjsExpression;
+                }
+            }
+            if (val && val.isBinding) {
+                // binding expression - e.g. param={=someData.someProperty}
+                generateBinding(body, val.code, this.node, v, this.indent, this.iFlag, this.idx, v.bindingsCount, name);
+                v.bindingsCount++;
+                generateLastExpressionArg = false;
+            } else {
+                // par defers from att and pro as it takes the cm argument to raise validation errors
+                body.push(`${this.indent}ζpar${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${name}, `);
+            }
         } else {
+            // attribute or property
+            if (val && val.isBinding) {
+                if (this.funcName === "att") {
+                    v.gc.error("Binding expressions cannot be used on element attributes", this.node);
+                } else {
+                    v.gc.error("Binding expressions cannot be used on element properties", this.node);
+                }
+            }
             body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${name}, `);
         }
-        if (this.node.kind === "#decorator") {
-            // @value decorator - in this case targetParamNode is true
-            let dfp = this.node.defaultPropValue;
-            if (!dfp) {
-                v.gc.error(`Incorrect value for @${this.node.ref.code}`, this.node);
+        if (generateLastExpressionArg) {
+            if (this.node.kind === "#decorator") {
+                // @value decorator - in this case targetParamNode is true
+                let dfp = this.node.defaultPropValue;
+                if (!dfp) {
+                    v.gc.error(`Incorrect value for @${this.node.ref.code}`, this.node);
+                } else {
+                    pushExpressionValue(body, dfp);
+                }
+            } else if (this.targetParamNode) {
+                // we don't use expressions in param nodes as we don't need them (trax objects will do the job)
+                // besides expressions need to be re-evaluated when an object has been reset (so expression value cannot be cached)
+                body.push(val);
             } else {
-                pushExpressionValue(body, dfp);
+                generateExpression(body, val, this.view, this.iFlag);
             }
-        } else if (this.targetParamNode) {
-            // we don't use expressions in param nodes as we don't need them (trax objects will do the job)
-            // besides expressions need to be re-evaluated when an object has been reset (so expression value cannot be cached)
-            body.push(this.node.value as XjsExpression);
-        } else {
-            generateExpression(body, this.node.value as XjsExpression, this.view, this.iFlag);
+            body.push(');\n');
         }
-        body.push(');\n');
+
+    }
+}
+
+function generateBinding(body: BodyContent[], expressionCode: string, node: XjsNode, v: ViewInstruction, indent: string, iFlag: number, idx: number, bindingIdx: number, name: string | 0) {
+    let iSuffix = iFlag ? "D" : "";
+    let { hostExp, propExp, errorMsg } = parseBinding(expressionCode);
+    if (errorMsg) {
+        v.gc.error(errorMsg, node);
+    } else {
+        // ζbind(ζ, ζc, 0, 1, "param", someData, "someProperty");
+        v.gc.imports["ζbind" + getIhSuffix(iFlag)] = 1;
+        body.push(`${indent}ζbind${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${iFlag ? 1 : 0}, ${idx}, ${bindingIdx}, ${name}, ${hostExp}, ${propExp});\n`);
     }
 }
 
@@ -1320,15 +1359,22 @@ class DecoInstruction implements RuntimeInstruction {
 
     pushCode(body: BodyContent[]) {
         // e.g. ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
-        let v = this.view, iSuffix = this.iFlag ? "D" : "", dfp = this.node.defaultPropValue, hasStaticLabels = (this.staticLabels !== "0");
+        let v = this.view, iSuffix = this.iFlag ? "D" : "", dfp = this.node.defaultPropValue, hasStaticLabels = (this.staticLabels !== "0"),
+            isDfpBinding = (dfp && dfp.kind === "#expression" && dfp.isBinding);
 
         body.push(`${this.indent}ζdeco${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${this.parentIdx}, `);
-        body.push(`${encodeText(this.node.ref.code)}, `);
+        body.push(`${encodeText(this.node.ref.code)}, `); // decorator name as string (error handling)
 
-        pushExpressionValue(body, this.node.ref);
+        pushExpressionValue(body, this.node.ref); // decorator reference
 
-        body.push(", " + this.paramMode);
-        if (dfp || this.staticsIdx > -1 || hasStaticLabels) {
+        if (isDfpBinding) {
+            body.push(", 2"); // we have to consider the default parameter as an explicit parameter in this case
+        } else {
+            v.bindingsCount = 0; // reset bindings count - cf. ParamInstruction
+            body.push(", " + this.paramMode);
+        }
+
+        if (!isDfpBinding && (dfp || this.staticsIdx > -1 || hasStaticLabels)) {
             body.push(', ');
             if (dfp) {
                 pushExpressionValue(body, dfp);
@@ -1345,6 +1391,14 @@ class DecoInstruction implements RuntimeInstruction {
             }
         }
         body.push(');\n');
+
+        if (isDfpBinding) {
+            // binding idx is always 0 in this case as there is only one expression
+            generateBinding(body, (dfp! as XjsExpression).code, this.node, v, this.indent, this.iFlag, this.idx, 0, 0);
+
+            let decoCall = new DecoCallInstruction(this);
+            decoCall.pushCode(body);
+        }
     }
 }
 
@@ -1426,6 +1480,7 @@ class CptInstruction implements RuntimeInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζcpt(ζ, ζc, 2, 0, ζe(ζ, 0, alert), 1, ζs1);
         let v = this.view, lastArgs = processCptOptionalArgs(this.view, this, this.callImmediately ? this.staticLabels : "0");
+        v.bindingsCount = 0; // reset bindings count - cf. ParamInstruction
 
         body.push(`${v.indent}${funcStart("cpt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, `);
         generateExpression(body, this.node.ref as XjsExpression, this.view, this.iFlag);
@@ -1609,4 +1664,17 @@ class InsInstruction implements RuntimeInstruction {
         }
         body.push(`);\n`);
     }
+}
+
+export function parseBinding(code: string): { hostExp: string, propExp: string, errorMsg: string } {
+    let hostExp = "", propExp = "", errorMsg = "";
+
+    // todo: proper parsing
+    if (code.match(/(.*)\.([a-zA-Z_][a-zA-Z_0-9]*)$/)) {
+        hostExp = RegExp.$1;
+        propExp = '"' + RegExp.$2 + '"';
+    } else {
+        errorMsg = "Invalid binding expression: {=" + code + "}";
+    }
+    return { hostExp, propExp, errorMsg };
 }

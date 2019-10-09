@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logger, Controller, API } from '../../iv';
+import { template, logger, Controller, API, defaultValue, decorator, required, IvElement } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { Data } from '../../trax';
 import { IvLogger } from '../../iv/types';
@@ -25,6 +25,34 @@ describe('Errors', () => {
         logger.error = defaultLog;
     });
 
+    @Data class User {
+        alias: string;
+    }
+
+    @Data class EditorInput {
+        inputValue: string;
+    }
+    @API class Editor {
+        text: string;
+        input: EditorInput;
+    }
+    const editor = template(`($api: Editor) => {
+        <div class="editor">
+            #>> {$api.text} <<#
+        </>
+    }`);
+
+    @API class Title {
+        @defaultValue text: string = "";
+        @required $targetElt: IvElement;
+    }
+    const title = decorator(Title, (api: Title) => {
+        return {
+            $render() {
+                api.$targetElt.setAttribute("title", api.text);
+            }
+        }
+    });
 
     it("should be properly caught in template code", function () {
         const err1 = template(`(a) => {
@@ -239,7 +267,7 @@ describe('Errors', () => {
 
         let t = getTemplate(test, body).render();
         assert.equal(error, `\
-            IVY: Invalid parameter: txt
+            IVY: Invalid parameter 'txt' on <*hello/>
             >> Template: "test" - File: "runtime/errors.spec.ts"`
             , "1");
     });
@@ -271,7 +299,7 @@ describe('Errors', () => {
 
         let t = getTemplate(test, body).render();
         assert.equal(error, `\
-            IVY: Invalid parameter: txt
+            IVY: Invalid parameter 'txt' on <*hello/>
             >> Template: "test" - File: "runtime/errors.spec.ts"`
             , "1");
     });
@@ -395,6 +423,89 @@ describe('Errors', () => {
         getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Unsupported event: foobar
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised for I/O binding expressions used on non @io params (component)", function () {
+        const err = template(`(user:User) => {
+            <*editor text={=user.alias} />
+        }`);
+
+        let usr = new User();
+        usr.alias = "Alan";
+
+        getTemplate(err, body).render({ user: usr });
+        assert.equal(error, `\
+            IVY: Invalid I/O binding expression on 'text' (not an @io param)
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised for I/O binding expressions used on non @io params (decorator/default param)", function () {
+        const err = template(`(user:User) => {
+            <div @title={=user.alias}>
+                # Hello {user.alias} #
+            </div>
+        }`);
+
+        let usr = new User();
+        usr.alias = "Alan";
+
+        getTemplate(err, body).render({ user: usr });
+        assert.equal(error, `\
+            IVY: Invalid I/O binding expression on @title (@defaultValue is not an @io param)
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised for I/O binding expressions used on non @io params (decorator/multiple params)", function () {
+        const err = template(`(user:User) => {
+            <div @title(text={=user.alias})>
+                # Hello {user.alias} #
+            </div>
+        }`);
+
+        let usr = new User();
+        usr.alias = "Alan";
+
+        getTemplate(err, body).render({ user: usr });
+        assert.equal(error, `\
+            IVY: Invalid I/O binding expression on @title.text (not an @io param)
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised for I/O binding expressions used on non @io params (param node/@value param)", function () {
+        const err = template(`(user:User) => {
+            <*editor>
+                <.text @value={=user.alias}/>
+            </>
+        }`);
+
+        let usr = new User();
+        usr.alias = "Alan";
+
+        getTemplate(err, body).render({ user: usr });
+        assert.equal(error, `\
+            IVY: Invalid I/O binding expression on .text@value (not an @io param)
+            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            , "1");
+    });
+
+    it("should be raised for I/O binding expressions used on non @io params (param node/multiple params)", function () {
+        const err = template(`(user:User) => {
+            <*editor>
+                <.input inputValue={=user.alias}/>
+            </>
+        }`);
+
+        let usr = new User();
+        usr.alias = "Alan";
+
+        getTemplate(err, body).render({ user: usr });
+        assert.equal(error, `\
+            IVY: Invalid I/O binding expression on .input.inputValue (not an @io param)
             >> Template: "err" - File: "runtime/errors.spec.ts"`
             , "1");
     });

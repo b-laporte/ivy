@@ -1,4 +1,4 @@
-import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance } from './types';
+import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject } from '../trax';
 import { logNodes } from '../test/utils';
 
@@ -33,6 +33,7 @@ const U = undefined,
     RX_TRAX_PROP_PREFIX = /^ΔΔ/,
     RX_ERROR_ARGS = /([^ ]+)\s([^ ]+)/,
     DEFAULT_DECO_PARAM = "ΔDefaultParam",
+    IO_PARAMS = "ΔIoParams",
     REQUIRED_PROPS = "ΔRequiredProps",
     DECORATOR_ERRORS = {
         "$targetApi": "$1 cannot be used on DOM nodes",
@@ -1047,16 +1048,16 @@ function initContainer(v: IvView, container: IvContainer, parentLevel: number) {
     // called when
     if (v.cmAppends) {
         let parentCmAppend = v.cmAppends![parentLevel]!;
-        if(parentCmAppend) {
+        if (parentCmAppend) {
             container.cmAppend = function (n: IvNode, domOnly: boolean) {
                 // console.log("initContainer: append", n.uid, n.domNode ? n.domNode.uid : "XX", "parentLevel:", parentLevel, "in", v.uid, "(container: " + container.uid + ")");
                 parentCmAppend(n, true); // append container content
             };
             parentCmAppend(container, false); // append container in parent view
         } else {
-            console.log("ERROR?", parentCmAppend===U)
+            console.log("ERROR?", parentCmAppend === U)
         }
-        
+
     }
 }
 
@@ -1406,51 +1407,24 @@ export function ζproD(v: IvView, iFlag: number, eltIdx: number, name: string, e
 
 // Param setter
 // e.g. ζpar(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
-export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string | 1, expr: any) {
+export function ζpar(v: IvView, cm: boolean, iFlag: number, eltIdx: number, name: string | 0, expr: any) {
     if (expr === ζu) return;
     let val = getExprValue(v, iFlag, expr);
 
     if (val !== ζu) {
         let nd = v.nodes![eltIdx], k = nd.kind;
         if (k === "#container") {
-            let p = (nd as IvCptContainer).data;
-            if (p) {
-                // name is 1 for @value that can only be used on param nodes
-                if (cm && !hasProperty(p, name as string)) {
-                    error(v, "Invalid parameter: " + name);
-                } else {
-                    p[name] = val;
-                }
-            } else {
-                error(v, "Invalid parameter: " + name);
+            let api = (nd as IvCptContainer).data;
+            if (checkCptParam(v, cm, nd as IvCptContainer, api, name as string)) {
+                api[name] = val;
             }
         } else if (k === "#param") {
-            let p = (nd as IvParamNode);
-            if (name === 1) {
-                // @value parameter
-                if (p.dataHolder) {
-                    p.dataHolder[p.dataName] = val;
-                }
-            } else {
-                if (!p.data) {
-                    // could not be created in the ζpnode instruction => invalid parameter
-                    error(v, "Invalid param node parameter: " + name);
-                } else {
-                    if (cm && !hasProperty(p.data, name)) {
-                        error(v, "Invalid param node parameter: " + name);
-                    }
-                    p.data[name] = val;
-                }
-            }
+            setParamNodeValue(v, cm, nd as IvParamNode, val, name);
         } else if (k === "#decorator") {
             let d = (nd as IvDecoNode);
-            if (cm) {
-                if (!hasProperty(d.api, name as string)) {
-                    error(v, "Invalid decorator parameter: " + name);
-                    return;
-                }
+            if (!cm || checkDecoParam(v, d, name as string)) {
+                d.api[name] = val;
             }
-            d.api[name] = val;
         }
     }
 }
@@ -1463,6 +1437,122 @@ export function ζparD(v: IvView, cm: boolean, iFlag: number, eltIdx: number, na
         } else {
             addInstruction(v, ζpar, [v, cm, iFlag, eltIdx, name, expr]);
         }
+    }
+}
+
+function checkCptParam(v: IvView, cm: boolean, nd: IvCptContainer, api: any, name: string) {
+    if (api && (!cm || hasProperty(api, name as string))) {
+        return true;
+    }
+    let suffix = "";
+    if (nd.template) {
+        suffix = " on <*" + (nd.template as any).templateName + "/>"; // todo: use cptRef when passed by compiler
+    }
+    error(v, "Invalid parameter '" + name + "'" + suffix);
+    return false;
+}
+
+function setParamNodeValue(v: IvView, cm: boolean, p: IvParamNode, value: any, name: string | 0) {
+    if (name === 0) {
+        // @value parameter
+        // name is 0 for @value that can only be used on param nodes
+        if (p.dataHolder) {
+            p.dataHolder[p.dataName] = value;
+            return p.dataHolder;
+        }
+    } else {
+        if (!p.data) {
+            // could not be created in the ζpnode instruction => invalid parameter
+            error(v, "Invalid param node parameter: " + name);
+        } else {
+            if (cm && !hasProperty(p.data, name)) {
+                error(v, "Invalid param node parameter: " + name);
+            }
+            p.data[name] = value;
+            return p.data;
+        }
+    }
+    return null;
+}
+
+// ζbind(ζ, ζc, 0, 1, "param", someData, "someProperty");
+export function ζbind(v: IvView, cm: boolean, iFlag: number, eltIdx: number, bindingIdx: number, name: string | 0, propertyHolder: any, propertyName?: string | number) {
+    // read value and set it as param (if value is identical to current param value it will not change anything)
+    // if first time, watch param changes (will be automatically unwatched when param holder is disposed) and update data
+    let nd = v.nodes![eltIdx] as (IvCptContainer | IvParamNode | IvDecoNode), k = nd.kind, value: any = U, api: any;
+    if (propertyHolder !== U && propertyName !== U && propertyHolder !== null && typeof propertyHolder === "object") {
+        value = propertyHolder[propertyName];
+    }
+    if (k === "#container") {
+        api = (nd as IvCptContainer).data;
+        if (checkCptParam(v, cm, nd as IvCptContainer, api, name as string)) {
+            cm && checkIoProp(v, api, name as string);
+            api[name] = value;
+        }
+    } else if (k === "#param") {
+        if (name === 0) {
+            // @value parameter
+            // name is 0 for @value that can only be used on param nodes
+            let p = nd as IvParamNode;
+            if (p.dataHolder) {
+                p.dataHolder[p.dataName] = value;
+                api = p.dataHolder;
+                name = p.dataName;
+                cm && checkIoProp(v, api, name, "." + name, false, true);
+            }
+        } else {
+            api = setParamNodeValue(v, cm, nd as IvParamNode, value, name);
+            cm && checkIoProp(v, api, name, "." + (nd as IvParamNode).dataName);
+        }
+    } else if (k === "#decorator") {
+        let d = (nd as IvDecoNode);
+        api = d.api;
+        if (name === 0) {
+            // default value - e.g. @deco={=a.b}
+            name = setDecoDefaultParam(v, d, value);
+            cm && name && checkIoProp(v, api, name, d.refName, true);
+        } else if (!cm || checkDecoParam(v, d, name as string)) {
+            // multiple params - e.g. @deco(foo={=a.b})
+            cm && checkIoProp(v, api, name, d.refName);
+            api[name] = value;
+        }
+    }
+
+    // watch param changes
+    let bindings = nd.bindings;
+    if (bindings === U) {
+        bindings = nd.bindings = [];
+    }
+    if (bindings[bindingIdx] === U) {
+        // create binding data
+        if (api) {
+            let b: IvBinding = {
+                propertyHolder: propertyHolder,
+                propertyName: propertyName as any,
+                watchFn: watch(api, function () {
+                    let newVal = api[name];
+                    // console.log("ζbind watch call:", newVal)
+                    if (b.propertyHolder !== U && b.propertyHolder !== null && b.propertyName !== U) {
+                        b.propertyHolder[b.propertyName] = newVal;
+                    }
+                }) as any
+            }
+            bindings[bindingIdx] = b;
+        }
+    } else {
+        let b = bindings[bindingIdx];
+        b.propertyHolder = propertyHolder;
+        b.propertyName = propertyName as any;
+    }
+}
+
+export function ζbindD(v: IvView, cm: boolean, iFlag: number, eltIdx: number, bindingIdx: number, name: string | 0, propertyHolder: any, propertyName?: string | number) {
+    let nd = v.nodes![eltIdx];
+    if (nd !== U && nd.kind === "#param") {
+        // param nodes are not deferred
+        ζbind(v, cm, iFlag, eltIdx, bindingIdx, name, propertyHolder, propertyName);
+    } else {
+        addInstruction(v, ζbind, [v, cm, iFlag, eltIdx, bindingIdx, name, propertyHolder, propertyName]);
     }
 }
 
@@ -1540,9 +1630,7 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
             if (staticParams) {
                 let len = staticParams.length;
                 for (let i = 0; len > i; i += 2) {
-                    if (!hasProperty(api, staticParams[i])) {
-                        error(v, "Invalid decorator parameter: " + staticParams[i]);
-                    }
+                    checkDecoParam(v, nd, staticParams[i]);
                     api[staticParams[i]] = staticParams[i + 1];
                 }
             }
@@ -1553,17 +1641,31 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
     if (nd !== U) {
         let api = nd.api;
         if (paramMode === 1) {
-            let dp = api[DEFAULT_DECO_PARAM];
-            if (dp === U) {
-                error(v, "@" + decoName + " doesn't define any default parameter");
-            } else {
-                api[dp] = defaultValue;
-            }
+            setDecoDefaultParam(v, nd, defaultValue);
         }
         if (paramMode !== 2) {
             callDecoInstance(v, cm, nd);
         }
         registerLabels(v, api, labels);
+    }
+}
+
+function checkDecoParam(v: IvView, nd: IvDecoNode, paramName: string): boolean {
+    if (!hasProperty(nd.api, paramName)) {
+        error(v, "Invalid decorator parameter '" + paramName + "' on " + nd.refName);
+        return false;
+    }
+    return true;
+}
+
+function setDecoDefaultParam(v: IvView, nd: IvDecoNode, value: any): string {
+    let api = nd.api, dp = api[DEFAULT_DECO_PARAM];
+    if (dp === U) {
+        error(v, nd.refName + " doesn't define any default parameter");
+        return "";
+    } else {
+        api[dp] = value;
+        return dp;
     }
 }
 
@@ -1950,6 +2052,10 @@ export const ζΔu = Δu;
 export const Controller = ΔD;
 export const API = ΔD;
 
+function removeTraxPropPrefix(propName: string) {
+    return propName.replace(RX_TRAX_PROP_PREFIX, "");
+}
+
 // ----------------------------------------------------------------------------------------------
 // Decorators
 
@@ -1992,7 +2098,24 @@ export interface IvElement {
 export function defaultValue(proto, key: string) {
     // proto = object prototype
     // key = the property name (e.g. "value")
-    proto[DEFAULT_DECO_PARAM] = key.replace(RX_TRAX_PROP_PREFIX, "");
+    proto[DEFAULT_DECO_PARAM] = removeTraxPropPrefix(key);
+}
+
+/**
+ * Input/Output API property decorator
+ * Defines a property as input/output - i.e. this property can be used with an expression binding (e.g. prop={=a.b})
+ * as it may be changed by the API controller (e.g. component or decorator)
+ */
+export function io(proto, key: string) {
+    // proto = object prototype
+    // key = the property name (e.g. "value")
+    let ioParams = proto[IO_PARAMS];
+    key = "/" + removeTraxPropPrefix(key);
+    if (ioParams === U) {
+        proto[IO_PARAMS] = key;
+    } else {
+        proto[IO_PARAMS] = ioParams + key;
+    }
 }
 
 /**
@@ -2018,7 +2141,7 @@ function checkRequiredProps(v: IvView, o: Object, context: string, msgMap?: { [p
         for (let idx in requiredProps) {
             val = o[requiredProps[idx]];
             if (val === U || val === null) {
-                let propName = requiredProps[idx].replace(RX_TRAX_PROP_PREFIX, "");
+                let propName = removeTraxPropPrefix(requiredProps[idx]);
                 if (msgMap !== U && msgMap[propName] !== U) {
                     error(v, (context + " " + propName).replace(RX_ERROR_ARGS, msgMap[propName])); // todo RegEx
                 } else {
@@ -2030,6 +2153,28 @@ function checkRequiredProps(v: IvView, o: Object, context: string, msgMap?: { [p
         return ok;
     }
     return true;
+}
+
+function checkIoProp(v: IvView, propHolder: Object, propName: string, propHolderRef?: string, isDefaultProp?: boolean, isParamValue?: boolean): boolean {
+    let ioParams = propHolder[IO_PARAMS];
+    if (ioParams !== U) {
+        let pn = "/" + propName;
+        if (ioParams === pn || (ioParams as string).indexOf(pn) > -1) {
+            return true;
+        }
+    }
+    if (propHolderRef !== U) {
+        if (isDefaultProp) {
+            error(v, "Invalid I/O binding expression on " + propHolderRef + " (@defaultValue is not an @io param)");
+        } else if (isParamValue) {
+            error(v, "Invalid I/O binding expression on " + propHolderRef + "@value (not an @io param)");
+        } else {
+            error(v, "Invalid I/O binding expression on " + propHolderRef + "." + propName + " (not an @io param)");
+        }
+    } else {
+        error(v, "Invalid I/O binding expression on '" + propName + "' (not an @io param)");
+    }
+    return false;
 }
 
 // ----------------------------------------------------------------------------------------------

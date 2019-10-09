@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, API, defaultValue, IvElement, decorator, required, logger } from '../../iv';
+import { template, API, defaultParam, IvElement, decorator, required, logger } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { IvEventEmitter, IvEvent } from '../../iv/events';
 
@@ -26,7 +26,7 @@ describe('Decorators', () => {
     });
 
     @API class Title {
-        @defaultValue text: string = "";
+        @defaultParam text: string = "";
         prefix = "";
         suffix = "";
         clickEmitter: IvEventEmitter;
@@ -69,7 +69,7 @@ describe('Decorators', () => {
     });
 
     @API class Deco1 {
-        @defaultValue text: string = "";
+        @defaultParam text: string = "";
         @required $targetApi: Object;    // cannot be used on a component
     }
     const deco1 = decorator(Deco1, (api: Deco1) => {
@@ -81,7 +81,7 @@ describe('Decorators', () => {
     });
 
     @API class Deco2 {
-        @defaultValue text: string = "";
+        @defaultParam text: string = "";
         @required $targetElt: Object;    // cannot be used on a component
     }
     const deco2 = decorator(Deco2, (api: Deco2) => {

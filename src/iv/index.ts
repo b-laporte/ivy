@@ -2093,9 +2093,9 @@ export interface IvElement {
 }
 
 /** 
- * Default value API decorator @defaultValue
+ * Default value API decorator @defaultParam
  */
-export function defaultValue(proto, key: string) {
+export function defaultParam(proto, key: string) {
     // proto = object prototype
     // key = the property name (e.g. "value")
     proto[DEFAULT_DECO_PARAM] = removeTraxPropPrefix(key);
@@ -2165,7 +2165,7 @@ function checkIoProp(v: IvView, propHolder: Object, propName: string, propHolder
     }
     if (propHolderRef !== U) {
         if (isDefaultProp) {
-            error(v, "Invalid I/O binding expression on " + propHolderRef + " (@defaultValue is not an @io param)");
+            error(v, "Invalid I/O binding expression on " + propHolderRef + " (@defaultParam is not an @io param)");
         } else if (isParamValue) {
             error(v, "Invalid I/O binding expression on " + propHolderRef + "@paramValue (not an @io param)");
         } else {

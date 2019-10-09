@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, API, defaultValue, required, IvElement, decorator, io, Controller } from '../../iv';
+import { template, API, defaultParam, required, IvElement, decorator, io, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 import { Data, changeComplete } from '../../trax';
 
@@ -22,7 +22,7 @@ describe('Bindings', () => {
     }
 
     @API class Title {
-        @io @defaultValue text: string = "";
+        @io @defaultParam text: string = "";
         prefix = "";
         suffix = "";
         $targetApi?: Object;

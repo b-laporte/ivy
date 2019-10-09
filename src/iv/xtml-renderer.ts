@@ -2,7 +2,7 @@ import { XtmlFragment, XtmlElement, XtmlParam, XtmlText } from './xtml-ast';
 import { parse } from './xtml-parser';
 import { IvDocument, IvTemplate, IvView, IvNode } from './types';
 import { hasProperty, create } from '../trax';
-import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultValue, required, IvElement, decorator } from '.';
+import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator } from '.';
 import { IvEventEmitter } from './events';
 
 interface RenderOptions {

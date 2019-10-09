@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logger, Controller, API, defaultValue, decorator, required, IvElement } from '../../iv';
+import { template, logger, Controller, API, defaultParam, decorator, required, IvElement } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { Data } from '../../trax';
 import { IvLogger } from '../../iv/types';
@@ -43,7 +43,7 @@ describe('Errors', () => {
     }`);
 
     @API class Title {
-        @defaultValue text: string = "";
+        @defaultParam text: string = "";
         @required $targetElt: IvElement;
     }
     const title = decorator(Title, (api: Title) => {
@@ -454,7 +454,7 @@ describe('Errors', () => {
 
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
-            IVY: Invalid I/O binding expression on @title (@defaultValue is not an @io param)
+            IVY: Invalid I/O binding expression on @title (@defaultParam is not an @io param)
             >> Template: "err" - File: "runtime/errors.spec.ts"`
             , "1");
     });

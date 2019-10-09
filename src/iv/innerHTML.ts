@@ -1,8 +1,8 @@
-import { API, defaultValue, required, IvElement, decorator } from './index';
+import { API, defaultParam, required, IvElement, decorator } from './index';
 
 
 @API class UnsafeInnerHtml {
-    @defaultValue html: string = "";
+    @defaultParam html: string = "";
     @required $targetElt: IvElement;
 }
 export const unsafeInnerHTML = decorator(UnsafeInnerHtml, (api: UnsafeInnerHtml) => {

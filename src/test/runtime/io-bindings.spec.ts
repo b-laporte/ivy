@@ -280,10 +280,10 @@ describe('Bindings', () => {
         `, '4');
     });
 
-    it("can be set on components w/ param nodes (@value)", async function () {
+    it("can be set on components w/ param nodes (@paramValue)", async function () {
         const tpl = template(`(user:User) => {
             <*editor #edi>
-                <.text @value={=user.alias}/>
+                <.text @paramValue={=user.alias}/>
             </>
         }`);
 

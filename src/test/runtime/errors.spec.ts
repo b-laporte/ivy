@@ -151,7 +151,7 @@ describe('Errors', () => {
 
         const test = template(`() => {
             <*hello>
-                <.txt @value="World"/>
+                <.txt @paramValue="World"/>
             </>
         }`);
 
@@ -169,7 +169,7 @@ describe('Errors', () => {
 
         const test = template(`() => {
             <*hello>
-                <.txt @value="World"/>
+                <.txt @paramValue="World"/>
             </>
         }`);
 
@@ -476,10 +476,10 @@ describe('Errors', () => {
             , "1");
     });
 
-    it("should be raised for I/O binding expressions used on non @io params (param node/@value param)", function () {
+    it("should be raised for I/O binding expressions used on non @io params (param node/@paramValue param)", function () {
         const err = template(`(user:User) => {
             <*editor>
-                <.text @value={=user.alias}/>
+                <.text @paramValue={=user.alias}/>
             </>
         }`);
 
@@ -488,7 +488,7 @@ describe('Errors', () => {
 
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
-            IVY: Invalid I/O binding expression on .text@value (not an @io param)
+            IVY: Invalid I/O binding expression on .text@paramValue (not an @io param)
             >> Template: "err" - File: "runtime/errors.spec.ts"`
             , "1");
     });

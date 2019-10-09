@@ -40,7 +40,7 @@ import { IvEventEmitter } from '../iv/events';
 //     - public labels: $labels
 //     - forward labels
 // - Forms
-//     - Direct binding to inputs: @value
+//     - Direct binding to inputs: @paramValue
 //     - Binding to a form model: @model
 // - Custom decorators
 //     - Simple decorators

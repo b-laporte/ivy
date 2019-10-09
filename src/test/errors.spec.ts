@@ -147,23 +147,23 @@ describe('Code generation errors', () => {
 
     it("should be raised if built-in decorators are improperly used", async function () {
         assert.equal(await error.template(`(someVar) => {
-            <div @value={someVar}/>
+            <div @paramValue={someVar}/>
         }`), `
-            IVY: Invalid decorator - @value is not supported on Element nodes
+            IVY: Invalid decorator - @paramValue is not supported on Element nodes
             File: file.ts - Line 2 / Col 18
-            Extract: >> <div @value={someVar}/> <<
+            Extract: >> <div @paramValue={someVar}/> <<
         `);
     });
 
     it("should be raised when decorators are improperly used on param nodes", async function () {
         assert.equal(await error.template(`(someVar) => {
             <*cpt>
-                <.paramA @value=123 text="abc"/>
+                <.paramA @paramValue=123 text="abc"/>
             </>
         }`), `
-            IVY: Invalid decorator - @value cannot be mixed with other parameters
+            IVY: Invalid decorator - @paramValue cannot be mixed with other parameters
             File: file.ts - Line 3 / Col 26
-            Extract: >> <.paramA @value=123 text="abc"/> <<
+            Extract: >> <.paramA @paramValue=123 text="abc"/> <<
         `);
 
         assert.equal(await error.template(`(someVar) => {
@@ -171,19 +171,19 @@ describe('Code generation errors', () => {
                 <.paramA @text="abc"/>
             </>
         }`), `
-            IVY: Invalid decorator - Only @value and event listener decorators can be used on Parameter nodes
+            IVY: Invalid decorator - Only @paramValue and event listener decorators can be used on Parameter nodes
             File: file.ts - Line 3 / Col 26
             Extract: >> <.paramA @text="abc"/> <<
         `);
 
         assert.equal(await error.template(`(someVar) => {
             <*cpt>
-                <.paramA @value/>
+                <.paramA @paramValue/>
             </>
         }`), `
-            IVY: Invalid decorator - Incorrect value for @value
+            IVY: Invalid decorator - Incorrect value for @paramValue
             File: file.ts - Line 3 / Col 26
-            Extract: >> <.paramA @value/> <<
+            Extract: >> <.paramA @paramValue/> <<
         `);
     });
 

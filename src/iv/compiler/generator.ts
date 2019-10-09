@@ -26,6 +26,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
     RX_LOG = /\/\/\s*log\s*/,
     RX_EVT_HANDLER_DECORATOR = /^on(\w+)$/,
+    PARAM_VALUE = "paramValue", // @paramValue reserved decorator
     API_ARG = "$api",
     CTL_ARG = "$ctl",
     TPL_ARG = "$template",
@@ -96,7 +97,7 @@ const NO = 0,
         "#{element}": LATER,
         "#{paramNode}": LATER
     }, SUPPORTED_BUILT_IN_DECORATORS = {
-        "value": { "#textNode": NO, "#element": NO, "#component": NO, "#fragment": NO, "#paramNode": YES, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
+        "paramValue": { "#textNode": NO, "#element": NO, "#component": NO, "#fragment": NO, "#paramNode": YES, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
         "xmlns": { "#textNode": NO, "#element": YES, "#component": YES, "#fragment": YES, "#paramNode": NO, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
         "content": { "#textNode": NO, "#element": YES, "#component": NO, "#fragment": YES, "#paramNode": NO, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO }
         // async
@@ -515,8 +516,8 @@ export class ViewInstruction implements RuntimeInstruction {
                     for (let d of f.decorators) {
                         codeRef = d.ref.code;
                         let values = SUPPORTED_BUILT_IN_DECORATORS[d.ref.code];
-                        if (nk === "#paramNode" && codeRef !== "value" && !codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
-                            gc.error(`Only @value and event listener decorators can be used on Parameter nodes`, d);
+                        if (nk === "#paramNode" && codeRef !== PARAM_VALUE && !codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
+                            gc.error(`Only @paramValue and event listener decorators can be used on Parameter nodes`, d);
                         } else if (values && values[nk] === NO) {
                             gc.error(`@${d.ref.code} is not supported on ${VALIDATION_NAMES[nk]}`, d);
                         } else if (codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
@@ -876,11 +877,11 @@ export class ViewInstruction implements RuntimeInstruction {
         }
 
         if (nd.kind === "#paramNode" && nd.decorators) {
-            // look for @value decorator
+            // look for @paramValue decorator
             for (let d of nd.decorators) {
-                if (d.ref.code === "value") {
+                if (d.ref.code === PARAM_VALUE) {
                     if (nd.params) {
-                        this.gc.error("@value cannot be mixed with other parameters", d);
+                        this.gc.error("@paramValue cannot be mixed with other parameters", d);
                     }
                     this.instructions.push(new ParamInstruction(d, idx, view, iFlag, false, this.indent, true));
                 }
@@ -987,8 +988,8 @@ export class ViewInstruction implements RuntimeInstruction {
                             this.gc.error("@content can not be used on " + VALIDATION_NAMES[kind], nd);
                         }
                     }
-                } else if (decoRef === "async" || decoRef === "key" || decoRef === "value" || decoRef === "xmlns" || decoRef.match(RX_EVT_HANDLER_DECORATOR)) {
-                    // built-in decorators: @async, @key, @onXXX, @xmlns, @value
+                } else if (decoRef === "async" || decoRef === "key" || decoRef === PARAM_VALUE || decoRef === "xmlns" || decoRef.match(RX_EVT_HANDLER_DECORATOR)) {
+                    // built-in decorators: @async, @key, @onXXX, @xmlns, @paramValue
                     continue;
                 } else if (includeCustomDecorators) {
                     // custom decorator
@@ -1284,7 +1285,7 @@ class ParamInstruction implements RuntimeInstruction {
         let val = (this.node as XjsParam).value as XjsExpression;
         if (this.funcName === "par") {
             if (this.node.kind === "#decorator") {
-                // @value reserved decorator for param nodes
+                // @paramValue reserved decorator for param nodes
                 let dfp = this.node.defaultPropValue;
                 if (dfp) {
                     val = dfp as XjsExpression;
@@ -1312,7 +1313,7 @@ class ParamInstruction implements RuntimeInstruction {
         }
         if (generateLastExpressionArg) {
             if (this.node.kind === "#decorator") {
-                // @value decorator - in this case targetParamNode is true
+                // @paramValue decorator - in this case targetParamNode is true
                 let dfp = this.node.defaultPropValue;
                 if (!dfp) {
                     v.gc.error(`Incorrect value for @${this.node.ref.code}`, this.node);

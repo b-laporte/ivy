@@ -928,8 +928,8 @@ describe('Code generator', () => {
             <*myComponent>
                 <.header foo={bar()}>
                     <.foo position="top">
-                        <.bar @value={exp()}/>
-                        <.bar @value={exp2()}/>
+                        <.bar @paramValue={exp()}/>
+                        <.bar @paramValue={exp2()}/>
                     </>
                 </>
             </>
@@ -1982,7 +1982,7 @@ describe('Code generator', () => {
     it("should support bindings on param nodes", async function () {
         assert.equal(await body.template(`(name) => {
             <*cpt>
-                <.foo @value={=a.b}/>
+                <.foo @paramValue={=a.b}/>
             </>
         }`), `
             let ζ1, ζc1, ζp0, ζc = ζinit(ζ, ζs0, 2);

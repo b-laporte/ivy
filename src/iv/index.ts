@@ -1311,7 +1311,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
         }
     }
     // note: data may not be defined if the param node is not associated to an object 
-    // e.g. string or boolean or number that will be used with a @value param - cf. ζpar
+    // e.g. string or boolean or number that will be used with a @paramValue param - cf. ζpar
 
     // if contains list params, reset the tempLists
     if (pnd.lists) {
@@ -1454,8 +1454,8 @@ function checkCptParam(v: IvView, cm: boolean, nd: IvCptContainer, api: any, nam
 
 function setParamNodeValue(v: IvView, cm: boolean, p: IvParamNode, value: any, name: string | 0) {
     if (name === 0) {
-        // @value parameter
-        // name is 0 for @value that can only be used on param nodes
+        // @paramValue parameter
+        // name is 0 for @paramValue that can only be used on param nodes
         if (p.dataHolder) {
             p.dataHolder[p.dataName] = value;
             return p.dataHolder;
@@ -1491,8 +1491,8 @@ export function ζbind(v: IvView, cm: boolean, iFlag: number, eltIdx: number, bi
         }
     } else if (k === "#param") {
         if (name === 0) {
-            // @value parameter
-            // name is 0 for @value that can only be used on param nodes
+            // @paramValue parameter
+            // name is 0 for @paramValue that can only be used on param nodes
             let p = nd as IvParamNode;
             if (p.dataHolder) {
                 p.dataHolder[p.dataName] = value;
@@ -2167,7 +2167,7 @@ function checkIoProp(v: IvView, propHolder: Object, propName: string, propHolder
         if (isDefaultProp) {
             error(v, "Invalid I/O binding expression on " + propHolderRef + " (@defaultValue is not an @io param)");
         } else if (isParamValue) {
-            error(v, "Invalid I/O binding expression on " + propHolderRef + "@value (not an @io param)");
+            error(v, "Invalid I/O binding expression on " + propHolderRef + "@paramValue (not an @io param)");
         } else {
             error(v, "Invalid I/O binding expression on " + propHolderRef + "." + propName + " (not an @io param)");
         }

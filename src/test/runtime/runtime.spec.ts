@@ -372,21 +372,21 @@ describe('Iv Runtime', () => {
         assert.equal((t["view"] as IvView).lastRefresh, 1, "no second refresh");
     });
 
-    it("should allow to expose simple template $api", async function () {
+    it("should allow to expose simple template $", async function () {
         @API class HelloAPI {
             name: string;
             changeName: () => void;
         }
 
         let count = 0, lastApi: HelloAPI;
-        const hello = template(`($api:HelloAPI, name) => { // /* shortcut to $api.name */
-            if (!$api.changeName) {
+        const hello = template(`($:HelloAPI, name) => { // /* name = shortcut to $.name */
+            if (!$.changeName) {
                 // initialize the API
-                $api.changeName = () => {
-                    $api.name += ++count;
+                $.changeName = () => {
+                    $.name += ++count;
                 }
             }
-            lastApi = $api;
+            lastApi = $;
             <div>
                 # Hello {name} #
             </div>
@@ -411,9 +411,9 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        (t.$api as any).suffix = "Y";
+        (t.api as any).suffix = "Y";
 
-        await changeComplete(t.$api);
+        await changeComplete(t.api);
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -443,7 +443,7 @@ describe('Iv Runtime', () => {
 
     it("should allow to inject $template", async function () {
         const greetings = template(`(names, $template:IvTemplate) => {
-            # Nbr of names: {$template.$api.names.length} #
+            # Nbr of names: {$template.api.names.length} #
             for (let name of names) {
                 # Hello {name} #
             }

@@ -100,7 +100,7 @@ g.render({ name: "Brave New World" }); // update the previous text node with " H
  * JS statements, loops and conditions
  * ivy templates should be read as a JS function
  */
-const greetings = template(`(names) => { // equivalent to ($api, $) => {let name=$api["name"];
+const greetings = template(`(names) => { // equivalent to (api, $) => {let name=api["name"];
     let count=0;
     <div class="greetings">              // equivalent to $.startElement("div, {"class":"greetings"});
         for (let name of names) {
@@ -485,13 +485,13 @@ const list = template(`(itemList: ListItem[], separatorList:ListSeparator[], $ch
 /**
  * Template API and Change detection
  * As explained in the code generation mental model, the template arguments are automatically
- * gathered in a single object named $api. There are 2 reasons for this
+ * gathered in a single object named api. There are 2 reasons for this
  * - first, unlike JS functions template don't use positional arguments (but named parameters)
  * - second, Ivy uses special objects that can be watched - which allows ivy to automatically
  * re-render a template when its arguments have changed. This is done by default asynchronously
  * so that multiple changes result in one single render.
- * As a side note, the template $api can be explicitly used to describe the template
- * arguments. In this case a single $api param should be used and the $api type must refer
+ * As a side note, the template api can be explicitly used to describe the template
+ * arguments. In this case a single api param should be used and the api type must refer
  * to a @API class (@API classes are a specialized version of @Data objects)
  */
 @API class HelloABC {
@@ -499,8 +499,8 @@ const list = template(`(itemList: ListItem[], separatorList:ListSeparator[], $ch
     b: string;
     c: string;
 }
-const helloABC = template(`($api: HelloABC) => {
-    # Hello {$api.a}, {$api.b} and {$api.c} #
+const helloABC = template(`($: HelloABC) => {
+    # Hello {$.a}, {$.b} and {$.c} #
 }`);
 
 // --------------------------------------------------------------------------------------------------------------------------
@@ -509,9 +509,9 @@ const helloABC = template(`($api: HelloABC) => {
 /**
  * Controllers
  * = ability to provide private state and methods on top of the public API
- * Changes to the controller state (i.e. properties) or to the controller $api will automatically 
+ * Changes to the controller state (i.e. properties) or to the controller api will automatically 
  * trigger a new render()
- * Note: when a controller is defined, the template params must be defined through a $api property on the controller class.
+ * Note: when a controller is defined, the template params must be defined through a api property on the controller class.
  */
 
 @API class Section4 {
@@ -520,24 +520,24 @@ const helloABC = template(`($api: HelloABC) => {
     $content: IvContent;
 }
 @Controller class Section4Ctl {
-    $api: Section4;
-    internalCounter = 0;    // some private state (not on public $api)
+    api: Section4;
+    internalCounter = 0;    // some private state (not on public api)
 
-    increment() { // private method (not on public $api)
+    increment() { // private method (not on public api)
         this.internalCounter++;
     }
 }
-const section4 = template(`($ctl: Section4Ctl) => {
-    let api = $ctl.$api;
+const section4 = template(`($: Section4Ctl) => {
+    let api = $.api;
     <div class="section">
-        <div class="header" @onclick={=>$ctl.increment()}>
+        <div class="header" @onclick={=>$.increment()}>
             if (!api.header) {
                 # ... # 
             } else {
                 <! @content={api.header}/>
             }
         </>
-        # Internal counter: {$ctl.internalCounter} #
+        # Internal counter: {$.internalCounter} #
         <! @content={api.$content} />
     </>
 }`);
@@ -565,10 +565,10 @@ const section4Sample = template(`() => {
     $content: IvContent;
 }
 @Controller class Section5Ctl {
-    $api: Section5;
+    api: Section5;
 
     $init() {
-        // here $api.title has been set (if provided)
+        // here api.title has been set (if provided)
     }
 
     $beforeRender() {
@@ -583,13 +583,13 @@ const section4Sample = template(`() => {
         // this is the end...
     }
 }
-const section5 = template(`($ctl:Section5Ctl) => {
+const section5 = template(`($:Section5Ctl) => {
     // ...
 }`);
 
 /**
  * Exposing methods
- * Public methods can be exposed on the $api object. However they cannot be defined on the $api itself as they may need
+ * Public methods can be exposed on the api object. However they cannot be defined on the api itself as they may need
  * access to controller properties - this is why public methods must be defined in the controller $init method
  * Note: Those public methods are usually accessed through labels (cf. labels section) - but they can also be accessed
  * from the root template instance
@@ -601,42 +601,42 @@ const section5 = template(`($ctl:Section5Ctl) => {
     close: () => void;
 }
 @Controller class Section6Ctl {
-    $api: Section6;
+    api: Section6;
     expanded = true;
 
     $init() {
-        this.$api.expand = () => {
+        this.api.expand = () => {
             this.expanded = true;
         }
-        this.$api.close = () => {
+        this.api.close = () => {
             this.expanded = false;
         }
     }
 
 }
-const section6 = template(`($ctl:Section6Ctl) => {
+const section6 = template(`($:Section6Ctl) => {
     <div class="section6">
-        <div class="header" @onclick={=>$ctl.expanded=!$ctl.expanded}> #{title}# </div>
-        if ($ctl.expanded) {
-            <! @content={$ctl.$api.$content} />
+        <div class="header" @onclick={=>$.expanded=!$.expanded}> #{title}# </div>
+        if ($.expanded) {
+            <! @content={$.api.$content} />
         }
     </>
 }`);
 let s6 = section6().attach(document.body).render({ title: "Hi" });
-s6.$api.close();
+s6.api.close();
 
 /**
  * Exposing custom events
  * Template (w/ or w/p controllers) can expose events through the IvEventEmitter class;
- * Events have to be defined on the $api class and must follow the xxxxEmitter naming convention - where xxxx is the event name (e.g. clickEmitter)
+ * Events have to be defined on the api class and must follow the xxxxEmitter naming convention - where xxxx is the event name (e.g. clickEmitter)
  */
 
 @API class Msg {
     text: string = "";
     clickEmitter: IvEventEmitter; // or IvCancelableEventEmitter if the events needs to be cancellable
 }
-const msg = template(`($api:Msg) => {
-    <div class="msg" @onclick={=>$api.emit("some data")}>
+const msg = template(`($:Msg) => {
+    <div class="msg" @onclick={=>$.emit("some data")}>
         # {text} #
     </>
 }`);

@@ -254,19 +254,19 @@ describe('Labels', () => {
         assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
     });
 
-    it("should be supported on components with $api", async function () {
+    it("should be supported on components with $", async function () {
         @API class CptApi {
             text: string = "";
             changeText: () => void;
         }
 
-        const cpt = template(`($api:CptApi) => {
-            if (!$api.changeText) {
-                $api.changeText = () => {
-                    $api.text = "CCC";
+        const cpt = template(`($:CptApi) => {
+            if (!$.changeText) {
+                $.changeText = () => {
+                    $.text = "CCC";
                 }
             }
-            # cpt {$api.text} #
+            # cpt {$.text} #
         }`);
 
         const tpl = template(`(condition=true) => {
@@ -343,21 +343,21 @@ describe('Labels', () => {
         assert.equal(col[1].text, "BBB", "col[1] / BBB (3)");
     });
 
-    it("should be supported on components with $ctl", async function () {
+    it("should be supported on components with controllers", async function () {
         @API class CptApi {
             text: string = "";
         }
 
         @Controller class CptCtl {
-            $api: CptApi;
+            api: CptApi;
 
             getText() {
-                return this.$api.text;
+                return this.api.text;
             }
         }
 
-        const cpt = template(`($ctl:CptCtl) => {
-            # cpt {$ctl.getText()} #
+        const cpt = template(`($:CptCtl) => {
+            # cpt {$.getText()} #
         }`);
 
         const tpl = template(`(condition=true) => {
@@ -539,7 +539,7 @@ describe('Labels', () => {
     // label forwarding?
     // <*sub-cpt #foo/> -> means that a query on #foo should look in the sub-cpt template
     // <*sub-cpt ##bar ##foo="#bar;#baz"/> -> means that a query on #foo should look in the sub-cpt template and transform the query as query("#bar")
-    // labels access-rights: public labels defined in the $api
+    // labels access-rights: public labels defined in the api
     // query: IvQuery<["#white", "#list"]>;
 
     // assigning class to sub-elements

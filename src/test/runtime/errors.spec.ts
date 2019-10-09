@@ -36,9 +36,9 @@ describe('Errors', () => {
         text: string;
         input: EditorInput;
     }
-    const editor = template(`($api: Editor) => {
+    const editor = template(`($: Editor) => {
         <div class="editor">
-            #>> {$api.text} <<#
+            #>> {$.text} <<#
         </>
     }`);
 
@@ -111,13 +111,13 @@ describe('Errors', () => {
             blah: string;
         }
 
-        const err = template(`($ctl:Foo) => {
+        const err = template(`($:Foo) => {
             <div #foo/>
         }`);
 
         let t = getTemplate(err, body).render();
         assert.equal(error, `\
-            IVY: Template controller must be a @Controller Object - please check: Foo
+            IVY: Type of $ argument must be either a @Controller, an @API or a @Data class
             >> Template: "err" - File: "runtime/errors.spec.ts"`
             , "1");
     });
@@ -132,7 +132,7 @@ describe('Errors', () => {
             }
         }
 
-        const err = template(`($ctl:ErrCtl) => {
+        const err = template(`($:ErrCtl) => {
             <div #foo/>
         }`);
 
@@ -328,7 +328,7 @@ describe('Errors', () => {
         @API class CptAPI {
             fooEmitter: IvEventEmitter;
         }
-        const cpt = template(`($api:CptAPI) => {
+        const cpt = template(`($:CptAPI) => {
             # Hello #
         }`);
 
@@ -351,7 +351,7 @@ describe('Errors', () => {
         @API class CptAPI {
             clickEmitter: Foo;
         }
-        const cpt = template(`($api:CptAPI) => {
+        const cpt = template(`($:CptAPI) => {
             # Hello #
         }`);
 
@@ -377,7 +377,7 @@ describe('Errors', () => {
         @API class CptAPI {
             clickEmitter: Foo;
         }
-        const cpt = template(`($api:CptAPI) => {
+        const cpt = template(`($:CptAPI) => {
             # Hello #
         }`);
 
@@ -403,15 +403,15 @@ describe('Errors', () => {
             clickOnHeader: () => boolean;
         }
         @Controller class HelloCtl {
-            $api: HelloAPI;
+            api: HelloAPI;
             $init() {
-                this.$api.clickOnHeader = () => {
-                    return this.$api.header.clickEmitter.emit("HEADER CLICKED");
+                this.api.clickOnHeader = () => {
+                    return this.api.header.clickEmitter.emit("HEADER CLICKED");
                 }
             }
         }
-        const hello = template(`($ctl:HelloCtl) => {
-            let api = $ctl.$api
+        const hello = template(`($:HelloCtl) => {
+            let api = $.api
             # Hello {api.name} #
         }`);
         const err = template(`() => {

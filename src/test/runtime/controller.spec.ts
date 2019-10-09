@@ -21,22 +21,22 @@ describe('Controller', () => {
     }
 
     @Controller class TestController {
-        $api: TestAPI;
+        api: TestAPI;
         text: string = "Hello";
         $template: IvTemplate;
 
         @computed get description() {
-            return "text = " + this.text + " / count = " + this.$api.count;
+            return "text = " + this.text + " / count = " + this.api.count;
         }
     }
 
     it("should be supported on template with no params", async function () {
         let ctl: any = null;
 
-        const tpl = template(`($ctl: TestController) => {
-            ctl = $ctl;
+        const tpl = template(`($: TestController) => {
+            ctl = $;
             <div>
-                # Text = {$ctl.text} #
+                # Text = {$.text} #
             </div>
         }`);
 
@@ -67,11 +67,11 @@ describe('Controller', () => {
     it("may expose an api (1)", async function () {
         let ctl: any = null, api: any = null;
 
-        const tpl = template(`($ctl: TestController) => {
-            ctl = $ctl;
-            api = $ctl.$api;
+        const tpl = template(`($: TestController) => {
+            ctl = $;
+            api = $.api;
             <div>
-                # {$ctl.text}/{api.count} #
+                # {$.text}/{api.count} #
             </div>
         }`);
 
@@ -84,7 +84,6 @@ describe('Controller', () => {
                 //::C2 template anchor
             </body>
         `, '1');
-
         ctl!.text = "Hello 2";
 
         await changeComplete(ctl);
@@ -126,10 +125,10 @@ describe('Controller', () => {
     it("may expose an api (2)", async function () {
         let ctl: any = null, api: any = null;
 
-        const widget = template(`($ctl: TestController) => {
-            let api = $ctl.$api;
+        const widget = template(`($: TestController) => {
+            let api = $.api;
             <div>
-                # {$ctl.text}/{api.msg}/{api.count} #
+                # {$.text}/{api.msg}/{api.count} #
             </div>
         }`);
 
@@ -161,8 +160,8 @@ describe('Controller', () => {
     it("should support @computed properties", async function () {
         let ctl: any = null, api: any = null;
 
-        const widget = template(`($ctl: TestController) => {
-            # {$ctl.description} / {$ctl.$api.description} #
+        const widget = template(`($: TestController) => {
+            # {$.description} / {$.api.description} #
         }`);
 
         const tpl = template(`(msg="[Message]", count=42) => {
@@ -195,10 +194,10 @@ describe('Controller', () => {
     });
 
     it("should be able to retrieve $template", async function () {
-        const tpl = template(`($ctl: TestController) => {
-            let api = $ctl.$template.$api;
+        const tpl = template(`($: TestController, $template) => {
+            let api = $.api;
             <div>
-                # $template.$ctl is $ctl: {$ctl === $ctl.$template.$ctl} #
+                # $template.api is api: {api === $template.api} #
                 # count: {api.count} #
             </div>
         }`);
@@ -207,8 +206,26 @@ describe('Controller', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
-                    #::T4 $template.$ctl is $ctl: true #
+                    #::T4 $template.api is api: true #
                     #::T5 count: 42 #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+    });
+
+    it("should be able to retrieve api params directly", async function () {
+        const tpl = template(`($: TestController, text) => {
+            <div>
+                # $.api.text === text : {$.api.text === text} {text} #
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render({ text: "ABCD" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    #::T4 $.api.text === text : true ABCD #
                 </div>
                 //::C2 template anchor
             </body>
@@ -221,7 +238,7 @@ describe('Controller', () => {
             logs: string[] = [];
 
             $init() {
-                this.logs.push("$init " + this.$api.count);
+                this.logs.push("$init " + this.api.count);
             }
             $beforeRender() {
                 this.logs.push("$beforeRender");
@@ -231,11 +248,11 @@ describe('Controller', () => {
             }
         }
 
-        const cpt = template(`($ctl: TestController2) => {
-            let api = $ctl.$template.$api;
+        const cpt = template(`($: TestController2) => {
+            let api = $.$template.api;
             <div class="cpt">
                 # api count: {api.count} #
-                for (let log of $ctl.logs) {
+                for (let log of $.logs) {
                     # > {log} #
                 }
             </div>
@@ -286,29 +303,29 @@ describe('Controller', () => {
         `, '3'); // no new render
     });
 
-    it("should define $api functions through $init", async function () {
+    it("should define api functions through $init", async function () {
         @API class Counter {
             count: number = 0;
             increment: (value?: number) => number; // increment the count
         }
 
         @Controller class CounterCtl {
-            $api: Counter;
+            api: Counter;
             logs: string[] = [];
 
             $init() {
-                let $api = this.$api;
-                $api.increment = (value = 1) => {
-                    $api.count += value;
-                    return $api.count;
+                let api = this.api;
+                api.increment = (value = 1) => {
+                    api.count += value;
+                    return api.count;
                 }
             }
         }
 
-        const counter = template(`($ctl: CounterCtl) => {
-            let $api = $ctl.$api;
+        const counter = template(`($: CounterCtl) => {
+            let api = $.api;
             <div class="cpt">
-                # count: {$api.count} #
+                # count: {api.count} #
             </div>
         }`);
 
@@ -329,7 +346,7 @@ describe('Controller', () => {
         `, '1');
 
         t.query("#btn")!.click();
-        await changeComplete(t.query("#cnt")!.$api);
+        await changeComplete(t.query("#cnt"));
         assert.equal(stringify(t), `
             <body::E1>
                 <button::E3/>

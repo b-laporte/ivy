@@ -173,13 +173,13 @@ describe('Event emitters', () => {
     });
 
     it("should be usable on component APIs (w/o controller)", function () {
-        @API class HelloAPI {
+        @API class Hello {
             name: string = "";
             helloEmitter: IvEventEmitter;
             hiEmitter: IvCancelableEventEmitter;
         }
-        const hello = template(`($api:HelloAPI) => {
-            # Hello {$api.name} #
+        const hello = template(`($:Hello) => {
+            # Hello {$.name} #
         }`);
         const test = template(`() => {
             <div @onclick={=>"click"}/>
@@ -196,8 +196,8 @@ describe('Event emitters', () => {
         let t = getTemplate(test, body).render();
 
         assert.deepEqual(eventLog, [], "1");
-        let helloCpt = t.query("#hello") as HelloAPI,
-            helloCpt2 = t.query("#hello2") as HelloAPI;
+        let helloCpt = t.query("#hello") as Hello,
+            helloCpt2 = t.query("#hello2") as Hello;
 
         assert.equal(helloCpt.helloEmitter.listenerCount, 1, "2");
         assert.equal(helloCpt.hiEmitter.listenerCount, 2, "3");
@@ -228,16 +228,16 @@ describe('Event emitters', () => {
     });
 
     it("should be usable on component APIs (w/ controller)", function () {
-        @API class HelloAPI {
+        @API class Hello {
             name: string = "";
             helloEmitter: IvCancelableEventEmitter;
             hiEmitter: IvCancelableEventEmitter;
         }
         @Controller class HelloCtl {
-            $api: HelloAPI;
+            api: Hello;
         }
-        const hello = template(`($ctl:HelloCtl) => {
-            let api = $ctl.$api
+        const hello = template(`($:HelloCtl) => {
+            let api = $.api
             # Hello {api.name} #
         }`);
         const test = template(`() => {
@@ -252,7 +252,7 @@ describe('Event emitters', () => {
         let t = getTemplate(test, body).render();
 
         assert.deepEqual(eventLog, [], "1");
-        let helloCpt = t.query("#hello") as HelloAPI;
+        let helloCpt = t.query("#hello") as Hello;
 
         assert.equal(helloCpt.helloEmitter.listenerCount, 1, "2");
         assert.equal(helloCpt.hiEmitter.listenerCount, 2, "3");
@@ -278,21 +278,21 @@ describe('Event emitters', () => {
             title: string;
             clickEmitter: IvEventEmitter;
         }
-        @API class HelloAPI {
+        @API class Hello {
             name: string = "";
             header: HelloHeader;
             clickOnHeader: () => boolean;
         }
         @Controller class HelloCtl {
-            $api: HelloAPI;
+            api: Hello;
             $init() {
-                this.$api.clickOnHeader = () => {
-                    return this.$api.header.clickEmitter.emit("HEADER CLICKED");
+                this.api.clickOnHeader = () => {
+                    return this.api.header.clickEmitter.emit("HEADER CLICKED");
                 }
             }
         }
-        const hello = template(`($ctl:HelloCtl) => {
-            let api = $ctl.$api
+        const hello = template(`($:HelloCtl) => {
+            let api = $.api
             # Hello {api.name} #
         }`);
         const test = template(`() => {
@@ -304,7 +304,7 @@ describe('Event emitters', () => {
         let t = getTemplate(test, body).render();
 
         assert.deepEqual(eventLog, [], "1");
-        let helloCpt = t.query("#hello") as HelloAPI;
+        let helloCpt = t.query("#hello") as Hello;
 
         let ok = helloCpt.clickOnHeader();
         assert.equal(ok, true, "2"); // event is not cancelable

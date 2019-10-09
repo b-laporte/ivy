@@ -12,9 +12,9 @@ import { IvContent } from '../../iv/types';
     vAlign: string = "top";
    cellList: Cell[];
 }
-export const box = template(`($api:Box)=>{
-    <div class={"boxes "+$api.class} style={"vertical-align:"+$api.vAlign} >
-        for (let c of $api.cellList) {
+export const box = template(`($:Box)=>{
+    <div class={"boxes "+$.class} style={"vertical-align:"+$.vAlign} >
+        for (let c of $.cellList) {
             <div class={"box "+c.class} style={"vertical-align:"+c.vAlign} @content={c.$content}/>
         }
     </>

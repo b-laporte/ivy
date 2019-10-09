@@ -55,12 +55,12 @@ describe('Template compiler', () => {
             @ζΔD class ζParams {
                 a: any;
             }
-            return ζt("t1", "test2.ts", ζs0, function (ζ, $) {
-                let a = $["a"];
+            return ζt("t1", "test2.ts", ζs0, function (ζ, $, $api) {
+                let a = $api["a"];
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " T1 ", 0);
                 ζend(ζ, ζc);
-            }, 0, ζParams);
+            }, ζParams);
             })();
             let x = 123, t2 = (function () {
             const ζs0 = {};
@@ -68,18 +68,18 @@ describe('Template compiler', () => {
                 p1: string;
                 p2: number;
             }
-            return ζt("t2", "test2.ts", ζs0, function (ζ, $) {
-                let p1 = $["p1"], p2 = $["p2"];
+            return ζt("t2", "test2.ts", ζs0, function (ζ, $, $api) {
+                let p1 = $api["p1"], p2 = $api["p2"];
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " T1 ", 0);
                 ζend(ζ, ζc);
-            }, 0, ζParams);
+            }, ζParams);
             })();
             let z = "ABCD";
             `, "test 2");
     });
 
-    it("should process $api classes", async function () {
+    it("should process api classes", async function () {
         let src = `\
             import{ template, API } from "../iv";
 
@@ -89,7 +89,7 @@ describe('Template compiler', () => {
 
                 doSth:()=>void;
             }
-            let tpl = template(\`($api:FooApi) => {
+            let tpl = template(\`($:FooApi) => {
                 # tpl #
             }\`);
             `;
@@ -107,12 +107,11 @@ describe('Template compiler', () => {
             }
             let tpl = (function () {
             const ζs0 = {};
-            return ζt("tpl", "test2", ζs0, function (ζ, $) {
-                let $api = $;
+            return ζt("tpl", "test2", ζs0, function (ζ, $, $api) {
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " tpl ", 0);
                 ζend(ζ, ζc);
-            }, 0, FooApi);
+            }, FooApi);
             })();
             `, "1");
     });

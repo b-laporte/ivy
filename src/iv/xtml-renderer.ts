@@ -78,7 +78,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
                 if (cpt === U || typeof cpt !== "function") {
                     error("Invalid component reference: '" + nd.nameRef + "'");
                 } else {
-                    let tpl = cpt(), api = tpl.$api;
+                    let tpl = cpt(), api = tpl.api;
                     (tpl as any).document = doc;
                     tpl.attach(container);
                     if (nd.params) {

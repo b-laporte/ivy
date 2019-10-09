@@ -50,6 +50,6 @@ function update() {
     tpl.render({ databases: ENV.generateData().toArray() })
     perfMonitor.endProfile("render");
     // implicit asynchronous rendering would be done like this (identical performance):
-    // tpl.$api.databases = ENV.generateData().toArray();
+    // tpl.api.databases = ENV.generateData().toArray();
 }
 update();

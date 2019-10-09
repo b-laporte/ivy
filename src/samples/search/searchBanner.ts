@@ -9,7 +9,7 @@ import { IvContent } from '../../iv/types';
     logo: IvContent;
     account: IvContent;
 }
-export const searchBanner = template(`($api:SearchBanner) => {
+export const searchBanner = template(`($:SearchBanner) => {
     <div class="searchBanner">
         <div class="general">
             // applications and account info
@@ -17,15 +17,15 @@ export const searchBanner = template(`($api:SearchBanner) => {
         </>
         <form class="search">
             <div>
-                <div class="logo" @content={$api.logo}/>
+                <div class="logo" @content={$.logo}/>
                 <div class="container">
                     <div class="field">
                         <div class="paddingA"> #\ # </>
                         <input type="text" maxlength="2048" name="q" aria-autocomplete="both" 
                             aria-haspopup="false" autocapitalize="off" spellcheck="false"
                             autocomplete="off" autocorrect="off" role="combobox" 
-                            title={$api.title} aria-label={$api.ariaLabel}
-                            value={$api.searchTerms}
+                            title={$.title} aria-label={$.ariaLabel}
+                            value={$.searchTerms}
                         />
                         <div class="paddingB"> #\ # </>
                     </>

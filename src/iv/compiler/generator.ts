@@ -27,8 +27,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
     RX_LOG = /\/\/\s*log\s*/,
     RX_EVT_HANDLER_DECORATOR = /^on(\w+)$/,
     PARAM_VALUE = "paramValue", // @paramValue reserved decorator
-    API_ARG = "$api",
-    CTL_ARG = "$ctl",
+    API_ARG = "$",
     TPL_ARG = "$template",
     ASYNC = "async",
     XMLNS = "xmlns",
@@ -39,7 +38,6 @@ const RX_DOUBLE_QUOTE = /\"/g,
         "mathml": "http://www.w3.org/1998/mathml"
     },
     MD_PARAM_CLASS = "$apiClassName",
-    MD_CTL_CLASS = "$ctlClassName",
     NODE_NAMES = {
         "#tplFunction": "template function",
         "#tplArgument": "template argument",
@@ -262,7 +260,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     if (args && args.length) {
         let classProps: string[] = [], arg: XjsTplArgument, defaultValue = "";
 
-        argNames = ", $";
+        argNames = ", $, $api";
         for (let i = 0; args.length > i; i++) {
             defaultValue = "";
             arg = args[i];
@@ -270,21 +268,13 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 argClassName = arg.typeRef || "";
             }
             if (arg.name === API_ARG) {
-                argInit.push(API_ARG + ' = $');
                 if (i > 0 && arg.typeRef) {
                     gc.error("Template param class must be defined as first argument", arg);
-                }
-            } else if (arg.name === CTL_ARG) {
-                ctlClass = arg.typeRef || "";
-                if (!ctlClass) {
-                    gc.error("$ctl param requires a class as type argument", arg);
-                } else if (args.length > 1) {
-                    gc.error("$ctl argument cannot be combined with other template arguments", tf);
                 }
             } else if (arg.name === TPL_ARG) {
                 injectTpl = true;
             } else if (!argClassName) {
-                argInit.push(arg.name + ' = $["' + arg.name + '"]')
+                argInit.push(arg.name + ' = $api["' + arg.name + '"]')
                 switch (arg.typeRef) {
                     case "string":
                     case "number":
@@ -310,7 +300,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 //classProps.push((indent + gc.indentIncrement) + getPropertyDefinition({ name: arg.name, type: argType }, "ζ", addImport));
             } else if (i > 0) {
                 // argClassName is defined (always in 1st position)
-                argInit.push(arg.name + ' = $["' + arg.name + '"]');
+                argInit.push(arg.name + ' = $api["' + arg.name + '"]');
             }
         }
         if (!argClassName && classProps.length) {
@@ -322,7 +312,6 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     }
 
     tf[MD_PARAM_CLASS] = argClassName;
-    tf[MD_CTL_CLASS] = ctlClass;
     lines.push('(function () {');
     if (gc.statics.length) {
         lines.push(`${indent}const ${gc.statics.join(", ")};`);
@@ -332,7 +321,6 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     }
     gc.imports["ζt"] = 1;
     if (ctlClass || injectTpl) {
-        argNames += ", $ctl";
         if (injectTpl) {
             argNames += ", $template";
         }
@@ -345,12 +333,9 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
 }
 
 function templateEnd(tf: XjsTplFunction) {
-    let argClassName = tf[MD_PARAM_CLASS], ctlClassName = tf[MD_CTL_CLASS];
-    if (argClassName || ctlClassName) {
-        if (ctlClassName && !argClassName) {
-            argClassName = "0";
-        }
-        return `}, 0, ${argClassName}${ctlClassName ? ", " + ctlClassName : ""});\n${reduceIndent(tf.indent)}})()`;
+    let argClassName = tf[MD_PARAM_CLASS];
+    if (argClassName) {
+        return `}, ${argClassName});\n${reduceIndent(tf.indent)}})()`;
     }
     return '});\n' + reduceIndent(tf.indent) + '})()';
 }

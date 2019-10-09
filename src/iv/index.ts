@@ -32,6 +32,8 @@ const U = undefined,
     RX_EVENT_EMITTER = /^ΔΔ(\w+)Emitter$/,
     RX_TRAX_PROP_PREFIX = /^ΔΔ/,
     RX_ERROR_ARGS = /([^ ]+)\s([^ ]+)/,
+    API_FLAG = "ΔIsAPI",
+    CONTROLLER_FLAG = "ΔIsController",
     DEFAULT_DECO_PARAM = "ΔDefaultParam",
     IO_PARAMS = "ΔIoParams",
     REQUIRED_PROPS = "ΔRequiredProps",
@@ -42,7 +44,7 @@ const U = undefined,
 let TPL_COUNT = 0;
 
 interface TemplateController {
-    $api?: any;
+    api?: any;
     $init?: () => void;
     $beforeRender?: () => void;
     $afterRender?: () => void;
@@ -64,8 +66,9 @@ export class Template implements IvTemplate {
     rendering = false;
     initialized = false;
     labels: { [label: string]: any[] } | undefined = undefined;
+    hasCtlClass = false;
 
-    constructor(public templateName: string, public filePath: string, public staticCache: Object, public renderFn: (ζ: IvView, $api: any, $ctl: any, $template: IvTemplate) => void | undefined, public apiClass?: () => void, public ctlClass?: () => void, public hasHost = false) {
+    constructor(public templateName: string, public filePath: string, public staticCache: Object, public renderFn: (ζ: IvView, $: any, $api: any, $template: IvTemplate) => void | undefined, public $Class?: () => void) {
         // document is undefined in a node environment
         this.view = createView(null, null, 1, this);
         let self = this;
@@ -73,6 +76,13 @@ export class Template implements IvTemplate {
             self.notifyChange();
         }
         this.watchCb["$templateId"] = this.uid;
+        if (this.$Class !== U) {
+            if (checkTemplateArgClass(this.$Class, CONTROLLER_FLAG)) {
+                this.hasCtlClass = true;
+            } else if (!checkTemplateArgClass(this.$Class, API_FLAG) && !isDataObject(this.$Class.prototype)) {
+                error(this.view, "Type of $ argument must be either a @Controller, an @API or a @Data class");
+            }
+        }
     }
 
     get document() {
@@ -83,24 +93,24 @@ export class Template implements IvTemplate {
         this.view.doc = d;
     }
 
-    get $api(): any | undefined {
+    get api(): any | undefined {
         if (!this.tplApi) {
-            if (this.apiClass) {
-                this.tplApi = new this.apiClass();
-                initApi(this.view, this.tplApi, this.staticCache);
-            } else {
-                let ctl = this.$ctl;
-                if (ctl && ctl.$api) {
-                    this.tplApi = ctl.$api;
+            if (this.hasCtlClass) {
+                let ctl = this.controller;
+                if (ctl && ctl.api) {
+                    this.tplApi = ctl.api;
                 }
+            } else if (this.$Class) {
+                this.tplApi = new this.$Class();
+                initApi(this.view, this.tplApi, this.staticCache);
             }
         }
         return this.tplApi;
     }
 
-    get $ctl(): TemplateController | undefined {
-        if (!this.tplCtl && this.ctlClass) {
-            let ctl = this.tplCtl = new this.ctlClass();
+    get controller(): TemplateController | undefined {
+        if (!this.tplCtl && this.hasCtlClass) {
+            let ctl = this.tplCtl = new this.$Class!();
             if (hasProperty(ctl, PROP_TEMPLATE)) {
                 ctl[PROP_TEMPLATE] = this;
             }
@@ -113,8 +123,8 @@ export class Template implements IvTemplate {
                     }
                 };
             }
-            if (ctl.$api) {
-                initApi(this.view, ctl.$api, this.staticCache);
+            if (ctl.api) {
+                initApi(this.view, ctl.api, this.staticCache);
             }
         }
         return this.tplCtl;
@@ -150,7 +160,7 @@ export class Template implements IvTemplate {
      * Return the first element labelled as per the argument
      * e.g. for <div #foo/> -> query("#foo") will return the DIV DOM element
      * @param label 
-     * @return the DOM element or the Component $api or null if nothing is found
+     * @return the DOM element or the Component api or null if nothing is found
      */
     query(label: string, all: boolean = false): any | any[] | null {
         if (this.rendering) return null; // query cannot be used during template rendering
@@ -172,8 +182,8 @@ export class Template implements IvTemplate {
 
     disconnectObserver() {
         if (this.activeWatch) {
-            unwatch(this.$api, this.watchCb);
-            unwatch(this.$ctl, this.watchCb);
+            unwatch(this.api, this.watchCb);
+            unwatch(this.controller, this.watchCb);
             this.activeWatch = false;
         }
     }
@@ -182,64 +192,64 @@ export class Template implements IvTemplate {
         if (this.processing) return this;
         this.processing = true;
         // console.log('refresh', this.uid)
-        let $api = this.$api, $ctl = this.$ctl, view = this.view;
+        let api = this.api, ctl = this.controller, view = this.view;
 
-        if ($ctl && !isDataObject($ctl)) {
-            error(view, "Template controller must be a @Controller Object - please check: " + this.ctlClass!.name);
-            this.tplCtl = this.ctlClass = undefined;
+        if (ctl && !isDataObject(ctl)) {
+            error(view, "Template controller must be a @Controller Object - please check: " + this.$Class!.name);
+            this.tplCtl = this.$Class = undefined;
         }
 
-        if ($api && data) {
-            if (!isMutating($api)) {
+        if (api && data) {
+            if (!isMutating(api)) {
                 createNewRefreshContext();
             }
             this.disconnectObserver();
             // inject data into params
             for (let k in data) if (data.hasOwnProperty(k)) {
-                $api[k] = data[k];
+                api[k] = data[k];
             }
         }
         let bypassRender = !this.forceRefresh, nodes = view.nodes;
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
             bypassRender = false; // internal blocks may have to be recreated if root is not attached
         }
-        if (bypassRender && version($api) + version($ctl) > this.lastRefreshVersion) {
+        if (bypassRender && version(api) + version(ctl) > this.lastRefreshVersion) {
             bypassRender = false;
         }
         if (!bypassRender) {
             // console.log(">>>>>>>>>>>>>>>>> REFRESH uid:", this.uid, "lastRefreshVersion:", this.lastRefreshVersion, "forceRefresh: ", this.forceRefresh);
-            if ($ctl) {
+            if (ctl) {
                 if (!this.initialized) {
-                    callLcHook(view, $ctl, "$init", "controller");
+                    callLcHook(view, ctl, "$init", "controller");
                     this.initialized = true;
                 }
-                callLcHook(view, $ctl, "$beforeRender", "controller");
+                callLcHook(view, ctl, "$beforeRender", "controller");
             }
             this.rendering = true;
             this.labels = undefined;
             view.lastRefresh++;
             view.instructions = undefined;
             try {
-                this.renderFn(view, $api, $ctl, this);
+                this.renderFn(view, this.hasCtlClass ? ctl : api, api, this);
             } catch (ex) {
                 error(view, "Template execution error\n" + (ex.message || ex));
             }
 
             this.rendering = false;
 
-            if ($ctl) {
+            if (ctl) {
                 // changes in $afterRender() cannot trigger a new render to avoid infinite loops
-                callLcHook(view, $ctl, "$afterRender", "controller");
+                callLcHook(view, ctl, "$afterRender", "controller");
             }
-            commitChanges($api); // will change p or state version
+            commitChanges(api); // will change p or state version
             this.forceRefresh = false;
-            this.lastRefreshVersion = version($api) + version($ctl);
+            this.lastRefreshVersion = version(api) + version(ctl);
         }
 
         if (!this.activeWatch) {
-            watch($api, this.watchCb);
-            if ($ctl) {
-                watch($ctl, this.watchCb);
+            watch(api, this.watchCb);
+            if (ctl) {
+                watch(ctl, this.watchCb);
             }
             this.activeWatch = true;
         }
@@ -401,9 +411,9 @@ export function template(template: string): () => IvTemplate {
  * cf. sample code generation in generator.spec
  * @param renderFn 
  */
-export function ζt(tplName: string, tplFile: string, staticCache: Object, renderFn: (ζ: any, $api: any, $ctl: any, $template: IvTemplate) => void, hasHost?: number, argumentClass?, ctlClass?): () => IvTemplate {
+export function ζt(tplName: string, tplFile: string, staticCache: Object, renderFn: (ζ: any, $: any, $api: any, $template: IvTemplate) => void, argumentClass?: any): () => IvTemplate {
     return function () {
-        return new Template(tplName, tplFile, staticCache, renderFn, argumentClass || undefined, ctlClass, hasHost === 1);
+        return new Template(tplName, tplFile, staticCache, renderFn, argumentClass);
     }
 }
 
@@ -1093,7 +1103,7 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
             let tpl: Template = container.template = cptRef()!;
             setParentView(tpl.view, v, container);
             tpl.disconnectObserver();
-            let p = container.data = tpl.$api;
+            let p = container.data = tpl.api;
             if (staticParams) {
                 // initialize static params
                 let len = staticParams.length;
@@ -1145,7 +1155,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
         cleanDataLists(container);
 
         if (container.contentView) {
-            tpl.$api.$content = container.contentView;
+            tpl.api.$content = container.contentView;
             let instr = container.contentView.instructions;
             if (instr && instr.length) {
                 // console.log("forceRefresh #2 - ", instr.length);
@@ -1158,7 +1168,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
         } else {
             if (dynParamNames) {
                 // reset the dynamic param nodes that have not been processed
-                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.$api;
+                let len = dynParamNames.length, dp = (container ? container.dynamicParams : {}) || {}, params = tpl.api;
                 for (let i = 0; len > i; i++) {
                     if (!dp[dynParamNames[i]]) {
                         // this param node has not been called - so we need to reset it
@@ -1177,7 +1187,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
             }
         }
         if (labels) {
-            registerLabels(v, tpl.$api, labels);
+            registerLabels(v, tpl.api, labels);
         }
         tpl.render();
     }
@@ -1564,7 +1574,7 @@ export function ζlbl(v: IvView, iFlag: number, idx: number, name: string, value
         if (o.kind === "#container" && (o as IvContainer).subKind === "##cpt") {
             let tpl = (o as IvCptContainer).template;
             if (tpl) {
-                registerLabel(v, tpl.$api, name);
+                registerLabel(v, tpl.api, name);
             }
         } else if (o.domNode) {
             registerLabel(v, o.domNode, name);
@@ -1593,7 +1603,7 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
             targetElt = parent.domNode;
         } else if (parent.kind === "#container" && (parent as IvContainer).subKind === "##cpt") {
             let tpl = (parent as IvCptContainer).template!;
-            targetApi = tpl.$api;
+            targetApi = tpl.api;
             targetElt = tpl.query("#main");
         } else {
             invalidTarget = true;
@@ -1726,7 +1736,7 @@ export function ζevt(v: IvView, cm: boolean, idx: number, eltIdx: number, event
             if (!template) {
                 error(v, "Cannot set " + eventName + " event listener: undefined component template");
             } else {
-                addListener(template!.$api, false);
+                addListener(template!.api, false);
             }
         } else if (parent.kind === "#param") {
             addListener((parent as IvParamNode).data, true);
@@ -2049,11 +2059,21 @@ export const ζΔfBool = ΔfBool;
 export const ζΔfNbr = ΔfNbr;
 export const ζΔlf = Δlf;
 export const ζΔu = Δu;
-export const Controller = ΔD;
-export const API = ΔD;
+export function API(c: any) {
+    c.prototype[API_FLAG] = true;
+    ΔD(c);
+}
+export function Controller(c: any) {
+    c.prototype[CONTROLLER_FLAG] = true;
+    ΔD(c);
+}
 
 function removeTraxPropPrefix(propName: string) {
     return propName.replace(RX_TRAX_PROP_PREFIX, "");
+}
+
+function checkTemplateArgClass(cls: () => void, flag: string): boolean {
+    return cls.prototype[flag] === true;
 }
 
 // ----------------------------------------------------------------------------------------------

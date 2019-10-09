@@ -12,6 +12,6 @@ import { Data } from '../../trax';
 @API class ActionMenu {
     actionList: Action[];
 }
-export const actionMenu = template(`($api:ActionMenu) => {
+export const actionMenu = template(`($:ActionMenu) => {
     # V #
 }`);

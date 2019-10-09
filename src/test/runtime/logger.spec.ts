@@ -40,8 +40,8 @@ describe('Logger', () => {
                 this.$logger.log("ABC", 123, "DEF");
             }
         }
-        const hello = template(`($ctl:HelloCtl) => {
-            # Hello {$ctl.name} #
+        const hello = template(`($:HelloCtl) => {
+            # Hello {$.name} #
         }`);
 
         const test = template(`() => {
@@ -62,8 +62,8 @@ describe('Logger', () => {
                 this.$logger.error("Sample error from the $init function");
             }
         }
-        const hello = template(`($ctl:HelloCtl) => {
-            # Hello {$ctl.name} #
+        const hello = template(`($:HelloCtl) => {
+            # Hello {$.name} #
         }`);
 
         const test = template(`() => {

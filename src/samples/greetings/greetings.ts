@@ -3,13 +3,12 @@ import { template, API } from "../../iv";
 
 let count = 0;
 
-@API class HelloAPI {
+@API class Hello {
     name: string;
 }
-
-const hello = template(`($api:HelloAPI) => {
-    <div @onclick={e=>$api.name += ++count} @onselectstart={e=>e.preventDefault()}>
-        # Hello {$api.name} #
+const hello = template(`($:Hello) => {
+    <div @onclick={e => $.name += ++count} @onselectstart={e => e.preventDefault()}>
+        # Hello {$.name} #
     </div>
 }`);
 

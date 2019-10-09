@@ -733,10 +733,10 @@ describe('Code generator', () => {
         assert.ok(t.importMap!["ζendD"] !== 1, '4');
     });
 
-    it("should support $api argument", async function () {
-        let t = await test.template(`($api, a, b) => {
+    it("should support api argument", async function () {
+        let t = await test.template(`($, a, b) => {
             <div class="main">
-                # text {$api.a} #
+                # text {$.a} #
             </>
         }`);
 
@@ -746,13 +746,13 @@ describe('Code generator', () => {
             a: any;
             b: any;
         }
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let $api = $, a = $["a"], b = $["b"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let a = $api["a"], b = $api["b"];
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
-            ζtxt(ζ, ζc, 0, 1, 1, 0, ζs2, 1, ζe(ζ, 0, $api.a));
+            ζtxt(ζ, ζc, 0, 1, 1, 0, ζs2, 1, ζe(ζ, 0, $.a));
             ζend(ζ, ζc);
-        }, 0, ζParams);
+        }, ζParams);
         })()` , '1');
     });
 
@@ -776,44 +776,43 @@ describe('Code generator', () => {
     });
 
     it("should support external API class definition", async function () {
-        let t1 = await test.template(`($api:MyParamClass) => {
+        let t1 = await test.template(`($:MyParamClass) => {
             # Hello {$.name} #
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let $api = $;
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $.name));
             ζend(ζ, ζc);
-        }, 0, MyParamClass);
+        }, MyParamClass);
         })()`, 'simple param class');
 
-        let t2 = await test.template(`($api:MyParamClass, name) => {
+        let t2 = await test.template(`($:MyParamClass, name) => {
             # Hello {name} #
         }`);
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let $api = $, name = $["name"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let name = $api["name"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
-        }, 0, MyParamClass);
+        }, MyParamClass);
         })()`, 'param class + local variables initialization');
     });
 
     it("should support external Controller class definition", async function () {
-        let t1 = await test.template(`($ctl:MyCtlClass) => {
-            # Hello {$ctl.name} #
+        let t1 = await test.template(`($:MyCtlClass) => {
+            # Hello {$.name} #
         }`);
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $ctl) {
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
             let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $ctl.name));
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, $.name));
             ζend(ζ, ζc);
-        }, 0, 0, MyCtlClass);
+        }, MyCtlClass);
         })()`, 'simple param class');
     });
 
@@ -826,12 +825,12 @@ describe('Code generator', () => {
         @ζΔD class ζParams {
             name: any;
         }
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $ctl, $template) {
-            let name = $["name"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api, $template) {
+            let name = $api["name"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
-        }, 0, ζParams);
+        }, ζParams);
         })()`, 'simple param class');
     });
 
@@ -1249,14 +1248,14 @@ describe('Code generator', () => {
         @ζΔD class ζParams {
             name: any;
         }
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let name = $["name"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let name = $api["name"];
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζpro(ζ, 0, 0, "title", ζe(ζ, 0, "Message for " + name));
             ζtxt(ζ, ζc, 0, 1, 1, 0, ζs2, 1, ζe(ζ, 1, name));
             ζend(ζ, ζc);
-        }, 0, ζParams);
+        }, ζParams);
         })()` , 'f2');
         assert.deepEqual(t2.importMap, {
             "ζinit": 1, "ζelt": 1, "ζtxt": 1, "ζe": 1, "ζend": 1, "ζpro": 1, "ζΔD": 1, "ζt": 1
@@ -1271,12 +1270,12 @@ describe('Code generator', () => {
             firstName: any;
             lastName: any;
         }
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let firstName = $["firstName"], lastName = $["lastName"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let firstName = $api["firstName"], lastName = $api["lastName"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
             ζend(ζ, ζc);
-        }, 0, ζParams);
+        }, ζParams);
         })()` , 'f3');
         assert.deepEqual(t3.importMap, {
             "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζΔD": 1, "ζt": 1
@@ -1297,8 +1296,8 @@ describe('Code generator', () => {
         @ζΔD class ζParams {
             header?: MyHeader;
         }
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let header = $["header"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let header = $api["header"];
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζcnt(ζ, ζc, 1, 1, 1);
@@ -1310,7 +1309,7 @@ describe('Code generator', () => {
                 ζend(ζ1, ζc1);
             }
             ζend(ζ, ζc, ζs3);
-        }, 0, ζParams);
+        }, ζParams);
         })()` , 'f1');
     });
 
@@ -1515,12 +1514,12 @@ describe('Code generator', () => {
             d: any = 12;
             e: any = 'hello';
         }
-        return ζt("testTpl", "test.ts", ζs0, function (ζ, $) {
-            let a = $["a"], b = $["b"], c = $["c"], d = $["d"], e = $["e"];
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let a = $api["a"], b = $api["b"], c = $api["c"], d = $api["d"], e = $api["e"];
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 5, ζe(ζ, 0, a), ζe(ζ, 1, b), ζe(ζ, 2, c), ζe(ζ, 3, d), ζe(ζ, 4, e));
             ζend(ζ, ζc);
-        }, 0, ζParams);
+        }, ζParams);
         })()` , 'f1');
     });
 

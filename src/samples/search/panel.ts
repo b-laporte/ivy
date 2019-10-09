@@ -41,9 +41,9 @@ import { box } from './boxes';
     factList: PanelFact[];
     thumbnailsList: PanelThumbnails[];
 }
-export const panel = template(`($api:Panel)=>{
+export const panel = template(`($:Panel)=>{
     <div class="panel">
-        let h=$api.header;
+        let h=$.header;
         if (h) {
             let titleWidth = 380-parseInt(h.img.width,10),
                 titlePaddingTop = parseInt(h.img.height,10) / 2 - 50;
@@ -75,19 +75,19 @@ export const panel = template(`($api:Panel)=>{
                 </>
             </>
         }
-        if ($api.description) {
-            <div class="description" @content={$api.description}/>
+        if ($.description) {
+            <div class="description" @content={$.description}/>
         }
-        if ($api.factList && $api.factList.length) {
-            for (let fact of $api.factList) {
+        if ($.factList && $.factList.length) {
+            for (let fact of $.factList) {
                 <div class="fact">
                     <div class="title"> #{fact.title}:# </>
                     <div class="content" @content={fact.$content} /> 
                 </>
             }
         }
-        if ($api.thumbnailsList && $api.thumbnailsList.length) {
-            for (let tn of $api.thumbnailsList) {
+        if ($.thumbnailsList && $.thumbnailsList.length) {
+            for (let tn of $.thumbnailsList) {
                 <*thumbnails data={tn}/>
             }
         }

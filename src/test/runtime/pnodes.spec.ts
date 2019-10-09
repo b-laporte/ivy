@@ -1257,8 +1257,8 @@ describe('Param Nodes', () => {
         }`);
 
         let api: any;
-        const tpl = template(`($api, teamList:Team[]) => {
-            api = $api;
+        const tpl = template(`($, teamList:Team[]) => {
+            api = $;
             <*grid>
                 for (let team of teamList) {
                     <.row id={team.id}>

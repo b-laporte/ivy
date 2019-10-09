@@ -44,8 +44,8 @@ describe('Code generation errors', () => {
                 }
             }
             
-            const hello = template(\`($api:GreetingsAPI) => {
-                # Hi {$api.name} # 
+            const hello = template(\`($:GreetingsAPI) => {
+                # Hi {$.name} # 
             }\`);
         `), `
             TRAX: Constructors are not authorized in Data objects

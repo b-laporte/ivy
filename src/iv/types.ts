@@ -12,8 +12,8 @@ export interface IvContent {
 }
 
 export interface IvTemplate {
-    $api: any | undefined;
-    $ctl: any | undefined;
+    api: any | undefined;
+    controller: any | undefined;
     attach(element: any): IvTemplate;
     render(data?: any): IvTemplate;
 
@@ -128,7 +128,7 @@ export interface IvBlockContainer extends IvContainer {
 export interface IvCptContainer extends IvContainer, IvParamNodeParent {
     subKind: "##cpt";
     template: IvTemplate | null;                      // current component template
-    data: any;                                        // shortcut to cptTemplate.$api
+    data: any;                                        // shortcut to cptTemplate.api
     contentView: IvView | null;                       // light-dom / content view
     dynamicParams: { [key: string]: 1 } | undefined;  // map of dynamic params that have been found while refreshing the component content (aka. light-dom)
     bindings?: IvBinding[];                           // binding expressions associated to this container

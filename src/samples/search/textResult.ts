@@ -35,19 +35,19 @@ import { Data } from '../../trax';
     similarList: TextResultSimilar[];
     $content: IvContent;
 }
-export const textResult = template(`($api:TextResult) => {
+export const textResult = template(`($:TextResult) => {
     <div class="textResult">
         <div>
-            <*title data={$api.title}/>
+            <*title data={$.title}/>
             <div class="content"> // class="s" 
-                <! @content={$api.$content}/>
-                <*facts dataList={$api.factList}/>
-                <*more dataList={$api.moreList}/>
+                <! @content={$.$content}/>
+                <*facts dataList={$.factList}/>
+                <*more dataList={$.moreList}/>
             </>
             <div data-base-uri="/search">
                 <div class="similar" style="display:none">
-                    if ($api.similarList) {
-                        for (let similar of $api.similarList) {
+                    if ($.similarList) {
+                        for (let similar of $.similarList) {
                             <div data-ved={similar.ved}> #{similar.keywords}# </div>
                         }
                     }

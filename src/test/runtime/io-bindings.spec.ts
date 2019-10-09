@@ -60,10 +60,10 @@ describe('Bindings', () => {
         getText: () => string;
     }
     @Controller class EditorCtl {
-        $api: Editor;
+        api: Editor;
 
         $init() {
-            let api = this.$api;
+            let api = this.api;
             api.changeText = (newText: string) => {
                 if (api.input) {
                     api.input.inputValue = newText + "!";
@@ -80,9 +80,9 @@ describe('Bindings', () => {
             }
         }
     }
-    const editor = template(`($ctl: EditorCtl) => {
+    const editor = template(`($: EditorCtl) => {
         <div class="editor">
-            #>> {$ctl.$api.getText()} <<#
+            #>> {$.api.getText()} <<#
         </>
     }`);
 

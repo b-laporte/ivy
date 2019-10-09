@@ -28,7 +28,7 @@ import { template, Controller } from "../../iv";
     }
 };
 
-const clock = template(`($ctl:ClockCtl) => {
+const clock = template(`($:ClockCtl) => {
     // original example from Rich Harris at http://www.ractivejs.org/examples/clock/ 
     // (site no longer available)
     <svg class="clock" viewBox="0 0 100 100" @xmlns="svg">
@@ -43,11 +43,11 @@ const clock = template(`($ctl:ClockCtl) => {
                     transform={"rotate(" + (360 * i/60) + ")"}/>
             }
             // hours hand
-            <*hand kind="hour" rotation={30*$ctl.hours+$ctl.minutes/2}/>
+            <*hand kind="hour" rotation={30*$.hours+$.minutes/2}/>
             // minutes hand
-            <*hand kind="minute" rotation={6*$ctl.minutes+$ctl.seconds/10}/>
+            <*hand kind="minute" rotation={6*$.minutes+$.seconds/10}/>
             // seconds hand
-            <g transform={"rotate(" + 6 * ($ctl.seconds + $ctl.milliseconds*0.001) +")"}>
+            <g transform={"rotate(" + 6 * ($.seconds + $.milliseconds*0.001) +")"}>
                 <line class="second" y1="10" y2="-38"/>
                 <circle class="second-counterweight" transform="translate(0,8)" r="1"/>
             </g>

@@ -282,6 +282,26 @@ describe('Iv Runtime', () => {
         `, '2');
     });
 
+    it("should support single quote strings as param value", function () {
+        let tpl = template(`(msg) => {
+            <div class='main' title={::msg}>
+                <span [className]='sub' title={msg}> # ... # </span>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render({ msg: "hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main" a:title="hello">
+                    <span::E4 className="sub" a:title="hello">
+                        #::T5 ... #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+    });
+
     it("should support element properties", function () {
         const tpl = template(`(msg) => {
             <div [className]="main" [title]={::msg}>

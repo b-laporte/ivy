@@ -71,7 +71,7 @@ describe('Content Components', () => {
         <div>
             if (first) {
                 # A #
-                <div class="a" @content={$content}/>
+                <div class='a' @content={$content}/>
             } else {
                 # B #
                 <div class="b" @content={$content}/>
@@ -82,7 +82,7 @@ describe('Content Components', () => {
     it("can project & update content (cpt host:element / content:element / projection host: element)", function () {
         let tpl = template(`(message) => {
             <div class="main">
-                <*panel type="important">
+                <*panel type='important'>
                     <div> # Message: {message} # </div>
                 </>
             </div>
@@ -481,7 +481,7 @@ describe('Content Components', () => {
     it("defer attribute updates", function () {
         let tpl = template(`(message, type) => {
             <*panel2 type={type}>
-                <div class={type}> # Message: {message} # </div>
+                <div class={type} title='T'> # Message: {message} # </div>
             </>
         }`);
 
@@ -490,7 +490,7 @@ describe('Content Components', () => {
             <body::E1>
                 <div::E3 a:class="info">
                     #::T4 Panel #
-                    <div::E5 a:class="info">
+                    <div::E5 a:title="T" a:class="info">
                         #::T6 Message: Hello! #
                     </div>
                 </div>
@@ -503,7 +503,7 @@ describe('Content Components', () => {
             <body::E1>
                 <div::E3 a:class="info">
                     #::T4 Panel #
-                    <div::E5 a:class="info">
+                    <div::E5 a:title="T" a:class="info">
                         #::T6 Message: Hello! #
                     </div>
                 </div>
@@ -516,7 +516,7 @@ describe('Content Components', () => {
             <body::E1>
                 <div::E3 a:class="warning"(1)>
                     #::T4 Panel #
-                    <div::E5 a:class="warning"(1)>
+                    <div::E5 a:title="T" a:class="warning"(1)>
                         #::T6 Message: Hello! #
                     </div>
                 </div>
@@ -529,7 +529,7 @@ describe('Content Components', () => {
             <body::E1>
                 <div::E3 a:class="warning"(1)>
                     #::T4 Panel #
-                    <div::E5 a:class="warning"(1)>
+                    <div::E5 a:title="T" a:class="warning"(1)>
                         #::T6 Message: Hello2! # (1)
                     </div>
                 </div>

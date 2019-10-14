@@ -1027,7 +1027,7 @@ describe('Param Nodes', () => {
                 if (condition) {
                     <.option id={"a"+idx} text={"Option A"+idx} />
                 }
-                <.option id="last" text="Last Option" />
+                <.option id='last' text='Last Option' />
             </>
         }`);
 

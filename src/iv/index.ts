@@ -1841,12 +1841,28 @@ export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, even
 
 // Insert / Content projection instruction
 // e.g. ζins(ζ, 1, ζe(ζ, 0, $content));
-export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: any) {
+export function ζins(v: IvView, iFlag: number, idx: number, contentExprOr$: any, is$Param?: 1) {
     let projectionNode = v.nodes![idx] as (IvEltNode | IvFragment); // node with @content decorator: either a fragment or an element
     // contentView is the view that needs to be projected - e.g. $content
-    let contentView = getExprValue(v, iFlag, exprContentView) as IvView;
 
-    if ((contentView as any) === ζu || exprContentView === undefined) {
+    let contentView: IvView | undefined;
+
+    if (is$Param === 1) {
+        if (contentExprOr$[CONTROLLER_FLAG]) {
+            if (hasProperty(contentExprOr$, "api")) {
+                const api = contentExprOr$["api"];
+                if (api !== U) {
+                    contentView = api["$content"];
+                }
+            }
+        } else if (hasProperty(contentExprOr$, "$content")) {
+            contentView = contentExprOr$["$content"];
+        }
+    } else {
+        contentView = getExprValue(v, iFlag, contentExprOr$) as IvView;
+    }
+
+    if ((contentView as any) === ζu || contentExprOr$ === undefined) {
         contentView = projectionNode.contentView as IvView;
     }
     // console.log("ζins", contentView ? contentView.uid : "no content view");
@@ -1919,8 +1935,8 @@ export function ζins(v: IvView, iFlag: number, idx: number, exprContentView: an
     runInstructions(contentView);
 }
 
-export function ζinsD(v: IvView, iFlag: number, idx: number, exprContentView: any) {
-    addInstruction(v, ζins, [v, iFlag, idx, exprContentView]);
+export function ζinsD(v: IvView, iFlag: number, idx: number, exprContentView: any, is$Param?: 1) {
+    addInstruction(v, ζins, [v, iFlag, idx, exprContentView, is$Param]);
 }
 
 interface SiblingDomPosition {

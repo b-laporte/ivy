@@ -1,6 +1,7 @@
 import * as assert from 'assert';
-import { template, logViewNodes } from '../../iv';
+import { template, logViewNodes, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
+import { IvContent } from '../../iv/types';
 
 // Components with content
 describe('Content Components', () => {
@@ -44,7 +45,7 @@ describe('Content Components', () => {
 
     const header2 = template(`(text, $content) => {
         # :::: {text} :::: #
-        <! @content={$content}/>
+        <! @content/>
     }`);
 
     const section2 = template(`(text, open, $content) => {
@@ -60,7 +61,7 @@ describe('Content Components', () => {
         if (open) {
             <*section open=true text="Sub-Section">
                 # :::: Inner text {text} :::: #
-                <div @content={$content}/>
+                <div @content/>
             </>
         } else {
             # \(closed) #
@@ -77,6 +78,16 @@ describe('Content Components', () => {
                 <div class="b" @content={$content}/>
             }
         </div>
+    }`);
+
+    @API class SectionC {
+        $content?: IvContent;
+    }
+    @Controller class SectionCtrl {
+        api: SectionC;
+    }
+    const sectionC = template(`($: SectionCtrl) => {
+        <div class="sectionC" @content/>
     }`);
 
     it("can project & update content (cpt host:element / content:element / projection host: element)", function () {
@@ -2099,6 +2110,40 @@ describe('Content Components', () => {
                 //::C2 template anchor
             </body>
         `, '4');
+    });
+
+    it("support @content with no arguments on templates with controllers", function () {
+        let tpl = template(`(message) => {
+            <div class="main">
+                <*sectionC>
+                    # Message: {message} #
+                </>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render({ message: "Hello!" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="sectionC">
+                        #::T5 Message: Hello! #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ message: "Hello2!" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="sectionC">
+                        #::T5 Message: Hello2! # (1)
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
     });
 
     // TODO: check once param nodes are available

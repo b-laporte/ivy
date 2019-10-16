@@ -854,7 +854,7 @@ describe('Code generator', () => {
         }`), `
             let ζc = ζinit(ζ, ζs0, 1);
             ζelt(ζ, ζc, 0, 0, "div", 0, 0, ζs1);
-            ζins(ζ, 0, 0, ζe(ζ, 0, $content));
+            ζins(ζ, 0, 0, $, 1);
             ζend(ζ, ζc);
         `, '1');
     });

@@ -1633,8 +1633,8 @@ class InsInstruction implements RuntimeInstruction {
         let v = this.view, d = this.node, gc = this.view.gc;
 
         if (d.isOrphan || !d.defaultPropValue) {
-            if (gc.templateArgs.indexOf("$content") < 0) {
-                gc.error("$content must be defined as template argument to use @content without expressions", d);
+            if (gc.templateArgs.indexOf("$") < 0 && gc.templateArgs.indexOf("$content") < 0) {
+                gc.error("$ or $content must be defined as template arguments to use @content with no values", d);
             }
         } else if (this.node.defaultPropValue && this.node.defaultPropValue.kind !== "#expression") {
             gc.error("@content value cannot be a " + this.node.defaultPropValue.kind, d);
@@ -1644,11 +1644,12 @@ class InsInstruction implements RuntimeInstruction {
 
         body.push(`${v.indent}${funcStart("ins", this.iFlag)}${v.jsVarName}, ${this.iFlag}, ${this.idx}, `);
         if (d.isOrphan || !d.defaultPropValue) {
-            generateExpression(body, '$content', this.view, this.iFlag);
+            body.push(`$, 1);\n`);
         } else {
             generateExpression(body, this.node.defaultPropValue as XjsExpression, this.view, this.iFlag);
+            body.push(`);\n`);
         }
-        body.push(`);\n`);
+
     }
 }
 

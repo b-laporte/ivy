@@ -5,10 +5,12 @@ export interface IvDocument {
     createElement(name: string): any;
     createElementNS(ns: string, name: string): any;
     createComment(data: string): any;
+    createDocumentFragment(): any;
 }
 
 export interface IvContent {
     // placeholder interface to describe content views
+    isEmpty: () => boolean;                                                // return true if the view contains DOM nodes that will be projected
 }
 
 export interface IvTemplate {
@@ -27,7 +29,7 @@ export interface IvLogger {
 }
 
 export interface IvNode {
-    kind: "#element" | "#text" | "#fragment" | "#container" | "#component" | "#decorator" | "#listener" | "#param";
+    kind: "#element" | "#text" | "#fragment" | "#container" | "#decorator" | "#listener" | "#param";
     uid: string;                      // unique id (debug)
     idx: number;                      // 0 for root nodes, etc.
     parentIdx: number;                // index for parent node - -1 if undefined
@@ -56,6 +58,7 @@ export interface IvProjectionHost {
 export interface IvView {
     kind: "#view";
     uid: string;                                                           // unique id (debug)
+    domNode?: any;
     nodes: IvNode[] | null;                                                // list of IvNodes associated to this view
     namespaces: string[] | undefined;                                      // namespace stack - cf. @xmlns or xmlns attributes
     namespace: string | undefined;                                         // current namespace - cf. @xmlns or xmlns attributes
@@ -75,6 +78,7 @@ export interface IvView {
     paramNode: IvParamNode | undefined;                                    // the param node the view is attached to (if any)
     createElement: (name: string, namespace?: string) => any;              // create an element on the current namespace if none is provided as default
     nodeCount?: number;                                                    // used by XTML renderer
+    isEmpty: () => boolean;                                                // return true if the view contains DOM nodes (should be used on IvContent views to know if they are empty)
 }
 
 interface ListMetaData {
@@ -148,10 +152,6 @@ export interface IvAsyncContainer extends IvContainer {
 export interface IvEltNode extends IvParentNode {
     kind: "#element";
     contentView: IvView | null;                  // set when the element is used to project a content view
-}
-
-export interface IvCptNode extends IvParentNode {
-    kind: "#component";
 }
 
 export interface IvDecoNode extends IvNode {

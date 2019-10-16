@@ -138,7 +138,7 @@ export const doc = {
         }
     },
 
-    createDocFragment() {
+    createDocumentFragment() {
         return new DocFragment();
     },
 
@@ -288,6 +288,11 @@ export class ElementNode {
 
     get tagName() {
         return this.nodeName.toUpperCase();
+    }
+
+    get nodeType() {
+        if (this.nodeName === "#doc-fragment") return 11; // DOCUMENT_FRAGMENT_NODE
+        return 1; // ELEMENT_NODE
     }
 
     set innerHTML(s: string) {

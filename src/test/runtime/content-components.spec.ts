@@ -10,14 +10,14 @@ describe('Content Components', () => {
         body = reset();
     });
 
-    let panel = template(`(type, $content) => {
+    const panel = template(`(type, $content) => {
         <div class={type}>
             # Panel #
             <div @content={$content}/>
         </div>
     }`);
 
-    let header = template(`(text, $content) => {
+    const header = template(`(text, $content) => {
         <!>
             <!>
                 # :::: {text} :::: #
@@ -26,7 +26,7 @@ describe('Content Components', () => {
         </>
     }`);
 
-    let section = template(`(text, open, $content) => {
+    const section = template(`(text, open, $content) => {
         <section>
             # :::: {text} {open? "(open)" : "(closed)"} :::: #
             if (open) {
@@ -35,19 +35,19 @@ describe('Content Components', () => {
         </section>
     }`);
 
-    let panel2 = template(`(type, $content) => {
+    const panel2 = template(`(type, $content) => {
         <div class={type}>
             # Panel #
             <! @content={$content}/>
         </div>
     }`);
 
-    let header2 = template(`(text, $content) => {
+    const header2 = template(`(text, $content) => {
         # :::: {text} :::: #
         <! @content={$content}/>
     }`);
 
-    let section2 = template(`(text, open, $content) => {
+    const section2 = template(`(text, open, $content) => {
         <section>
             # :::: {text} {open? "(open)" : "(closed)"} :::: #
             if (open) {
@@ -56,7 +56,7 @@ describe('Content Components', () => {
         </section>
     }`);
 
-    let section3 = template(`(text, open, $content) => {
+    const section3 = template(`(text, open, $content) => {
         if (open) {
             <*section open=true text="Sub-Section">
                 # :::: Inner text {text} :::: #
@@ -67,7 +67,7 @@ describe('Content Components', () => {
         }
     }`);
 
-    let sectionAB = template(`(first, $content) => {
+    const sectionAB = template(`(first, $content) => {
         <div>
             if (first) {
                 # A #

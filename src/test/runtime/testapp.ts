@@ -18,4 +18,5 @@ import "./innerHTML.spec";
 import "./xtml.spec";
 import "./xtml-renderer.spec";
 import "./io-bindings.spec";
+import "./empty-content.spec";
 // import "./async.spec";

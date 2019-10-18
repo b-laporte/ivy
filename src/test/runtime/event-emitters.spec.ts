@@ -234,10 +234,10 @@ describe('Event emitters', () => {
             hiEmitter: IvCancelableEventEmitter;
         }
         @Controller class HelloCtl {
-            api: Hello;
+            $api: Hello;
         }
         const hello = template(`($:HelloCtl) => {
-            let api = $.api
+            let api = $.$api
             # Hello {api.name} #
         }`);
         const test = template(`() => {
@@ -284,15 +284,15 @@ describe('Event emitters', () => {
             clickOnHeader: () => boolean;
         }
         @Controller class HelloCtl {
-            api: Hello;
+            $api: Hello;
             $init() {
-                this.api.clickOnHeader = () => {
-                    return this.api.header.clickEmitter.emit("HEADER CLICKED");
+                this.$api.clickOnHeader = () => {
+                    return this.$api.header.clickEmitter.emit("HEADER CLICKED");
                 }
             }
         }
         const hello = template(`($:HelloCtl) => {
-            let api = $.api
+            let api = $.$api
             # Hello {api.name} #
         }`);
         const test = template(`() => {

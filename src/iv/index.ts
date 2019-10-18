@@ -28,6 +28,7 @@ function error(view: IvView, msg: string) {
 
 const U = undefined,
     DOCUMENT_FRAGMENT = 11,
+    PROP_API = "$api",
     PROP_TEMPLATE = "$template",
     PROP_LOGGER = "$logger",
     RX_EVENT_EMITTER = /^ΔΔ(\w+)Emitter$/,
@@ -45,7 +46,7 @@ const U = undefined,
 let TPL_COUNT = 0;
 
 interface TemplateController {
-    api?: any;
+    $api?: any;
     $init?: () => void;
     $beforeRender?: () => void;
     $afterRender?: () => void;
@@ -98,8 +99,8 @@ export class Template implements IvTemplate {
         if (!this.tplApi) {
             if (this.hasCtlClass) {
                 let ctl = this.controller;
-                if (ctl && ctl.api) {
-                    this.tplApi = ctl.api;
+                if (ctl && ctl.$api) {
+                    this.tplApi = ctl.$api;
                 }
             } else if (this.$Class) {
                 this.tplApi = new this.$Class();
@@ -124,8 +125,8 @@ export class Template implements IvTemplate {
                     }
                 };
             }
-            if (ctl.api) {
-                initApi(this.view, ctl.api, this.staticCache);
+            if (ctl[PROP_API]) {
+                initApi(this.view, ctl[PROP_API], this.staticCache);
             }
         }
         return this.tplCtl;
@@ -1849,8 +1850,8 @@ export function ζins(v: IvView, iFlag: number, idx: number, contentExprOr$: any
 
     if (is$Param === 1) {
         if (contentExprOr$[CONTROLLER_FLAG]) {
-            if (hasProperty(contentExprOr$, "api")) {
-                const api = contentExprOr$["api"];
+            if (hasProperty(contentExprOr$, PROP_API)) {
+                const api = contentExprOr$[PROP_API];
                 if (api !== U) {
                     contentView = api["$content"];
                 }

@@ -26,7 +26,7 @@ const KEY_SPACE = 32,
 }
 
 @Controller class GridCtl {
-    api: GridAPI;
+    $api: GridAPI;
     $template: IvTemplate;
 
     focusColor = "#198fd8";
@@ -71,7 +71,7 @@ const KEY_SPACE = 32,
     }
 
     getNextRow(row: Row, down: boolean): Row | null {
-        let rows = this.api.rowList, len = rows.length;
+        let rows = this.$api.rowList, len = rows.length;
         if (len) {
             if (len === 1) {
                 return rows[0];
@@ -92,7 +92,7 @@ const KEY_SPACE = 32,
 
     $beforeRender() {
         // check expandedCount and defaultFocusedRow
-        let rows = this.api.rowList, count = 0, dfr = this.defaultFocusedRow, dfrFound = false;
+        let rows = this.$api.rowList, count = 0, dfr = this.defaultFocusedRow, dfrFound = false;
         for (let row of rows) {
             if (row.expanded) {
                 count++;

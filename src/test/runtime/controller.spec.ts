@@ -21,12 +21,12 @@ describe('Controller', () => {
     }
 
     @Controller class TestController {
-        api: TestAPI;
-        text: string = "Hello";
+        $api: TestAPI;
         $template: IvTemplate;
+        text: string = "Hello";
 
         @computed get description() {
-            return "text = " + this.text + " / count = " + this.api.count;
+            return "text = " + this.text + " / count = " + this.$api.count;
         }
     }
 
@@ -69,7 +69,7 @@ describe('Controller', () => {
 
         const tpl = template(`($: TestController) => {
             ctl = $;
-            api = $.api;
+            api = $.$api;
             <div>
                 # {$.text}/{api.count} #
             </div>
@@ -126,7 +126,7 @@ describe('Controller', () => {
         let ctl: any = null, api: any = null;
 
         const widget = template(`($: TestController) => {
-            let api = $.api;
+            let api = $.$api;
             <div>
                 # {$.text}/{api.msg}/{api.count} #
             </div>
@@ -161,7 +161,7 @@ describe('Controller', () => {
         let ctl: any = null, api: any = null;
 
         const widget = template(`($: TestController) => {
-            # {$.description} / {$.api.description} #
+            # {$.description} / {$.$api.description} #
         }`);
 
         const tpl = template(`(msg="[Message]", count=42) => {
@@ -195,9 +195,9 @@ describe('Controller', () => {
 
     it("should be able to retrieve $template", async function () {
         const tpl = template(`($: TestController, $template) => {
-            let api = $.api;
+            let api = $.$api;
             <div>
-                # $template.api is api: {api === $template.api} #
+                # $template.$api is $api: {api === $template.api} #
                 # count: {api.count} #
             </div>
         }`);
@@ -206,7 +206,7 @@ describe('Controller', () => {
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
-                    #::T4 $template.api is api: true #
+                    #::T4 $template.$api is $api: true #
                     #::T5 count: 42 #
                 </div>
                 //::C2 template anchor
@@ -217,7 +217,7 @@ describe('Controller', () => {
     it("should be able to retrieve api params directly", async function () {
         const tpl = template(`($: TestController, text) => {
             <div>
-                # $.api.text === text : {$.api.text === text} {text} #
+                # $.api.text === text : {$.$api.text === text} {text} #
             </div>
         }`);
 
@@ -238,7 +238,7 @@ describe('Controller', () => {
             logs: string[] = [];
 
             $init() {
-                this.logs.push("$init " + this.api.count);
+                this.logs.push("$init " + this.$api.count);
             }
             $beforeRender() {
                 this.logs.push("$beforeRender");
@@ -310,11 +310,11 @@ describe('Controller', () => {
         }
 
         @Controller class CounterCtl {
-            api: Counter;
+            $api: Counter;
             logs: string[] = [];
 
             $init() {
-                let api = this.api;
+                let api = this.$api;
                 api.increment = (value = 1) => {
                     api.count += value;
                     return api.count;
@@ -323,7 +323,7 @@ describe('Controller', () => {
         }
 
         const counter = template(`($: CounterCtl) => {
-            let api = $.api;
+            let api = $.$api;
             <div class="cpt">
                 # count: {api.count} #
             </div>

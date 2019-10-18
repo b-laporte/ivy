@@ -29,22 +29,22 @@ describe('Bindings', () => {
         @required $targetElt: IvElement;
         changeTitle: (newTitle: string) => void;
     }
-    const title = decorator(Title, (api: Title) => {
+    const title = decorator(Title, ($api: Title) => {
         return {
             $init() {
                 // changeTitle needs to be global as we cannot set a label on a decorator
                 // when defaultValue property is used (e.g. @title={=a.b})
-                changeTitle = api.changeTitle = (newTitle: string) => {
+                changeTitle = $api.changeTitle = (newTitle: string) => {
                     // push the change for potential bindings
-                    api.text = newTitle + "!";
-                    return api;
+                    $api.text = newTitle + "!";
+                    return $api;
                 }
             },
             $render() {
-                if (api.text === "") {
-                    api.$targetElt.setAttribute("title", "[NO TITLE]");
+                if ($api.text === "") {
+                    $api.$targetElt.setAttribute("title", "[NO TITLE]");
                 } else {
-                    api.$targetElt.setAttribute("title", api.prefix + api.text + api.suffix);
+                    $api.$targetElt.setAttribute("title", $api.prefix + $api.text + $api.suffix);
                 }
             }
         }
@@ -60,10 +60,10 @@ describe('Bindings', () => {
         getText: () => string;
     }
     @Controller class EditorCtl {
-        api: Editor;
+        $api: Editor;
 
         $init() {
-            let api = this.api;
+            let api = this.$api;
             api.changeText = (newText: string) => {
                 if (api.input) {
                     api.input.inputValue = newText + "!";
@@ -82,7 +82,7 @@ describe('Bindings', () => {
     }
     const editor = template(`($: EditorCtl) => {
         <div class="editor">
-            #>> {$.api.getText()} <<#
+            #>> {$.$api.getText()} <<#
         </>
     }`);
 

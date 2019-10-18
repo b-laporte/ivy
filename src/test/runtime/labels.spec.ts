@@ -349,10 +349,10 @@ describe('Labels', () => {
         }
 
         @Controller class CptCtl {
-            api: CptApi;
+            $api: CptApi;
 
             getText() {
-                return this.api.text;
+                return this.$api.text;
             }
         }
 

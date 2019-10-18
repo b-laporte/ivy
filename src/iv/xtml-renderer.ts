@@ -282,24 +282,24 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
     @required $targetElt: IvElement;
     completeEmitter: IvEventEmitter;
 }
-export const innerXTML = decorator(InnerXtml, (api: InnerXtml) => {
+export const innerXTML = decorator(InnerXtml, ($api: InnerXtml) => {
     let firstRender = true;
     return {
         async $render() {
             if (firstRender) {
                 //let d1 = new Date();
                 let f: XtmlFragment;
-                if (api.xtml !== undefined) {
-                    f = parse(api.xtml);
-                } else if (api.fragment !== undefined) {
-                    f = api.fragment! as XtmlFragment;
+                if ($api.xtml !== undefined) {
+                    f = parse($api.xtml);
+                } else if ($api.fragment !== undefined) {
+                    f = $api.fragment! as XtmlFragment;
                 } else {
                     throw "Invalid arguments: either xtml or fragment params must be provided";
                 }
                 //let d2 = new Date();
                 //console.log("@innerXTML - parsing: ", d2.getTime() - d1.getTime(), "ms");
-                await renderXtmlFragment(f, api.$targetElt, api.resolver, { doc: api.doc });
-                api.completeEmitter.emit();
+                await renderXtmlFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
+                $api.completeEmitter.emit();
                 //let d3 = new Date();
                 //console.log("@innerXTML - generation: ", d3.getTime() - d2.getTime(), "ms");
             } else {

@@ -84,7 +84,7 @@ describe('Content Components', () => {
         $content?: IvContent;
     }
     @Controller class SectionCtrl {
-        api: SectionC;
+        $api: SectionC;
     }
     const sectionC = template(`($: SectionCtrl) => {
         <div class="sectionC" @content/>

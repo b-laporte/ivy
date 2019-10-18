@@ -33,25 +33,25 @@ describe('Decorators', () => {
         $targetApi?: Object;
         @required $targetElt: IvElement;
     }
-    const title = decorator(Title, (api: Title) => {
+    const title = decorator(Title, ($api: Title) => {
         let isEltDefinedAtInit = false;
         return {
             $init() {
-                if (api.$targetElt) {
+                if ($api.$targetElt) {
                     isEltDefinedAtInit = true;
                 }
-                if (api.text === "ERROR_INIT") {
+                if ($api.text === "ERROR_INIT") {
                     throw "Error in Init";
                 }
             },
             $render() {
                 let info = "";
-                if (api.text === "ERROR_RENDER") {
+                if ($api.text === "ERROR_RENDER") {
                     throw "Error in Render";
-                } else if (api.text === "ERROR2_RENDER") {
+                } else if ($api.text === "ERROR2_RENDER") {
                     throw new Error("Error2 in Render");
                 }
-                if (api.$targetApi && api.$targetElt) {
+                if ($api.$targetApi && $api.$targetElt) {
                     // target is a component
                     info = "CPT";
                     if (isEltDefinedAtInit) {
@@ -59,10 +59,10 @@ describe('Decorators', () => {
                     }
                     info += ": ";
                 }
-                if (api.text === "") {
-                    api.$targetElt.setAttribute("title", "[NO TITLE]");
+                if ($api.text === "") {
+                    $api.$targetElt.setAttribute("title", "[NO TITLE]");
                 } else {
-                    api.$targetElt.setAttribute("title", info + api.prefix + api.text + api.suffix);
+                    $api.$targetElt.setAttribute("title", info + $api.prefix + $api.text + $api.suffix);
                 }
             }
         }

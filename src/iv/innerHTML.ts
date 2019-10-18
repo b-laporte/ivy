@@ -5,12 +5,12 @@ import { API, defaultParam, required, IvElement, decorator } from './index';
     @defaultParam html: string = "";
     @required $targetElt: IvElement;
 }
-export const unsafeInnerHTML = decorator(UnsafeInnerHtml, (api: UnsafeInnerHtml) => {
+export const unsafeInnerHTML = decorator(UnsafeInnerHtml, ($api: UnsafeInnerHtml) => {
     let html = "";
     return {
         $render() {
-            if (api.html !== html) {
-                api.$targetElt.innerHTML = html = api.html;
+            if ($api.html !== html) {
+                $api.$targetElt.innerHTML = html = $api.html;
             }
         }
     }

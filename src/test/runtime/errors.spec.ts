@@ -403,15 +403,15 @@ describe('Errors', () => {
             clickOnHeader: () => boolean;
         }
         @Controller class HelloCtl {
-            api: HelloAPI;
+            $api: HelloAPI;
             $init() {
-                this.api.clickOnHeader = () => {
-                    return this.api.header.clickEmitter.emit("HEADER CLICKED");
+                this.$api.clickOnHeader = () => {
+                    return this.$api.header.clickEmitter.emit("HEADER CLICKED");
                 }
             }
         }
         const hello = template(`($:HelloCtl) => {
-            let api = $.api
+            let api = $.$api
             # Hello {api.name} #
         }`);
         const err = template(`() => {

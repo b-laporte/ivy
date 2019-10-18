@@ -167,7 +167,7 @@ export interface IvDecoNode extends IvNode {
  * Decorator interface
  */
 export interface IvDecorator<ApiClass> {
-    (api: ApiClass): IvDecoratorInstance;
+    ($api: ApiClass): IvDecoratorInstance;
     $isDecorator: true;
     $apiClass: { new(): ApiClass };
 }

@@ -520,7 +520,7 @@ const helloABC = template(`($: HelloABC) => {
     $content: IvContent;
 }
 @Controller class Section4Ctl {
-    api: Section4;
+    $api: Section4;
     internalCounter = 0;    // some private state (not on public api)
 
     increment() { // private method (not on public api)
@@ -565,7 +565,7 @@ const section4Sample = template(`() => {
     $content: IvContent;
 }
 @Controller class Section5Ctl {
-    api: Section5;
+    $api: Section5;
 
     $init() {
         // here api.title has been set (if provided)
@@ -601,14 +601,14 @@ const section5 = template(`($:Section5Ctl) => {
     close: () => void;
 }
 @Controller class Section6Ctl {
-    api: Section6;
+    $api: Section6;
     expanded = true;
 
     $init() {
-        this.api.expand = () => {
+        this.$api.expand = () => {
             this.expanded = true;
         }
-        this.api.close = () => {
+        this.$api.close = () => {
             this.expanded = false;
         }
     }
@@ -618,7 +618,7 @@ const section6 = template(`($:Section6Ctl) => {
     <div class="section6">
         <div class="header" @onclick={=>$.expanded=!$.expanded}> #{title}# </div>
         if ($.expanded) {
-            <! @content={$.api.$content} />
+            <! @content={$.$api.$content} />
         }
     </>
 }`);

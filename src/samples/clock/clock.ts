@@ -31,7 +31,7 @@ import { template, Controller } from "../../iv";
 const clock = template(`($:ClockCtl) => {
     // original example from Rich Harris at http://www.ractivejs.org/examples/clock/ 
     // (site no longer available)
-    <svg class="clock" viewBox="0 0 100 100" @xmlns="svg">
+    <svg class="clock" viewBox="0 0 100 100">
         <g transform="translate(50,50)">
             // dial
             <circle class="clock-face" r="48"/>

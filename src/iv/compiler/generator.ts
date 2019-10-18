@@ -30,6 +30,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
     API_ARG = "$",
     TPL_ARG = "$template",
     ASYNC = "async",
+    SVG = "svg",
     XMLNS = "xmlns",
     XMLNS_VALUES = {
         "xhtml": "http://www.w3.org/1999/xhtml",
@@ -778,6 +779,9 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                 }
             }
+        }
+        if (xmlns === "" && nd.kind === "#element" && (nd as XjsElement).name.toLowerCase() === SVG) {
+            xmlns = XMLNS_VALUES[SVG];
         }
         return xmlns;
     }

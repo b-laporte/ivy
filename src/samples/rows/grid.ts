@@ -116,7 +116,7 @@ const KEY_SPACE = 32,
 }
 
 export const grid = template(`($:GridCtl) => {
-    let rowList = $.api.rowList, 
+    let rowList = $.$api.rowList, 
         helpLabelDisplayed = false,
         expandedCount = $.expandedCount,
         defaultFocusedRow = $.defaultFocusedRow;

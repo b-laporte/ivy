@@ -168,7 +168,7 @@ describe('Xmlns', () => {
             </body>
         `, '1');
 
-        t.render({condition:false});
+        t.render({ condition: false });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="bar"/>
@@ -176,7 +176,7 @@ describe('Xmlns', () => {
             </body>
         `, '2');
 
-        t.render({condition:true, radius:64});
+        t.render({ condition: true, radius: 64 });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="bar">
@@ -187,6 +187,88 @@ describe('Xmlns', () => {
                 //::C2 template anchor
             </body>
         `, '3');
+    });
+
+    it("should be supported in template content with no svg tag + no explicit xmlns", function () {
+        const foo = template(`(condition=true, radius=42) => {
+            <svg viewBox="0 0 100 100">
+                <*bar>
+                    if (condition) {
+                        <circle r={radius}/>
+                    }
+                </>
+            </>
+        }`);
+
+        const bar = template(`($content) => {
+            <! @content/>
+        }`);
+
+        const t = getTemplate(foo, body).render();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <svg::E3 SVG a:viewBox="0 0 100 100">
+                    <circle::E4 SVG a:r="42"/>
+                </svg>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ condition: false });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <svg::E3 SVG a:viewBox="0 0 100 100"/>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.render({ condition: true, radius: 64 });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <svg::E3 SVG a:viewBox="0 0 100 100">
+                    <circle::E4 SVG a:r="64"(1)/>
+                </svg>
+                //::C2 template anchor
+            </body>
+        `, '3');
+    });
+
+    it("should not be automatically set on svg elements if another xmlns is explicitly defined", function () {
+        const foo = template(`(name, condition = false) => {
+            <div>
+                <svg viewBox="0 0 100 100" @xmlns="html">
+                    <circle r="48"/>
+                    if (condition) {
+                        <line y1="10" y2="0"/>
+                    }
+                </>
+            </div>
+        }`);
+
+        const t = getTemplate(foo, body).render();
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    <svg::E4 HTML a:viewBox="0 0 100 100">
+                        <circle::E5 HTML a:r="48"/>
+                    </svg>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ condition: true });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3>
+                    <svg::E4 HTML a:viewBox="0 0 100 100">
+                        <circle::E5 HTML a:r="48"/>
+                        <line::E6 HTML a:y1="10" a:y2="0"/>
+                    </svg>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
     });
 
 });

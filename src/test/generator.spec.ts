@@ -1705,11 +1705,29 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
             ζfra(ζ, ζc, 1, 1);
+            ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
             ζelt(ζ, ζc, 2, 2, "svg", 1);
             ζelt(ζ, ζc, 3, 3, "circle", 0, 0, ζs2);
             ζxmlns(ζ, 0);
+            ζxmlns(ζ, 0);
             ζend(ζ, ζc);
         `, '3');
+
+        assert.equal(await body.template(`(name) => {
+            <div class="foo">
+                <svg>
+                    <circle class="clock-face" r="48"/>
+                </>
+            </div>
+        }`), `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+            ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
+            ζelt(ζ, ζc, 1, 1, "svg", 1);
+            ζelt(ζ, ζc, 2, 2, "circle", 0, 0, ζs2);
+            ζxmlns(ζ, 0);
+            ζend(ζ, ζc);
+        `, '4');
     });
 
     it("should support simple decorators - default param with expression", async function () {

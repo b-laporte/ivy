@@ -19,4 +19,5 @@ import "./xtml.spec";
 import "./xtml-renderer.spec";
 import "./io-bindings.spec";
 import "./empty-content.spec";
+import "./input-value.spec";
 // import "./async.spec";

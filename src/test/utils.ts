@@ -281,6 +281,11 @@ export class ElementNode {
         incrementChanges(this, k);
     }
 
+    getAttribute(name: string) {
+        let s = this["a:" + name];
+        return s ? s : null;
+    }
+
     set className(v: string) {
         this["$className"] = v;
         incrementChanges(this, "$className");
@@ -464,20 +469,58 @@ export class ElementNode {
     }
 
     click() {
-        if (this.eListeners) {
-            for (let listener of this.eListeners) {
-                if (listener.name === "click") {
-                    try {
-                        let evt = { type: "click" };
-                        listener.func(evt);
-                    } catch (ex) {
-                        console.log("ERROR in Event Listener: " + listener.name, ex);
-                    }
+        raiseEvent("click", this);
+    }
+}
+
+function raiseEvent(name: string, e: ElementNode) {
+    if (e.eListeners) {
+        for (let listener of e.eListeners) {
+            if (listener.name === name) {
+                try {
+                    let evt = { type: name, target: e };
+                    listener.func(evt);
+                } catch (ex) {
+                    console.log("ERROR in Event Listener: " + listener.name, ex);
                 }
             }
         }
     }
 }
+
+export function focusElt(e: ElementNode) {
+    raiseEvent("focus", e);
+}
+
+export function blurElt(e: ElementNode) {
+    raiseEvent("blur", e);
+}
+
+export function editElt(e: ElementNode, text: string, append = true, focusAndBlur = false) {
+    if (focusAndBlur) {
+        focusElt(e);
+    }
+    let v1 = e.getAttribute("value") || "";
+    if (!append) {
+        if (v1 !== "") {
+            e.setAttribute("value", "");
+            raiseEvent("input", e);
+        }
+    }
+
+    for (let c of text) {
+        e.setAttribute("value", (e.getAttribute("value") || "") + c);
+        raiseEvent("input", e);
+    }
+
+    if (focusAndBlur) {
+        blurElt(e);
+        if (v1 !== e.getAttribute("value")) {
+            raiseEvent("change", e);
+        }
+    }
+}
+
 
 class DocFragment extends ElementNode {
     constructor() {

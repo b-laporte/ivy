@@ -46,7 +46,8 @@ module.exports = [{
         "rows": "./src/samples/rows/rows.ts",
         "clock": "./src/samples/clock/clock.ts",
         "dbmon": "./src/samples/dbmon/dbmon.ts",
-        "search": "./src/samples/search/search.ts"
+        "search": "./src/samples/search/search.ts",
+        "list-bench": "./src/samples/list-bench/list-bench.ts",
     },
     module: {
         rules: [{

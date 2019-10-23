@@ -124,7 +124,7 @@ describe('@value', () => {
             return "::" + d;
         }
         const tpl = template(`(user:User) => {
-            <input #field type="text" @value(data={=user.firstName} input2data={input2data} data2input={data2input})/>
+            <input #field type="text" @value(data={=user.firstName} {input2data} {data2input})/>
         }`, value);
 
         const usr = new User();

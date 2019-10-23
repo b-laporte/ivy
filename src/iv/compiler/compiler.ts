@@ -192,7 +192,7 @@ export async function compile(source: string, filePath: string): Promise<Compila
             // check if function is named template and if its argument is a template string
             let ce = node as ts.CallExpression;
 
-            if (ce.expression.getText() === TEMPLATE && ce.arguments.length === 1 && ce.arguments[0].kind === SK.NoSubstitutionTemplateLiteral) {
+            if (ce.expression.getText() === TEMPLATE && ce.arguments.length >= 1 && ce.arguments[0].kind === SK.NoSubstitutionTemplateLiteral) {
                 let tpl = ce.arguments[0], txt = tpl.getText();
 
                 templates.push({

@@ -444,7 +444,7 @@ function setParentView(v: IvView, pv: IvView, container: IvContainer | null) {
  * Placeholder function - will replace with ζt(...) at compilation time
  * @param template 
  */
-export function template(template: string): () => IvTemplate {
+export function template(template: string, ...dependencies: any[]): () => IvTemplate {
     return function () {
         return new Template("", "", {}, () => { })
     }
@@ -1539,6 +1539,9 @@ export function ζbind(v: IvView, cm: boolean, iFlag: number, eltIdx: number, bi
     // if first time, watch param changes (will be automatically unwatched when param holder is disposed) and update data
     let nd = v.nodes![eltIdx] as (IvCptContainer | IvParamNode | IvDecoNode), k = nd.kind, value: any = U, api: any;
     if (propertyHolder !== U && propertyName !== U && propertyHolder !== null && typeof propertyHolder === "object") {
+        if (cm && typeof propertyName === "string" && isDataObject(propertyHolder) && !hasProperty(propertyHolder, propertyName)) {
+            error(v, "Invalid property: '" + propertyName + "'");
+        }
         value = propertyHolder[propertyName];
     }
     if (k === "#container") {

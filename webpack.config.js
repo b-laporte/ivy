@@ -33,7 +33,7 @@ module.exports = [{
     }
 }, {
     name: 'samples',
-    mode: 'production',
+    mode: 'development',
     target: 'web',
     entry: {
         "hello": "./src/samples/hello/hello.ts",
@@ -48,6 +48,7 @@ module.exports = [{
         "dbmon": "./src/samples/dbmon/dbmon.ts",
         "search": "./src/samples/search/search.ts",
         "list-bench": "./src/samples/list-bench/list-bench.ts",
+        "inputs": "./src/samples/inputs/inputs.ts"
     },
     module: {
         rules: [{

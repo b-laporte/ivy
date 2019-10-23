@@ -279,6 +279,9 @@ export class ElementNode {
         let k = "a:" + key
         this[k] = value; // toUpperCase: to test that value has been set through setAttribute
         incrementChanges(this, k);
+        if (key === "value") {
+            this["value"] = value;
+        }
     }
 
     getAttribute(name: string) {
@@ -409,6 +412,9 @@ export class ElementNode {
             if (this.hasOwnProperty(k) && k !== "nodeName" && k !== "childNodes"
                 && k !== "namespaceURI" && k !== "nsSpecified" && k !== "uid" && k !== "parentNode"
                 && k !== "style" && k !== "classList" && k !== "$changes" && k !== "eListeners") {
+                if (k === "value" && this["a:value"] !== undefined) {
+                    continue;
+                }
                 if (typeof this[k] === "function") {
                     atts.push(`on${k}=[function]`);
                 } else {
@@ -496,31 +502,43 @@ export function blurElt(e: ElementNode) {
     raiseEvent("blur", e);
 }
 
-export function editElt(e: ElementNode, text: string, append = true, focusAndBlur = false) {
+export function editElt(e: ElementNode, value: string | boolean | number, append = true, focusAndBlur = false) {
     if (focusAndBlur) {
         focusElt(e);
     }
-    let v1 = e.getAttribute("value") || "";
-    if (!append) {
-        if (v1 !== "") {
-            e.setAttribute("value", "");
+    // todo: check element tagName and type
+    if (e.tagName !== "INPUT") return;
+    let type = e.getAttribute("type"), vStart: any = undefined, vEnd: any = undefined;
+    if (type === "text" || type === "number") {
+        vStart = e["value"] || "";
+        if (!append) {
+            if (vStart !== "") {
+                e["value"] = "";
+                raiseEvent("input", e);
+            }
+        }
+
+        for (let c of "" + value) {
+            e["value"] = (e["value"] || "") + c;
             raiseEvent("input", e);
         }
+        vEnd = e["value"];
+    } else if (type === "checkbox") {
+        vStart = e["checked"] || false;
+        e["checked"] = value === true;
+        vEnd = e["checked"] || false;
+    } else if (type === "radio") {
+        vStart = e["checked"] || false;
+        e["checked"] = value === true;
+        vEnd = e["checked"] || false;
     }
-
-    for (let c of text) {
-        e.setAttribute("value", (e.getAttribute("value") || "") + c);
-        raiseEvent("input", e);
-    }
-
     if (focusAndBlur) {
         blurElt(e);
-        if (v1 !== e.getAttribute("value")) {
+        if (vStart !== vEnd) {
             raiseEvent("change", e);
         }
     }
 }
-
 
 class DocFragment extends ElementNode {
     constructor() {

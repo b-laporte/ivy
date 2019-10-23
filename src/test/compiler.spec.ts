@@ -32,6 +32,39 @@ describe('Template compiler', () => {
             // end`, "test 1");
     });
 
+    it("should compile a template with dependency arguments", async function () {
+        let src1 = `\// start
+            import { template } from "../iv";
+            const abc=123;
+
+            const x = template(\`(name) => {
+                # hello world {name} #
+            }\`, abc);
+
+            // end`;
+
+        let r = await compile(src1, "a/b/c.ts")
+
+        assert.equal(r.fileContent, `\// start
+            import { template, ζinit, ζend, ζtxt, ζe, ζΔD, ζt } from "../iv";
+            const abc=123;
+
+            const x = (function () {
+            const ζs0 = {}, ζs1 = [" hello world ", "", " "];
+            @ζΔD class ζParams {
+                name: any;
+            }
+            return ζt("x", "b/c.ts", ζs0, function (ζ, $, $api) {
+                let name = $api["name"];
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
+                ζend(ζ, ζc);
+            }, ζParams);
+            })();
+
+            // end`, "test 1");
+    });
+
     it("should compile multiple functions with params and partial imports", async function () {
         let src2 = `\
             import{ template, ζtxt } from "../iv";

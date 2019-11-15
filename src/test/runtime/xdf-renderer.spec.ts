@@ -1,8 +1,8 @@
-import { IvContent, IvTemplate } from './../../iv/types';
+import { IvContent, IvTemplate } from '../../iv/types';
 import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, doc } from '../utils';
-import { renderXtml, innerXTML } from '../../iv/xtml-renderer';
-import { parse } from '../../iv/xtml-parser';
+import { renderXdf, xdfContent } from '../../iv/xdf-renderer';
+import { parse } from '../../xdf/parser';
 import { template } from '../../iv';
 import { Data } from '../../trax';
 
@@ -13,7 +13,7 @@ describe('Renderer', () => {
         body = reset();
     });
 
-    let xtmlA = `
+    let xdfA = `
         <div class="the_div">
             <*section>
                 <.header type={min}>
@@ -28,7 +28,7 @@ describe('Renderer', () => {
         Some text after the_div
     `;
 
-    let xtmlB = `
+    let xdfB = `
         <*section>
             <.header type={min}>
                 Main section header
@@ -51,8 +51,8 @@ describe('Renderer', () => {
         return null;
     }
 
-    async function renderTest(xtml: string) {
-        await renderXtml(xtml, body, resolver, { doc: doc });
+    async function renderTest(xdf: string) {
+        await renderXdf(xdf, body, resolver, { doc: doc });
         return body.stringify({ indent: '        ', showUid: true, isRoot: true });
     }
 
@@ -490,7 +490,7 @@ describe('Renderer', () => {
         `, "2");
     });
 
-    it("should allow rendering XTML through @innerXTML", async function () {
+    it("should allow rendering XDF through @xdfContent", async function () {
         let resolve: (() => void) | undefined;
         function done() {
             if (resolve) {
@@ -500,12 +500,12 @@ describe('Renderer', () => {
             }
         }
         const tpl = template(`() => {
-            <div class="main" @innerXTML(xtml={xtmlA} resolver={resolver} doc={doc} @oncomplete={done})/>
-        }`);
+            <div class="main" @xdfContent(xdf={xdfA} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`, xdfContent);
 
         let t = getTemplate(tpl, body).render();
 
-        // @innerXTML is async, so we need to wait for its completion
+        // @xdfContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
         });
@@ -533,8 +533,8 @@ describe('Renderer', () => {
         body = reset();
 
         const tpl2 = template(`() => {
-            <div class="main" @innerXTML(fragment={parse(xtmlB)} resolver={resolver} doc={doc} @oncomplete={done})/>
-        }`);
+            <div class="main" @xdfContent(fragment={parse(xdfB)} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`, xdfContent);
         let t2 = getTemplate(tpl2, body).render();
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
@@ -555,8 +555,8 @@ describe('Renderer', () => {
         `, '2');
     });
 
-    // comments in XTML
-    // XtmlContext with query()
+    // comments in XDF
+    // XdfContext with query() -> ??
     // decorators on elements
     // decorators on components & content
     // labels on elements

@@ -4,8 +4,7 @@ require('./ENV.data');   // webpack dependency
 
 import { template } from "../../iv";
 
-let perfMonitor = window["perfMonitor"] as any,
-    ENV = window["ENV"] as any;
+let perfMonitor = window["perfMonitor"] as any, ENV = window["ENV"] as any;
 
 perfMonitor.startFPSMonitor()
 perfMonitor.startMemMonitor()
@@ -39,9 +38,7 @@ const DbMon = template(`(databases) => {
     </div>
 }`);
 
-let tpl = DbMon()
-    .attach(document.getElementById("app"))
-    .render();
+const tpl = DbMon().attach(document.getElementById("app")).render();
 
 function update() {
     requestAnimationFrame(update);

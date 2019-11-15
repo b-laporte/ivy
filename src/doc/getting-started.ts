@@ -46,9 +46,9 @@ import { IvEventEmitter } from '../iv/events';
 //     - Simple decorators
 //     - Decorators with multiple arguments
 //     - Decorator Nodes
-// - XTML
-//     - Static documents & safer insertion: @innerXTML
-//     - XTML elements, text, components
+// - XDF
+//     - Static documents & safer insertion: @innerXDF
+//     - XDF elements, text, components
 //         -> VS extension
 // - Advanced
 //     - Keyed iteration

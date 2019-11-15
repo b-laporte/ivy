@@ -64,4 +64,4 @@ const hand = template(`(kind: string, rotation: number) => {
 }`);
 
 // main display
-let tpl = clock().attach(document.getElementById("main")).render();
+clock().attach(document.getElementById("main")).render();

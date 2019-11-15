@@ -1,5 +1,6 @@
-import { XtmlFragment, XtmlElement, XtmlParam, XtmlText } from './xtml-ast';
-import { parse } from './xtml-parser';
+import { XdfChildElement } from './../xdf/ast';
+import { XdfFragment, XdfElement, XdfParam, XdfText } from '../xdf/ast';
+import { parse } from '../xdf/parser';
 import { IvDocument, IvTemplate, IvView, IvNode } from './types';
 import { hasProperty, create } from '../trax';
 import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator } from '.';
@@ -12,11 +13,11 @@ interface RenderOptions {
 
 const U = undefined;
 
-export async function renderXtml(xtml: string, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
-    return renderXtmlFragment(parse(xtml), htmlElement, resolver, options);
+export async function renderXdf(xdf: string, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
+    return renderXdfFragment(parse(xdf), htmlElement, resolver, options);
 }
 
-export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
+export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
     // get all dependencies in parallel
     let xfRefs = xf.refs,
         refs: { [key: string]: any } = {},
@@ -24,7 +25,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
 
     if (xfRefs.length > 0) {
         if (resolver === U) {
-            error("resolver must be provided when xtml references are defined")
+            error("resolver must be provided when xdf references are defined")
         } else {
             let promises: Promise<any>[] = [], len = xfRefs.length;
             for (let i = 0; len > i; i++) {
@@ -45,9 +46,9 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
     }
 
     // render content that is not embedded in a template -> will be directly inserted in the DOM
-    function renderRootContent(nodes: (XtmlElement | XtmlText)[] | undefined, container: any) {
+    function renderRootContent(nodes: XdfChildElement[] | undefined, container: any) {
         if (nodes === U) return;
-        let len = nodes.length, nd: XtmlElement | XtmlText, pk: string;
+        let len = nodes.length, nd: XdfChildElement, pk: string;
         for (let i = 0; len > i; i++) {
             nd = nodes[i];
             if (nd.kind === "#text") {
@@ -106,7 +107,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
         }
     }
 
-    function renderCptContent(node: XtmlElement, v: IvView, parentLevel: number, pnv: IvView, pnParentIdx: number, api?: any) {
+    function renderCptContent(node: XdfElement, v: IvView, parentLevel: number, pnv: IvView, pnParentIdx: number, api?: any) {
         // pnv is the view that must be used for internal param nodes (will be identical to v otherwise)
         // pnParentLevel is also the parentLevel that must be used for param nodes
         // api is defined if node is the root component or if it is a param node connected to the root component
@@ -191,7 +192,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
 
         return;
 
-        function setParamNode(ch: XtmlElement, paramNode: any, api?: any, name?: string) {
+        function setParamNode(ch: XdfElement, paramNode: any, api?: any, name?: string) {
             let idx = v.nodeCount!++;
             updateParamsAndProperties(ch);
             v.nodes![idx] = paramNode;
@@ -210,7 +211,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
             }
         }
 
-        function updateParamsAndProperties(nd: XtmlElement) {
+        function updateParamsAndProperties(nd: XdfElement) {
             params = properties = U;
             if (nd.params !== U) {
                 for (let p of nd.params) {
@@ -236,7 +237,7 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
         }
     }
 
-    function getParamValue(p: XtmlParam) {
+    function getParamValue(p: XdfParam) {
         if (p.holdsValue) {
             if (p.valueRef !== U) return refs[p.valueRef];
             return p.value;
@@ -273,35 +274,35 @@ export async function renderXtmlFragment(xf: XtmlFragment, htmlElement: any, res
 
 }
 
-@API class InnerXtml {
-    xtml?: string;
-    fragment?: any; // XtmlFragment; -> non iv interfaces cannot be used in @API and @Data
+@API class XdfContent {
+    xdf?: string;
+    fragment?: any; // XdfFragment; -> non trax interfaces cannot be used in @API and @Data
     // todo: support timeout;
     @required resolver: (ref: string) => Promise<any>;
     doc?: IvDocument;
     @required $targetElt: IvElement;
     completeEmitter: IvEventEmitter;
 }
-export const innerXTML = decorator(InnerXtml, ($api: InnerXtml) => {
+export const xdfContent = decorator(XdfContent, ($api: XdfContent) => {
     let firstRender = true;
     return {
         async $render() {
             if (firstRender) {
                 //let d1 = new Date();
-                let f: XtmlFragment;
-                if ($api.xtml !== undefined) {
-                    f = parse($api.xtml);
+                let f: XdfFragment;
+                if ($api.xdf !== undefined) {
+                    f = parse($api.xdf);
                 } else if ($api.fragment !== undefined) {
-                    f = $api.fragment! as XtmlFragment;
+                    f = $api.fragment! as XdfFragment;
                 } else {
-                    throw "Invalid arguments: either xtml or fragment params must be provided";
+                    throw "Invalid arguments: either xdf or fragment params must be provided";
                 }
                 //let d2 = new Date();
-                //console.log("@innerXTML - parsing: ", d2.getTime() - d1.getTime(), "ms");
-                await renderXtmlFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
+                //console.log("@xdfContent - parsing: ", d2.getTime() - d1.getTime(), "ms");
+                await renderXdfFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
                 $api.completeEmitter.emit();
                 //let d3 = new Date();
-                //console.log("@innerXTML - generation: ", d3.getTime() - d2.getTime(), "ms");
+                //console.log("@xdfContent - generation: ", d3.getTime() - d2.getTime(), "ms");
             } else {
                 // todo: check if property changed and if new content should be injected
             }

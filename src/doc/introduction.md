@@ -27,3 +27,17 @@
     - Error messages
 
 # Reactive
+
+
+# Documents
+    - documents = template execution output
+
+    - rename xdf? -> XJS document fragment
+    - server-side, client-side or build-time generation
+        Server-side: dynamic content / CMS / A-B testing
+        Client-side: dynamic page structure (e.g. forms)
+    - safe (no-JS)
+    - can be generated through any technology (e.g. Java, Python or Go / doesn't require nodeJS)
+    - pre-processor support
+    - support of most XJS features except JS
+    

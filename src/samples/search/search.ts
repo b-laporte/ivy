@@ -1,6 +1,6 @@
 import { privacy } from './privacy';
 import { actionMenu } from './action';
-import { innerXTML } from './../../iv/xtml-renderer';
+import { xdfContent } from '../../iv/xdf-renderer';
 require('./index.html'); // webpack dependency
 require('./styles.css'); // webpack dependency
 
@@ -22,22 +22,22 @@ async function resolver(ref: string): Promise<any> {
     if (ref === "boxes") return box;
     if (ref === "searchBanner") return searchBanner;
 
-    console.error("UNRESOLVED XTML REFERENCE: " + ref);
+    console.error("UNRESOLVED XDF REFERENCE: " + ref);
     return null;
 }
 
 const main = template(`(data) => {
-    <div class="banner" @innerXTML(xtml={data.banner} {resolver})/>
+    <div class="banner" @xdfContent(xdf={data.banner} {resolver})/>
     <div class="main">
-        <div class="top_panel" @innerXTML(xtml={data.topPanel} {resolver})/>
+        <div class="top_panel" @xdfContent(xdf={data.topPanel} {resolver})/>
         <*box>
             <.cell class="main_colA">
                 //class="col center_col"
-                <div @innerXTML(xtml={data.mainPanel} {resolver}) />
+                <div @xdfContent(xdf={data.mainPanel} {resolver}) />
             </>
             <.cell class="main_colB">
                 // class="col"
-                <div @innerXTML(xtml={data.sidePanel} {resolver})/>
+                <div @xdfContent(xdf={data.sidePanel} {resolver})/>
             </>
         </>
     </>

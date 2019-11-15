@@ -1,8 +1,8 @@
 require('./index.html'); // webpack dependency
 import { template } from "../../iv";
 
-const hello = template(`() => {
-    # Hello World #
+const hello = template(`(name:string) => {
+    # Hello {name} #
 }`);
 
-hello().attach(document.getElementById("main")).render();
+hello().attach(document.body).render({ name: "World" });

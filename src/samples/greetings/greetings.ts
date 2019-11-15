@@ -18,6 +18,6 @@ const greetings = template(`(names) => {
     }
 }`);
 
-let tpl = greetings()
+greetings()
     .attach(document.getElementById("main"))
     .render({ names: ["Homer", "Marge", "Bart", "Lisa", "Maggie"] });

@@ -1,4 +1,4 @@
-import { XdfChildElement } from './../xdf/ast';
+import { XdfChildElement, XdfCData } from './../xdf/ast';
 import { XdfFragment, XdfElement, XdfParam, XdfText } from '../xdf/ast';
 import { parse } from '../xdf/parser';
 import { IvDocument, IvTemplate, IvView, IvNode } from './types';
@@ -48,14 +48,18 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
     // render content that is not embedded in a template -> will be directly inserted in the DOM
     function renderRootContent(nodes: XdfChildElement[] | undefined, container: any) {
         if (nodes === U) return;
-        let len = nodes.length, nd: XdfChildElement, pk: string;
+        let len = nodes.length, nd: XdfChildElement, nk: string, pk: string;
         for (let i = 0; len > i; i++) {
             nd = nodes[i];
-            if (nd.kind === "#text") {
+            nk = nd.kind;
+            if (nk === "#text") {
                 // create text node
-                container.appendChild(doc.createTextNode(nd.value));
-            } else if (nd.kind === "#element") {
-                let e = doc.createElement(nd.name!);
+                container.appendChild(doc.createTextNode((nd as XdfText).value));
+            } else if (nk === "#cdata") {
+                // create text node
+                container.appendChild(doc.createTextNode((nd as XdfCData).content));
+            } else if (nk === "#element") {
+                let e = doc.createElement((nd as XdfElement).name!);
                 container.appendChild(e);
                 if (nd.params !== U) {
                     for (let p of nd.params) {
@@ -69,15 +73,15 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                         }
                     }
                 }
-                renderRootContent(nd.children, e);
+                renderRootContent((nd as XdfElement).children, e);
                 // todo: call decorators after content has been rendered
-            } else if (nd.kind === "#component") {
+            } else if (nk === "#component") {
                 let cpt: undefined | (() => IvTemplate);
-                if (nd.nameRef) {
-                    cpt = refs[nd.nameRef!] as () => IvTemplate;
+                if ((nd as XdfElement).nameRef) {
+                    cpt = refs[(nd as XdfElement).nameRef!] as () => IvTemplate;
                 }
                 if (cpt === U || typeof cpt !== "function") {
-                    error("Invalid component reference: '" + nd.nameRef + "'");
+                    error("Invalid component reference: '" + (nd as XdfElement).nameRef + "'");
                 } else {
                     let tpl = cpt(), api = tpl.api;
                     (tpl as any).document = doc;
@@ -96,9 +100,9 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                             }
                         }
                     }
-                    if (nd.children) {
+                    if ((nd as XdfElement).children) {
                         let v: IvView = createContentView(container);
-                        renderCptContent(nd, v, 0, v, 0, api);
+                        renderCptContent((nd as XdfElement), v, 0, v, 0, api);
                         assignContent(api, v);
                     }
                     tpl.render();
@@ -121,6 +125,9 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             if (ch.kind === "#text") {
                 // ζtxtD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, labels: any[] | 0, statics: string | string[], nbrOfValues: number, ...values: any[])
                 ζtxtD(v, true, 1, v.nodeCount!++, parentLevel, labels, ch.value, 0);
+            } else if (ch.kind === "#cdata") {
+                // same as text nodes
+                ζtxtD(v, true, 1, v.nodeCount!++, parentLevel, labels, ch.content, 0);
             } else if (ch.kind === "#element") {
                 updateParamsAndProperties(ch);
                 // ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[], staticProperties?: any[]) {

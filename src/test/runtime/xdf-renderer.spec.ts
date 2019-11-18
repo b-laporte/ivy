@@ -582,11 +582,71 @@ describe('Renderer', () => {
         `, "1");
     });
 
+    it("should render cdata as text nodes", async function () {
+        assert.equal(await renderTest(`
+            <div> 
+                Hello World 
+                <!cdata>
+                    Some <text> ! </foo !{}
+                </!cdata>
+            </div>
+            <div class='second'> 2 </div>
+        `), `
+            <body::E1>
+                <div::E2>
+                    #::T3 Hello World #
+                    #::T4
+                    Some <text> ! </foo !{}
+                #
+                </div>
+                <div::E5 a:class="second">
+                    #::T6 2 #
+                </div>
+            </body>
+        `, "1");
+
+        body = reset();
+        assert.equal(await renderTest(`
+            <div class="main">
+                <*section>
+                    <*section title="some content">
+                        <div class='content'>
+                            <!cdata>
+                                CDATA <content>
+                            </!cdata>
+                        </>
+                    </>
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="section">
+                        <div::E5 a:class="section">
+                            <div::E6 a:class="title">
+                                #::T7 some content #
+                            </div>
+                            <div::E8 a:class="content">
+                                #::T9
+                                CDATA <content>
+                            #
+                            </div>
+                        </div>
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "2");
+    });
+
+    // sub-fragments root / in component
     // XdfContext with query() -> ??
     // decorators on elements
     // decorators on components & content
+
     // labels on elements
     // labels on components & content
+
     // support elements with param nodes?
     // utils
 });

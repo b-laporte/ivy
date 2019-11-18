@@ -555,7 +555,33 @@ describe('Renderer', () => {
         `, '2');
     });
 
-    // comments in XDF
+    it("should accept comments", async function () {
+        assert.equal(await renderTest(`
+            <div class="main" /* title="abc" */ >
+                <*doubleSection>
+                    // <.sectionA>
+                    //     <div> Section A </div>
+                    // </>
+                    <.sectionB>
+                        <div> Section B </div>
+                    </>
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="a"/>
+                    <div::E5 a:class="b">
+                        <div::E6>
+                            #::T7 Section B #
+                        </div>
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "1");
+    });
+
     // XdfContext with query() -> ??
     // decorators on elements
     // decorators on components & content

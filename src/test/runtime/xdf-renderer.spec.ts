@@ -3,14 +3,21 @@ import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, doc } from '../utils';
 import { renderXdf, xdfContent } from '../../iv/xdf-renderer';
 import { parse } from '../../xdf/parser';
-import { template } from '../../iv';
+import { template, API, required, defaultParam, decorator, IvElement, logger } from '../../iv';
 import { Data } from '../../trax';
 
 describe('Renderer', () => {
-    let body: ElementNode;
+    let body: ElementNode, error = "";
 
     beforeEach(() => {
+        error = "";
         body = reset();
+    });
+
+    afterEach(() => {
+        if (error) {
+            console.log("[afterEach] Unchecked error:\n", error);
+        }
     });
 
     let xdfA = `
@@ -47,12 +54,18 @@ describe('Renderer', () => {
         if (ref === "max") return "MAX";
         if (ref === "some_number") return 42;
         if (ref === "doubleSection") return doubleSection;
+        if (ref === "title") return title;
         console.log("UNRESOLVED REF: " + ref);
         return null;
     }
 
     async function renderTest(xdf: string) {
-        await renderXdf(xdf, body, resolver, { doc: doc });
+        try {
+            await renderXdf(xdf, body, resolver, { doc: doc });
+        } catch (ex) {
+            error = ex;
+            return "ERROR";
+        }
         return body.stringify({ indent: '        ', showUid: true, isRoot: true });
     }
 
@@ -73,7 +86,7 @@ describe('Renderer', () => {
     }
 
     const section = template(`(title:string, $content:IvContent, header?:SectionPart, footer?:SectionPart) => {
-        <div class="section">
+        <div class="section" #main>
             if (title) {
                 <div class="title"> # {title} # </div>
             }
@@ -116,6 +129,30 @@ describe('Renderer', () => {
             }
         </>
     }`);
+
+    @API class Title {
+        @defaultParam text: string = "";
+        suffix: string = "";
+        $targetApi?: Object;
+        @required $targetElt: IvElement;
+    }
+    const title = decorator(Title, ($api: Title) => {
+        let isEltDefinedAtInit = false;
+        return {
+            $render() {
+                let txt = "";
+                if ($api.$targetApi && $api.$targetElt) {
+                    // target is a component
+                    txt = "CPT:";
+                }
+                if ($api.text === "") {
+                    $api.$targetElt.setAttribute("title", txt + "[NO TITLE]" + $api.suffix);
+                } else {
+                    $api.$targetElt.setAttribute("title", txt + $api.text + $api.suffix);
+                }
+            }
+        }
+    });
 
     it("should render root html elements, text nodes, attributes and properties", async function () {
         assert.equal(await renderTest(`
@@ -639,14 +676,135 @@ describe('Renderer', () => {
         `, "2");
     });
 
+    it("should support decorators (root)", async function () {
+        // deco: no params, 1 param, multiple params
+        assert.equal(await renderTest(`
+            <div>
+                <span @title> Hello </span> // no params
+            </div>
+            <div @title="abc"> World </div> // default param
+            <div @title(text="abc" suffix="def")> ! </div>
+        `), `
+            <body::E1>
+                <div::E2>
+                    <span::E3 a:title="[NO TITLE]">
+                        #::T4 Hello #
+                    </span>
+                </div>
+                <div::E5 a:title="abc">
+                    #::T6 World #
+                </div>
+                <div::E7 a:title="abcdef">
+                    #::T8 ! #
+                </div>
+            </body>
+        `, "1");
+
+        body = reset();
+        assert.equal(await renderTest(`
+            <div class="main">
+                <*section @title="abc">
+                    Section content
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="section" a:title="CPT:abc">
+                        #::T5 Section content #
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "2");
+
+        // todo: fragments
+    });
+
+    it("should support decorators (cpt content)", async function () {
+        assert.equal(await renderTest(`
+            <div class="main">
+                <*section>
+                    <div @title> Orphan </div>
+                    <div @title="abc"> Default param </div>
+                    <div @title(text="abc" suffix="def")> Multiple params </div>
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="section">
+                        <div::E5 a:title="[NO TITLE]">
+                            #::T6 Orphan #
+                        </div>
+                        <div::E7 a:title="abc">
+                            #::T8 Default param #
+                        </div>
+                        <div::E9 a:title="abcdef">
+                            #::T10 Multiple params #
+                        </div>
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "1");
+
+        body = reset();
+        assert.equal(await renderTest(`
+            <div class="main">
+                <*section>
+                    Section 1 content
+                    <*section @title="section in section">
+                        Section 2 content
+                    </>
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="section">
+                        #::T5 Section 1 content #
+                        <div::E6 a:class="section" a:title="CPT:section in section">
+                            #::T7 Section 2 content #
+                        </div>
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "2");
+
+        // todo: fragments
+    });
+
+    it("should raise errors for invalid cases", async function () {
+        await renderTest(`
+            <div class="main" @title(text="abc" @title)>
+                Hello
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Decorators are not support in decorators - check @title', "1");
+
+        await renderTest(`
+            <div>
+                <*section>
+                    <.header @title="abc"> ABC </>
+                </>
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Decorators are not supported on param nodes - check @title', "2");
+
+        error = "";
+    });
+
+    // todo: better error context
+
     // sub-fragments root / in component
     // XdfContext with query() -> ??
-    // decorators on elements
-    // decorators on components & content
 
     // labels on elements
     // labels on components & content
 
     // support elements with param nodes?
-    // utils
+
+    // todo: disposal
 });

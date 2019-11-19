@@ -1053,7 +1053,7 @@ export function ζcnt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     return nd;
 }
 
-function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boolean) => void), type: number): IvContainer | null {
+export function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOnly: boolean) => void), type: number): IvContainer | null {
     let nd: IvContainer;
     if (type === 1) {
         // block container
@@ -1649,7 +1649,10 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
     if (cm) {
         // create decorator
         let nodes = v.nodes!, parent = nodes[parentIdx], targetElt: any = null, targetApi: any = null, invalidTarget = false;
-        if (parent.kind === "#element") {
+        if (parent.kind === undefined) {
+            // parent is a dom elt - cf. xdf renderer
+            targetElt = parent;
+        } else if (parent.kind === "#element") {
             // todo: check type validity
             targetElt = parent.domNode;
         } else if (parent.kind === "#container" && (parent as IvContainer).subKind === "##cpt") {
@@ -1659,7 +1662,9 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
         } else {
             invalidTarget = true;
         }
-        if (typeof decoRef !== "function" && decoRef["$isDecorator"] !== true) {
+        if (decoRef === undefined) {
+            error(v, "Undefined decorator reference: @" + decoName);
+        } else if (typeof decoRef !== "function" && decoRef["$isDecorator"] !== true) {
             error(v, "Invalid decorator reference: @" + decoName);
         } else if (invalidTarget) {
             error(v, "Invalid decorator target for @" + decoName);

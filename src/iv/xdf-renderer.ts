@@ -1,9 +1,9 @@
 import { XdfChildElement, XdfCData } from './../xdf/ast';
 import { XdfFragment, XdfElement, XdfParam, XdfText } from '../xdf/ast';
 import { parse } from '../xdf/parser';
-import { IvDocument, IvTemplate, IvView, IvNode } from './types';
+import { IvDocument, IvTemplate, IvView, IvNode, IvDecorator, IvCptContainer } from './types';
 import { hasProperty, create } from '../trax';
-import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator } from '.';
+import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator, ζdeco, ζdecoEnd, createContainer, ζdecoD, ζdecoEndD } from '.';
 import { IvEventEmitter } from './events';
 
 interface RenderOptions {
@@ -18,6 +18,8 @@ export async function renderXdf(xdf: string, htmlElement: any, resolver?: (ref: 
 }
 
 export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
+    // console.log("xf", xf.toString());
+
     // get all dependencies in parallel
     let xfRefs = xf.refs,
         refs: { [key: string]: any } = {},
@@ -38,18 +40,20 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             }
         }
     }
+    const rootView = createContentView(10);
     renderRootContent(xf.children, htmlElement);
     return;
 
     function error(msg: string) {
-        throw msg; // todo
+        throw "XDF Renderer: " + msg; // todo: error context
     }
 
     // render content that is not embedded in a template -> will be directly inserted in the DOM
     function renderRootContent(nodes: XdfChildElement[] | undefined, container: any) {
         if (nodes === U) return;
-        let len = nodes.length, nd: XdfChildElement, nk: string, pk: string;
+        let len = nodes.length, nd: XdfChildElement, nk: string, pk: string, decos: XdfParam[] | undefined;;
         for (let i = 0; len > i; i++) {
+            decos = U;
             nd = nodes[i];
             nk = nd.kind;
             if (nk === "#text") {
@@ -58,6 +62,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             } else if (nk === "#cdata") {
                 // create text node
                 container.appendChild(doc.createTextNode((nd as XdfCData).content));
+                // todo: decorators on cdata?
             } else if (nk === "#element") {
                 let e = doc.createElement((nd as XdfElement).name!);
                 container.appendChild(e);
@@ -68,13 +73,19 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                             e.setAttribute(p.name, getParamValue(p));
                         } else if (pk === "#property") {
                             e[p.name] = getParamValue(p);
+                        } else if (pk === "#decorator") {
+                            if (decos === U) {
+                                decos = [p];
+                            } else {
+                                decos.push(p);
+                            }
                         } else {
                             error("Unsupported param: " + pk);
                         }
                     }
                 }
                 renderRootContent((nd as XdfElement).children, e);
-                // todo: call decorators after content has been rendered
+                callDecorators(rootView, e, decos);
             } else if (nk === "#component") {
                 let cpt: undefined | (() => IvTemplate);
                 if ((nd as XdfElement).nameRef) {
@@ -95,17 +106,82 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                                 } else {
                                     api[p.name] = getParamValue(p);
                                 }
+                            } else if (pk === "#decorator") {
+                                if (decos === U) {
+                                    decos = [p];
+                                } else {
+                                    decos.push(p);
+                                }
                             } else {
                                 error("Unsupported component param type: " + pk);
                             }
                         }
                     }
                     if ((nd as XdfElement).children) {
-                        let v: IvView = createContentView(container);
+                        let v: IvView = createContentView(10, container); // todo: count nodes
                         renderCptContent((nd as XdfElement), v, 0, v, 0, api);
                         assignContent(api, v);
                     }
                     tpl.render();
+                    if (decos !== U) {
+                        let container = createContainer(-1, null, 2) as IvCptContainer;
+                        container.template = tpl;
+                        container.contentView = tpl["$content"];
+                        callDecorators(rootView, container, decos);
+                    }
+                }
+            }
+        }
+    }
+
+    function callDecorators(v: IvView, parent: any | null, decorators?: XdfParam[], parentIdx = -1, deferred = false) {
+        // parent can be either a domElt or a #container
+
+        // ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
+        // ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 1, exp1()));
+        // ζpar(ζ, ζc, 0, 1, "z", ζe(ζ, 2, exp2()));
+        // ζdecoEnd(ζ, ζc, 0, 1);
+        const deco = deferred ? ζdecoD : ζdeco, decoEnd = deferred ? ζdecoEndD : ζdecoEnd;
+
+        if (decorators !== U) {
+            // paramMode: 0=no params, 1=default param, 2=multiple params
+            let idx: number, paramMode: 0 | 1 | 2 = 0, defaultValue: any = 0, params: any[] | undefined;
+            for (let d of decorators) {
+                if (d.kind === "#decorator") {
+                    if (parentIdx === -1) {
+                        // register the parent (cannot be null in this case)
+                        parentIdx = v.nodeCount!++;
+                        v.nodes![parentIdx] = parent;
+                        if (parent.kind === "#container") {
+                            parent.idx = parentIdx;
+                        }
+                    }
+                    params = U;
+                    if (d.params === U || d.params.length === 0) {
+                        if (d.holdsValue) {
+                            defaultValue = getParamValue(d);
+                            paramMode = 1;
+                        }
+                    } else {
+                        paramMode = 2;
+                        for (let p of d.params) {
+                            if (p.kind === "#param") {
+                                if (params === U) {
+                                    params = [p.name, getParamValue(p)];
+                                } else {
+                                    params.push(p.name);
+                                    params.push(getParamValue(p));
+                                }
+                            } else if (p.kind === "#decorator") {
+                                error("Decorators are not support in decorators - check @" + p.name!);
+                            }
+                        }
+                    }
+                    idx = v.nodeCount!++;
+                    deco(v, true, 0, idx, parentIdx, d.name!, refs[d.name!], paramMode, defaultValue, params);
+                    if (paramMode === 2) {
+                        decoEnd(v, true, 0, idx);
+                    }
                 }
             }
         }
@@ -118,7 +194,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
 
         // note: iFlag is used by child views to find the parent view that holds instructions (only js block views and async block views)
         // so it will always be 1 here
-        let children = node.children, params: any[] | undefined, properties: any[] | undefined, len = 0;
+        let idx = -1, children = node.children, params: any[] | undefined, properties: any[] | undefined, decorators: any[] | undefined, len = 0;
         if (children === U || children.length === 0) return;
         for (let ch of children) {
             let labels: 0 = 0; // todo
@@ -129,10 +205,12 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                 // same as text nodes
                 ζtxtD(v, true, 1, v.nodeCount!++, parentLevel, labels, ch.content, 0);
             } else if (ch.kind === "#element") {
-                updateParamsAndProperties(ch);
+                scanParams(ch); // all params are considered static for the time being
                 // ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[], staticProperties?: any[]) {
-                ζeltD(v, true, v.nodeCount!++, parentLevel, ch.name!, ch.children ? 1 : 0, labels, params, properties);
+                idx = v.nodeCount!++;
+                ζeltD(v, true, idx, parentLevel, ch.name!, ch.children ? 1 : 0, labels, params, properties);
                 renderCptContent(ch, v, parentLevel + 1, v, parentLevel + 1);
+                callDecorators(v, null, decorators, idx, true);
             } else if (ch.kind === "#paramNode") {
                 if (!ch.name) {
                     error("Invalid param node name");
@@ -164,7 +242,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                         error("Invalid param node '" + ch.name + "': param nodes can only be children of components or other param nodes");
                     } else {
                         // ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, parentIndex: number, name: string, instanceIdx: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
-                        updateParamsAndProperties(ch);
+                        scanParams(ch);
                         let idx = pnv.nodeCount!++;
                         ζpnode(pnv, true, 0, idx, pnParentIdx, ch.name!, 0, labels, params);
 
@@ -176,12 +254,16 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                         // ζpnEnd doesn't need to be called as the pnode instance will not be reused
                     }
                 }
+                if (decorators !== U) {
+                    error("Decorators are not supported on param nodes - check @" + decorators[0].name);
+                }
             } else if (ch.kind === "#component") {
                 // here api is necessarily undefined as the root component is handled in renderRootContent
                 let callImmediately = 0;
-                updateParamsAndProperties(ch);
+                scanParams(ch);
                 // ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
-                let idx = v.nodeCount!++, eCount = v.expressions ? v.expressions.length : 0;
+                idx = v.nodeCount!++;
+                let eCount = v.expressions ? v.expressions.length : 0;
                 ζcptD(v, true, 1, idx, parentLevel, [eCount, refs[ch.nameRef!]], callImmediately, labels, params);
                 if (ch.children) {
                     // (pv: IvView, iFlag: number, containerIdx: number, nbrOfNodes: number, instanceIdx: number, view?: IvView) 
@@ -192,6 +274,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
 
                 // ζcallD(v: IvView, idx: number, container?: IvCptContainer | 0, labels?: any[] | 0, dynParamNames?: string[]) {
                 ζcallD(v, idx, 0, labels);
+                callDecorators(v, null, decorators, idx, true);
             } else if (ch.kind === "#decoratorNode") {
                 error("Decorator nodes are not supported yet");
             }
@@ -201,7 +284,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
 
         function setParamNode(ch: XdfElement, paramNode: any, api?: any, name?: string) {
             let idx = v.nodeCount!++;
-            updateParamsAndProperties(ch);
+            scanParams(ch);
             v.nodes![idx] = paramNode;
             if (params !== U) {
                 len = params.length;
@@ -210,7 +293,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                 }
             }
             if (ch.children !== U) {
-                let pnContentView: IvView = createContentView();
+                let pnContentView: IvView = createContentView(10); // todo: count nodes
                 pnContentView.parentView = v;
                 // ζviewD(v, 1, 0, 0, 0, pnView);
                 renderCptContent(ch, pnContentView, 0, v, idx, paramNode);
@@ -218,8 +301,8 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             }
         }
 
-        function updateParamsAndProperties(nd: XdfElement) {
-            params = properties = U;
+        function scanParams(nd: XdfElement) {
+            params = properties = decorators = U;
             if (nd.params !== U) {
                 for (let p of nd.params) {
                     if (p.kind === "#param") {
@@ -228,6 +311,12 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                         } else {
                             params.push(p.name);
                             params.push(getParamValue(p));
+                        }
+                    } else if (p.kind === "#decorator") {
+                        if (decorators === U) {
+                            decorators = [p];
+                        } else {
+                            decorators.push(p);
                         }
                     } else if (p.kind === "#property") {
                         if (properties === U) {
@@ -252,12 +341,12 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         return ""; // no-value attribute - cf. https://developer.mozilla.org/en-US/docs/Web/API/Element/setAttribute
     }
 
-    function createContentView(container?: any): IvView {
+    function createContentView(nbrOfNodes: number, container?: any): IvView {
         let v = createView(null, null, 0);
         v.doc = doc;
         v.instructions = [];
         v.nodeCount = 0;
-        v.nodes = new Array(10); // todo: count actual number of nodes instead of 10
+        v.nodes = nbrOfNodes === 0 ? [] : new Array(nbrOfNodes);
         if (container !== U) {
             v.cmAppends = [function (n: IvNode) {
                 if (n.domNode) {

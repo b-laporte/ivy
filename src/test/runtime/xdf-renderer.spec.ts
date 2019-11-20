@@ -717,8 +717,6 @@ describe('Renderer', () => {
                 </div>
             </body>
         `, "2");
-
-        // todo: fragments
     });
 
     it("should support decorators (cpt content)", async function () {
@@ -772,11 +770,9 @@ describe('Renderer', () => {
                 </div>
             </body>
         `, "2");
-
-        // todo: fragments
     });
 
-    it("should raise errors for invalid cases", async function () {
+    it("should raise errors for invalid decorators", async function () {
         await renderTest(`
             <div class="main" @title(text="abc" @title)>
                 Hello
@@ -785,14 +781,105 @@ describe('Renderer', () => {
         assert.equal(error, 'XDF Renderer: Decorators are not support in decorators - check @title', "1");
 
         await renderTest(`
+            <*section>
+                <div class="main" @title(text="abc" @title)>
+                    Hello
+                </>
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Decorators are not support in decorators - check @title', "2");
+
+        await renderTest(`
             <div>
                 <*section>
                     <.header @title="abc"> ABC </>
                 </>
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Decorators are not supported on param nodes - check @title', "2");
+        assert.equal(error, 'XDF Renderer: Decorators are not supported on param nodes - check @title', "3");
 
+        await renderTest(`
+            <div>
+                <!cdata @title="abc"> ABC </!cdata>
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on cdata sections - check @title', "4");
+        error = "";
+
+        await renderTest(`
+            <*section>
+                <!cdata @title="abc"> ABC </!cdata>
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on cdata sections - check @title', "5");
+        error = "";
+    });
+
+    it("should support fragments", async function () {
+        assert.equal(await renderTest(`
+            <div>
+                ABC
+                <!>
+                    <span @title> Hello </span>
+                    DEF
+                </>
+            </div>
+        `), `
+            <body::E1>
+                <div::E2>
+                    #::T3 ABC #
+                    <span::E4 a:title="[NO TITLE]">
+                        #::T5 Hello #
+                    </span>
+                    #::T6 DEF #
+                </div>
+            </body>
+        `, "1");
+
+        body = reset();
+        assert.equal(await renderTest(`
+            <div class="main">
+                <*section>
+                    Section 1
+                    <!>
+                        <span> content </span>
+                        (end)
+                    </>
+                </>
+            </>
+        `), `
+            <body::E1>
+                <div::E2 a:class="main">
+                    <div::E4 a:class="section">
+                        #::T5 Section 1 #
+                        <span::E6>
+                            #::T7 content #
+                        </span>
+                        #::T8 (end) #
+                    </div>
+                    //::C3 template anchor
+                </div>
+            </body>
+        `, "2");
+    });
+
+    it("should raise errors for invalid decorators", async function () {
+        await renderTest(`
+            <*section>
+                <! @title="abc">
+                    ABC
+                </>
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on fragments - check @title', "1");
+        error = "";
+
+        await renderTest(`
+            <! @title="abc">
+                ABC
+            </>
+        `);
+        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on fragments - check @title', "2");
         error = "";
     });
 
@@ -803,6 +890,7 @@ describe('Renderer', () => {
 
     // labels on elements
     // labels on components & content
+    // error for invalid labels (fragments, cdata, etc.)
 
     // support elements with param nodes?
 

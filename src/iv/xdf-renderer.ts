@@ -3,7 +3,7 @@ import { XdfFragment, XdfElement, XdfParam, XdfText } from '../xdf/ast';
 import { parse } from '../xdf/parser';
 import { IvDocument, IvTemplate, IvView, IvNode, IvDecorator, IvCptContainer } from './types';
 import { hasProperty, create } from '../trax';
-import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator, ζdeco, ζdecoEnd, createContainer, ζdecoD, ζdecoEndD } from '.';
+import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator, ζdeco, ζdecoEnd, createContainer, ζdecoD, ζdecoEndD, ζfraD } from '.';
 import { IvEventEmitter } from './events';
 
 interface RenderOptions {
@@ -62,7 +62,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             } else if (nk === "#cdata") {
                 // create text node
                 container.appendChild(doc.createTextNode((nd as XdfCData).content));
-                // todo: decorators on cdata?
+                checkCData(nd as XdfCData);
             } else if (nk === "#element") {
                 let e = doc.createElement((nd as XdfElement).name!);
                 container.appendChild(e);
@@ -86,6 +86,9 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                 }
                 renderRootContent((nd as XdfElement).children, e);
                 callDecorators(rootView, e, decos);
+            } else if (nk === "#fragment") {
+                renderRootContent((nd as XdfElement).children, container);
+                checkFragment(nd as XdfFragment);
             } else if (nk === "#component") {
                 let cpt: undefined | (() => IvTemplate);
                 if ((nd as XdfElement).nameRef) {
@@ -187,7 +190,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         }
     }
 
-    function renderCptContent(node: XdfElement, v: IvView, parentLevel: number, pnv: IvView, pnParentIdx: number, api?: any) {
+    function renderCptContent(node: XdfElement | XdfFragment, v: IvView, parentLevel: number, pnv: IvView, pnParentIdx: number, api?: any) {
         // pnv is the view that must be used for internal param nodes (will be identical to v otherwise)
         // pnParentLevel is also the parentLevel that must be used for param nodes
         // api is defined if node is the root component or if it is a param node connected to the root component
@@ -204,6 +207,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             } else if (ch.kind === "#cdata") {
                 // same as text nodes
                 ζtxtD(v, true, 1, v.nodeCount!++, parentLevel, labels, ch.content, 0);
+                checkCData(ch as XdfCData);
             } else if (ch.kind === "#element") {
                 scanParams(ch); // all params are considered static for the time being
                 // ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[], staticProperties?: any[]) {
@@ -211,6 +215,11 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                 ζeltD(v, true, idx, parentLevel, ch.name!, ch.children ? 1 : 0, labels, params, properties);
                 renderCptContent(ch, v, parentLevel + 1, v, parentLevel + 1);
                 callDecorators(v, null, decorators, idx, true);
+            } else if (ch.kind === "#fragment") {
+                // ζfraD(v: IvView, cm: boolean, idx: number, parentLevel: number)
+                checkFragment(ch);
+                ζfraD(v, true, idx, parentLevel);
+                renderCptContent(ch, v, parentLevel + 1, v, parentLevel + 1);
             } else if (ch.kind === "#paramNode") {
                 if (!ch.name) {
                     error("Invalid param node name");
@@ -368,6 +377,30 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         }
     }
 
+    function checkCData(cd: XdfCData) {
+        if (cd.params !== U && cd.params.length) {
+            error("Params, properties, decorators or labels are not supported on cdata sections - check " + getName(cd.params[0]));
+        }
+    }
+
+    function checkFragment(f: XdfFragment) {
+        if (f.params !== U && f.params.length) {
+            error("Params, properties, decorators or labels are not supported on fragments - check " + getName(f.params[0]));
+        }
+    }
+
+    function getName(p: XdfParam) {
+        let k = p.kind, nm = "";
+        if (k === "#decorator") {
+            nm = "@";
+        } else if (k === "#label") {
+            nm = "#";
+        } else if (k === "#property") {
+            nm = "[";
+        }
+        nm += p.name;
+        return (k === "#property") ? nm + "]" : nm;
+    }
 }
 
 @API class XdfContent {

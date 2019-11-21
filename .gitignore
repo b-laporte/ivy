@@ -1,6 +1,14 @@
 node_modules/
+public/
 dist/
 old/
+bin/doc
+bin/iv
+bin/samples
+bin/test
+bin/trax
+bin/xdf
+bin/xjs
 misc/
 .idea/
 .DS_STORE

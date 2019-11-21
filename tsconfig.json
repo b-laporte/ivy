@@ -1,33 +1,33 @@
 {
-	"compilerOptions": {
-		"declaration": true,
-		"target": "es5",
-		"lib": [
-			"es2015",
-			"dom"
-		],
-		"module": "commonjs",
-		"moduleResolution": "node",
-		"outDir": "./dist",
-		"baseUrl": "./node_modules",
-		"noImplicitAny": false,
-		"sourceMap": true,
-		"noUnusedParameters": false,
-		"noImplicitThis": true,
-		"pretty": true,
-		"strictNullChecks": true,
-		"forceConsistentCasingInFileNames": true,
-		"noImplicitReturns": true,
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
-		"allowUnusedLabels": true,
-		"importHelpers": true,
-		"noEmitHelpers": true,
-		"noEmitOnError": true
-	},
-	"include": [
-		"src",
+    "compilerOptions": {
+        "declaration": true,
+        "target": "es5",
+        "lib": [
+            "es2015",
+            "dom"
+        ],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "outDir": "./dist",
+        "baseUrl": "./node_modules",
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "noUnusedParameters": false,
+        "noImplicitThis": true,
+        "pretty": true,
+        "strictNullChecks": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitReturns": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "allowUnusedLabels": true,
+        "importHelpers": true,
+        "noEmitHelpers": true,
+        "noEmitOnError": true
+    },
+    "include": [
+        "src",
         "src/samples",
         "src/doc"
-	]
+    ]
 }

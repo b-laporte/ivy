@@ -413,28 +413,48 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
     completeEmitter: IvEventEmitter;
 }
 export const xdfContent = decorator(XdfContent, ($api: XdfContent) => {
-    let firstRender = true;
+    let xdfMode = false, fragmentMode = false, firstRender = true, currentXdf = "", currentFragment: any = null;
+
     return {
         async $render() {
             if (firstRender) {
-                //let d1 = new Date();
+                firstRender = false;
                 let f: XdfFragment;
                 if ($api.xdf !== undefined) {
-                    f = parse($api.xdf);
+                    xdfMode = true;
+                    currentXdf = $api.xdf;
+                    f = parse(currentXdf);
                 } else if ($api.fragment !== undefined) {
+                    fragmentMode = true;
                     f = $api.fragment! as XdfFragment;
+                    currentFragment = f;
                 } else {
                     throw "Invalid arguments: either xdf or fragment params must be provided";
                 }
-                //let d2 = new Date();
-                //console.log("@xdfContent - parsing: ", d2.getTime() - d1.getTime(), "ms");
-                await renderXdfFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
-                $api.completeEmitter.emit();
-                //let d3 = new Date();
-                //console.log("@xdfContent - generation: ", d3.getTime() - d2.getTime(), "ms");
+                await renderFragment(f);
             } else {
-                // todo: check if property changed and if new content should be injected
+                // TODO: dispose the previous elements!!!
+                if (xdfMode) {
+                    if (currentXdf !== $api.xdf) {
+                        currentXdf = $api.xdf || "";
+                        $api.$targetElt.innerHTML = "";
+                        await renderFragment(parse(currentXdf));
+                    }
+                } else if (fragmentMode) {
+                    if (currentFragment !== $api.fragment) {
+                        currentFragment = $api.fragment! as XdfFragment;
+                        $api.$targetElt.innerHTML = "";
+                        if (currentFragment !== undefined) {
+                            await renderFragment(currentFragment);
+                        }
+                    }
+                }
             }
         }
+    }
+
+    async function renderFragment(f: XdfFragment) {
+        await renderXdfFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
+        $api.completeEmitter.emit();
     }
 });

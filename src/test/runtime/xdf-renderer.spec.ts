@@ -527,7 +527,7 @@ describe('Renderer', () => {
         `, "2");
     });
 
-    it("should allow rendering XDF through @xdfContent", async function () {
+    it("should allow rendering XDF through @xdfContent (xdf)", async function () {
         let resolve: (() => void) | undefined;
         function done() {
             if (resolve) {
@@ -536,11 +536,11 @@ describe('Renderer', () => {
                 throw "DONE";
             }
         }
-        const tpl = template(`() => {
-            <div class="main" @xdfContent(xdf={xdfA} resolver={resolver} doc={doc} @oncomplete={done})/>
-        }`, xdfContent);
+        const tpl = template(`(xdfValue) => {
+            <div class="main" @xdfContent(xdf={xdfValue} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`, xdfContent, done);
 
-        let t = getTemplate(tpl, body).render();
+        let t = getTemplate(tpl, body).render({ xdfValue: xdfA });
 
         // @xdfContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
@@ -567,25 +567,82 @@ describe('Renderer', () => {
             </body>
         `, '1');
 
-        body = reset();
-
-        const tpl2 = template(`() => {
-            <div class="main" @xdfContent(fragment={parse(xdfB)} resolver={resolver} doc={doc} @oncomplete={done})/>
-        }`, xdfContent);
-        let t2 = getTemplate(tpl2, body).render();
+        t.render({ xdfValue: xdfB });
+        // @xdfContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
         });
-        assert.equal(stringify(t2), `
+        assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
-                    <div::E5 a:class="section">
-                        <h1::E6 a:class="header" a:data-type="MIN">
-                            #::T7 Main section header #
+                    <div::E14 a:class="section">
+                        <h1::E15 a:class="header" a:data-type="MIN">
+                            #::T16 Main section header #
                         </h1>
-                        #::T8 Main section content #
+                        #::T17 Main section content #
                     </div>
-                    //::C4 template anchor
+                    //::C13 template anchor
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+    });
+
+    it("should allow rendering XDF through @xdfContent (fragment)", async function () {
+        let resolve: (() => void) | undefined;
+        function done() {
+            if (resolve) {
+                resolve()
+            } else {
+                throw "DONE";
+            }
+        }
+        const tpl = template(`(xdfValue) => {
+            <div class="main" @xdfContent(fragment={parse(xdfValue)} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`, xdfContent, done);
+
+        let t = getTemplate(tpl, body).render({ xdfValue: xdfA });
+
+        // @xdfContent is async, so we need to wait for its completion
+        await new Promise((r: () => void) => {
+            resolve = r; // will be called by done()
+        });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="the_div">
+                        <div::E6 a:class="section">
+                            <h1::E7 a:class="header" a:data-type="MIN">
+                                #::T8 Main section header #
+                            </h1>
+                            #::T9 Main section content #
+                            <h1::E10 a:class="footer" a:data-type="MAX">
+                                #::T11 Footer content #
+                            </h1>
+                        </div>
+                        //::C5 template anchor
+                    </div>
+                    #::T12 Some text after the_div #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ xdfValue: xdfB });
+        // @xdfContent is async, so we need to wait for its completion
+        await new Promise((r: () => void) => {
+            resolve = r; // will be called by done()
+        });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E14 a:class="section">
+                        <h1::E15 a:class="header" a:data-type="MIN">
+                            #::T16 Main section header #
+                        </h1>
+                        #::T17 Main section content #
+                    </div>
+                    //::C13 template anchor
                 </div>
                 //::C2 template anchor
             </body>

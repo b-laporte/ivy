@@ -274,7 +274,6 @@ export class ElementNode {
         }
         this.classList = new ElementClassList(this);
     }
-
     setAttribute(key: string, value: string) {
         let k = "a:" + key
         this[k] = value; // toUpperCase: to test that value has been set through setAttribute
@@ -309,7 +308,9 @@ export class ElementNode {
             child.parentNode = null;
         }
         this.childNodes = [];
-        this.appendChild(new TextNode(s));
+        if (s !== "") {
+            this.appendChild(new TextNode(s));
+        }
     }
 
     appendChild(node) {

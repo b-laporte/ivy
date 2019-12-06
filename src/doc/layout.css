@@ -1,4 +1,198 @@
+/*
+main color: #333;
+main orange: #FF7019
+dark grey: #393939;
+*/
 
-h1 {
-    color: gray;
+@import url('https://fonts.googleapis.com/css?family=Open+Sans&display=swap');
+
+body.main {
+    font-size: 16px;
+    color: #333;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+/* ------------------------------------------------------------------------------------------------------------ */
+
+/* Main Menu */
+
+nav.mainMenu {
+    /* position: fixed; */
+    width: 100vw;
+    display: flex;
+    justify-content: space-between;
+    line-height: 5rem;
+    margin: 0 0 1rem 0;
+    /* background-color: orange; */
+}
+
+nav.mainMenu ul {
+    display: block;
+    font-size: 1.1rem;
+    margin-right: 20px;
+    /* list-style: none; */
+    /* margin: 0;
+    
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    padding-inline-start: 40px; */
+}
+
+nav.mainMenu li {
+    display: inline !important;
+    margin: 0 30px 0 0;
+    cursor: pointer;
+}
+
+nav.mainMenu li:hover {
+    color: #FF7019;
+}
+
+nav.mainMenu .mainLogo {
+    margin: 15px 50px 0 50px;
+    cursor: pointer;
+}
+
+svg.ivyLogo {
+    stroke: #008BFC;
+}
+
+svg.ghLogo {
+    position: relative;
+    top: 3px;
+}
+
+svg.ghLogo .logo {
+    fill: #333;
+}
+
+nav.mainMenu li:hover svg.ghLogo .logo {
+    fill: #FF7019;
+}
+
+/* ------------------------------------------------------------------------------------------------------------ */
+
+/* Overview Page */
+
+.mainContainer .mainA {
+    background-color: #393939;
+    min-height: 350px;
+    color: #FFF;
+}
+
+.mainContainer .mainB {
+    min-height: 200px;
+}
+
+.mainContainer .mainBB1 {
+    background-color: #FF7019;
+    min-height: 200px;
+}
+
+.mainContainer .mainBB2 {
+    background-color: #D65D14;
+    min-height: 200px;
+}
+
+.mainContainer .mainBB3 {
+    background-color: #1B8DF7;
+    min-height: 160px;
+}
+
+.mainContainer .mainBB3a {
+    height: 160px;
+}
+
+.mainContainer .mainBB3b {
+    background-color: #1676CF;
+    height: 160px;
+}
+
+.mainContainer .mainBB4 {
+    background-color: #B5B5B5;
+    height: 160px;
+}
+
+@media(min-width:768px) {
+    /* ipad */
+    .mainContainer .mainA {
+        flex: 1 0 320px;
+    }
+    .mainContainer .mainB {
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: flex-start;
+    }
+    .mainContainer .mainBB1 {
+        flex: 1 0 400px;
+    }
+    .mainContainer .mainBB2 {
+        flex: 1 0 150px;
+    }
+    .mainContainer .mainBB3 {
+        flex: 1 0 500px;
+        display: flex;
+        flex-flow: row wrap;
+    }
+    .mainContainer .mainBB3a {
+        flex: 1 0 350px;
+    }
+    .mainContainer .mainBB3b {
+        flex: 1 0 350px;
+    }
+    .mainContainer .mainBB4 {
+        flex: 1 0 600px;
+    }
+}
+
+@media(min-width:1024px) {
+    /* desktop */
+    div.mainContainer {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .mainContainer .mainA {
+        flex: 1 0 500px;
+        min-height: 500px;
+    }
+    .mainContainer .mainB {
+        display: flex;
+        flex: 1 0 524px;
+        flex-flow: row wrap;
+        justify-content: flex-start;
+    }
+    .mainContainer .mainBB1 {
+        flex: 1 0 310px;
+    }
+    .mainContainer .mainBB2 {
+        flex: 0 0 200px;
+    }
+    .mainContainer .mainBB3 {
+        flex: 1 0 350px;
+    }
+    .mainContainer .mainBB4 {
+        flex: 1 0 400px;
+    }
+}
+
+@media(min-width:1440px) {
+    /* hd desktop */
+    .mainContainer .mainA {
+        flex: 0 0 600px;
+    }
+    .mainContainer .mainB {
+        flex: 0 0 840px;
+    }
+    .mainContainer .mainBB3 {
+        flex: 1 0 350px;
+    }
+    .mainContainer .mainBB4 {
+        flex: 1 0 300px;
+    }
+    .mainContainer .mainBB4 {
+        height: 320px;
+    }
 }

@@ -1,0 +1,28 @@
+// this file will be generated as a JS module with a default export instead of a JSON file
+<! @@json(export="default" target="content")>
+
+<div class="mainContainer">
+    <div class="mainA foo">
+        A
+    </div>
+    <div class="mainB">
+        <div class="mainBB1">
+            BB1
+        </>
+        <div class="mainBB2">
+            BB2
+        </>
+        <div class="mainBB3">
+            <div class="mainBB3a">
+                x
+            </>
+            <div class="mainBB3b">
+                y2
+            </>
+        </>
+        <div class="mainBB4">
+            BB4
+        </>
+    </div>
+</div>
+</>

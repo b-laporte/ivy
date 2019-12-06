@@ -1,6 +1,7 @@
 import { createSourceFile, ScriptTarget, forEachChild, SyntaxKind } from 'typescript';
 import { readFile } from 'fs';
 import { Registry, parseRawGrammar } from 'vscode-textmate';
+import { createFilter } from 'rollup-pluginutils';
 
 /*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
@@ -4066,7 +4067,12 @@ function getLineInfo$1(src, pos) {
     };
 }
 
-function ivy() {
+function ivy(opts) {
+    if (opts === void 0) { opts = {}; }
+    if (!opts.include) {
+        opts.include = '**/*.ts';
+    }
+    var filter = createFilter(opts.include, opts.exclude);
     return {
         name: 'ivy',
         transform: function (code, id) {
@@ -4075,16 +4081,20 @@ function ivy() {
                 return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0:
-                            _a.trys.push([0, 2, , 3]);
-                            return [4 /*yield*/, process(code, id)];
+                            if (!filter(id))
+                                return [2 /*return*/, null];
+                            _a.label = 1;
                         case 1:
-                            result = _a.sent();
-                            return [3 /*break*/, 3];
+                            _a.trys.push([1, 3, , 4]);
+                            return [4 /*yield*/, process(code, id)];
                         case 2:
+                            result = _a.sent();
+                            return [3 /*break*/, 4];
+                        case 3:
                             e_1 = _a.sent();
                             this.error(e_1.message || e_1);
                             return [2 /*return*/, null];
-                        case 3: return [2 /*return*/, result];
+                        case 4: return [2 /*return*/, result];
                     }
                 });
             });

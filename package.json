@@ -15,7 +15,7 @@
         "plugins": "rollup --config rollup.config.js",
         "doc": "rollup --config src/doc/rollup.config.js",
         "doc-watch": "rollup --config src/doc/rollup.config.js -w",
-        "doc-dev": "npm-run-all --parallel serve-public doc-watch",
+        "doc-dev": "rm -rf public/ && npm-run-all --parallel serve-public doc-watch",
         "serve-public": "serve public"
     },
     "license": "Apache-2.0",

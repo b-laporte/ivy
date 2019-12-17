@@ -65,6 +65,7 @@ describe('Decorators', () => {
                     $api.$targetElt.setAttribute("title", info + $api.prefix + $api.text + $api.suffix);
                 }
             }
+            // todo: $dispose
         }
     });
 

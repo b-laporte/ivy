@@ -5,13 +5,13 @@ import { Data } from '../trax';
 import overview from './home.xdf';
 
 import './samples.xdf'; // to generate samples.json
+import { newRouter, Route, link, activeLink } from '../iv/router';
 
 
-@Data export class NavigationData {
+@Data export class NavigationState {
     currentPageXdf = "";
 }
-export const navigationData = new NavigationData();
-navigationData.currentPageXdf = overview.content; // default page
+export const navState = new NavigationState();
 
 // router.add({
 //     "/": () => {
@@ -24,6 +24,18 @@ navigationData.currentPageXdf = overview.content; // default page
 // @link -> onclick + add/remove 'activeLink' class -> links must register/unregister to router change?
 // @active="/foo/bar/*"
 
+// router
+const router = newRouter();
+
+router.add({
+    "/*": (r: Route, ns: NavigationState) => {
+        ns.currentPageXdf = overview.content;
+    },
+    "/tutorial/*": router.deferLoad(() => import('./tutorial/tutorial')),
+    "/examples/*": router.deferLoad(() => import('./examples/examples'))
+});
+router.init(navState, window, "#");
+
 const ivyLogo = template(`(className="ivyLogo") => {
     <svg class={className} width="105px" height="44px" viewBox="0 0 105 44">
         <g transform="translate(3,3)" fill="none" fill-rule="nonzero" stroke-linecap="round" stroke-width="7">
@@ -34,15 +46,15 @@ const ivyLogo = template(`(className="ivyLogo") => {
     </svg>
 }`);
 
-export const navBar = template(`(navState:NavigationData) => {
+export const navBar = template(`(navState:NavigationState) => {
     <nav class="mainMenu">
-        <div class="mainLogo" @onclick={navigateHome}>
+        <div class="mainLogo" @link="/">
             <*ivyLogo/>
         </>
 
-        <ul class="primary" @onclick={selectMenu}>
-            <li data-menu-id="a"> # tutorial # </li>
-            <li> # examples # </li>
+        <ul class="primary">
+            <li @activeLink="/tutorial"> # tutorial # </li>
+            <li @activeLink="/examples"> # examples # </li>
             <li> # getting-started # </li>
             <li> # api # </li>
             <li>
@@ -55,51 +67,7 @@ export const navBar = template(`(navState:NavigationData) => {
             </>
         </>
     </>
-}`, selectMenu, ivyLogo);
-
-const cache: any = {
-
-}
-
-let count = 0;
-
-window.addEventListener("popstate", function (e) {
-    this.console.log("onpopstate", e); // called on user action
-})
-
-async function navigateHome() {
-    console.log("home");
-
-    if (count > 2) {
-        history.replaceState(null, "", "#home2");
-    } else {
-        history.pushState(null, "", "#home" + count);
-    }
-    count++;
-}
-
-async function selectMenu(e: Event) {
-    if (!e.target || !(e.target as any).dataset) return;
-    let menuId = (e.target as any).dataset.menuId;
-    console.log(menuId)
-    // let url = "samples.json"
-    // try {
-    //     const response = await fetch(url);
-    //     const json = await response.json();
-    //     cache[url] = json;
-    //     navigationData.currentPageXdf = json.content;
-    //     console.log("Fetch result: ", json);
-    // } catch (e) {
-    //     console.log("Fetch error: ", e.message || e);
-    // }
-    let m = await import('./tutorial/tutorial');
-    m.load(navigationData);
-
-    // import('./tutorial/tutorial').then(({ load })=> {
-    //   // do something with modules.
-    //   load(navigationData);;
-    // })
-}
+}`, ivyLogo, activeLink, link);
 
 /*
 Main pages
@@ -115,17 +83,4 @@ Todo: anchors in a given page?
 -> local links / external links?
 
 */
-
-const updateView = () => {
-    const hash = window.location.hash;
-    console.log("hashchange: ", hash)
-    if (hash === '' || hash === '#/overview') {
-
-    } else if (hash === '#/examples') {
-
-    }
-    navigationData.currentPageXdf = overview.content; // default page
-};
-window.addEventListener('hashchange', updateView);
-updateView();
 

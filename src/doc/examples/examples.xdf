@@ -1,5 +1,16 @@
 
 <! @@json(export="default")>
-    // tutorial
-    <h1> Examples: under construction </h1>
+    <div class="examples layout layout2">
+        <div class="blockA">
+            <div class="menu"> 
+
+            </>
+            <div class="mainpanel"> 
+
+            </>
+        </>
+        <div class="blockB">
+
+        </>
+    </div>
 </>

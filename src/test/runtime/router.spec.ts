@@ -330,6 +330,7 @@ describe('Router', () => {
         r = await (router as any).getRoute("/a/bar");
         assert.notEqual(r, null, "4.1");
         assert.deepEqual(r.routeId, "/a/ ", "4.2");
+        assert.deepEqual(r.pathParams, { b: 'bar' }, "4.3");
 
         r = await (router as any).getRoute("/foo/x");
         assert.notEqual(r, null, "5.1");

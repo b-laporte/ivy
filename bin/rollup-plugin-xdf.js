@@ -393,811 +393,929 @@ CHAR_n = 110, CHAR_t = 116, CHAR_r = 114, CHAR_u = 117, CHAR_e = 101, CHAR_f = 1
 RX_TRAILING_SPACES = /[ \t\r\f\n]+$/;
 // parse generates an XdfFragment (XDF tree)
 function parse(xdf, context) {
-    var xf = createXdfFragment(), posEOS = xdf.length, pos = 0, // current position
-    cc = CHAR_EOS, // current char code at current position
-    ppContext, currentPpName = "", currentPpPos = 0, globalPreProcessors = context ? context.globalPreProcessors : U$1, ppFactories = context ? context.preProcessors || {} : {}, preProcessors = {}; // dictionary of pre-processor instances
-    if (posEOS > 0) {
-        cc = xdf.charCodeAt(0);
-        var ppDataList = void 0;
-        if (globalPreProcessors !== U$1) {
-            ppDataList = [];
-            for (var _i = 0, globalPreProcessors_1 = globalPreProcessors; _i < globalPreProcessors_1.length; _i++) {
-                var pp = globalPreProcessors_1[_i];
-                ppDataList.push({
-                    kind: "#preprocessorData",
-                    name: pp,
-                    pos: 0
-                });
-            }
-            callPreProcessors(ppDataList, xf, null, "setup");
+    return __awaiter(this, void 0, void 0, function () {
+        function moveNext() {
+            return shiftNext(1);
         }
-        xdfContent(xf);
-        if (ppDataList !== U$1) {
-            callPreProcessors(ppDataList, xf, null, "process");
+        function shiftNext(length) {
+            pos += length;
+            return cc = pos < posEOS ? xdf.charCodeAt(pos) : CHAR_EOS;
         }
-        if (cc !== CHAR_EOS) {
-            error();
+        function nextCharCode() {
+            return pos + 1 < posEOS ? xdf.charCodeAt(pos + 1) : CHAR_EOS;
         }
-    }
-    return xf;
-    function moveNext() {
-        return shiftNext(1);
-    }
-    function shiftNext(length) {
-        pos += length;
-        return cc = pos < posEOS ? xdf.charCodeAt(pos) : CHAR_EOS;
-    }
-    function nextCharCode() {
-        return pos + 1 < posEOS ? xdf.charCodeAt(pos + 1) : CHAR_EOS;
-    }
-    function nextChars(length) {
-        return pos + length < posEOS ? xdf.substr(pos, length) : "";
-    }
-    function eat(charCode, errMsg) {
-        if (cc !== charCode) {
-            if (errMsg === undefined) {
-                error(charName(charCode) + " expected instead of " + charName(cc));
-            }
-            else {
-                error(errMsg);
-            }
+        function nextChars(length) {
+            return pos + length < posEOS ? xdf.substr(pos, length) : "";
         }
-        return moveNext();
-    }
-    function xdfContent(parent) {
-        // parse xdf content: text or element or fragments or cdata
-        var keepGoing = true;
-        while (keepGoing) {
-            if (!xdfElement(parent) && !xdfText(parent)) {
-                keepGoing = false;
-            }
-        }
-    }
-    function xdfText(parent) {
-        // return true if blank spaces or text characters have been found
-        if (cc === CHAR_LT || cc === CHAR_EOS)
-            return false;
-        var spacesFound = xdfSpaces(), startPos = pos;
-        if (cc !== CHAR_LT && cc !== CHAR_EOS) {
-            var charCodes = [];
-            if (spacesFound) {
-                charCodes[0] = CHAR_SPACE; // leading spaces are transformed in a single space
-            }
-            var lastIsSpace = spacesFound;
-            while (cc !== CHAR_LT && cc !== CHAR_EOS) {
-                eatComments();
-                // capture string
-                if (cc === CHAR_BSLA) {
-                    cc = eat(CHAR_BSLA); // \
-                    if (cc === CHAR_SPACE || cc === CHAR_s) {
-                        // transform into non-breaking space
-                        moveNext();
-                        charCodes.push(CHAR_NBSP);
-                        lastIsSpace = true;
-                    }
-                    else if (cc == CHAR_n) {
-                        // \n new line
-                        moveNext();
-                        charCodes.push(CHAR_NL);
-                        lastIsSpace = true;
-                    }
+        function eat(charCode, errMsg) {
+            if (cc !== charCode) {
+                if (errMsg === undefined) {
+                    error(charName(charCode) + " expected instead of " + charName(cc));
                 }
                 else {
-                    if (lastIsSpace && isSpace(cc) && cc !== CHAR_NL) {
-                        moveNext(); // keep only one space but keep new lines
+                    error(errMsg);
+                }
+            }
+            return moveNext();
+        }
+        function xdfContent(parent) {
+            return __awaiter(this, void 0, void 0, function () {
+                var keepGoing;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            keepGoing = true;
+                            _a.label = 1;
+                        case 1:
+                            if (!keepGoing) return [3 /*break*/, 3];
+                            return [4 /*yield*/, xdfElement(parent)];
+                        case 2:
+                            if (!(_a.sent()) && !xdfText(parent)) {
+                                keepGoing = false;
+                            }
+                            return [3 /*break*/, 1];
+                        case 3: return [2 /*return*/];
+                    }
+                });
+            });
+        }
+        function xdfText(parent) {
+            // return true if blank spaces or text characters have been found
+            if (cc === CHAR_LT || cc === CHAR_EOS)
+                return false;
+            var spacesFound = xdfSpaces(), startPos = pos;
+            if (cc !== CHAR_LT && cc !== CHAR_EOS) {
+                var charCodes = [];
+                if (spacesFound) {
+                    charCodes[0] = CHAR_SPACE; // leading spaces are transformed in a single space
+                }
+                var lastIsSpace = spacesFound;
+                while (cc !== CHAR_LT && cc !== CHAR_EOS) {
+                    eatComments();
+                    // capture string
+                    if (cc === CHAR_BSLA) {
+                        cc = eat(CHAR_BSLA); // \
+                        if (cc === CHAR_SPACE || cc === CHAR_s) {
+                            // transform into non-breaking space
+                            moveNext();
+                            charCodes.push(CHAR_NBSP);
+                            lastIsSpace = true;
+                        }
+                        else if (cc == CHAR_n) {
+                            // \n new line
+                            moveNext();
+                            charCodes.push(CHAR_NL);
+                            lastIsSpace = true;
+                        }
                     }
                     else {
-                        lastIsSpace = isSpace(cc);
-                        charCodes.push(cc);
-                        moveNext();
+                        if (lastIsSpace && isSpace(cc) && cc !== CHAR_NL) {
+                            moveNext(); // keep only one space but keep new lines
+                        }
+                        else {
+                            lastIsSpace = isSpace(cc);
+                            charCodes.push(cc);
+                            moveNext();
+                        }
                     }
                 }
+                addText(parent, String.fromCharCode.apply(null, charCodes).replace(RX_TRAILING_SPACES, " "), startPos);
             }
-            addText(parent, String.fromCharCode.apply(null, charCodes).replace(RX_TRAILING_SPACES, " "), startPos);
-        }
-        return true;
-    }
-    function xdfSpaces() {
-        // eat spaces (white spaces or carriage return, tabs, etc.) 
-        // return true if spaces have been found
-        if (cc === CHAR_EOS)
-            return false;
-        var startPos = pos, processing = true;
-        while (processing) {
-            if (isSpace(cc)) {
-                // white spaces
-                moveNext();
-                eatComments();
-            }
-            else if (!eatComments()) {
-                processing = false;
-            }
-        }
-        return pos !== startPos;
-    }
-    function isSpace(c) {
-        // CHAR_BACK = 8,   // \b backspace
-        // CHAR_TAB = 9,    // \t tab
-        // CHAR_NL = 10,    // \n new line
-        // CHAR_VTAB = 11,  // \v vertical tab
-        // CHAR_FEED = 12,  // \f form feed
-        // CHAR_CR = 13,    // \r carriage return
-        return c === CHAR_SPACE || (c > 7 && c < 14);
-    }
-    function eatComments() {
-        if (cc !== CHAR_FSLA)
-            return false;
-        var nc = nextCharCode();
-        if (nc === CHAR_FSLA) {
-            // double-slash comment
-            eat(CHAR_FSLA);
-            eat(CHAR_FSLA);
-            while (CHAR_NL !== cc && CHAR_EOS !== cc) {
-                moveNext();
-            }
-            moveNext(); // to eat last new line
             return true;
         }
-        else if (nc === CHAR_STAR) {
-            eat(CHAR_FSLA);
-            eat(CHAR_STAR);
-            var processing = true;
+        function xdfSpaces() {
+            // eat spaces (white spaces or carriage return, tabs, etc.) 
+            // return true if spaces have been found
+            if (cc === CHAR_EOS)
+                return false;
+            var startPos = pos, processing = true;
             while (processing) {
-                if (CHAR_EOS === cc || (CHAR_STAR === cc && nextCharCode() === CHAR_FSLA)) {
+                if (isSpace(cc)) {
+                    // white spaces
                     moveNext();
+                    eatComments();
+                }
+                else if (!eatComments()) {
                     processing = false;
                 }
-                moveNext();
             }
-            return true;
+            return pos !== startPos;
         }
-        return false;
-    }
-    function xdfElement(parent) {
-        // return true if an element, a fragment or a cdata section has been found
-        if (cc !== CHAR_LT || nextCharCode() === CHAR_FSLA)
-            return false;
-        cc = eat(CHAR_LT); // <
-        // prefix: [none] or * or . or @
-        var prefix = 0;
-        eatPrefix();
-        var name = "", eltOrFragment;
-        if (cc === CHAR_BANG) {
-            eat(CHAR_BANG);
-            if (xdfCData(parent)) {
+        function isSpace(c) {
+            // CHAR_BACK = 8,   // \b backspace
+            // CHAR_TAB = 9,    // \t tab
+            // CHAR_NL = 10,    // \n new line
+            // CHAR_VTAB = 11,  // \v vertical tab
+            // CHAR_FEED = 12,  // \f form feed
+            // CHAR_CR = 13,    // \r carriage return
+            return c === CHAR_SPACE || (c > 7 && c < 14);
+        }
+        function eatComments() {
+            if (cc !== CHAR_FSLA)
+                return false;
+            var nc = nextCharCode();
+            if (nc === CHAR_FSLA) {
+                // double-slash comment
+                eat(CHAR_FSLA);
+                eat(CHAR_FSLA);
+                while (CHAR_NL !== cc && CHAR_EOS !== cc) {
+                    moveNext();
+                }
+                moveNext(); // to eat last new line
                 return true;
             }
-            eltOrFragment = addFragment(parent, pos);
-        }
-        else {
-            name = xdfIdentifier(true, prefix === 0);
-            eltOrFragment = createElement();
-        }
-        var ppDataList = null;
-        if (xdfSpaces()) {
-            // spaces have been found: parse params
-            ppDataList = xdfParams(eltOrFragment, parent, endParamReached);
-            if (ppDataList !== null) {
-                callPreProcessors(ppDataList, eltOrFragment, parent, "setup");
-            }
-        }
-        if (cc === CHAR_FSLA) {
-            // end of element
-            eat(CHAR_FSLA); // /
-            eat(CHAR_GT); // >
-        }
-        else if (cc === CHAR_GT) {
-            eat(CHAR_GT); // >
-            // parse element content
-            xdfContent(eltOrFragment);
-            // parse end of element
-            eat(CHAR_LT); // <
-            eat(CHAR_FSLA); // /
-            var endPos = pos;
-            var p1 = prefix, p2 = eatPrefix(), name2 = xdfIdentifier(false);
-            if (name2 === "" && p2 === 0 && CHAR_BANG === cc) {
-                eat(CHAR_BANG); // end of fragment !
-            }
-            else if (name2 !== "" || p2 !== 0) {
-                // end tag name is provided
-                if (p1 !== p2 || (name2 !== "" && name2 !== name)) {
-                    error('End tag </' + eltName(p2, name2) + '> doesn\'t match <' + eltName(p1, name) + '>', endPos);
-                }
-            }
-            xdfSpaces();
-            eat(CHAR_GT); // >
-        }
-        else {
-            error();
-        }
-        if (ppDataList !== null) {
-            callPreProcessors(ppDataList, eltOrFragment, parent, "process");
-        }
-        return true;
-        function eatPrefix() {
-            if (cc === CHAR_STAR || cc === CHAR_DOT || cc === CHAR_AT) { // * . @
-                prefix = cc;
-                cc = moveNext(); // eat prefix
-                return prefix;
-            }
-            return 0;
-        }
-        function createElement() {
-            if (prefix === CHAR_STAR) { // *
-                return addComponent(parent, xf.ref(name), pos);
-            }
-            else if (prefix === CHAR_DOT) { // .
-                return addParamNode(parent, name, pos);
-            }
-            else if (prefix === CHAR_AT) { // @
-                // decorator node
-                error("Decorator node are not supported yet");
-            }
-            return addElement(parent, name, pos);
-        }
-        function eltName(prefix, nm) {
-            return (prefix === 0 ? "" : String.fromCharCode(prefix)) + nm;
-        }
-    }
-    function callPreProcessors(ppDataList, target, parent, hookName) {
-        for (var _i = 0, ppDataList_1 = ppDataList; _i < ppDataList_1.length; _i++) {
-            var ppData = ppDataList_1[_i];
-            if (ppFactories === U$1 || ppFactories[ppData.name] === U$1) {
-                error("Undefined pre-processor '" + ppData.name + "'", ppData.pos);
-                return;
-            }
-            var pp = preProcessors[ppData.name];
-            if (pp === U$1) {
-                pp = preProcessors[ppData.name] = ppFactories[ppData.name]();
-            }
-            if (pp[hookName] === U$1)
-                continue;
-            if (ppData.paramsDict === U$1) {
-                var ppParams = {};
-                if (ppData.params) {
-                    for (var _a = 0, _b = ppData.params; _a < _b.length; _a++) {
-                        var p = _b[_a];
-                        ppParams[p.name] = p;
-                    }
-                }
-                ppData.paramsDict = ppParams;
-            }
-            try {
-                pp[hookName](target, ppData.paramsDict, getPreProcessorContext(ppData.name, parent, ppData.pos));
-            }
-            catch (ex) {
-                var msg = ex.message || ex;
-                if (msg.match(/^XDF\:/)) {
-                    // error was triggered through context.error()
-                    throw ex;
-                }
-                else {
-                    error("Error in " + ppData.name + " " + hookName + "() execution: " + msg, ppData.pos);
-                }
-            }
-        }
-    }
-    function getPreProcessorContext(ppName, parent, processorPos) {
-        currentPpName = ppName;
-        currentPpPos = processorPos;
-        if (ppContext === U$1) {
-            ppContext = {
-                parent: parent,
-                fileId: context ? context.fileId || "" : "",
-                rootFragment: xf,
-                error: function (msg, pos) {
-                    if (pos === void 0) { pos = -1; }
-                    error(currentPpName + ": " + msg, pos > -1 ? pos : currentPpPos);
-                },
-                preProcessors: ppFactories
-            };
-        }
-        else {
-            ppContext.parent = parent;
-        }
-        return ppContext;
-    }
-    function endParamReached() {
-        return (cc === CHAR_FSLA || cc === CHAR_GT); // / or >
-    }
-    function xdfCData(parent) {
-        if (CDATA === nextChars(CDATA_LENGTH)) {
-            var startPos = pos;
-            shiftNext(CDATA_LENGTH);
-            var cdata = addCData(parent, "", pos), ppDataList = null;
-            if (xdfSpaces()) {
-                // spaces have been found: parse params
-                ppDataList = xdfParams(cdata, parent, endParamReached);
-                if (ppDataList !== null) {
-                    callPreProcessors(ppDataList, cdata, parent, "setup");
-                }
-            }
-            eat(CHAR_GT); // >
-            var charCodes = [], processing = true;
-            while (processing) {
-                if (cc === CHAR_EOS) {
-                    processing = false;
-                    error("Invalid cdata section: end marker '</!cdata>' not found", startPos - 2);
-                }
-                else if (cc === CHAR_BSLA) {
-                    // backslash
-                    moveNext();
-                    if (CDATA_END === nextChars(CDATA_END_LENGTH)) {
-                        // we escape end of cdata
-                        charCodes.push(cc);
+            else if (nc === CHAR_STAR) {
+                eat(CHAR_FSLA);
+                eat(CHAR_STAR);
+                var processing = true;
+                while (processing) {
+                    if (CHAR_EOS === cc || (CHAR_STAR === cc && nextCharCode() === CHAR_FSLA)) {
                         moveNext();
-                    }
-                    else {
-                        // push the backslash
-                        charCodes.push(CHAR_BSLA);
-                    }
-                }
-                else {
-                    if (cc === CHAR_LT && CDATA_END === nextChars(CDATA_END_LENGTH)) {
-                        shiftNext(CDATA_END_LENGTH);
                         processing = false;
                     }
-                    else {
-                        charCodes.push(cc);
-                        moveNext();
-                    }
+                    moveNext();
                 }
+                return true;
             }
-            cdata.content = String.fromCharCode.apply(null, charCodes);
-            if (ppDataList !== null) {
-                callPreProcessors(ppDataList, cdata, parent, "process");
-            }
-            return true;
-        }
-        return false;
-    }
-    function xdfIdentifier(mandatory, acceptDashes) {
-        if (acceptDashes === void 0) { acceptDashes = false; }
-        // identifier is used for references and component/decorators names (which area also references)
-        // they cannot start with $ on the contrary to JS identifiers
-        var charCodes = [];
-        // first char cannot be a number
-        if (ccIsChar() || cc === CHAR_UNDER) {
-            charCodes.push(cc);
-            moveNext();
-            while (ccIsChar() || ccIsNumber() || cc === CHAR_UNDER || (acceptDashes && cc === CHAR_MINUS)) {
-                charCodes.push(cc);
-                moveNext();
-            }
-        }
-        else if (mandatory) {
-            error("Invalid XDF identifier");
-        }
-        if (charCodes.length === 0)
-            return "";
-        return String.fromCharCode.apply(null, charCodes);
-    }
-    function xdfParams(parent, grandParent, endReached) {
-        var prefix = 0, keepGoing = true, result = null, startPos = -1;
-        while (keepGoing && !endReached()) {
-            // param name: prefix + name
-            startPos = pos;
-            prefix = eatPrefix();
-            var ppData = null;
-            if (prefix === CHAR_AT && cc === CHAR_AT) {
-                // this is a pre-processor
-                eat(CHAR_AT); // 2nd @
-                if (parent.kind === "#preprocessorData") {
-                    var errorPos = pos - 2;
-                    error("Pre-processors cannot be used on pre-processors: check @@" + xdfIdentifier(true, false), errorPos);
-                }
-                ppData = {
-                    kind: "#preprocessorData",
-                    name: "",
-                    pos: pos - 2 // to be before the '@@' prefix
-                };
-            }
-            var name_1 = xdfIdentifier(true, prefix === 0), isProperty = false;
-            if (prefix === CHAR_SBRS) { // [
-                eat(CHAR_SBRE); // ]
-                isProperty = true;
-            }
-            if (ppData !== null) {
-                ppData.name = "@@" + name_1;
-            }
-            if (prefix === CHAR_HASH && parent.kind === "#preprocessorData") {
-                error("Labels cannot be used on pre-processors", parent.pos);
-            }
-            var spacesFound = xdfSpaces();
-            if (cc === CHAR_EQ) {
-                // look for value
-                eat(CHAR_EQ);
-                xdfSpaces();
-                if (ppData !== null) {
-                    registerParam("value", ppData, xdfParamValue());
-                }
-                else {
-                    registerParam(name_1, ppData, xdfParamValue(), isProperty);
-                }
-                if (!xdfSpaces()) {
-                    // no spaces found -> we have reached the end of the param list
-                    keepGoing = false;
-                }
-            }
-            else if (prefix === CHAR_AT && cc === CHAR_PARS) {
-                var d = void 0;
-                if (ppData !== null) {
-                    d = ppData;
-                }
-                else {
-                    d = registerParam(name_1, ppData);
-                }
-                // look for attribute params for decorators
-                eat(CHAR_PARS); // ( parens start
-                xdfSpaces();
-                var r = xdfParams(d, parent, endDecoParamReached);
-                eat(CHAR_PARE); // ) parens end
-                if (!xdfSpaces()) {
-                    // no spaces found -> we have reached the end of the param list
-                    keepGoing = false;
-                }
-                if (r != null && ppData === null) {
-                    callPreProcessors(r, d, grandParent, "process");
-                }
-            }
-            else if (spacesFound || cc === CHAR_GT || cc === CHAR_FSLA || cc === CHAR_PARE) { // > or / or )
-                // orphan attribute
-                if (ppData === null) {
-                    registerParam(name_1, ppData);
-                }
-            }
-            else {
-                keepGoing = false;
-            }
-            if (ppData !== null) {
-                if (result === null) {
-                    result = [];
-                }
-                result.push(ppData);
-            }
-        }
-        if (!endReached()) {
-            error();
-        }
-        return result;
-        function endDecoParamReached() {
-            return (cc === CHAR_PARE); // )
-        }
-        function registerParam(name, ppData, value, isProperty) {
-            if (isProperty === void 0) { isProperty = false; }
-            var p = parent;
-            if (ppData !== null) {
-                p = ppData;
-            }
-            if (prefix === CHAR_AT) {
-                return addDecorator(p, xf.ref(name), value, startPos);
-            }
-            else if (prefix === CHAR_HASH) {
-                // todo error if ppData
-                return addLabel(p, name, value, startPos);
-            }
-            return addParam(p, name, value, isProperty, startPos);
-        }
-        function eatPrefix() {
-            // [ @ or #
-            if (cc === CHAR_SBRS || cc === CHAR_AT || cc === CHAR_HASH) {
-                var res = cc;
-                moveNext();
-                return res;
-            }
-            return 0;
-        }
-    }
-    function xdfParamValue() {
-        // return the param value
-        if (cc === CHAR_SQUO) {
-            return stringContent(CHAR_SQUO); // single quote string
-        }
-        else if (cc === CHAR_DQUO) {
-            return stringContent(CHAR_DQUO); // double quote string
-        }
-        else if (cc === CHAR_CS) { // {
-            // reference
-            eat(CHAR_CS);
-            xdfSpaces();
-            var refName = xdfIdentifier(true, false);
-            xdfSpaces();
-            eat(CHAR_CE);
-            return xf.ref(refName);
-        }
-        else if (cc === CHAR_t) {
-            // true
-            eat(CHAR_t);
-            eat(CHAR_r);
-            eat(CHAR_u);
-            eat(CHAR_e);
-            return true;
-        }
-        else if (cc === CHAR_f) {
-            // false
-            eat(CHAR_f);
-            eat(CHAR_a);
-            eat(CHAR_l);
-            eat(CHAR_s);
-            eat(CHAR_e);
             return false;
         }
-        else if (ccIsNumber() || ccIsSign()) {
-            // number: 123 or 12.34
+        function xdfElement(parent) {
+            return __awaiter(this, void 0, void 0, function () {
+                function eatPrefix() {
+                    if (cc === CHAR_STAR || cc === CHAR_DOT || cc === CHAR_AT) { // * . @
+                        prefix = cc;
+                        cc = moveNext(); // eat prefix
+                        return prefix;
+                    }
+                    return 0;
+                }
+                function createElement() {
+                    if (prefix === CHAR_STAR) { // *
+                        return addComponent(parent, xf.ref(name), pos);
+                    }
+                    else if (prefix === CHAR_DOT) { // .
+                        return addParamNode(parent, name, pos);
+                    }
+                    else if (prefix === CHAR_AT) { // @
+                        // decorator node
+                        error("Decorator node are not supported yet");
+                    }
+                    return addElement(parent, name, pos);
+                }
+                function eltName(prefix, nm) {
+                    return (prefix === 0 ? "" : String.fromCharCode(prefix)) + nm;
+                }
+                var prefix, name, eltOrFragment, ppDataList, endPos, p1, p2, name2;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            // return true if an element, a fragment or a cdata section has been found
+                            if (cc !== CHAR_LT || nextCharCode() === CHAR_FSLA)
+                                return [2 /*return*/, false];
+                            cc = eat(CHAR_LT); // <
+                            prefix = 0;
+                            eatPrefix();
+                            name = "";
+                            if (!(cc === CHAR_BANG)) return [3 /*break*/, 2];
+                            eat(CHAR_BANG);
+                            return [4 /*yield*/, xdfCData(parent)];
+                        case 1:
+                            if (_a.sent()) {
+                                return [2 /*return*/, true];
+                            }
+                            eltOrFragment = addFragment(parent, pos);
+                            return [3 /*break*/, 3];
+                        case 2:
+                            name = xdfIdentifier(true, prefix === 0);
+                            eltOrFragment = createElement();
+                            _a.label = 3;
+                        case 3:
+                            ppDataList = null;
+                            if (!xdfSpaces()) return [3 /*break*/, 6];
+                            return [4 /*yield*/, xdfParams(eltOrFragment, parent, endParamReached)];
+                        case 4:
+                            // spaces have been found: parse params
+                            ppDataList = _a.sent();
+                            if (!(ppDataList !== null)) return [3 /*break*/, 6];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, eltOrFragment, parent, "setup")];
+                        case 5:
+                            _a.sent();
+                            _a.label = 6;
+                        case 6:
+                            if (!(cc === CHAR_FSLA)) return [3 /*break*/, 7];
+                            // end of element
+                            eat(CHAR_FSLA); // /
+                            eat(CHAR_GT); // >
+                            return [3 /*break*/, 10];
+                        case 7:
+                            if (!(cc === CHAR_GT)) return [3 /*break*/, 9];
+                            eat(CHAR_GT); // >
+                            // parse element content
+                            return [4 /*yield*/, xdfContent(eltOrFragment)];
+                        case 8:
+                            // parse element content
+                            _a.sent();
+                            // parse end of element
+                            eat(CHAR_LT); // <
+                            eat(CHAR_FSLA); // /
+                            endPos = pos;
+                            p1 = prefix, p2 = eatPrefix(), name2 = xdfIdentifier(false);
+                            if (name2 === "" && p2 === 0 && CHAR_BANG === cc) {
+                                eat(CHAR_BANG); // end of fragment !
+                            }
+                            else if (name2 !== "" || p2 !== 0) {
+                                // end tag name is provided
+                                if (p1 !== p2 || (name2 !== "" && name2 !== name)) {
+                                    error('End tag </' + eltName(p2, name2) + '> doesn\'t match <' + eltName(p1, name) + '>', endPos);
+                                }
+                            }
+                            xdfSpaces();
+                            eat(CHAR_GT); // >
+                            return [3 /*break*/, 10];
+                        case 9:
+                            error();
+                            _a.label = 10;
+                        case 10:
+                            if (!(ppDataList !== null)) return [3 /*break*/, 12];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, eltOrFragment, parent, "process")];
+                        case 11:
+                            _a.sent();
+                            _a.label = 12;
+                        case 12: return [2 /*return*/, true];
+                    }
+                });
+            });
+        }
+        function callPreProcessors(ppDataList, target, parent, hookName, src) {
+            return __awaiter(this, void 0, void 0, function () {
+                var _i, ppDataList_1, ppData, pp, ppParams, _a, _b, p, ex_1, msg;
+                return __generator(this, function (_c) {
+                    switch (_c.label) {
+                        case 0:
+                            _i = 0, ppDataList_1 = ppDataList;
+                            _c.label = 1;
+                        case 1:
+                            if (!(_i < ppDataList_1.length)) return [3 /*break*/, 6];
+                            ppData = ppDataList_1[_i];
+                            if (ppFactories === U$1 || ppFactories[ppData.name] === U$1) {
+                                error("Undefined pre-processor '" + ppData.name + "'", ppData.pos);
+                                return [2 /*return*/];
+                            }
+                            pp = preProcessors[ppData.name];
+                            if (pp === U$1) {
+                                pp = preProcessors[ppData.name] = ppFactories[ppData.name]();
+                            }
+                            if (pp[hookName] === U$1)
+                                return [3 /*break*/, 5];
+                            if (ppData.paramsDict === U$1) {
+                                ppParams = {};
+                                if (ppData.params) {
+                                    for (_a = 0, _b = ppData.params; _a < _b.length; _a++) {
+                                        p = _b[_a];
+                                        ppParams[p.name] = p;
+                                    }
+                                }
+                                ppData.paramsDict = ppParams;
+                            }
+                            _c.label = 2;
+                        case 2:
+                            _c.trys.push([2, 4, , 5]);
+                            return [4 /*yield*/, pp[hookName](target, ppData.paramsDict, getPreProcessorContext(ppData.name, parent, ppData.pos))];
+                        case 3:
+                            _c.sent();
+                            return [3 /*break*/, 5];
+                        case 4:
+                            ex_1 = _c.sent();
+                            msg = ex_1.message || ex_1;
+                            if (msg.match(/^XDF\:/)) {
+                                // error was triggered through context.error()
+                                throw ex_1;
+                            }
+                            else {
+                                error("Error in " + ppData.name + " " + hookName + "() execution: " + msg, ppData.pos);
+                            }
+                            return [3 /*break*/, 5];
+                        case 5:
+                            _i++;
+                            return [3 /*break*/, 1];
+                        case 6: return [2 /*return*/];
+                    }
+                });
+            });
+        }
+        function getPreProcessorContext(ppName, parent, processorPos) {
+            currentPpName = ppName;
+            currentPpPos = processorPos;
+            if (ppContext === U$1) {
+                ppContext = {
+                    parent: parent,
+                    fileId: context ? context.fileId || "" : "",
+                    rootFragment: xf,
+                    error: function (msg, pos) {
+                        if (pos === void 0) { pos = -1; }
+                        error(currentPpName + ": " + msg, pos > -1 ? pos : currentPpPos);
+                    },
+                    preProcessors: ppFactories
+                };
+            }
+            else {
+                ppContext.parent = parent;
+            }
+            return ppContext;
+        }
+        function endParamReached() {
+            return (cc === CHAR_FSLA || cc === CHAR_GT); // / or >
+        }
+        function xdfCData(parent) {
+            return __awaiter(this, void 0, void 0, function () {
+                var startPos, cdata, ppDataList, charCodes, processing;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!(CDATA === nextChars(CDATA_LENGTH))) return [3 /*break*/, 6];
+                            startPos = pos;
+                            shiftNext(CDATA_LENGTH);
+                            cdata = addCData(parent, "", pos), ppDataList = null;
+                            if (!xdfSpaces()) return [3 /*break*/, 3];
+                            return [4 /*yield*/, xdfParams(cdata, parent, endParamReached)];
+                        case 1:
+                            // spaces have been found: parse params
+                            ppDataList = _a.sent();
+                            if (!(ppDataList !== null)) return [3 /*break*/, 3];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, cdata, parent, "setup")];
+                        case 2:
+                            _a.sent();
+                            _a.label = 3;
+                        case 3:
+                            eat(CHAR_GT); // >
+                            charCodes = [], processing = true;
+                            while (processing) {
+                                if (cc === CHAR_EOS) {
+                                    processing = false;
+                                    error("Invalid cdata section: end marker '</!cdata>' not found", startPos - 2);
+                                }
+                                else if (cc === CHAR_BSLA) {
+                                    // backslash
+                                    moveNext();
+                                    if (CDATA_END === nextChars(CDATA_END_LENGTH)) {
+                                        // we escape end of cdata
+                                        charCodes.push(cc);
+                                        moveNext();
+                                    }
+                                    else {
+                                        // push the backslash
+                                        charCodes.push(CHAR_BSLA);
+                                    }
+                                }
+                                else {
+                                    if (cc === CHAR_LT && CDATA_END === nextChars(CDATA_END_LENGTH)) {
+                                        shiftNext(CDATA_END_LENGTH);
+                                        processing = false;
+                                    }
+                                    else {
+                                        charCodes.push(cc);
+                                        moveNext();
+                                    }
+                                }
+                            }
+                            cdata.content = String.fromCharCode.apply(null, charCodes);
+                            if (!(ppDataList !== null)) return [3 /*break*/, 5];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, cdata, parent, "process")];
+                        case 4:
+                            _a.sent();
+                            _a.label = 5;
+                        case 5: return [2 /*return*/, true];
+                        case 6: return [2 /*return*/, false];
+                    }
+                });
+            });
+        }
+        function xdfIdentifier(mandatory, acceptDashes) {
+            if (acceptDashes === void 0) { acceptDashes = false; }
+            // identifier is used for references and component/decorators names (which area also references)
+            // they cannot start with $ on the contrary to JS identifiers
             var charCodes = [];
-            if (ccIsSign()) {
+            // first char cannot be a number
+            if (ccIsChar() || cc === CHAR_UNDER) {
                 charCodes.push(cc);
                 moveNext();
+                while (ccIsChar() || ccIsNumber() || cc === CHAR_UNDER || (acceptDashes && cc === CHAR_MINUS)) {
+                    charCodes.push(cc);
+                    moveNext();
+                }
+            }
+            else if (mandatory) {
+                error("Invalid XDF identifier");
+            }
+            if (charCodes.length === 0)
+                return "";
+            return String.fromCharCode.apply(null, charCodes);
+        }
+        function xdfParams(parent, grandParent, endReached) {
+            return __awaiter(this, void 0, void 0, function () {
+                function endDecoParamReached() {
+                    return (cc === CHAR_PARE); // )
+                }
+                function registerParam(name, ppData, value, isProperty) {
+                    if (isProperty === void 0) { isProperty = false; }
+                    var p = parent;
+                    if (ppData !== null) {
+                        p = ppData;
+                    }
+                    if (prefix === CHAR_AT) {
+                        return addDecorator(p, xf.ref(name), value, startPos);
+                    }
+                    else if (prefix === CHAR_HASH) {
+                        // todo error if ppData
+                        return addLabel(p, name, value, startPos);
+                    }
+                    return addParam(p, name, value, isProperty, startPos);
+                }
+                function eatPrefix() {
+                    // [ @ or #
+                    if (cc === CHAR_SBRS || cc === CHAR_AT || cc === CHAR_HASH) {
+                        var res = cc;
+                        moveNext();
+                        return res;
+                    }
+                    return 0;
+                }
+                var prefix, keepGoing, result, startPos, ppData, errorPos, name_1, isProperty, spacesFound, d, r;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            prefix = 0, keepGoing = true, result = null, startPos = -1;
+                            _a.label = 1;
+                        case 1:
+                            if (!(keepGoing && !endReached())) return [3 /*break*/, 8];
+                            // param name: prefix + name
+                            startPos = pos;
+                            prefix = eatPrefix();
+                            ppData = null;
+                            if (prefix === CHAR_AT && cc === CHAR_AT) {
+                                // this is a pre-processor
+                                eat(CHAR_AT); // 2nd @
+                                if (parent.kind === "#preprocessorData") {
+                                    errorPos = pos - 2;
+                                    error("Pre-processors cannot be used on pre-processors: check @@" + xdfIdentifier(true, false), errorPos);
+                                }
+                                ppData = {
+                                    kind: "#preprocessorData",
+                                    name: "",
+                                    pos: pos - 2 // to be before the '@@' prefix
+                                };
+                            }
+                            name_1 = xdfIdentifier(true, prefix === 0), isProperty = false;
+                            if (prefix === CHAR_SBRS) { // [
+                                eat(CHAR_SBRE); // ]
+                                isProperty = true;
+                            }
+                            if (ppData !== null) {
+                                ppData.name = "@@" + name_1;
+                            }
+                            if (prefix === CHAR_HASH && parent.kind === "#preprocessorData") {
+                                error("Labels cannot be used on pre-processors", parent.pos);
+                            }
+                            spacesFound = xdfSpaces();
+                            if (!(cc === CHAR_EQ)) return [3 /*break*/, 2];
+                            // look for value
+                            eat(CHAR_EQ);
+                            xdfSpaces();
+                            if (ppData !== null) {
+                                registerParam("value", ppData, xdfParamValue());
+                            }
+                            else {
+                                registerParam(name_1, ppData, xdfParamValue(), isProperty);
+                            }
+                            if (!xdfSpaces()) {
+                                // no spaces found -> we have reached the end of the param list
+                                keepGoing = false;
+                            }
+                            return [3 /*break*/, 7];
+                        case 2:
+                            if (!(prefix === CHAR_AT && cc === CHAR_PARS)) return [3 /*break*/, 6];
+                            d = void 0;
+                            if (ppData !== null) {
+                                d = ppData;
+                            }
+                            else {
+                                d = registerParam(name_1, ppData);
+                            }
+                            // look for attribute params for decorators
+                            eat(CHAR_PARS); // ( parens start
+                            xdfSpaces();
+                            return [4 /*yield*/, xdfParams(d, parent, endDecoParamReached)];
+                        case 3:
+                            r = _a.sent();
+                            eat(CHAR_PARE); // ) parens end
+                            if (!xdfSpaces()) {
+                                // no spaces found -> we have reached the end of the param list
+                                keepGoing = false;
+                            }
+                            if (!(r != null && ppData === null)) return [3 /*break*/, 5];
+                            return [4 /*yield*/, callPreProcessors(r, d, grandParent, "process")];
+                        case 4:
+                            _a.sent();
+                            _a.label = 5;
+                        case 5: return [3 /*break*/, 7];
+                        case 6:
+                            if (spacesFound || cc === CHAR_GT || cc === CHAR_FSLA || cc === CHAR_PARE) { // > or / or )
+                                // orphan attribute
+                                if (ppData === null) {
+                                    registerParam(name_1, ppData);
+                                }
+                            }
+                            else {
+                                keepGoing = false;
+                            }
+                            _a.label = 7;
+                        case 7:
+                            if (ppData !== null) {
+                                if (result === null) {
+                                    result = [];
+                                }
+                                result.push(ppData);
+                            }
+                            return [3 /*break*/, 1];
+                        case 8:
+                            if (!endReached()) {
+                                error();
+                            }
+                            return [2 /*return*/, result];
+                    }
+                });
+            });
+        }
+        function xdfParamValue() {
+            // return the param value
+            if (cc === CHAR_SQUO) {
+                return stringContent(CHAR_SQUO); // single quote string
+            }
+            else if (cc === CHAR_DQUO) {
+                return stringContent(CHAR_DQUO); // double quote string
+            }
+            else if (cc === CHAR_CS) { // {
+                // reference
+                eat(CHAR_CS);
                 xdfSpaces();
+                var refName = xdfIdentifier(true, false);
+                xdfSpaces();
+                eat(CHAR_CE);
+                return xf.ref(refName);
             }
-            while (ccIsNumber()) {
-                charCodes.push(cc);
-                moveNext();
+            else if (cc === CHAR_t) {
+                // true
+                eat(CHAR_t);
+                eat(CHAR_r);
+                eat(CHAR_u);
+                eat(CHAR_e);
+                return true;
             }
-            if (cc === CHAR_DOT) {
-                charCodes.push(CHAR_DOT);
-                moveNext();
-                if (!ccIsNumber()) {
-                    error("Invalid number");
+            else if (cc === CHAR_f) {
+                // false
+                eat(CHAR_f);
+                eat(CHAR_a);
+                eat(CHAR_l);
+                eat(CHAR_s);
+                eat(CHAR_e);
+                return false;
+            }
+            else if (ccIsNumber() || ccIsSign()) {
+                // number: 123 or 12.34
+                var charCodes = [];
+                if (ccIsSign()) {
+                    charCodes.push(cc);
+                    moveNext();
+                    xdfSpaces();
                 }
                 while (ccIsNumber()) {
                     charCodes.push(cc);
                     moveNext();
                 }
-            }
-            return parseFloat(String.fromCharCode.apply(null, charCodes));
-        }
-        error("Invalid parameter value: " + charName(cc));
-        return 0;
-    }
-    function error(msg, errorPos) {
-        var lines = xdf.split("\n"), lineLen = 0, posCount = 0, idx = 0, lineNbr = lines.length, columnNbr = lines[lineNbr - 1].length;
-        errorPos = errorPos || pos;
-        if (errorPos > -1) {
-            while (idx < lines.length) {
-                lineLen = lines[idx].length;
-                if (posCount + lineLen < errorPos) {
-                    // continue
-                    idx++;
-                    posCount += lineLen + 1; // +1 for carriage return
+                if (cc === CHAR_DOT) {
+                    charCodes.push(CHAR_DOT);
+                    moveNext();
+                    if (!ccIsNumber()) {
+                        error("Invalid number");
+                    }
+                    while (ccIsNumber()) {
+                        charCodes.push(cc);
+                        moveNext();
+                    }
                 }
-                else {
-                    // stop
-                    lineNbr = idx + 1;
-                    columnNbr = 1 + errorPos - posCount;
-                    break;
+                return parseFloat(String.fromCharCode.apply(null, charCodes));
+            }
+            error("Invalid parameter value: " + charName(cc));
+            return 0;
+        }
+        function error(msg, errorPos) {
+            var lines = xdf.split("\n"), lineLen = 0, posCount = 0, idx = 0, lineNbr = lines.length, columnNbr = lines[lineNbr - 1].length;
+            errorPos = errorPos || pos;
+            if (errorPos > -1) {
+                while (idx < lines.length) {
+                    lineLen = lines[idx].length;
+                    if (posCount + lineLen < errorPos) {
+                        // continue
+                        idx++;
+                        posCount += lineLen + 1; // +1 for carriage return
+                    }
+                    else {
+                        // stop
+                        lineNbr = idx + 1;
+                        columnNbr = 1 + errorPos - posCount;
+                        break;
+                    }
                 }
             }
+            var fileInfo = "";
+            if (context !== U$1 && context.fileId !== U$1) {
+                fileInfo = "\nFile: " + context.fileId;
+            }
+            if (msg === U$1) {
+                msg = "Invalid character: " + charName(cc);
+            }
+            throw "XDF: " + msg + "\nLine " + lineNbr + " / Col " + columnNbr + fileInfo + "\nExtract: >> " + lines[lineNbr - 1].trim() + " <<";
         }
-        var fileInfo = "";
-        if (context !== U$1 && context.fileId !== U$1) {
-            fileInfo = "\nFile: " + context.fileId;
+        function charName(c) {
+            if (c === CHAR_EOS)
+                return "End of Content";
+            return "'" + String.fromCharCode(c) + "'";
         }
-        if (msg === U$1) {
-            msg = "Invalid character: " + charName(cc);
-        }
-        throw "XDF: " + msg + "\nLine " + lineNbr + " / Col " + columnNbr + fileInfo + "\nExtract: >> " + lines[lineNbr - 1].trim() + " <<";
-    }
-    function charName(c) {
-        if (c === CHAR_EOS)
-            return "End of Content";
-        return "'" + String.fromCharCode(c) + "'";
-    }
-    function stringContent(delimiter) {
-        var charCodes = [];
-        eat(delimiter);
-        while (cc !== delimiter && cc !== CHAR_EOS) {
-            if (cc === CHAR_BSLA) { // \
+        function stringContent(delimiter) {
+            var charCodes = [];
+            eat(delimiter);
+            while (cc !== delimiter && cc !== CHAR_EOS) {
+                if (cc === CHAR_BSLA) { // \
+                    moveNext();
+                }
+                charCodes.push(cc);
                 moveNext();
             }
-            charCodes.push(cc);
-            moveNext();
+            eat(delimiter);
+            return String.fromCharCode.apply(null, charCodes);
         }
-        eat(delimiter);
-        return String.fromCharCode.apply(null, charCodes);
-    }
-    function ccIsChar() {
-        // a:97 z:122 A:65 Z:90
-        return (cc > 96 && cc < 123) || (cc > 64 && cc < 91);
-    }
-    function ccIsNumber() {
-        // 0:48 9:57
-        return cc > 47 && cc < 58;
-    }
-    function ccIsSign() {
-        return cc === CHAR_PLUS || cc === CHAR_MINUS;
-    }
+        function ccIsChar() {
+            // a:97 z:122 A:65 Z:90
+            return (cc > 96 && cc < 123) || (cc > 64 && cc < 91);
+        }
+        function ccIsNumber() {
+            // 0:48 9:57
+            return cc > 47 && cc < 58;
+        }
+        function ccIsSign() {
+            return cc === CHAR_PLUS || cc === CHAR_MINUS;
+        }
+        var xf, posEOS, pos, cc, ppContext, currentPpName, currentPpPos, globalPreProcessors, ppFactories, preProcessors, ppDataList, _i, globalPreProcessors_1, pp;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    xf = createXdfFragment(), posEOS = xdf.length, pos = 0, cc = CHAR_EOS, currentPpName = "", currentPpPos = 0, globalPreProcessors = context ? context.globalPreProcessors : U$1, ppFactories = context ? context.preProcessors || {} : {}, preProcessors = {};
+                    if (!(posEOS > 0)) return [3 /*break*/, 6];
+                    cc = xdf.charCodeAt(0);
+                    ppDataList = void 0;
+                    if (!(globalPreProcessors !== U$1)) return [3 /*break*/, 2];
+                    ppDataList = [];
+                    for (_i = 0, globalPreProcessors_1 = globalPreProcessors; _i < globalPreProcessors_1.length; _i++) {
+                        pp = globalPreProcessors_1[_i];
+                        ppDataList.push({
+                            kind: "#preprocessorData",
+                            name: pp,
+                            pos: 0
+                        });
+                    }
+                    return [4 /*yield*/, callPreProcessors(ppDataList, xf, null, "setup")];
+                case 1:
+                    _a.sent();
+                    _a.label = 2;
+                case 2: return [4 /*yield*/, xdfContent(xf)];
+                case 3:
+                    _a.sent();
+                    if (!(ppDataList !== U$1)) return [3 /*break*/, 5];
+                    return [4 /*yield*/, callPreProcessors(ppDataList, xf, null, "process")];
+                case 4:
+                    _a.sent();
+                    _a.label = 5;
+                case 5:
+                    if (cc !== CHAR_EOS) {
+                        error();
+                    }
+                    _a.label = 6;
+                case 6: return [2 /*return*/, xf];
+            }
+        });
+    });
 }
 
 var U$2 = undefined, RX_TARGET = /^(\.?[\?a-zA-Z_]\w*)+(\.|\[\]\.?)?$/, RX_EXPORT = /^[\?a-zA-Z_]\w*$/, RX_ARRAY_TARGET = /\[\](\.)?$/;
+// Process an xdf string and return a JSON string
 function stringify(xdf, context) {
-    return processXdf(xdf, "string", context);
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, processXdf(xdf, "string", context)];
+                case 1: return [2 /*return*/, _a.sent()];
+            }
+        });
+    });
 }
 function processXdf(xdf, output, context) {
-    if (xdf === "")
-        return {};
-    var outputPrefix = "", outputSuffix = "";
-    context = context || {};
-    if (context.preProcessors === U$2) {
-        context.preProcessors = { "@@json": json };
-    }
-    else {
-        context.preProcessors["@@json"] = json;
-    }
-    if (context.globalPreProcessors === U$2) {
-        context.globalPreProcessors = [];
-    }
-    context.globalPreProcessors.push("@@json");
-    var jsonRoot = {};
-    var stack = [];
-    parse(xdf, context);
-    // return object or string depending on output argument
-    if (output === "object") {
-        return jsonRoot;
-    }
-    else {
-        return outputPrefix + JSON.stringify(jsonRoot) + outputSuffix;
-    }
-    function json() {
-        function isRootNode(target, root) {
-            return (target === root) || (root.children.length === 1 && target === root.children[0]);
-        }
-        return {
-            setup: function (target, params, ctxt) {
-                var pTarget = null;
-                if (params.value !== U$2) {
-                    pTarget = params.value.value || null;
-                }
-                else if (params.target !== U$2) {
-                    pTarget = params.target.value || null;
-                }
-                if (pTarget !== null) {
-                    var r = pTarget.match(RX_TARGET), pos = params.value ? params.value.pos : params.target.pos;
-                    if (r === null) {
-                        ctxt.error("Invalid target value '" + pTarget + "'", pos);
+    return __awaiter(this, void 0, void 0, function () {
+        function json() {
+            function isRootNode(target, root) {
+                return (target === root) || (root.children.length === 1 && target === root.children[0]);
+            }
+            return {
+                setup: function (target, params, ctxt) {
+                    var pTarget = null;
+                    if (params.value !== U$2) {
+                        pTarget = params.value.value || null;
                     }
-                    var isArrayTarget = (pTarget.match(RX_ARRAY_TARGET) !== null);
-                    var isArrayItem = false;
-                    if (isArrayTarget) {
-                        if (RegExp.$1 === '.') {
-                            pTarget = pTarget.slice(0, -3); // remove '[].'
-                            isArrayItem = true;
-                        }
-                        else {
-                            pTarget = pTarget.slice(0, -2); // remove '[]'
-                        }
+                    else if (params.target !== U$2) {
+                        pTarget = params.target.value || null;
                     }
-                    var path = pTarget.split(".");
-                    var ref = jsonRoot, startIdx = 0, p = "";
-                    if (path[0] === "") {
-                        // relative path: .foo.bar
-                        startIdx = 1;
-                        if (stack.length > 0) {
-                            var previousCtxt = stack[stack.length - 1];
-                            if (previousCtxt.isArray) {
-                                ctxt.error("Relative paths ('" + pTarget + "') cannot be used in array string items", pos);
+                    if (pTarget !== null) {
+                        var r = pTarget.match(RX_TARGET), pos = params.value ? params.value.pos : params.target.pos;
+                        if (r === null) {
+                            ctxt.error("Invalid target value '" + pTarget + "'", pos);
+                        }
+                        var isArrayTarget = (pTarget.match(RX_ARRAY_TARGET) !== null);
+                        var isArrayItem = false;
+                        if (isArrayTarget) {
+                            if (RegExp.$1 === '.') {
+                                pTarget = pTarget.slice(0, -3); // remove '[].'
+                                isArrayItem = true;
                             }
                             else {
-                                ref = stack[stack.length - 1].holder;
+                                pTarget = pTarget.slice(0, -2); // remove '[]'
                             }
                         }
-                    }
-                    var contentName = "content";
-                    for (var i = startIdx; path.length > i; i++) {
-                        p = path[i];
-                        if (i === path.length - 1) {
-                            if (isArrayTarget) {
-                                contentName = "";
+                        var path = pTarget.split(".");
+                        var ref = jsonRoot, startIdx = 0, p = "";
+                        if (path[0] === "") {
+                            // relative path: .foo.bar
+                            startIdx = 1;
+                            if (stack.length > 0) {
+                                var previousCtxt = stack[stack.length - 1];
+                                if (previousCtxt.isArray) {
+                                    ctxt.error("Relative paths ('" + pTarget + "') cannot be used in array string items", pos);
+                                }
+                                else {
+                                    ref = stack[stack.length - 1].holder;
+                                }
+                            }
+                        }
+                        var contentName = "content";
+                        for (var i = startIdx; path.length > i; i++) {
+                            p = path[i];
+                            if (i === path.length - 1) {
+                                if (isArrayTarget) {
+                                    contentName = "";
+                                    if (ref[p] === U$2) {
+                                        ref = ref[p] = [];
+                                    }
+                                    else {
+                                        ref = ref[p];
+                                    }
+                                    if (isArrayItem) {
+                                        var item = {};
+                                        ref.push(item);
+                                        ref = item;
+                                    }
+                                }
+                                else if (p !== "") {
+                                    contentName = p;
+                                }
+                            }
+                            else {
                                 if (ref[p] === U$2) {
-                                    ref = ref[p] = [];
+                                    ref = ref[p] = {};
                                 }
                                 else {
                                     ref = ref[p];
                                 }
-                                if (isArrayItem) {
-                                    var item = {};
-                                    ref.push(item);
-                                    ref = item;
-                                }
-                            }
-                            else if (p !== "") {
-                                contentName = p;
                             }
                         }
+                        stack.push({ holder: ref, propName: contentName, isArray: isArrayTarget && !isArrayItem, target: pTarget, pos: pos });
+                    }
+                    else if (target === ctxt.rootFragment) {
+                        // pTarget = "content";
+                        var len = stack.length;
+                        if (len === 0) {
+                            stack[0] = { holder: jsonRoot, propName: "content", isArray: false, target: "content", pos: 0 };
+                        }
                         else {
-                            if (ref[p] === U$2) {
-                                ref = ref[p] = {};
+                            var current = stack[stack.length - 1];
+                            if (current.propName === "content") {
+                                stack.push(current);
                             }
                             else {
-                                ref = ref[p];
+                                stack.push({ holder: jsonRoot, propName: "content", isArray: false, target: "content", pos: 0 });
                             }
                         }
                     }
-                    stack.push({ holder: ref, propName: contentName, isArray: isArrayTarget && !isArrayItem, target: pTarget, pos: pos });
-                }
-                else if (target === ctxt.rootFragment) {
-                    // pTarget = "content";
-                    var len = stack.length;
-                    if (len === 0) {
-                        stack[0] = { holder: jsonRoot, propName: "content", isArray: false, target: "content", pos: 0 };
-                    }
-                    else {
-                        var current = stack[stack.length - 1];
-                        if (current.propName === "content") {
-                            stack.push(current);
+                },
+                process: function (target, params, ctxt) {
+                    // 2 possible params: export and target(default)
+                    // target: path that defines where to store the string corresponding to this node - e.g. "a.b.c."
+                    // export: 
+                    var pExport = params.export ? params.export.value || "" : "", kind = target.kind, isFirst = isRootNode(target, ctxt.rootFragment);
+                    if (pExport !== "") {
+                        var pos = params.export.pos;
+                        if (!isFirst) {
+                            ctxt.error("'export' can only be used on root container", pos);
                         }
                         else {
-                            stack.push({ holder: jsonRoot, propName: "content", isArray: false, target: "content", pos: 0 });
+                            if (pExport.match(RX_EXPORT) === null) {
+                                ctxt.error("Invalid export value: '" + pExport + "'", pos);
+                            }
+                            if (pExport === "default") {
+                                // e.g. export default {...};
+                                outputPrefix = "export default ";
+                            }
+                            else {
+                                // e.g. export const foo = {...};
+                                outputPrefix = "export const " + pExport + "=";
+                            }
+                            outputSuffix = ";";
                         }
                     }
-                }
-            },
-            process: function (target, params, ctxt) {
-                // 2 possible params: export and target(default)
-                // target: path that defines where to store the string corresponding to this node - e.g. "a.b.c."
-                // export: 
-                var pExport = params.export ? params.export.value || "" : "", kind = target.kind, isFirst = isRootNode(target, ctxt.rootFragment);
-                if (pExport !== "") {
-                    var pos = params.export.pos;
-                    if (!isFirst) {
-                        ctxt.error("'export' can only be used on root container", pos);
+                    var content = "";
+                    if (kind === "#element" || kind === "#fragment" || kind === "#component") {
+                        content = target.toString("", "", true).trim();
+                        // remove target from its parent so that it is not serialized twice
+                        removeTargetFromParent(target, ctxt.parent, ctxt.rootFragment);
                     }
-                    else {
-                        if (pExport.match(RX_EXPORT) === null) {
-                            ctxt.error("Invalid export value: '" + pExport + "'", pos);
-                        }
-                        if (pExport === "default") {
-                            // e.g. export default {...};
-                            outputPrefix = "export default ";
-                        }
-                        else {
-                            // e.g. export const foo = {...};
-                            outputPrefix = "export const " + pExport + "=";
-                        }
-                        outputSuffix = ";";
-                    }
-                }
-                var content = "";
-                if (kind === "#element" || kind === "#fragment" || kind === "#component") {
-                    content = target.toString("", "", true).trim();
-                    // remove target from its parent so that it is not serialized twice
-                    removeTargetFromParent(target, ctxt.parent, ctxt.rootFragment);
-                }
-                else if (kind === "#cdata") {
-                    content = target.toString("", "");
-                    removeTargetFromParent(target, ctxt.parent, ctxt.rootFragment);
-                }
-                else {
-                    ctxt.error("Pre-processor cannot be used in " + kind, target.pos);
-                }
-                var jsonCtxt = stack.pop();
-                if (content !== "") {
-                    if (jsonCtxt.isArray) {
-                        jsonCtxt.holder.push(content);
+                    else if (kind === "#cdata") {
+                        content = target.toString("", "");
+                        removeTargetFromParent(target, ctxt.parent, ctxt.rootFragment);
                     }
                     else {
-                        var val = jsonCtxt.holder[jsonCtxt.propName];
-                        if (val === "" || val === U$2) {
-                            jsonCtxt.holder[jsonCtxt.propName] = content;
+                        ctxt.error("Pre-processor cannot be used in " + kind, target.pos);
+                    }
+                    var jsonCtxt = stack.pop();
+                    if (content !== "") {
+                        if (jsonCtxt.isArray) {
+                            jsonCtxt.holder.push(content);
                         }
                         else {
-                            ctxt.error("Value cannot be set twice in '" + jsonCtxt.target + "'", jsonCtxt.pos);
+                            var val = jsonCtxt.holder[jsonCtxt.propName];
+                            if (val === "" || val === U$2) {
+                                jsonCtxt.holder[jsonCtxt.propName] = content;
+                            }
+                            else {
+                                ctxt.error("Value cannot be set twice in '" + jsonCtxt.target + "'", jsonCtxt.pos);
+                            }
                         }
                     }
                 }
-            }
-        };
-    }
-    function removeTargetFromParent(target, parent, root) {
-        if (target !== root && parent !== null) {
-            if (parent.kind === "#element" || parent.kind === "#fragment" || parent.kind === "#component") {
-                var idx = parent.children.indexOf(target);
-                if (idx > -1) {
-                    parent.children.splice(idx, 1);
+            };
+        }
+        function removeTargetFromParent(target, parent, root) {
+            if (target !== root && parent !== null) {
+                if (parent.kind === "#element" || parent.kind === "#fragment" || parent.kind === "#component") {
+                    var idx = parent.children.indexOf(target);
+                    if (idx > -1) {
+                        parent.children.splice(idx, 1);
+                    }
                 }
             }
         }
-    }
+        var outputPrefix, outputSuffix, jsIdx, jsonRoot, stack;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (xdf === "")
+                        return [2 /*return*/, {}];
+                    outputPrefix = "", outputSuffix = "";
+                    context = context || { fileId: '' };
+                    if (context.preProcessors === U$2) {
+                        context.preProcessors = { "@@json": json };
+                    }
+                    else {
+                        context.preProcessors["@@json"] = json;
+                    }
+                    if (context.globalPreProcessors === U$2) {
+                        context.globalPreProcessors = [];
+                    }
+                    jsIdx = context.globalPreProcessors.findIndex(function (v) { return v === "@@json"; });
+                    if (jsIdx < 0) {
+                        context.globalPreProcessors.push("@@json"); // to have @@json called even if not explicitly mentioned in the file
+                    }
+                    jsonRoot = {};
+                    stack = [];
+                    return [4 /*yield*/, parse(xdf, context)];
+                case 1:
+                    _a.sent();
+                    // return object or string depending on output argument
+                    if (output === "object") {
+                        return [2 /*return*/, jsonRoot];
+                    }
+                    else {
+                        return [2 /*return*/, outputPrefix + JSON.stringify(jsonRoot) + outputSuffix];
+                    }
+            }
+        });
+    });
 }
 
 var RX_EXPORT$1 = /^\s*export\s+/, RX_XDF_EXTENSION = /\.xdf$/i, JSON_EXTENSION = ".json";
@@ -1211,24 +1329,34 @@ function xdf(opts) {
     return {
         name: 'xdf',
         transform: function (code, id) {
-            if (filter(id)) {
-                var jsonString = stringify(code, { fileId: id });
-                if (jsonString.match(RX_EXPORT$1)) {
-                    // this file was generated as an ES export - so let's return its content (will be part of the bundle)
-                    if (trace) {
-                        console.log("[rollup-plugin-xdf] export xdf file: ", id);
+            return __awaiter(this, void 0, void 0, function () {
+                var jsonString;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!filter(id)) return [3 /*break*/, 2];
+                            return [4 /*yield*/, stringify(code, { fileId: id })];
+                        case 1:
+                            jsonString = _a.sent();
+                            console.log("id", id);
+                            if (jsonString.match(RX_EXPORT$1)) {
+                                // this file was generated as an ES export - so let's return its content (will be part of the bundle)
+                                if (trace) {
+                                    console.log("[rollup-plugin-xdf] export xdf file: ", id);
+                                }
+                                return [2 /*return*/, jsonString];
+                            }
+                            else {
+                                // this file must be written separately on the disk
+                                // id: e.g. Users/blaporte/Dev/iv/src/doc/samples.xdf
+                                fileQueue.push(relative(__dirname, id.replace(RX_XDF_EXTENSION, JSON_EXTENSION)));
+                                fileQueue.push(jsonString);
+                                return [2 /*return*/, ""]; // return '' so that the file is considered as processed
+                            }
+                        case 2: return [2 /*return*/, null];
                     }
-                    return jsonString;
-                }
-                else {
-                    // this file must be written separately on the disk
-                    // id: e.g. Users/blaporte/Dev/iv/src/doc/samples.xdf
-                    fileQueue.push(relative(__dirname, id.replace(RX_XDF_EXTENSION, JSON_EXTENSION)));
-                    fileQueue.push(jsonString);
-                    return ""; // return '' so that the file is considered as processed
-                }
-            }
-            return null;
+                });
+            });
         },
         generateBundle: function (opts) {
             return __awaiter(this, void 0, void 0, function () {

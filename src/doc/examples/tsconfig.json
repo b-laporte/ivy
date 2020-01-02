@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "target": "es5",
+        "lib": [
+            "es2015",
+            "dom"
+        ],
+        "module": "esNext",
+        "moduleResolution": "node",
+        "outDir": "./dist/examples",
+        "baseUrl": "./node_modules",
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "noUnusedParameters": false,
+        "noImplicitThis": true,
+        "pretty": true,
+        "strictNullChecks": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitReturns": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "allowUnusedLabels": true,
+        "importHelpers": true,
+        "noEmitHelpers": true,
+        "noEmitOnError": true
+    }
+}

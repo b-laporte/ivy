@@ -7,7 +7,11 @@ import { Router, Route } from '../../iv/router';
 export function loadRoutes(r: Router): void {
     r.add({
         "/examples/*": (r: Route, ns: NavigationState) => {
-            ns.currentPageXdf = content.content;
+            ns.xdfContent = content.content;
+        },
+        "/examples/:name": (r: Route, ns: NavigationState) => {
+            ns.xdfContent = content.content;
+            console.log("nav route:", r.pathParams!.name);
         }
     });
 }

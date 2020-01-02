@@ -4,45 +4,72 @@ main orange: #FF7019
 dark grey: #393939;
 */
 
-@import url('https://fonts.googleapis.com/css?family=Open+Sans&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600&display=swap');
 body.main {
     font-size: 16px;
     color: #333;
-    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
+    font-weight: 300;
+}
+
+@media(min-width:1024px) {
+    body.main {
+        font-size: 15px;
+    }
 }
 
 /* ------------------------------------------------------------------------------------------------------------ */
 
 /* Main Menu */
 
-nav.mainMenu {
-    /* position: fixed; */
-    width: 100vw;
+body {
+    display: flex;
+    justify-content: center;
+    /* background-color: #313131; */
+}
+
+div.root {
+    max-width: 1600px;
+    min-height: 100vh;
+    flex-grow: 1;
+    background-color: #FFFFFF;
+    border-right: 1px solid #efefef;
+}
+
+nav.mainMenu .container {
+    flex-grow: 1;
+    max-width: 1600px;
     display: flex;
     justify-content: space-between;
-    line-height: 5rem;
-    margin: 0 0 1rem 0;
-    /* background-color: orange; */
+}
+
+nav.mainMenu {
+    position: fixed;
+    width: 100vw;
+    font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding-top: 5px;
+    margin: 0 0 .5rem 0;
+    background-color: #00000010;
+    z-index: 1000;
 }
 
 nav.mainMenu ul {
+    padding: 0 0 4px 10px;
     display: block;
-    font-size: 1.1rem;
-    margin-right: 20px;
-    /* list-style: none; */
-    /* margin: 0;
-    
-    margin-block-start: 1em;
-    margin-block-end: 1em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-    padding-inline-start: 40px; */
+    font-size: 1.05rem;
+    margin-top: 20px;
+    margin-right: 25px;
+    background-color: #efefef;
+    font-weight: 400;
 }
 
 nav.mainMenu li {
     display: inline !important;
-    margin: 0 30px 0 0;
+    margin: 0 15px 0 0;
     cursor: pointer;
+    padding: 2px 2px 2px 6px;
 }
 
 nav.mainMenu li:hover {
@@ -50,12 +77,16 @@ nav.mainMenu li:hover {
 }
 
 nav.mainMenu .mainLogo {
-    margin: 15px 50px 0 50px;
+    padding: 10px 0 3px 40px;
     cursor: pointer;
 }
 
-svg.ivyLogo {
+svg.ivyLogoDark {
     stroke: #008BFC;
+}
+
+svg.ivyLogoLight {
+    stroke: #FFFFFF;
 }
 
 svg.ghLogo {
@@ -71,131 +102,245 @@ nav.mainMenu li:hover svg.ghLogo .logo {
     fill: #FF7019;
 }
 
-.active {
-    color: red;
+nav.mainMenu .active {
+    color: #FF7019;
 }
 
-/* ------------------------------------------------------------------------------------------------------------ */
+/* ------------------------------------------------------------------------------ */
 
-/* Overview Page */
+/* General layout */
 
-.mainContainer .mainA {
-    background-color: #393939;
-    min-height: 350px;
-    color: #FFF;
+.layout .blockA {
+    flex: 2;
 }
 
-.mainContainer .mainB {
-    min-height: 200px;
+.layout .blockB {
+    flex: 1;
 }
 
-.mainContainer .mainBB1 {
+.infoBlock {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+
+.infoBlock .title {
+    font-weight: 400;
+    padding: 1rem 0 .2rem 3px;
+}
+
+.infoBlock .content {
+    color: #FFFFFF;
+    padding: 1rem 2rem 1rem 3rem;
+    line-height: 1.2rem;
+}
+
+/* ------------------------------------------------------------------------------ */
+
+/* Home page */
+
+div.home {
+    min-height: 100vh;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.home .blockA {
+    background-color: #ECECEC;
+    display: flex;
+    flex-direction: column;
+}
+
+.home .blockA .row1 {
+    height: 65px;
+    border-left: 10px solid #B5B5B5;
+    flex-grow: 0;
+}
+
+.home .blockA .row2 {
+    background-color: #313131;
+    height: 360px;
+    flex-grow: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.home .blockA .row3 {
+    border-left: 10px solid #B5B5B5;
+    flex-grow: 1;
+}
+
+.home .mainA {
+    flex-grow: 8;
+    color: #FFFFFF;
+    border-left: 10px solid #333333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    font-weight: 100;
+}
+
+.home .ivyLogoMain {
+    stroke: #FFFFFF;
+    transform: translate(130px, -10px) scale(3.5);
+}
+
+.home .mainLogo {
+    position: relative;
+    left: -50px;
+    top: 20px;
+}
+
+.home .mainB {
+    width: 250px;
+    flex-grow: 1;
+    background-color: #1677D1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.home .mainB .features p {
+    font-size: 1.2rem;
+    padding: 7px;
+    color: #FFFFFF;
+}
+
+.home .blockB .row1 {
+    height: 65px;
+    flex-grow: 0;
+}
+
+.home .blockB .row2 {
+    height: 360px;
+    flex-grow: 0;
+    background-color: #1A85E9;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.home .blockB .row3 {
+    flex-grow: 1;
+}
+
+.home .headline {
+    color: #FFFFFF;
+    max-width: 360px;
+    padding: 0 1rem 0 4rem;
+}
+
+.home .headline .highlight {
+    background-color: #313131;
+    font-size: 1.4rem;
+    line-height: 2.1rem;
+    padding: 0 2px 0 2px;
+}
+
+.home .headline .details {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    line-height: 1.6rem;
+}
+
+.home .headline .details b {
+    font-weight: 600;
+}
+
+.infoBlock.variantA {
+    margin-top: 2.2rem;
+}
+
+.infoBlock.variantA .title {
+    border-bottom: 1px solid #FF7019;
+}
+
+.infoBlock.variantA .content {
     background-color: #FF7019;
-    min-height: 200px;
 }
 
-.mainContainer .mainBB2 {
-    background-color: #D65D14;
-    min-height: 200px;
+.infoBlock.variantB {
+    margin-top: 1.7rem;
 }
 
-.mainContainer .mainBB3 {
-    background-color: #1B8DF7;
-    min-height: 160px;
+.infoBlock.variantB .title {
+    border-bottom: 1px solid #1366B3;
 }
 
-.mainContainer .mainBB3a {
-    height: 160px;
+.infoBlock.variantB .content {
+    background-color: #1366B3;
 }
 
-.mainContainer .mainBB3b {
-    background-color: #1676CF;
-    height: 160px;
+.infoBlock.variantC {
+    margin-top: 2rem;
 }
 
-.mainContainer .mainBB4 {
-    background-color: #B5B5B5;
-    height: 160px;
+.infoBlock.variantC .title {
+    border-bottom: 1px solid #1A85E9;
 }
 
-@media(min-width:768px) {
-    /* ipad */
-    .mainContainer .mainA {
-        flex: 1 0 320px;
-    }
-    .mainContainer .mainB {
-        display: flex;
-        flex-flow: row wrap;
-        justify-content: flex-start;
-    }
-    .mainContainer .mainBB1 {
-        flex: 1 0 400px;
-    }
-    .mainContainer .mainBB2 {
-        flex: 1 0 150px;
-    }
-    .mainContainer .mainBB3 {
-        flex: 1 0 500px;
-        display: flex;
-        flex-flow: row wrap;
-    }
-    .mainContainer .mainBB3a {
-        flex: 1 0 350px;
-    }
-    .mainContainer .mainBB3b {
-        flex: 1 0 350px;
-    }
-    .mainContainer .mainBB4 {
-        flex: 1 0 600px;
-    }
+.infoBlock.variantC .content {
+    background-color: #1A85E9;
 }
 
-@media(min-width:1024px) {
-    /* desktop */
-    div.mainContainer {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .mainContainer .mainA {
-        flex: 1 0 500px;
-        min-height: 500px;
-    }
-    .mainContainer .mainB {
-        display: flex;
-        flex: 1 0 524px;
-        flex-flow: row wrap;
-        justify-content: flex-start;
-    }
-    .mainContainer .mainBB1 {
-        flex: 1 0 310px;
-    }
-    .mainContainer .mainBB2 {
-        flex: 0 0 200px;
-    }
-    .mainContainer .mainBB3 {
-        flex: 1 0 350px;
-    }
-    .mainContainer .mainBB4 {
-        flex: 1 0 400px;
-    }
+.infoBlock.variantD {
+    margin-top: 1.5rem;
 }
 
-@media(min-width:1440px) {
-    /* hd desktop */
-    .mainContainer .mainA {
-        flex: 0 0 600px;
-    }
-    .mainContainer .mainB {
-        flex: 0 0 840px;
-    }
-    .mainContainer .mainBB3 {
-        flex: 1 0 350px;
-    }
-    .mainContainer .mainBB4 {
-        flex: 1 0 300px;
-    }
-    .mainContainer .mainBB4 {
-        height: 320px;
-    }
+.infoBlock.variantD .title {
+    border-bottom: 1px solid #C1C1C1;
 }
+
+.infoBlock.variantD .content {
+    background-color: #C1C1C1;
+    color: #333;
+    font-weight: 400;
+}
+
+.home .sideblock {
+    font-weight: 400;
+    padding: 2.2rem 1rem 1rem 4rem;
+}
+
+.home .sideblock h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.home .sideblock p {
+    padding: 0.7rem 0;
+}
+
+/* ------------------------------------------------------------------------------ */
+
+/* Tutorial & Example pages */
+
+div.layout2 {
+    min-height: 100vh;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.layout2 .blockA {
+    background-color: #313131;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.layout2 .blockA .menu {
+    width: 270px;
+    flex-grow: 0;
+}
+
+.layout2 .blockA .mainpanel {
+    flex-grow: 1;
+    background-color: #1670C5;
+}
+
+.layout2 .blockB {}

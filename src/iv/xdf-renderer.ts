@@ -14,7 +14,7 @@ interface RenderOptions {
 const U = undefined;
 
 export async function renderXdf(xdf: string, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
-    return renderXdfFragment(parse(xdf), htmlElement, resolver, options);
+    return renderXdfFragment(await parse(xdf), htmlElement, resolver, options);
 }
 
 export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
@@ -423,10 +423,10 @@ export const xdfContent = decorator(XdfContent, ($api: XdfContent) => {
                 if ($api.xdf !== undefined) {
                     xdfMode = true;
                     currentXdf = $api.xdf;
-                    f = parse(currentXdf);
+                    f = await parse(currentXdf);
                 } else if ($api.fragment !== undefined) {
                     fragmentMode = true;
-                    f = $api.fragment! as XdfFragment;
+                    f = await $api.fragment! as XdfFragment;
                     currentFragment = f;
                 } else {
                     throw "Invalid arguments: either xdf or fragment params must be provided";
@@ -438,11 +438,11 @@ export const xdfContent = decorator(XdfContent, ($api: XdfContent) => {
                     if (currentXdf !== $api.xdf) {
                         currentXdf = $api.xdf || "";
                         $api.$targetElt.innerHTML = "";
-                        await renderFragment(parse(currentXdf));
+                        await renderFragment(await parse(currentXdf));
                     }
                 } else if (fragmentMode) {
                     if (currentFragment !== $api.fragment) {
-                        currentFragment = $api.fragment! as XdfFragment;
+                        currentFragment = await $api.fragment! as XdfFragment;
                         $api.$targetElt.innerHTML = "";
                         if (currentFragment !== undefined) {
                             await renderFragment(currentFragment);

@@ -417,7 +417,7 @@ class RouterImpl implements Router {
 
     getRoute(path: string): Route | null {
         // path: the part of the url after the baseUrl
-        const urlInfo = splitPath(path, err), p = urlInfo.path, len = p.length, pathParams: string[] = [];
+        const urlInfo = splitPath(path, err), p = urlInfo.path, len = p.length, pathParams: (string | number)[] = [];
         let t = this.routeTree, v: any, defaultSymbol = "*", stack: any[] = [t];
         for (let i = 0; len > i; i++) {
             v = t[p[i]];
@@ -426,6 +426,7 @@ class RouterImpl implements Router {
                 if (p[i] !== "") {
                     v = t[" "];
                     if (v !== U) {
+                        pathParams.push(i);
                         pathParams.push(p[i]);
                     }
                 }
@@ -494,9 +495,10 @@ class RouterImpl implements Router {
             let pp: any = null, pathString = "/" + p.join("/");
             if (pathParams.length > 0 && ri.pathVariables !== null) {
                 pp = {};
-                for (let i = 0; pathParams.length > i; i++) {
-                    if (ri.pathVariables[i] !== U) {
-                        pp[ri.pathVariables[i]] = pathParams[i];
+                for (let i = 0; pathParams.length > i; i += 2) {
+                    let idx = pathParams[i];
+                    if (ri.pathVariables[idx] !== U) {
+                        pp[ri.pathVariables[idx]] = pathParams[i + 1];
                     }
                 }
             }

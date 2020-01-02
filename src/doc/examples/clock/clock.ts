@@ -1,6 +1,5 @@
-require('./index.html');    // webpack dependency
-require('./styles.css');    // webpack dependency
-import { template, Controller } from "../../iv";
+import './styles.css'; // rollup dependency
+import { template, Controller } from "../../../iv";
 
 @Controller class ClockCtl {
     iid: any; // interval id
@@ -28,9 +27,17 @@ import { template, Controller } from "../../iv";
     }
 };
 
+const hand = template(`(kind: string, rotation: number) => {
+    <line class={kind} 
+        y1="2" 
+        y2={kind==="minute"? "-25" : "-17"} 
+        transform={"rotate(" + rotation + ")"}
+    />
+}`);
+
 const clock = template(`($:ClockCtl) => {
-    // original example from Rich Harris at http://www.ractivejs.org/examples/clock/ 
-    // (site no longer available)
+    // original example from Rich Harris at http://www.ractivejs.org/examples/clock/ (site no longer available)
+
     <svg class="clock" viewBox="0 0 100 100">
         <g transform="translate(50,50)">
             // dial
@@ -53,15 +60,7 @@ const clock = template(`($:ClockCtl) => {
             </g>
         </g>
     </svg>
-}`);
-
-const hand = template(`(kind: string, rotation: number) => {
-    <line class={kind} 
-        y1="2" 
-        y2={kind==="minute"? "-25" : "-17"} 
-        transform={"rotate(" + rotation + ")"}
-    />
-}`);
+}`, hand, ClockCtl);
 
 // main display
 clock().attach(document.getElementById("main")).render();

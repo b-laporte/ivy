@@ -19,9 +19,10 @@ export default function xdf(opts: { include?: any; exclude?: any, trace?: boolea
     return {
         name: 'xdf',
 
-        transform(this: any, code: string, id: string) {
+        async transform(this: any, code: string, id: string) {
             if (filter(id)) {
-                let jsonString = stringify(code, { fileId: id });
+                let jsonString = await stringify(code, { fileId: id });
+                console.log("id", id)
                 if (jsonString.match(RX_EXPORT)) {
                     // this file was generated as an ES export - so let's return its content (will be part of the bundle)
                     if (trace) {

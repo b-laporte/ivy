@@ -1,6 +1,6 @@
-// this file will be generated as a JS module with a default export instead of a JSON file
-<! @@json(export="default" target="content")>
+import { xtr } from '../xtr/xtr';
 
+export default xtr`
     <div class="home layout">
 
         <div class="blockA">
@@ -69,5 +69,4 @@
         </>
 
     </>
-
-</>
+`;

@@ -1,4 +1,4 @@
-import { xdfContent } from './../iv/xdf-renderer';
+import { xtrContent } from '../iv/xtr-renderer';
 import { navBar, NavigationState, navState, ivyLogo } from './nav';
 import { template } from "../iv";
 import './reset.css';
@@ -8,7 +8,7 @@ async function resolver(ref: string): Promise<any> {
     if (ref === "ivyLogo") return ivyLogo;
     if (ref === "infoBlock") return infoBlock;
 
-    console.error("UNRESOLVED XDF REFERENCE: " + ref);
+    console.error("UNRESOLVED XTR REFERENCE: " + ref);
     return null;
 }
 
@@ -37,8 +37,8 @@ const infoBlock = template(`(title="[title]", className="variantA", proportions=
 const main = template(`(navState:NavigationState) => {
     <*navBar {navState}/>
     <div class="root">
-        <div class="main" @xdfContent(xdf={navState.xdfContent} {resolver}) />
+        <div class="main" @xtrContent(xtr={navState.xtrContent} {resolver}) />
     </div>
-}`, NavigationState, navBar, resolver, xdfContent);
+}`, NavigationState, navBar, resolver, xtrContent);
 
 main().attach(document.body).render({ navState: navState });

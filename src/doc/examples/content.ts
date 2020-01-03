@@ -1,5 +1,6 @@
+import { xtr } from '../../xtr/xtr';
 
-<! @@json(export="default")>
+export default xtr`
     <div class="examples layout layout2">
         <div class="blockA">
             <div class="menu"> 
@@ -13,4 +14,4 @@
 
         </>
     </div>
-</>
+`;

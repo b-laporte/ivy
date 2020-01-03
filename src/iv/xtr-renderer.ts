@@ -1,9 +1,9 @@
-import { XdfChildElement, XdfCData } from './../xdf/ast';
-import { XdfFragment, XdfElement, XdfParam, XdfText } from '../xdf/ast';
-import { parse } from '../xdf/parser';
-import { IvDocument, IvTemplate, IvView, IvNode, IvDecorator, IvCptContainer } from './types';
+import { XtrChildElement, XtrCData } from '../xtr/ast';
+import { XtrFragment, XtrElement, XtrParam, XtrText } from '../xtr/ast';
+import { parse } from '../xtr/parser';
+import { IvDocument, IvTemplate, IvView, IvNode, IvCptContainer } from './types';
 import { hasProperty, create } from '../trax';
-import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, defaultParam, required, IvElement, decorator, ζdeco, ζdecoEnd, createContainer, ζdecoD, ζdecoEndD, ζfraD } from '.';
+import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, required, IvElement, decorator, ζdeco, ζdecoEnd, createContainer, ζdecoD, ζdecoEndD, ζfraD } from '.';
 import { IvEventEmitter } from './events';
 
 interface RenderOptions {
@@ -13,11 +13,11 @@ interface RenderOptions {
 
 const U = undefined;
 
-export async function renderXdf(xdf: string, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
-    return renderXdfFragment(await parse(xdf), htmlElement, resolver, options);
+export async function renderXtr(xtr: string, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
+    return renderXtrFragment(await parse(xtr), htmlElement, resolver, options);
 }
 
-export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
+export async function renderXtrFragment(xf: XtrFragment, htmlElement: any, resolver?: (ref: string) => Promise<any>, options?: RenderOptions) {
     // console.log("xf", xf.toString());
 
     // get all dependencies in parallel
@@ -27,7 +27,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
 
     if (xfRefs.length > 0) {
         if (resolver === U) {
-            error("resolver must be provided when xdf references are defined")
+            error("resolver must be provided when xtr references are defined")
         } else {
             let promises: Promise<any>[] = [], len = xfRefs.length;
             for (let i = 0; len > i; i++) {
@@ -45,26 +45,26 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
     return;
 
     function error(msg: string) {
-        throw "XDF Renderer: " + msg; // todo: error context
+        throw "XTR Renderer: " + msg; // todo: error context
     }
 
     // render content that is not embedded in a template -> will be directly inserted in the DOM
-    function renderRootContent(nodes: XdfChildElement[] | undefined, container: any) {
+    function renderRootContent(nodes: XtrChildElement[] | undefined, container: any) {
         if (nodes === U) return;
-        let len = nodes.length, nd: XdfChildElement, nk: string, pk: string, decos: XdfParam[] | undefined;;
+        let len = nodes.length, nd: XtrChildElement, nk: string, pk: string, decos: XtrParam[] | undefined;;
         for (let i = 0; len > i; i++) {
             decos = U;
             nd = nodes[i];
             nk = nd.kind;
             if (nk === "#text") {
                 // create text node
-                container.appendChild(doc.createTextNode((nd as XdfText).value));
+                container.appendChild(doc.createTextNode((nd as XtrText).value));
             } else if (nk === "#cdata") {
                 // create text node
-                container.appendChild(doc.createTextNode((nd as XdfCData).content));
-                checkCData(nd as XdfCData);
+                container.appendChild(doc.createTextNode((nd as XtrCData).content));
+                checkCData(nd as XtrCData);
             } else if (nk === "#element") {
-                let e = doc.createElement((nd as XdfElement).name!);
+                let e = doc.createElement((nd as XtrElement).name!);
                 container.appendChild(e);
                 if (nd.params !== U) {
                     for (let p of nd.params) {
@@ -84,18 +84,18 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                         }
                     }
                 }
-                renderRootContent((nd as XdfElement).children, e);
+                renderRootContent((nd as XtrElement).children, e);
                 callDecorators(rootView, e, decos);
             } else if (nk === "#fragment") {
-                renderRootContent((nd as XdfElement).children, container);
-                checkFragment(nd as XdfFragment);
+                renderRootContent((nd as XtrElement).children, container);
+                checkFragment(nd as XtrFragment);
             } else if (nk === "#component") {
                 let cpt: undefined | (() => IvTemplate);
-                if ((nd as XdfElement).nameRef) {
-                    cpt = refs[(nd as XdfElement).nameRef!] as () => IvTemplate;
+                if ((nd as XtrElement).nameRef) {
+                    cpt = refs[(nd as XtrElement).nameRef!] as () => IvTemplate;
                 }
                 if (cpt === U || typeof cpt !== "function") {
-                    error("Invalid component reference: '" + (nd as XdfElement).nameRef + "'");
+                    error("Invalid component reference: '" + (nd as XtrElement).nameRef + "'");
                 } else {
                     let tpl = cpt(), api = tpl.api;
                     (tpl as any).document = doc;
@@ -120,9 +120,9 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
                             }
                         }
                     }
-                    if ((nd as XdfElement).children) {
+                    if ((nd as XtrElement).children) {
                         let v: IvView = createContentView(10, container); // todo: count nodes
-                        renderCptContent((nd as XdfElement), v, 0, v, 0, api);
+                        renderCptContent((nd as XtrElement), v, 0, v, 0, api);
                         assignContent(api, v);
                     }
                     tpl.render();
@@ -137,7 +137,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         }
     }
 
-    function callDecorators(v: IvView, parent: any | null, decorators?: XdfParam[], parentIdx = -1, deferred = false) {
+    function callDecorators(v: IvView, parent: any | null, decorators?: XtrParam[], parentIdx = -1, deferred = false) {
         // parent can be either a domElt or a #container
 
         // ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
@@ -190,7 +190,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         }
     }
 
-    function renderCptContent(node: XdfElement | XdfFragment, v: IvView, parentLevel: number, pnv: IvView, pnParentIdx: number, api?: any) {
+    function renderCptContent(node: XtrElement | XtrFragment, v: IvView, parentLevel: number, pnv: IvView, pnParentIdx: number, api?: any) {
         // pnv is the view that must be used for internal param nodes (will be identical to v otherwise)
         // pnParentLevel is also the parentLevel that must be used for param nodes
         // api is defined if node is the root component or if it is a param node connected to the root component
@@ -207,7 +207,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             } else if (ch.kind === "#cdata") {
                 // same as text nodes
                 ζtxtD(v, true, 1, v.nodeCount!++, parentLevel, labels, ch.content, 0);
-                checkCData(ch as XdfCData);
+                checkCData(ch as XtrCData);
             } else if (ch.kind === "#element") {
                 scanParams(ch); // all params are considered static for the time being
                 // ζeltD(v: IvView, cm: boolean, idx: number, parentLevel: number, name: string, hasChildren: 0 | 1, labels?: any[] | 0, staticAttributes?: any[], staticProperties?: any[]) {
@@ -291,7 +291,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
 
         return;
 
-        function setParamNode(ch: XdfElement, paramNode: any, api?: any, name?: string) {
+        function setParamNode(ch: XtrElement, paramNode: any, api?: any, name?: string) {
             let idx = v.nodeCount!++;
             scanParams(ch);
             v.nodes![idx] = paramNode;
@@ -310,7 +310,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
             }
         }
 
-        function scanParams(nd: XdfElement) {
+        function scanParams(nd: XtrElement) {
             params = properties = decorators = U;
             if (nd.params !== U) {
                 for (let p of nd.params) {
@@ -342,7 +342,7 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         }
     }
 
-    function getParamValue(p: XdfParam) {
+    function getParamValue(p: XtrParam) {
         if (p.holdsValue) {
             if (p.valueRef !== U) return refs[p.valueRef];
             return p.value;
@@ -377,19 +377,19 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
         }
     }
 
-    function checkCData(cd: XdfCData) {
+    function checkCData(cd: XtrCData) {
         if (cd.params !== U && cd.params.length) {
             error("Params, properties, decorators or labels are not supported on cdata sections - check " + getName(cd.params[0]));
         }
     }
 
-    function checkFragment(f: XdfFragment) {
+    function checkFragment(f: XtrFragment) {
         if (f.params !== U && f.params.length) {
             error("Params, properties, decorators or labels are not supported on fragments - check " + getName(f.params[0]));
         }
     }
 
-    function getName(p: XdfParam) {
+    function getName(p: XtrParam) {
         let k = p.kind, nm = "";
         if (k === "#decorator") {
             nm = "@";
@@ -403,46 +403,46 @@ export async function renderXdfFragment(xf: XdfFragment, htmlElement: any, resol
     }
 }
 
-@API class XdfContent {
-    xdf?: string;
-    fragment?: any; // XdfFragment; -> non trax interfaces cannot be used in @API and @Data
+@API class XtrContent {
+    xtr?: string;
+    fragment?: any; // XtrFragment; -> non trax interfaces cannot be used in @API and @Data
     // todo: support timeout;
     @required resolver: (ref: string) => Promise<any>;
     doc?: IvDocument;
     @required $targetElt: IvElement;
     completeEmitter: IvEventEmitter;
 }
-export const xdfContent = decorator(XdfContent, ($api: XdfContent) => {
-    let xdfMode = false, fragmentMode = false, firstRender = true, currentXdf = "", currentFragment: any = null;
+export const xtrContent = decorator(XtrContent, ($api: XtrContent) => {
+    let xtrMode = false, fragmentMode = false, firstRender = true, currentXtr = "", currentFragment: any = null;
 
     return {
         async $render() {
             if (firstRender) {
                 firstRender = false;
-                let f: XdfFragment;
-                if ($api.xdf !== undefined) {
-                    xdfMode = true;
-                    currentXdf = $api.xdf;
-                    f = await parse(currentXdf);
+                let f: XtrFragment;
+                if ($api.xtr !== undefined) {
+                    xtrMode = true;
+                    currentXtr = $api.xtr;
+                    f = await parse(currentXtr);
                 } else if ($api.fragment !== undefined) {
                     fragmentMode = true;
-                    f = await $api.fragment! as XdfFragment;
+                    f = await $api.fragment! as XtrFragment;
                     currentFragment = f;
                 } else {
-                    throw "Invalid arguments: either xdf or fragment params must be provided";
+                    throw "Invalid arguments: either xtr or fragment params must be provided";
                 }
                 await renderFragment(f);
             } else {
                 // TODO: dispose the previous elements!!!
-                if (xdfMode) {
-                    if (currentXdf !== $api.xdf) {
-                        currentXdf = $api.xdf || "";
+                if (xtrMode) {
+                    if (currentXtr !== $api.xtr) {
+                        currentXtr = $api.xtr || "";
                         $api.$targetElt.innerHTML = "";
-                        await renderFragment(await parse(currentXdf));
+                        await renderFragment(await parse(currentXtr));
                     }
                 } else if (fragmentMode) {
                     if (currentFragment !== $api.fragment) {
-                        currentFragment = await $api.fragment! as XdfFragment;
+                        currentFragment = await $api.fragment! as XtrFragment;
                         $api.$targetElt.innerHTML = "";
                         if (currentFragment !== undefined) {
                             await renderFragment(currentFragment);
@@ -453,8 +453,8 @@ export const xdfContent = decorator(XdfContent, ($api: XdfContent) => {
         }
     }
 
-    async function renderFragment(f: XdfFragment) {
-        await renderXdfFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
+    async function renderFragment(f: XtrFragment) {
+        await renderXtrFragment(f, $api.$targetElt, $api.resolver, { doc: $api.doc });
         $api.completeEmitter.emit();
     }
 });

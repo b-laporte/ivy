@@ -1,6 +1,6 @@
 import { privacy } from './privacy';
 import { actionMenu } from './action';
-import { xdfContent } from '../../iv/xdf-renderer';
+import { xtrContent } from '../../iv/xtr-renderer';
 require('./index.html'); // webpack dependency
 require('./styles.css'); // webpack dependency
 
@@ -22,22 +22,22 @@ async function resolver(ref: string): Promise<any> {
     if (ref === "boxes") return box;
     if (ref === "searchBanner") return searchBanner;
 
-    console.error("UNRESOLVED XDF REFERENCE: " + ref);
+    console.error("UNRESOLVED XTR REFERENCE: " + ref);
     return null;
 }
 
 const main = template(`(data) => {
-    <div class="banner" @xdfContent(xdf={data.banner} {resolver})/>
+    <div class="banner" @xtrContent(xtr={data.banner} {resolver})/>
     <div class="main">
-        <div class="top_panel" @xdfContent(xdf={data.topPanel} {resolver})/>
+        <div class="top_panel" @xtrContent(xtr={data.topPanel} {resolver})/>
         <*box>
             <.cell class="main_colA">
                 //class="col center_col"
-                <div @xdfContent(xdf={data.mainPanel} {resolver}) />
+                <div @xtrContent(xtr={data.mainPanel} {resolver}) />
             </>
             <.cell class="main_colB">
                 // class="col"
-                <div @xdfContent(xdf={data.sidePanel} {resolver})/>
+                <div @xtrContent(xtr={data.sidePanel} {resolver})/>
             </>
         </>
     </>

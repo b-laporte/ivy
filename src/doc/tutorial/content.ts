@@ -1,6 +1,6 @@
+import { xtr } from '../../xtr/xtr';
 
-<! @@json(export="default")>
-
+export default xtr`
     <div class="tutorial layout layout2">
         <div class="blockA">
             <div class="menu"> 
@@ -14,7 +14,7 @@
 
         </>
     </div>
-</>
+`;
 
 //<! @@json={{
 //    $target:"examples[].", 

@@ -138,7 +138,7 @@ var SCOPES = {
     "punctuation.accessor.ts": "V_ACC"
 };
 
-var XJS_TM_GRAMMAR = 'syntaxes/xjs.tmLanguage.json', XDF_TM_GRAMMAR = 'syntaxes/xdf.tmLanguage.json';
+var XJS_TM_GRAMMAR = 'syntaxes/xjs.tmLanguage.json';
 var XJS_REGISTRY = new Registry({
     loadGrammar: function () {
         return new Promise(function (c, e) {
@@ -148,21 +148,6 @@ var XJS_REGISTRY = new Registry({
                 }
                 else {
                     var rawGrammar = parseRawGrammar(content.toString(), XJS_TM_GRAMMAR);
-                    c(rawGrammar);
-                }
-            });
-        });
-    }
-});
-var XDF_REGISTRY = new Registry({
-    loadGrammar: function () {
-        return new Promise(function (c, e) {
-            readFile(XDF_TM_GRAMMAR, function (error, content) {
-                if (error) {
-                    e(error);
-                }
-                else {
-                    var rawGrammar = parseRawGrammar(content.toString(), XDF_TM_GRAMMAR);
                     c(rawGrammar);
                 }
             });

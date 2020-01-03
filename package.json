@@ -12,7 +12,7 @@
         "cp-tests": "yarn build && yarn mocha -r ts-node/register src/test/*.spec.ts --reporter dot",
         "wp-tests": "webpack --config-name mocha && yarn mocha dist/mocha.specs.js --reporter dot",
         "samples": "webpack --config-name samples",
-        "plugins": "rollup --config rollup.config.js",
+        "plugin": "rollup --config rollup.config.js",
         "doc": "rollup --config src/doc/rollup.config.js",
         "doc-watch": "rollup --config src/doc/rollup.config.js -w",
         "doc-dev": "rm -rf public/ && npm-run-all --parallel serve-public doc-watch",

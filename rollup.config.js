@@ -1,23 +1,6 @@
 import typescript from 'rollup-plugin-typescript2';
 
-export default [{
-    input: 'src/iv/rollup/rollup-plugin-xdf.ts',
-    output: {
-        file: 'bin/rollup-plugin-xdf.js',
-        format: 'es'
-    },
-    external: [
-        'rollup-pluginutils',
-        'fs',
-        'util',
-        'path'
-    ],
-    plugins: [
-        typescript({
-            tsconfig: "tsconfig.rollup.json"
-        })
-    ]
-}, {
+export default {
     input: 'src/iv/rollup/rollup-plugin-ivy.ts',
     output: {
         file: 'bin/rollup-plugin-ivy.js',
@@ -34,4 +17,4 @@ export default [{
             tsconfig: "tsconfig.rollup.json"
         })
     ]
-}];
+};

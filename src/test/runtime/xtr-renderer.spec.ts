@@ -1,10 +1,11 @@
-import { IvContent, IvTemplate } from '../../iv/types';
+import { IvContent } from '../../iv/types';
 import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, doc } from '../utils';
-import { renderXdf, xdfContent } from '../../iv/xdf-renderer';
-import { parse } from '../../xdf/parser';
-import { template, API, required, defaultParam, decorator, IvElement, logger } from '../../iv';
+import { renderXtr, xtrContent } from '../../iv/xtr-renderer';
+import { parse } from '../../xtr/parser';
+import { template, API, required, defaultParam, decorator, IvElement } from '../../iv';
 import { Data } from '../../trax';
+import { xtr } from '../../xtr/xtr';
 
 describe('Renderer', () => {
     let body: ElementNode, error = "";
@@ -20,7 +21,7 @@ describe('Renderer', () => {
         }
     });
 
-    let xdfA = `
+    let xtrA = `
         <div class="the_div">
             <*section>
                 <.header type={min}>
@@ -35,7 +36,7 @@ describe('Renderer', () => {
         Some text after the_div
     `;
 
-    let xdfB = `
+    let xtrB = `
         <*section>
             <.header type={min}>
                 Main section header
@@ -59,9 +60,9 @@ describe('Renderer', () => {
         return null;
     }
 
-    async function renderTest(xdf: string) {
+    async function renderTest(xtr: string) {
         try {
-            await renderXdf(xdf, body, resolver, { doc: doc });
+            await renderXtr(xtr, body, resolver, { doc: doc });
         } catch (ex) {
             error = ex;
             return "ERROR";
@@ -436,7 +437,7 @@ describe('Renderer', () => {
     });
 
     it("should render components w/ param node lists", async function () {
-        assert.equal(await renderTest(`
+        assert.equal(await renderTest(xtr`
             <div class="main">
                 <*list>
                     <.item key="A" value="First item"/>
@@ -474,7 +475,7 @@ describe('Renderer', () => {
         `, "1");
 
         body = reset();
-        assert.equal(await renderTest(`
+        assert.equal(await renderTest(xtr`
             <div class="main">
                 <*list>
                     <.item key="A">
@@ -527,7 +528,7 @@ describe('Renderer', () => {
         `, "2");
     });
 
-    it("should allow rendering XDF through @xdfContent (xdf)", async function () {
+    it("should allow rendering XTR through @xtrContent (xtr)", async function () {
         let resolve: (() => void) | undefined;
         function done() {
             if (resolve) {
@@ -536,13 +537,13 @@ describe('Renderer', () => {
                 throw "DONE";
             }
         }
-        const tpl = template(`(xdfValue) => {
-            <div class="main" @xdfContent(xdf={xdfValue} resolver={resolver} doc={doc} @oncomplete={done})/>
-        }`, xdfContent, done);
+        const tpl = template(`(xtrValue) => {
+            <div class="main" @xtrContent(xtr={xtrValue} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`, xtrContent, done);
 
-        let t = getTemplate(tpl, body).render({ xdfValue: xdfA });
+        let t = getTemplate(tpl, body).render({ xtrValue: xtrA });
 
-        // @xdfContent is async, so we need to wait for its completion
+        // @xtrContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
         });
@@ -567,8 +568,8 @@ describe('Renderer', () => {
             </body>
         `, '1');
 
-        t.render({ xdfValue: xdfB });
-        // @xdfContent is async, so we need to wait for its completion
+        t.render({ xtrValue: xtrB });
+        // @xtrContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
         });
@@ -588,7 +589,7 @@ describe('Renderer', () => {
         `, '2');
     });
 
-    it("should allow rendering XDF through @xdfContent (fragment)", async function () {
+    it("should allow rendering XTR through @xtrContent (fragment)", async function () {
         let resolve: (() => void) | undefined;
         function done() {
             if (resolve) {
@@ -597,13 +598,13 @@ describe('Renderer', () => {
                 throw "DONE";
             }
         }
-        const tpl = template(`(xdfValue) => {
-            <div class="main" @xdfContent(fragment={parse(xdfValue)} resolver={resolver} doc={doc} @oncomplete={done})/>
-        }`, xdfContent, done);
+        const tpl = template(`(xtrValue) => {
+            <div class="main" @xtrContent(fragment={parse(xtrValue)} resolver={resolver} doc={doc} @oncomplete={done})/>
+        }`, xtrContent, done, parse);
 
-        let t = getTemplate(tpl, body).render({ xdfValue: xdfA });
+        let t = getTemplate(tpl, body).render({ xtrValue: xtrA });
 
-        // @xdfContent is async, so we need to wait for its completion
+        // @xtrContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
         });
@@ -628,8 +629,8 @@ describe('Renderer', () => {
             </body>
         `, '1');
 
-        t.render({ xdfValue: xdfB });
-        // @xdfContent is async, so we need to wait for its completion
+        t.render({ xtrValue: xtrB });
+        // @xtrContent is async, so we need to wait for its completion
         await new Promise((r: () => void) => {
             resolve = r; // will be called by done()
         });
@@ -835,7 +836,7 @@ describe('Renderer', () => {
                 Hello
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Decorators are not support in decorators - check @title', "1");
+        assert.equal(error, 'XTR Renderer: Decorators are not support in decorators - check @title', "1");
 
         await renderTest(`
             <*section>
@@ -844,7 +845,7 @@ describe('Renderer', () => {
                 </>
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Decorators are not support in decorators - check @title', "2");
+        assert.equal(error, 'XTR Renderer: Decorators are not support in decorators - check @title', "2");
 
         await renderTest(`
             <div>
@@ -853,14 +854,14 @@ describe('Renderer', () => {
                 </>
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Decorators are not supported on param nodes - check @title', "3");
+        assert.equal(error, 'XTR Renderer: Decorators are not supported on param nodes - check @title', "3");
 
         await renderTest(`
             <div>
                 <!cdata @title="abc"> ABC </!cdata>
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on cdata sections - check @title', "4");
+        assert.equal(error, 'XTR Renderer: Params, properties, decorators or labels are not supported on cdata sections - check @title', "4");
         error = "";
 
         await renderTest(`
@@ -868,7 +869,7 @@ describe('Renderer', () => {
                 <!cdata @title="abc"> ABC </!cdata>
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on cdata sections - check @title', "5");
+        assert.equal(error, 'XTR Renderer: Params, properties, decorators or labels are not supported on cdata sections - check @title', "5");
         error = "";
     });
 
@@ -928,7 +929,7 @@ describe('Renderer', () => {
                 </>
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on fragments - check @title', "1");
+        assert.equal(error, 'XTR Renderer: Params, properties, decorators or labels are not supported on fragments - check @title', "1");
         error = "";
 
         await renderTest(`
@@ -936,14 +937,14 @@ describe('Renderer', () => {
                 ABC
             </>
         `);
-        assert.equal(error, 'XDF Renderer: Params, properties, decorators or labels are not supported on fragments - check @title', "2");
+        assert.equal(error, 'XTR Renderer: Params, properties, decorators or labels are not supported on fragments - check @title', "2");
         error = "";
     });
 
     // todo: better error context
 
     // sub-fragments root / in component
-    // XdfContext with query() -> ??
+    // XtrContext with query() -> ??
 
     // labels on elements
     // labels on components & content

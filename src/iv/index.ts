@@ -1650,7 +1650,7 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
         // create decorator
         let nodes = v.nodes!, parent = nodes[parentIdx], targetElt: any = null, targetApi: any = null, invalidTarget = false;
         if (parent.kind === undefined) {
-            // parent is a dom elt - cf. xdf renderer
+            // parent is a dom elt - cf. xtr renderer
             targetElt = parent;
         } else if (parent.kind === "#element") {
             // todo: check type validity

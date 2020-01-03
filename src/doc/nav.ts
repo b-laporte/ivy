@@ -1,29 +1,14 @@
 import { template } from '../iv';
 import { Data } from '../trax';
-
-// @ts-ignore
-import overview from './home.xdf';
-
-import './samples.xdf'; // to generate samples.json
+import homeContent from './home';
 import { newRouter, Route, link, activeLink } from '../iv/router';
 
 
 @Data export class NavigationState {
     homePage = true;
-    xdfContent = "";
+    xtrContent = "";
 }
 export const navState = new NavigationState();
-
-// router.add({
-//     "/": () => {
-//         navigationData.currentPageXdf = overview.content;
-//     },
-//     "/tutorial/*": router.load('tutorial'), // once loaded, will create "tutorial/:"
-//     "/examples/*": router.load('examples'),
-//     "/api/*": fetchXsd('api'),
-// })
-// @link -> onclick + add/remove 'activeLink' class -> links must register/unregister to router change?
-// @active="/foo/bar/*"
 
 // router
 const router = newRouter();
@@ -32,7 +17,7 @@ router.add({
     "/*": {
         load(r: Route, ns: NavigationState) {
             ns.homePage = true;
-            ns.xdfContent = overview.content;
+            ns.xtrContent = homeContent;
         },
         unload(r: Route, ns: NavigationState) {
             ns.homePage = false;
@@ -86,10 +71,9 @@ Main pages
 #tutorial/components/a/b/c
 #examples/exampleXXX -> examples
 #api/xjs/template
-#api/xdf/xxx
+#api/xtr/xxx
 #api/trax/xxx
 
 Todo: anchors in a given page?
 -> local links / external links?
 */
-

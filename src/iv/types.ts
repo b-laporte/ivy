@@ -1,4 +1,3 @@
-import { IvDecoNode } from './types';
 
 export interface IvDocument {
     createTextNode(data: string): any;
@@ -77,7 +76,7 @@ export interface IvView {
     instructions: any[] | undefined;
     paramNode: IvParamNode | undefined;                                    // the param node the view is attached to (if any)
     createElement: (name: string, namespace?: string) => any;              // create an element on the current namespace if none is provided as default
-    nodeCount?: number;                                                    // used by XDF renderer
+    nodeCount?: number;                                                    // used by XTR renderer
     isEmpty: () => boolean;                                                // return true if the view contains DOM nodes (should be used on IvContent views to know if they are empty)
 }
 

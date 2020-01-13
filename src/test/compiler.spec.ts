@@ -4,18 +4,17 @@ import { IvError } from '../iv/compiler/generator';
 import { formatError } from './utils';
 
 describe('Template compiler', () => {
+    const options = { filePath: "a/b/c.ts" }
 
     it("should compile a single function with no params", async function () {
-        let src1 = `\// start
+        let r = await compile(`\// start
             import { template } from "../iv";
 
             const x = template(\`() => {
                 # hello world #
             }\`);
 
-            // end`;
-
-        let r = await compile(src1, "a/b/c.ts")
+            // end`, options)
 
         assert.equal(r.fileContent, `\// start
             import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
@@ -29,7 +28,29 @@ describe('Template compiler', () => {
             });
             })();
 
-            // end`, "test 1");
+            // end`, "1");
+
+        // test with import at position 0
+        r = await compile(`import { template } from "../iv";
+
+            const x = template(\`() => {
+                # hello world #}\`
+            );
+
+            // end`, options)
+
+        assert.equal(r.fileContent, `import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
+
+            const x = (function () {
+            const ζs0 = {};
+            return ζt("x", "b/c.ts", ζs0, function (ζ) {
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, 0, 0, " hello world ", 0);
+                ζend(ζ, ζc);
+            });
+            })();
+
+            // end`, "2");
     });
 
     it("should compile a template with dependency arguments", async function () {
@@ -43,7 +64,7 @@ describe('Template compiler', () => {
 
             // end`;
 
-        let r = await compile(src1, "a/b/c.ts")
+        let r = await compile(src1, options);
 
         assert.equal(r.fileContent, `\// start
             import { template, ζinit, ζend, ζtxt, ζe, ζΔD, ζt } from "../iv";
@@ -78,7 +99,7 @@ describe('Template compiler', () => {
             let z = "ABCD";
             `;
 
-        let r = await compile(src2, "test2.ts")
+        let r = await compile(src2, { filePath: "test2.ts" });
 
         assert.equal(r.fileContent, `\
             import{ template, ζtxt, ζinit, ζend, ζΔD, ζt } from "../iv";
@@ -113,7 +134,7 @@ describe('Template compiler', () => {
     });
 
     it("should process api classes", async function () {
-        let src = `\
+        const src = `\
             import{ template, API } from "../iv";
 
             @API class FooApi {
@@ -127,7 +148,7 @@ describe('Template compiler', () => {
             }\`);
             `;
 
-        let r = await process(src, "test2")
+        const r = await process(src, { filePath: "test2.ts" });
 
         assert.equal(r, `\
             import{ template, API, ζΔfStr, ζΔp, ζΔfNbr, ζinit, ζend, ζtxt, ζt } from "../iv";
@@ -140,7 +161,7 @@ describe('Template compiler', () => {
             }
             let tpl = (function () {
             const ζs0 = {};
-            return ζt("tpl", "test2", ζs0, function (ζ, $, $api) {
+            return ζt("tpl", "test2.ts", ζs0, function (ζ, $, $api) {
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " tpl ", 0);
                 ζend(ζ, ζc);
@@ -150,7 +171,7 @@ describe('Template compiler', () => {
     });
 
     it("should skipped files marked with iv:ignore comment", async function () {
-        let src = `
+        const src = `
             // iv:ignore
             import{ template, ζtxt } from "../iv";
 
@@ -162,13 +183,13 @@ describe('Template compiler', () => {
             }\`);
             let z = "ABCD";
             `;
-        let r = await compile(src, "test3")
+        const r = await compile(src, options);
         assert.equal(r.fileContent, src, "test 3");
     });
 
     it("should not change files that don't contain templates", async function () {
-        let src = `let x=123;`;
-        let r = await compile(src, "test3")
+        const src = `let x=123;`;
+        const r = await compile(src, options)
         assert.equal(r.fileContent, src, "test 3");
     });
 
@@ -182,13 +203,13 @@ describe('Template compiler', () => {
                     # T1 
 
                 }\`);
-                `, "file-name.ts")
+                `, options)
         } catch (e) {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
             XJS: Invalid text node - Unexpected end of template
-            File: file-name.ts - Line 7 / Col 17
+            File: b/c.ts - Line 7 / Col 17
             Extract: >> } <<
         `, '1');
 
@@ -201,13 +222,13 @@ describe('Template compiler', () => {
                         # Hello #
                     </>
                 }\`);
-                `, "file-name.ts")
+                `, options)
         } catch (e) {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
             IVY: Invalid param - Parameters are not supported on Fragment nodes
-            File: file-name.ts - Line 5 / Col 24
+            File: b/c.ts - Line 5 / Col 24
             Extract: >> <! foo="bar"> <<
         `, '2');
     });

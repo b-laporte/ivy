@@ -1,5 +1,6 @@
+import { code, ivyLogo } from './common';
 import { xtrContent } from '../iv/xtr-renderer';
-import { navBar, NavigationState, navState, ivyLogo } from './nav';
+import { navBar, NavigationState, navState } from './nav';
 import { template } from "../iv";
 import './reset.css';
 import './layout.css';
@@ -7,6 +8,7 @@ import './layout.css';
 async function resolver(ref: string): Promise<any> {
     if (ref === "ivyLogo") return ivyLogo;
     if (ref === "infoBlock") return infoBlock;
+    if (ref === "code") return code;
 
     console.error("UNRESOLVED XTR REFERENCE: " + ref);
     return null;
@@ -37,7 +39,15 @@ const infoBlock = template(`(title="[title]", className="variantA", proportions=
 const main = template(`(navState:NavigationState) => {
     <*navBar {navState}/>
     <div class="root">
-        <div class="main" @xtrContent(xtr={navState.xtrContent} {resolver}) />
+        if (typeof navState.pageContent === "string") {
+            <div class="main" @xtrContent(xtr={navState.pageContent} {resolver}) />
+        } else if (navState.pageContent) {
+            <div class="main">
+                <*navState.pageContent/>
+            </>
+        } else {
+            console.warn("main template: invalid pageContent");
+        }
     </div>
 }`, NavigationState, navBar, resolver, xtrContent);
 

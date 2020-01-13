@@ -2,7 +2,7 @@ import { xtr } from '../../xtr/xtr';
 
 export default xtr`
     <div class="tutorial layout layout2">
-        <div class="blockA">
+        <div class="blockA2">
             <div class="menu"> 
                 // <*navMenu data={json.examples}/>
             </>
@@ -10,7 +10,7 @@ export default xtr`
 
             </>
         </>
-        <div class="blockB">
+        <div class="blockB2">
 
         </>
     </div>

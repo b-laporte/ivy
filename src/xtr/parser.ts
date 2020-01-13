@@ -5,7 +5,8 @@ const U = undefined,
     CDATA_LENGTH = CDATA.length,
     CDATA_END = "</!cdata>",
     CDATA_END_LENGTH = CDATA_END.length,
-    CHAR_EOS = -1, // end of string
+    CHAR_BOS = -1,     // beginning of string
+    CHAR_EOS = -2,     // end of string
     CHAR_NL = 10,      // \n new line
     CHAR_SPACE = 32,   // space
     CHAR_BANG = 33,    // !
@@ -39,9 +40,16 @@ const U = undefined,
     CHAR_l = 108,
     CHAR_s = 115,
     CHAR_NBSP = '\u00A0'.charCodeAt(0), // non breaking space
+    ESCAPED_CHARS = {
+        "33": CHAR_BANG,  // !!
+        "47": CHAR_FSLA,  // !/
+        "60": CHAR_LT,    // !<
+        "110": CHAR_NL,   // !n
+        "115": CHAR_NBSP  // !s
+    },
     RX_TRAILING_SPACES = /[ \t\r\f\n]+$/;
 
-interface XtrPreProcessorDictionary {
+export interface XtrPreProcessorDictionary {
     [name: string]: XtrPreProcessorFactory;
 }
 
@@ -55,7 +63,9 @@ interface XtrPreProcessorData {
 
 export interface XtrParserContext {
     preProcessors?: XtrPreProcessorDictionary;
-    fileId: string; // e.g. /Users/blaporte/Dev/iv/src/doc/samples.ts
+    fileId: string;                 // e.g. /Users/blaporte/Dev/iv/src/doc/samples.ts
+    line1?: number;                 // line 1 position - used to calculate offset for error messages - default: 1
+    col1?: number;                  // col 1 position - used to calculate offset for error messages - default: 1
     globalPreProcessors?: string[]; // e.g. ["@@json"]
 }
 
@@ -65,6 +75,7 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
         posEOS = xtr.length,
         pos = 0,    // current position
         cc: number = CHAR_EOS,   // current char code at current position
+        pcc: number = CHAR_BOS,  // previous cc
         ppContext: XtrPreProcessorCtxt | undefined,
         currentPpName = "",
         currentPpPos = 0,
@@ -104,6 +115,7 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
 
     function shiftNext(length: number) {
         pos += length;
+        pcc = cc; // pcc is used to manage escaped chars
         return cc = pos < posEOS ? xtr.charCodeAt(pos) : CHAR_EOS;
     }
 
@@ -138,7 +150,7 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
 
     function xtrText(parent: XtrFragment | XtrElement): boolean {
         // return true if blank spaces or text characters have been found
-        if (cc === CHAR_LT || cc === CHAR_EOS) return false;
+        if ((cc === CHAR_LT && pcc !== CHAR_BANG) || cc === CHAR_EOS) return false;
         let spacesFound = xtrSpaces(), startPos = pos;
         if (cc !== CHAR_LT && cc !== CHAR_EOS) {
             let charCodes: number[] = [];
@@ -149,18 +161,17 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
             while (cc !== CHAR_LT && cc !== CHAR_EOS) {
                 eatComments();
                 // capture string
-                if (cc === CHAR_BSLA) {
-                    cc = eat(CHAR_BSLA); // \
-                    if (cc === CHAR_SPACE || cc === CHAR_s) {
-                        // transform into non-breaking space
+                if (cc === CHAR_BANG) {
+                    // escaped chars
+                    cc = eat(CHAR_BANG); // !
+                    let escValue = ESCAPED_CHARS["" + cc];
+                    if (escValue!==U) {
+                        lastIsSpace = (cc === CHAR_s || cc === CHAR_n);
                         moveNext();
-                        charCodes.push(CHAR_NBSP);
-                        lastIsSpace = true;
-                    } else if (cc == CHAR_n) {
-                        // \n new line
-                        moveNext();
-                        charCodes.push(CHAR_NL);
-                        lastIsSpace = true;
+                        charCodes.push(escValue);
+                    } else {
+                        charCodes.push(CHAR_BANG);
+                        lastIsSpace = false;
                     }
                 } else {
                     if (lastIsSpace && isSpace(cc) && cc !== CHAR_NL) {
@@ -401,8 +412,8 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
                 if (cc === CHAR_EOS) {
                     processing = false;
                     error("Invalid cdata section: end marker '</!cdata>' not found", startPos - 2)
-                } else if (cc === CHAR_BSLA) {
-                    // backslash
+                } else if (cc === CHAR_BANG) {
+                    // ! -> escape sequence
                     moveNext();
                     if (CDATA_END === nextChars(CDATA_END_LENGTH)) {
                         // we escape end of cdata
@@ -410,7 +421,7 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
                         moveNext();
                     } else {
                         // push the backslash
-                        charCodes.push(CHAR_BSLA);
+                        charCodes.push(CHAR_BANG);
                     }
                 } else {
                     if (cc === CHAR_LT && CDATA_END === nextChars(CDATA_END_LENGTH)) {
@@ -644,11 +655,18 @@ export async function parse(xtr: string, context?: XtrParserContext): Promise<Xt
         if (context !== U && context.fileId !== U) {
             fileInfo = `\nFile: ${context.fileId}`;
         }
+        let lineNbrMsg = lineNbr;
+        if (context) {
+            lineNbrMsg += context.line1 !== undefined ? context.line1 - 1 : 0;
+            if (lineNbr === 1) {
+                columnNbr += context.col1 !== undefined ? context.col1 - 1 : 0;
+            }
+        }
 
         if (msg === U) {
             msg = "Invalid character: " + charName(cc);
         }
-        throw "XTR: " + msg + "\nLine " + lineNbr + " / Col " + columnNbr + fileInfo + "\nExtract: >> " + lines[lineNbr - 1].trim() + " <<";
+        throw "XTR: " + msg + "\nLine " + lineNbrMsg + " / Col " + columnNbr + fileInfo + "\nExtract: >> " + lines[lineNbr - 1].trim() + " <<";
     }
 
     function charName(c: number) {

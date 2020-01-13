@@ -1,3 +1,4 @@
+// @@extract: all
 import { template } from "../../../iv";
 
 const hello = template(`(name:string) => {

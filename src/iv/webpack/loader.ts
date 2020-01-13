@@ -6,7 +6,7 @@ export default async function (this: loader.LoaderContext, source: string) {
     let result: string;
 
     try {
-        result = await process(source, this.resourcePath);
+        result = await process(source, { filePath: this.resourcePath });
     } catch (e) {
         callback(new Error(e.message));
         return;

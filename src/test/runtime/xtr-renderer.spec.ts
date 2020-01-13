@@ -3,9 +3,8 @@ import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, doc } from '../utils';
 import { renderXtr, xtrContent } from '../../iv/xtr-renderer';
 import { parse } from '../../xtr/parser';
-import { template, API, required, defaultParam, decorator, IvElement } from '../../iv';
+import { template, API, required, defaultParam, decorator, IvElement, xtr } from '../../iv';
 import { Data } from '../../trax';
-import { xtr } from '../../xtr/xtr';
 
 describe('Renderer', () => {
     let body: ElementNode, error = "";
@@ -156,7 +155,7 @@ describe('Renderer', () => {
     });
 
     it("should render root html elements, text nodes, attributes and properties", async function () {
-        assert.equal(await renderTest(`
+        assert.equal(await renderTest(xtr`
             <div> Hello World </div>
             <div class='second'>
                 <span [className]="xyz" title={the_title}> The SPAN </span>
@@ -176,7 +175,7 @@ describe('Renderer', () => {
     });
 
     it("should render components w/o content", async function () {
-        assert.equal(await renderTest(`
+        assert.equal(await renderTest(xtr`
             AAA
             <div class="main">
                 <*info msg1={msg} msg2="hello world" nbr=123/>
@@ -199,7 +198,7 @@ describe('Renderer', () => {
                     </span>
                     //::C9 template anchor
                 </div>
-                #::T13 BBB #
+                #::T13 BBB#
             </body>
         `, "1");
     });

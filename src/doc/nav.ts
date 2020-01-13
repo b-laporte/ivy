@@ -2,11 +2,12 @@ import { template } from '../iv';
 import { Data } from '../trax';
 import homeContent from './home';
 import { newRouter, Route, link, activeLink } from '../iv/router';
+import { ivyLogo } from './common';
 
 
 @Data export class NavigationState {
     homePage = true;
-    xtrContent = "";
+    pageContent: any = ""; // xtr string or component reference
 }
 export const navState = new NavigationState();
 
@@ -17,7 +18,7 @@ router.add({
     "/*": {
         load(r: Route, ns: NavigationState) {
             ns.homePage = true;
-            ns.xtrContent = homeContent;
+            ns.pageContent = homeContent;
         },
         unload(r: Route, ns: NavigationState) {
             ns.homePage = false;
@@ -27,16 +28,6 @@ router.add({
     "/examples/*": router.deferLoad(() => import('./examples/examples'))
 });
 router.init(navState, window, "#");
-
-export const ivyLogo = template(`(className="ivyLogoDark") => {
-    <svg class={className} width="105px" height="44px" viewBox="0 0 105 44">
-        <g transform="translate(3,3)" fill="none" fill-rule="nonzero" stroke-linecap="round" stroke-width="7">
-            <path d="M12.5,0.5 L0.5,21.5"/>
-            <polyline stroke-linejoin="round" points="55.5 0.5 43.2291116 21.5970036 31.1303622 0.5"/>
-            <polyline stroke-linejoin="round" points="98.3696378 1 86.1524963 22.0575024 77.9815673 36.5759163 86.1848189 22.0575024 74 1"/>
-        </g>
-    </svg>
-}`);
 
 export const navBar = template(`(navState:NavigationState) => {
     <nav class="mainMenu">

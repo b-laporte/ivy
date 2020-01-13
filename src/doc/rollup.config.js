@@ -3,6 +3,7 @@ import copy from 'rollup-plugin-copy'
 import ivy from '../../bin/rollup-plugin-ivy';
 import { terser } from 'rollup-plugin-terser';
 import css from 'rollup-plugin-css-only';
+import { extract } from '../../bin/rollup-plugin-ivy-extract';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -18,7 +19,9 @@ export default {
         css({ // must be 1st to remove css imports - those files are watched
             output: 'public/styles.css'
         }),
-        ivy(),
+        ivy({
+            preProcessors: { "@@extract": extract }
+        }),
         typescript({
             clean: production,
             objectHashIgnoreUnknownHack: true,

@@ -39,7 +39,7 @@ export let testData: { lastEventListenerOptions: any } = {
 export async function compilationError(src: string, lineOffset = 0) {
     let r: string;
     try {
-        r = await process(src, "file.ts", false);
+        r = await process(src, { filePath: "file.ts", logErrors: false });
     } catch (e) {
         let err = e as IvError;
         if (err.kind === "#Error") {
@@ -66,12 +66,16 @@ error.template2 = error.template; // to avoid TextMate highlighting for some wro
 
 export function formatError(e?: IvError, indentLevel = 2) {
     if (!e) return "NO ERROR";
-    let indents = ["", "    ", "        ", "            ", "                "];
-    let ls = "\n" + indents[indentLevel];
-    return `${ls}    ${e.origin}: ${e.message}`
-        + `${ls}    File: ${e.file} - Line ${e.line} / Col ${e.column}`
-        + `${ls}    Extract: >> ${e.lineExtract} <<`
-        + `${ls}`;
+    const indents = ["", "    ", "        ", "            ", "                "], ls = "\n" + indents[indentLevel];
+    if (e.kind === "#Error") {
+        return `${ls}    ${e.origin}: ${e.message}`
+            + `${ls}    File: ${e.file} - Line ${e.line} / Col ${e.column}`
+            + `${ls}    Extract: >> ${e.lineExtract} <<`
+            + `${ls}`;
+    } else {
+        const msg = e.message || "" + e;
+        return msg.replace(/^|\n|$/g, ls);
+    }
 }
 
 // ------------------------------------------------------------------------------------------------

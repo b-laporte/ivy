@@ -625,6 +625,11 @@ function parse$1(tpl, filePath, lineOffset, columnOffset) {
                     //     lookup(F_CALL);
                     //     console.log(currentText());
                 }
+                else if (lookup(V_RW)) {
+                    advance(V_RW);
+                    nd.defaultValue = currentText();
+                    console.log("default value as variable: ", nd.defaultValue);
+                }
                 else {
                     // console.log(cNode)
                     error("Invalid parameter initialization");
@@ -3743,9 +3748,1074 @@ function generate$1(src, filePath, options) {
     }
 }
 
-var SK$1 = SyntaxKind, TEMPLATE = "template", RX_START_WS = /^(\s*)/, RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/, RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/, RX_LOG$2 = /\/\/\s*ivy?\:\s*log/, RX_LIST = /List$/, IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"], CR$2 = "\n", SEPARATOR$1 = "----------------------------------------------------------------------------------------------------";
-function process(source, resourcePath, logErrors) {
-    if (logErrors === void 0) { logErrors = true; }
+var U = undefined, NO_VALUE = { kind: "#ref", identifier: "" }, RX_TEXT_SPECIALS = /(\<|\!|\/)/g, RX_CDATA_SPECIALS = /\<\/\!cdata\>/g;
+// -------------------------------------------------------------------------------------
+// Tree API to dynamically create an XTR tree and bypass the XTR parser
+function createXtrFragment(root, pos) {
+    if (root === void 0) { root = true; }
+    if (pos === void 0) { pos = -1; }
+    return new XFragment(root, pos);
+}
+function createXtrElement(kind, name, nameRef, pos) {
+    if (pos === void 0) { pos = -1; }
+    return new XElement(kind, name, nameRef, pos);
+}
+function createXtrCData(content, pos) {
+    if (pos === void 0) { pos = -1; }
+    return new XCData(content, pos);
+}
+function createXtrText(text, pos) {
+    if (pos === void 0) { pos = -1; }
+    return new XText(text, pos);
+}
+function addElement(parent, name, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushChild(parent, createXtrElement("#element", name, U, pos));
+}
+function addComponent(parent, ref, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushChild(parent, createXtrElement("#component", U, ref.identifier, pos));
+}
+function addFragment(parent, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushChild(parent, createXtrFragment(false, pos));
+}
+function addCData(parent, content, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushChild(parent, createXtrCData(content, pos));
+}
+function addParamNode(parent, name, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushChild(parent, createXtrElement("#paramNode", name, U, pos));
+}
+function addText(parent, text, pos) {
+    if (pos === void 0) { pos = -1; }
+    pushChild(parent, createXtrText(text, pos));
+}
+function addParam(parent, name, value, isProperty, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushParam(parent, new XParam(isProperty === true ? "#property" : "#param", name, value, pos));
+}
+function addDecorator(parent, nameRef, value, pos) {
+    if (value === void 0) { value = NO_VALUE; }
+    if (pos === void 0) { pos = -1; }
+    return pushParam(parent, new XParam("#decorator", nameRef.identifier, value, pos));
+}
+function addLabel(parent, name, value, pos) {
+    if (pos === void 0) { pos = -1; }
+    return pushParam(parent, new XParam("#label", name, value, pos));
+}
+var INVALID_REF = {
+    kind: "#ref",
+    identifier: "#invalid"
+};
+var XFragment = /** @class */ (function () {
+    function XFragment(_isRoot, pos) {
+        if (_isRoot === void 0) { _isRoot = true; }
+        if (pos === void 0) { pos = -1; }
+        this._isRoot = _isRoot;
+        this.pos = pos;
+        this.kind = "#fragment";
+        this._refs = {};
+        this.children = [];
+    }
+    XFragment.prototype.ref = function (name) {
+        if (this._isRoot) {
+            var ref = {
+                kind: "#ref",
+                identifier: name
+            };
+            this._refs[name] = ref;
+            return ref;
+        }
+        else {
+            console.log("[XTR AST] references can only be created on root fragments - please check '" + name + "'");
+            return INVALID_REF;
+        }
+    };
+    Object.defineProperty(XFragment.prototype, "refs", {
+        get: function () {
+            var r = [], refs = this._refs;
+            for (var k in refs) {
+                if (refs.hasOwnProperty(k)) {
+                    r.push(refs[k]);
+                }
+            }
+            return r;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    XFragment.prototype.toString = function (startIndent, indent, minimal, multiline) {
+        if (startIndent === void 0) { startIndent = ""; }
+        if (indent === void 0) { indent = "  "; }
+        if (minimal === void 0) { minimal = false; }
+        if (multiline === void 0) { multiline = true; }
+        if (this._isRoot) {
+            if (minimal)
+                multiline = false;
+            return serializeChildren(this.children, startIndent, indent, multiline, minimal) + (multiline ? "\n" : "");
+        }
+        else {
+            return serializeContainer(this, startIndent, indent, minimal);
+        }
+    };
+    return XFragment;
+}());
+var PREFIXES = {
+    "#component": "*",
+    "#decoratorNode": "@",
+    "#element": "",
+    "#fragment": "",
+    "#paramNode": ".",
+    "#param": "",
+    "#property": "[",
+    "#decorator": "@",
+    "#label": "#"
+}, SUFFIXES = {
+    "#param": "",
+    "#property": "]",
+    "#decorator": "",
+    "#label": ""
+};
+function serializeChildren(nodes, startIndent, indent, multiline, minimal) {
+    if (minimal === void 0) { minimal = false; }
+    if (nodes === U || !nodes.length)
+        return "";
+    var buf = [];
+    for (var _i = 0, nodes_1 = nodes; _i < nodes_1.length; _i++) {
+        var node = nodes_1[_i];
+        var k = node.kind;
+        if (multiline) {
+            buf.push("\n" + startIndent);
+        }
+        if (k === "#text") {
+            buf.push(node.toString());
+        }
+        else {
+            buf.push(serializeContainer(node, startIndent, indent, minimal));
+        }
+    }
+    return buf.join("");
+}
+function serializeContainer(node, startIndent, indent, minimal) {
+    if (startIndent === void 0) { startIndent = ""; }
+    if (indent === void 0) { indent = ""; }
+    if (minimal === void 0) { minimal = false; }
+    var k = node.kind, buf = [], start = "";
+    if (k === "#fragment") {
+        start = "<!" + serializeParams(node.params);
+        if (minimal && start === "<!") {
+            start = "";
+        }
+    }
+    else if (k === "#cdata") {
+        start = "<!cdata" + serializeParams(node.params);
+    }
+    else {
+        start = "<" + PREFIXES[k] + (node.name || node.nameRef) + serializeParams(node.params);
+    }
+    buf.push(start);
+    if (k !== "#cdata" && node.children && node.children.length > 0) {
+        var n = node;
+        if (start !== "") {
+            buf.push(">");
+        }
+        var mLine = !minimal && (n.children.length > 1 || start.length > 25 || (n.children.length === 1 && n.children[0].kind !== "#text")); // multi line
+        buf.push(serializeChildren(n.children, startIndent + indent, indent, mLine, minimal));
+        if (mLine) {
+            buf.push("\n" + startIndent + "</>"); // no need for name as we have indentation
+        }
+        else {
+            if (k === "#fragment") {
+                if (start !== "") {
+                    buf.push("</!>");
+                }
+            }
+            else {
+                buf.push(minimal ? "</>" : "</" + PREFIXES[k] + (n.name || n.nameRef) + ">");
+            }
+        }
+    }
+    else if (k === "#cdata") {
+        buf.push(">" + node.content.replace(RX_CDATA_SPECIALS, "!</!cdata>") + "</!cdata>");
+    }
+    else {
+        if (minimal && start === "")
+            return "";
+        buf.push("/>");
+    }
+    return buf.join("");
+}
+function serializeParams(params, firstSeparator) {
+    if (firstSeparator === void 0) { firstSeparator = " "; }
+    if (params === U || params.length === 0)
+        return "";
+    var buf = [];
+    for (var _i = 0, params_1 = params; _i < params_1.length; _i++) {
+        var p = params_1[_i];
+        buf.push((buf.length === 0) ? firstSeparator : " ");
+        buf.push(PREFIXES[p.kind] + p.name + SUFFIXES[p.kind]);
+        if (p.holdsValue) {
+            if (p.valueRef !== U) {
+                buf.push("={" + p.valueRef + "}");
+            }
+            else if (typeof p.value === "boolean" || typeof p.value === "number") {
+                buf.push("=" + p.value);
+            }
+            else {
+                // string
+                buf.push("='" + encodeText$1("" + p.value) + "'");
+            }
+        }
+        else if (p.kind === "#decorator" && p.params) {
+            var s = serializeParams(p.params, "");
+            if (s.length) {
+                buf.push("(" + s + ")");
+            }
+        }
+    }
+    return buf.join("");
+}
+function encodeText$1(t) {
+    return t.replace(/\'/g, "\\'");
+}
+var XElement = /** @class */ (function () {
+    function XElement(kind, name, nameRef, pos) {
+        if (pos === void 0) { pos = -1; }
+        this.kind = kind;
+        this.name = name;
+        this.nameRef = nameRef;
+        this.pos = pos;
+    }
+    XElement.prototype.toString = function (startIndent, indent, minimal) {
+        if (startIndent === void 0) { startIndent = ""; }
+        if (indent === void 0) { indent = ""; }
+        if (minimal === void 0) { minimal = false; }
+        return serializeContainer(this, startIndent, indent, minimal);
+    };
+    return XElement;
+}());
+function pushChild(parent, child) {
+    if (!parent.children) {
+        parent.children = [child];
+    }
+    else {
+        parent.children.push(child);
+    }
+    return child;
+}
+var XText = /** @class */ (function () {
+    function XText(value, pos) {
+        if (pos === void 0) { pos = -1; }
+        this.value = value;
+        this.pos = pos;
+        this.kind = "#text";
+    }
+    XText.prototype.toString = function () {
+        return this.value.replace(RX_TEXT_SPECIALS, "!$1");
+    };
+    return XText;
+}());
+var XCData = /** @class */ (function () {
+    function XCData(content, pos) {
+        if (pos === void 0) { pos = -1; }
+        this.content = content;
+        this.pos = pos;
+        this.kind = "#cdata";
+    }
+    XCData.prototype.toString = function (startIndent, indent) {
+        if (startIndent === void 0) { startIndent = ""; }
+        if (indent === void 0) { indent = ""; }
+        return serializeContainer(this, startIndent, indent);
+    };
+    return XCData;
+}());
+var XParam = /** @class */ (function () {
+    function XParam(kind, name, value, pos) {
+        if (pos === void 0) { pos = -1; }
+        this.kind = kind;
+        this.name = name;
+        this.value = value;
+        this.pos = pos;
+        this.holdsValue = true;
+        if (value === U || value === NO_VALUE) {
+            this.holdsValue = false;
+            this.value = U;
+        }
+        else if (value.kind === "#ref") {
+            this.valueRef = value.identifier;
+        }
+    }
+    return XParam;
+}());
+function pushParam(elt, param) {
+    if (!elt.params) {
+        elt.params = [param];
+    }
+    else {
+        elt.params.push(param);
+    }
+    return param;
+}
+
+var U$1 = undefined, CDATA = "cdata", CDATA_LENGTH = CDATA.length, CDATA_END = "</!cdata>", CDATA_END_LENGTH = CDATA_END.length, CHAR_BOS = -1, // beginning of string
+CHAR_EOS = -2, // end of string
+CHAR_NL = 10, // \n new line
+CHAR_SPACE = 32, // space
+CHAR_BANG = 33, // !
+CHAR_DQUO = 34, // "
+CHAR_HASH = 35, // #
+CHAR_SQUO = 39, // '
+CHAR_PARS = 40, // (
+CHAR_PARE = 41, // )
+CHAR_STAR = 42, // *
+CHAR_PLUS = 43, // +
+CHAR_MINUS = 45, // -
+CHAR_DOT = 46, // .
+CHAR_AT = 64, // @
+CHAR_FSLA = 47, // forward slash: /
+CHAR_BSLA = 92, // back slash: \
+CHAR_SBRS = 91, // [
+CHAR_SBRE = 93, // ]
+CHAR_UNDER = 95, // _
+CHAR_LT = 60, // <
+CHAR_EQ = 61, // =
+CHAR_GT = 62, // >
+CHAR_CS = 123, // {
+CHAR_CE = 125, // }
+CHAR_n = 110, CHAR_t = 116, CHAR_r = 114, CHAR_u = 117, CHAR_e = 101, CHAR_f = 102, CHAR_a = 97, CHAR_l = 108, CHAR_s = 115, CHAR_NBSP = '\u00A0'.charCodeAt(0), // non breaking space
+ESCAPED_CHARS = {
+    "33": CHAR_BANG,
+    "47": CHAR_FSLA,
+    "60": CHAR_LT,
+    "110": CHAR_NL,
+    "115": CHAR_NBSP // !s
+}, RX_TRAILING_SPACES = /[ \t\r\f\n]+$/;
+// parse generates an XtrFragment (XTR tree)
+function parse$3(xtr, context) {
+    return __awaiter(this, void 0, void 0, function () {
+        function moveNext() {
+            return shiftNext(1);
+        }
+        function shiftNext(length) {
+            pos += length;
+            pcc = cc; // pcc is used to manage escaped chars
+            return cc = pos < posEOS ? xtr.charCodeAt(pos) : CHAR_EOS;
+        }
+        function nextCharCode() {
+            return pos + 1 < posEOS ? xtr.charCodeAt(pos + 1) : CHAR_EOS;
+        }
+        function nextChars(length) {
+            return pos + length < posEOS ? xtr.substr(pos, length) : "";
+        }
+        function eat(charCode, errMsg) {
+            if (cc !== charCode) {
+                if (errMsg === undefined) {
+                    error(charName(charCode) + " expected instead of " + charName(cc));
+                }
+                else {
+                    error(errMsg);
+                }
+            }
+            return moveNext();
+        }
+        function xtrContent(parent) {
+            return __awaiter(this, void 0, void 0, function () {
+                var keepGoing;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            keepGoing = true;
+                            _a.label = 1;
+                        case 1:
+                            if (!keepGoing) return [3 /*break*/, 3];
+                            return [4 /*yield*/, xtrElement(parent)];
+                        case 2:
+                            if (!(_a.sent()) && !xtrText(parent)) {
+                                keepGoing = false;
+                            }
+                            return [3 /*break*/, 1];
+                        case 3: return [2 /*return*/];
+                    }
+                });
+            });
+        }
+        function xtrText(parent) {
+            // return true if blank spaces or text characters have been found
+            if ((cc === CHAR_LT && pcc !== CHAR_BANG) || cc === CHAR_EOS)
+                return false;
+            var spacesFound = xtrSpaces(), startPos = pos;
+            if (cc !== CHAR_LT && cc !== CHAR_EOS) {
+                var charCodes = [];
+                if (spacesFound) {
+                    charCodes[0] = CHAR_SPACE; // leading spaces are transformed in a single space
+                }
+                var lastIsSpace = spacesFound;
+                while (cc !== CHAR_LT && cc !== CHAR_EOS) {
+                    eatComments();
+                    // capture string
+                    if (cc === CHAR_BANG) {
+                        // escaped chars
+                        cc = eat(CHAR_BANG); // !
+                        var escValue = ESCAPED_CHARS["" + cc];
+                        if (escValue !== U$1) {
+                            lastIsSpace = (cc === CHAR_s || cc === CHAR_n);
+                            moveNext();
+                            charCodes.push(escValue);
+                        }
+                        else {
+                            charCodes.push(CHAR_BANG);
+                            lastIsSpace = false;
+                        }
+                    }
+                    else {
+                        if (lastIsSpace && isSpace(cc) && cc !== CHAR_NL) {
+                            moveNext(); // keep only one space but keep new lines
+                        }
+                        else {
+                            lastIsSpace = isSpace(cc);
+                            charCodes.push(cc);
+                            moveNext();
+                        }
+                    }
+                }
+                addText(parent, String.fromCharCode.apply(null, charCodes).replace(RX_TRAILING_SPACES, " "), startPos);
+            }
+            return true;
+        }
+        function xtrSpaces() {
+            // eat spaces (white spaces or carriage return, tabs, etc.) 
+            // return true if spaces have been found
+            if (cc === CHAR_EOS)
+                return false;
+            var startPos = pos, processing = true;
+            while (processing) {
+                if (isSpace(cc)) {
+                    // white spaces
+                    moveNext();
+                    eatComments();
+                }
+                else if (!eatComments()) {
+                    processing = false;
+                }
+            }
+            return pos !== startPos;
+        }
+        function isSpace(c) {
+            // CHAR_BACK = 8,   // \b backspace
+            // CHAR_TAB = 9,    // \t tab
+            // CHAR_NL = 10,    // \n new line
+            // CHAR_VTAB = 11,  // \v vertical tab
+            // CHAR_FEED = 12,  // \f form feed
+            // CHAR_CR = 13,    // \r carriage return
+            return c === CHAR_SPACE || (c > 7 && c < 14);
+        }
+        function eatComments() {
+            if (cc !== CHAR_FSLA)
+                return false;
+            var nc = nextCharCode();
+            if (nc === CHAR_FSLA) {
+                // double-slash comment
+                eat(CHAR_FSLA);
+                eat(CHAR_FSLA);
+                while (CHAR_NL !== cc && CHAR_EOS !== cc) {
+                    moveNext();
+                }
+                moveNext(); // to eat last new line
+                return true;
+            }
+            else if (nc === CHAR_STAR) {
+                eat(CHAR_FSLA);
+                eat(CHAR_STAR);
+                var processing = true;
+                while (processing) {
+                    if (CHAR_EOS === cc || (CHAR_STAR === cc && nextCharCode() === CHAR_FSLA)) {
+                        moveNext();
+                        processing = false;
+                    }
+                    moveNext();
+                }
+                return true;
+            }
+            return false;
+        }
+        function xtrElement(parent) {
+            return __awaiter(this, void 0, void 0, function () {
+                function eatPrefix() {
+                    if (cc === CHAR_STAR || cc === CHAR_DOT || cc === CHAR_AT) { // * . @
+                        prefix = cc;
+                        cc = moveNext(); // eat prefix
+                        return prefix;
+                    }
+                    return 0;
+                }
+                function createElement() {
+                    if (prefix === CHAR_STAR) { // *
+                        return addComponent(parent, xf.ref(name), pos);
+                    }
+                    else if (prefix === CHAR_DOT) { // .
+                        return addParamNode(parent, name, pos);
+                    }
+                    else if (prefix === CHAR_AT) { // @
+                        // decorator node
+                        error("Decorator node are not supported yet");
+                    }
+                    return addElement(parent, name, pos);
+                }
+                function eltName(prefix, nm) {
+                    return (prefix === 0 ? "" : String.fromCharCode(prefix)) + nm;
+                }
+                var prefix, name, eltOrFragment, ppDataList, endPos, p1, p2, name2;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            // return true if an element, a fragment or a cdata section has been found
+                            if (cc !== CHAR_LT || nextCharCode() === CHAR_FSLA)
+                                return [2 /*return*/, false];
+                            cc = eat(CHAR_LT); // <
+                            prefix = 0;
+                            eatPrefix();
+                            name = "";
+                            if (!(cc === CHAR_BANG)) return [3 /*break*/, 2];
+                            eat(CHAR_BANG);
+                            return [4 /*yield*/, xtrCData(parent)];
+                        case 1:
+                            if (_a.sent()) {
+                                return [2 /*return*/, true];
+                            }
+                            eltOrFragment = addFragment(parent, pos);
+                            return [3 /*break*/, 3];
+                        case 2:
+                            name = xtrIdentifier(true, prefix === 0);
+                            eltOrFragment = createElement();
+                            _a.label = 3;
+                        case 3:
+                            ppDataList = null;
+                            if (!xtrSpaces()) return [3 /*break*/, 6];
+                            return [4 /*yield*/, xtrParams(eltOrFragment, parent, endParamReached)];
+                        case 4:
+                            // spaces have been found: parse params
+                            ppDataList = _a.sent();
+                            if (!(ppDataList !== null)) return [3 /*break*/, 6];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, eltOrFragment, parent, "setup")];
+                        case 5:
+                            _a.sent();
+                            _a.label = 6;
+                        case 6:
+                            if (!(cc === CHAR_FSLA)) return [3 /*break*/, 7];
+                            // end of element
+                            eat(CHAR_FSLA); // /
+                            eat(CHAR_GT); // >
+                            return [3 /*break*/, 10];
+                        case 7:
+                            if (!(cc === CHAR_GT)) return [3 /*break*/, 9];
+                            eat(CHAR_GT); // >
+                            // parse element content
+                            return [4 /*yield*/, xtrContent(eltOrFragment)];
+                        case 8:
+                            // parse element content
+                            _a.sent();
+                            // parse end of element
+                            eat(CHAR_LT); // <
+                            eat(CHAR_FSLA); // /
+                            endPos = pos;
+                            p1 = prefix, p2 = eatPrefix(), name2 = xtrIdentifier(false);
+                            if (name2 === "" && p2 === 0 && CHAR_BANG === cc) {
+                                eat(CHAR_BANG); // end of fragment !
+                            }
+                            else if (name2 !== "" || p2 !== 0) {
+                                // end tag name is provided
+                                if (p1 !== p2 || (name2 !== "" && name2 !== name)) {
+                                    error('End tag </' + eltName(p2, name2) + '> doesn\'t match <' + eltName(p1, name) + '>', endPos);
+                                }
+                            }
+                            xtrSpaces();
+                            eat(CHAR_GT); // >
+                            return [3 /*break*/, 10];
+                        case 9:
+                            error();
+                            _a.label = 10;
+                        case 10:
+                            if (!(ppDataList !== null)) return [3 /*break*/, 12];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, eltOrFragment, parent, "process")];
+                        case 11:
+                            _a.sent();
+                            _a.label = 12;
+                        case 12: return [2 /*return*/, true];
+                    }
+                });
+            });
+        }
+        function callPreProcessors(ppDataList, target, parent, hookName, src) {
+            return __awaiter(this, void 0, void 0, function () {
+                var _i, ppDataList_1, ppData, pp, ppParams, _a, _b, p, ex_1, msg;
+                return __generator(this, function (_c) {
+                    switch (_c.label) {
+                        case 0:
+                            _i = 0, ppDataList_1 = ppDataList;
+                            _c.label = 1;
+                        case 1:
+                            if (!(_i < ppDataList_1.length)) return [3 /*break*/, 6];
+                            ppData = ppDataList_1[_i];
+                            if (ppFactories === U$1 || ppFactories[ppData.name] === U$1) {
+                                error("Undefined pre-processor '" + ppData.name + "'", ppData.pos);
+                                return [2 /*return*/];
+                            }
+                            pp = preProcessors[ppData.name];
+                            if (pp === U$1) {
+                                pp = preProcessors[ppData.name] = ppFactories[ppData.name]();
+                            }
+                            if (pp[hookName] === U$1)
+                                return [3 /*break*/, 5];
+                            if (ppData.paramsDict === U$1) {
+                                ppParams = {};
+                                if (ppData.params) {
+                                    for (_a = 0, _b = ppData.params; _a < _b.length; _a++) {
+                                        p = _b[_a];
+                                        ppParams[p.name] = p;
+                                    }
+                                }
+                                ppData.paramsDict = ppParams;
+                            }
+                            _c.label = 2;
+                        case 2:
+                            _c.trys.push([2, 4, , 5]);
+                            return [4 /*yield*/, pp[hookName](target, ppData.paramsDict, getPreProcessorContext(ppData.name, parent, ppData.pos))];
+                        case 3:
+                            _c.sent();
+                            return [3 /*break*/, 5];
+                        case 4:
+                            ex_1 = _c.sent();
+                            msg = ex_1.message || ex_1;
+                            if (msg.match(/^XTR\:/)) {
+                                // error was triggered through context.error()
+                                throw ex_1;
+                            }
+                            else {
+                                error("Error in " + ppData.name + " " + hookName + "() execution: " + msg, ppData.pos);
+                            }
+                            return [3 /*break*/, 5];
+                        case 5:
+                            _i++;
+                            return [3 /*break*/, 1];
+                        case 6: return [2 /*return*/];
+                    }
+                });
+            });
+        }
+        function getPreProcessorContext(ppName, parent, processorPos) {
+            currentPpName = ppName;
+            currentPpPos = processorPos;
+            if (ppContext === U$1) {
+                ppContext = {
+                    parent: parent,
+                    fileId: context ? context.fileId || "" : "",
+                    rootFragment: xf,
+                    error: function (msg, pos) {
+                        if (pos === void 0) { pos = -1; }
+                        error(currentPpName + ": " + msg, pos > -1 ? pos : currentPpPos);
+                    },
+                    preProcessors: ppFactories
+                };
+            }
+            else {
+                ppContext.parent = parent;
+            }
+            return ppContext;
+        }
+        function endParamReached() {
+            return (cc === CHAR_FSLA || cc === CHAR_GT); // / or >
+        }
+        function xtrCData(parent) {
+            return __awaiter(this, void 0, void 0, function () {
+                var startPos, cdata, ppDataList, charCodes, processing;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!(CDATA === nextChars(CDATA_LENGTH))) return [3 /*break*/, 6];
+                            startPos = pos;
+                            shiftNext(CDATA_LENGTH);
+                            cdata = addCData(parent, "", pos), ppDataList = null;
+                            if (!xtrSpaces()) return [3 /*break*/, 3];
+                            return [4 /*yield*/, xtrParams(cdata, parent, endParamReached)];
+                        case 1:
+                            // spaces have been found: parse params
+                            ppDataList = _a.sent();
+                            if (!(ppDataList !== null)) return [3 /*break*/, 3];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, cdata, parent, "setup")];
+                        case 2:
+                            _a.sent();
+                            _a.label = 3;
+                        case 3:
+                            eat(CHAR_GT); // >
+                            charCodes = [], processing = true;
+                            while (processing) {
+                                if (cc === CHAR_EOS) {
+                                    processing = false;
+                                    error("Invalid cdata section: end marker '</!cdata>' not found", startPos - 2);
+                                }
+                                else if (cc === CHAR_BANG) {
+                                    // ! -> escape sequence
+                                    moveNext();
+                                    if (CDATA_END === nextChars(CDATA_END_LENGTH)) {
+                                        // we escape end of cdata
+                                        charCodes.push(cc);
+                                        moveNext();
+                                    }
+                                    else {
+                                        // push the backslash
+                                        charCodes.push(CHAR_BANG);
+                                    }
+                                }
+                                else {
+                                    if (cc === CHAR_LT && CDATA_END === nextChars(CDATA_END_LENGTH)) {
+                                        shiftNext(CDATA_END_LENGTH);
+                                        processing = false;
+                                    }
+                                    else {
+                                        charCodes.push(cc);
+                                        moveNext();
+                                    }
+                                }
+                            }
+                            cdata.content = String.fromCharCode.apply(null, charCodes);
+                            if (!(ppDataList !== null)) return [3 /*break*/, 5];
+                            return [4 /*yield*/, callPreProcessors(ppDataList, cdata, parent, "process")];
+                        case 4:
+                            _a.sent();
+                            _a.label = 5;
+                        case 5: return [2 /*return*/, true];
+                        case 6: return [2 /*return*/, false];
+                    }
+                });
+            });
+        }
+        function xtrIdentifier(mandatory, acceptDashes) {
+            if (acceptDashes === void 0) { acceptDashes = false; }
+            // identifier is used for references and component/decorators names (which area also references)
+            // they cannot start with $ on the contrary to JS identifiers
+            var charCodes = [];
+            // first char cannot be a number
+            if (ccIsChar() || cc === CHAR_UNDER) {
+                charCodes.push(cc);
+                moveNext();
+                while (ccIsChar() || ccIsNumber() || cc === CHAR_UNDER || (acceptDashes && cc === CHAR_MINUS)) {
+                    charCodes.push(cc);
+                    moveNext();
+                }
+            }
+            else if (mandatory) {
+                error("Invalid XTR identifier");
+            }
+            if (charCodes.length === 0)
+                return "";
+            return String.fromCharCode.apply(null, charCodes);
+        }
+        function xtrParams(parent, grandParent, endReached) {
+            return __awaiter(this, void 0, void 0, function () {
+                function endDecoParamReached() {
+                    return (cc === CHAR_PARE); // )
+                }
+                function registerParam(name, ppData, value, isProperty) {
+                    if (isProperty === void 0) { isProperty = false; }
+                    var p = parent;
+                    if (ppData !== null) {
+                        p = ppData;
+                    }
+                    if (prefix === CHAR_AT) {
+                        return addDecorator(p, xf.ref(name), value, startPos);
+                    }
+                    else if (prefix === CHAR_HASH) {
+                        // todo error if ppData
+                        return addLabel(p, name, value, startPos);
+                    }
+                    return addParam(p, name, value, isProperty, startPos);
+                }
+                function eatPrefix() {
+                    // [ @ or #
+                    if (cc === CHAR_SBRS || cc === CHAR_AT || cc === CHAR_HASH) {
+                        var res = cc;
+                        moveNext();
+                        return res;
+                    }
+                    return 0;
+                }
+                var prefix, keepGoing, result, startPos, ppData, errorPos, name_1, isProperty, spacesFound, d, r;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            prefix = 0, keepGoing = true, result = null, startPos = -1;
+                            _a.label = 1;
+                        case 1:
+                            if (!(keepGoing && !endReached())) return [3 /*break*/, 8];
+                            // param name: prefix + name
+                            startPos = pos;
+                            prefix = eatPrefix();
+                            ppData = null;
+                            if (prefix === CHAR_AT && cc === CHAR_AT) {
+                                // this is a pre-processor
+                                eat(CHAR_AT); // 2nd @
+                                if (parent.kind === "#preprocessorData") {
+                                    errorPos = pos - 2;
+                                    error("Pre-processors cannot be used on pre-processors: check @@" + xtrIdentifier(true, false), errorPos);
+                                }
+                                ppData = {
+                                    kind: "#preprocessorData",
+                                    name: "",
+                                    pos: pos - 2 // to be before the '@@' prefix
+                                };
+                            }
+                            name_1 = xtrIdentifier(true, prefix === 0), isProperty = false;
+                            if (prefix === CHAR_SBRS) { // [
+                                eat(CHAR_SBRE); // ]
+                                isProperty = true;
+                            }
+                            if (ppData !== null) {
+                                ppData.name = "@@" + name_1;
+                            }
+                            if (prefix === CHAR_HASH && parent.kind === "#preprocessorData") {
+                                error("Labels cannot be used on pre-processors", parent.pos);
+                            }
+                            spacesFound = xtrSpaces();
+                            if (!(cc === CHAR_EQ)) return [3 /*break*/, 2];
+                            // look for value
+                            eat(CHAR_EQ);
+                            xtrSpaces();
+                            if (ppData !== null) {
+                                registerParam("value", ppData, xtrParamValue());
+                            }
+                            else {
+                                registerParam(name_1, ppData, xtrParamValue(), isProperty);
+                            }
+                            if (!xtrSpaces()) {
+                                // no spaces found -> we have reached the end of the param list
+                                keepGoing = false;
+                            }
+                            return [3 /*break*/, 7];
+                        case 2:
+                            if (!(prefix === CHAR_AT && cc === CHAR_PARS)) return [3 /*break*/, 6];
+                            d = void 0;
+                            if (ppData !== null) {
+                                d = ppData;
+                            }
+                            else {
+                                d = registerParam(name_1, ppData);
+                            }
+                            // look for attribute params for decorators
+                            eat(CHAR_PARS); // ( parens start
+                            xtrSpaces();
+                            return [4 /*yield*/, xtrParams(d, parent, endDecoParamReached)];
+                        case 3:
+                            r = _a.sent();
+                            eat(CHAR_PARE); // ) parens end
+                            if (!xtrSpaces()) {
+                                // no spaces found -> we have reached the end of the param list
+                                keepGoing = false;
+                            }
+                            if (!(r != null && ppData === null)) return [3 /*break*/, 5];
+                            return [4 /*yield*/, callPreProcessors(r, d, grandParent, "process")];
+                        case 4:
+                            _a.sent();
+                            _a.label = 5;
+                        case 5: return [3 /*break*/, 7];
+                        case 6:
+                            if (spacesFound || cc === CHAR_GT || cc === CHAR_FSLA || cc === CHAR_PARE) { // > or / or )
+                                // orphan attribute
+                                if (ppData === null) {
+                                    registerParam(name_1, ppData);
+                                }
+                            }
+                            else {
+                                keepGoing = false;
+                            }
+                            _a.label = 7;
+                        case 7:
+                            if (ppData !== null) {
+                                if (result === null) {
+                                    result = [];
+                                }
+                                result.push(ppData);
+                            }
+                            return [3 /*break*/, 1];
+                        case 8:
+                            if (!endReached()) {
+                                error();
+                            }
+                            return [2 /*return*/, result];
+                    }
+                });
+            });
+        }
+        function xtrParamValue() {
+            // return the param value
+            if (cc === CHAR_SQUO) {
+                return stringContent(CHAR_SQUO); // single quote string
+            }
+            else if (cc === CHAR_DQUO) {
+                return stringContent(CHAR_DQUO); // double quote string
+            }
+            else if (cc === CHAR_CS) { // {
+                // reference
+                eat(CHAR_CS);
+                xtrSpaces();
+                var refName = xtrIdentifier(true, false);
+                xtrSpaces();
+                eat(CHAR_CE);
+                return xf.ref(refName);
+            }
+            else if (cc === CHAR_t) {
+                // true
+                eat(CHAR_t);
+                eat(CHAR_r);
+                eat(CHAR_u);
+                eat(CHAR_e);
+                return true;
+            }
+            else if (cc === CHAR_f) {
+                // false
+                eat(CHAR_f);
+                eat(CHAR_a);
+                eat(CHAR_l);
+                eat(CHAR_s);
+                eat(CHAR_e);
+                return false;
+            }
+            else if (ccIsNumber() || ccIsSign()) {
+                // number: 123 or 12.34
+                var charCodes = [];
+                if (ccIsSign()) {
+                    charCodes.push(cc);
+                    moveNext();
+                    xtrSpaces();
+                }
+                while (ccIsNumber()) {
+                    charCodes.push(cc);
+                    moveNext();
+                }
+                if (cc === CHAR_DOT) {
+                    charCodes.push(CHAR_DOT);
+                    moveNext();
+                    if (!ccIsNumber()) {
+                        error("Invalid number");
+                    }
+                    while (ccIsNumber()) {
+                        charCodes.push(cc);
+                        moveNext();
+                    }
+                }
+                return parseFloat(String.fromCharCode.apply(null, charCodes));
+            }
+            error("Invalid parameter value: " + charName(cc));
+            return 0;
+        }
+        function error(msg, errorPos) {
+            var lines = xtr.split("\n"), lineLen = 0, posCount = 0, idx = 0, lineNbr = lines.length, columnNbr = lines[lineNbr - 1].length;
+            errorPos = errorPos || pos;
+            if (errorPos > -1) {
+                while (idx < lines.length) {
+                    lineLen = lines[idx].length;
+                    if (posCount + lineLen < errorPos) {
+                        // continue
+                        idx++;
+                        posCount += lineLen + 1; // +1 for carriage return
+                    }
+                    else {
+                        // stop
+                        lineNbr = idx + 1;
+                        columnNbr = 1 + errorPos - posCount;
+                        break;
+                    }
+                }
+            }
+            var fileInfo = "";
+            if (context !== U$1 && context.fileId !== U$1) {
+                fileInfo = "\nFile: " + context.fileId;
+            }
+            var lineNbrMsg = lineNbr;
+            if (context) {
+                lineNbrMsg += context.line1 !== undefined ? context.line1 - 1 : 0;
+                if (lineNbr === 1) {
+                    columnNbr += context.col1 !== undefined ? context.col1 - 1 : 0;
+                }
+            }
+            if (msg === U$1) {
+                msg = "Invalid character: " + charName(cc);
+            }
+            throw "XTR: " + msg + "\nLine " + lineNbrMsg + " / Col " + columnNbr + fileInfo + "\nExtract: >> " + lines[lineNbr - 1].trim() + " <<";
+        }
+        function charName(c) {
+            if (c === CHAR_EOS)
+                return "End of Content";
+            return "'" + String.fromCharCode(c) + "'";
+        }
+        function stringContent(delimiter) {
+            var charCodes = [];
+            eat(delimiter);
+            while (cc !== delimiter && cc !== CHAR_EOS) {
+                if (cc === CHAR_BSLA) { // \
+                    moveNext();
+                }
+                charCodes.push(cc);
+                moveNext();
+            }
+            eat(delimiter);
+            return String.fromCharCode.apply(null, charCodes);
+        }
+        function ccIsChar() {
+            // a:97 z:122 A:65 Z:90
+            return (cc > 96 && cc < 123) || (cc > 64 && cc < 91);
+        }
+        function ccIsNumber() {
+            // 0:48 9:57
+            return cc > 47 && cc < 58;
+        }
+        function ccIsSign() {
+            return cc === CHAR_PLUS || cc === CHAR_MINUS;
+        }
+        var xf, posEOS, pos, cc, pcc, ppContext, currentPpName, currentPpPos, globalPreProcessors, ppFactories, preProcessors, ppDataList, _i, globalPreProcessors_1, pp;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    xf = createXtrFragment(), posEOS = xtr.length, pos = 0, cc = CHAR_EOS, pcc = CHAR_BOS, currentPpName = "", currentPpPos = 0, globalPreProcessors = context ? context.globalPreProcessors : U$1, ppFactories = context ? context.preProcessors || {} : {}, preProcessors = {};
+                    if (!(posEOS > 0)) return [3 /*break*/, 6];
+                    cc = xtr.charCodeAt(0);
+                    ppDataList = void 0;
+                    if (!(globalPreProcessors !== U$1)) return [3 /*break*/, 2];
+                    ppDataList = [];
+                    for (_i = 0, globalPreProcessors_1 = globalPreProcessors; _i < globalPreProcessors_1.length; _i++) {
+                        pp = globalPreProcessors_1[_i];
+                        ppDataList.push({
+                            kind: "#preprocessorData",
+                            name: pp,
+                            pos: 0
+                        });
+                    }
+                    return [4 /*yield*/, callPreProcessors(ppDataList, xf, null, "setup")];
+                case 1:
+                    _a.sent();
+                    _a.label = 2;
+                case 2: return [4 /*yield*/, xtrContent(xf)];
+                case 3:
+                    _a.sent();
+                    if (!(ppDataList !== U$1)) return [3 /*break*/, 5];
+                    return [4 /*yield*/, callPreProcessors(ppDataList, xf, null, "process")];
+                case 4:
+                    _a.sent();
+                    _a.label = 5;
+                case 5:
+                    if (cc !== CHAR_EOS) {
+                        error();
+                    }
+                    _a.label = 6;
+                case 6: return [2 /*return*/, xf];
+            }
+        });
+    });
+}
+
+var SK$1 = SyntaxKind, TEMPLATE = "template", RX_START_WS = /^(\s*)/, RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/, RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/, RX_LOG$2 = /\/\/\s*ivy?\:\s*log/, RX_BACK_TICK = /\`/g, RX_LIST = /List$/, IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"], CR$2 = "\n", XTR_NAME = "xtr", SEPARATOR$1 = "----------------------------------------------------------------------------------------------------";
+function process(source, options) {
     return __awaiter(this, void 0, void 0, function () {
         function log(title, forceLog) {
             if (forceLog === void 0) { forceLog = false; }
@@ -3755,15 +4825,16 @@ function process(source, resourcePath, logErrors) {
                 console.log(result);
             }
         }
-        var ivyResult, result, logAll, e_1, err, msg, ls;
+        var ivyResult, result, logAll, resourcePath, e_1, err, msg, ls;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     result = "", logAll = !!source.match(RX_LOG_ALL);
+                    resourcePath = options.filePath;
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, compile(source, resourcePath)];
+                    return [4 /*yield*/, compile(source, { filePath: resourcePath, preProcessors: options.preProcessors })];
                 case 2:
                     // ivy processing
                     ivyResult = _a.sent();
@@ -3811,7 +4882,7 @@ function process(source, resourcePath, logErrors) {
                         // shift line numbers
                         e_1.line = ivyResult.convertLineNbr(e_1.line);
                     }
-                    if (logErrors) {
+                    if (options.logErrors !== false) {
                         err = e_1, msg = void 0;
                         if (err.kind === "#Error") {
                             ls = "  >  ";
@@ -3844,7 +4915,7 @@ function listValidator(m) {
     }
     return null;
 }
-function compile(source, filePath) {
+function compile(source, pathOrOptions) {
     return __awaiter(this, void 0, void 0, function () {
         function error(msg) {
             throw {
@@ -3893,13 +4964,34 @@ function compile(source, filePath) {
                 var ce = node;
                 if (ce.expression.getText() === TEMPLATE && ce.arguments.length >= 1 && ce.arguments[0].kind === SK$1.NoSubstitutionTemplateLiteral) {
                     var tpl = ce.arguments[0], txt = tpl.getText();
-                    templates.push({
-                        start: node.pos,
+                    changes.push({
+                        start: getNodePos(node),
                         end: node.end,
-                        src: txt.substring(1, txt.length - 1)
+                        src: txt.substring(1, txt.length - 1),
+                        type: 1 /* TEMPLATE */
                     });
                 }
             }
+            else if (node.kind === SK$1.TaggedTemplateExpression) {
+                var tt = node, nbrOfArgs = 0;
+                if (tt.tag.getText() === XTR_NAME) {
+                    if (tt.template.getChildCount() > 1) {
+                        nbrOfArgs = tt.template.getChildAt(1).getChildCount();
+                    }
+                    if (nbrOfArgs === 0) {
+                        // this template has no arguments and can be statically analysed
+                        changes.push({
+                            start: getNodePos(node),
+                            end: node.end,
+                            src: tt.getText(),
+                            type: 2 /* XTR */
+                        });
+                    }
+                }
+            }
+        }
+        function getNodePos(node) {
+            return (node.getFullText().match(/^\s/)) ? node.pos + 1 : node.pos; // +1 to keep the first white space in the generated code
         }
         function generateNewFile(filePath) {
             return __awaiter(this, void 0, void 0, function () {
@@ -3930,15 +5022,12 @@ function compile(source, filePath) {
                     }
                     return newLineNbr;
                 }
-                var slices, pos, carriageReturns, paths, len, tpl, lastSlice, colOffset, tplName, i, r, imp, k;
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
+                var slices, pos, carriageReturns, paths, len, chg, lastSlice, colOffset, tplName, i, r, li, _a, imp, k;
+                return __generator(this, function (_b) {
+                    switch (_b.label) {
                         case 0:
-                            if (!templates.length) {
+                            if (!changes.length) {
                                 return [2 /*return*/, { fileContent: source, convertLineNbr: sameLineNbr }];
-                            }
-                            if (!importStart) {
-                                error("Missing 'template' import statement");
                             }
                             slices = [], pos = 0, carriageReturns = [];
                             // part before import
@@ -3950,39 +5039,58 @@ function compile(source, filePath) {
                             if (paths.length > 2) {
                                 filePath = paths[paths.length - 2] + "/" + paths[paths.length - 1];
                             }
-                            len = templates.length, tplName = "";
+                            len = changes.length, tplName = "";
                             i = 0;
-                            _a.label = 1;
+                            _b.label = 1;
                         case 1:
-                            if (!(len > i)) return [3 /*break*/, 4];
-                            tpl = templates[i];
-                            addSlice(source.substring(pos, tpl.start + 1));
+                            if (!(len > i)) return [3 /*break*/, 7];
+                            chg = changes[i];
+                            addSlice(source.substring(pos, chg.start)); //+ 1
                             lastSlice = slices[slices.length - 1];
-                            colOffset = 9 + (lastSlice.length - lastSlice.lastIndexOf(CR$2)); // 9 = length of "template("
+                            colOffset = lastSlice.length - lastSlice.lastIndexOf(CR$2);
+                            if (!(chg.type === 1 /* TEMPLATE */)) return [3 /*break*/, 3];
+                            if (importStart < 0) {
+                                error("Missing 'template' import statement");
+                            }
+                            colOffset += 9; // 9 = length of "template("
                             if (lastSlice.match(/(\$?\w+)[\s\n]*\=[\s\n]*$/)) {
                                 tplName = RegExp.$1;
                             }
                             else {
                                 tplName = "";
                             }
-                            return [4 /*yield*/, compileTemplate(tpl.src, { templateName: tplName, function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(tpl.start + 1) - 1, columnOffset: colOffset })];
+                            return [4 /*yield*/, compileTemplate(chg.src, { templateName: tplName, function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(chg.start + 1) - 1, columnOffset: colOffset })];
                         case 2:
-                            r = _a.sent();
-                            addSlice(r.function, tpl.src);
-                            pos = tpl.end;
-                            _a.label = 3;
+                            r = _b.sent();
+                            addSlice(r.function, chg.src);
+                            return [3 /*break*/, 5];
                         case 3:
+                            li = getLineInfo$1(source, chg.start);
+                            // try {
+                            _a = addSlice;
+                            return [4 /*yield*/, processXtrString(chg.src, filePath, li.lineNbr, li.columnNbr, preProcessors)];
+                        case 4:
+                            // try {
+                            _a.apply(void 0, [_b.sent(), chg.src]);
+                            _b.label = 5;
+                        case 5:
+                            pos = chg.end;
+                            _b.label = 6;
+                        case 6:
                             i++;
                             return [3 /*break*/, 1];
-                        case 4:
+                        case 7:
                             // last part
                             addSlice(source.substring(pos));
-                            imp = [];
-                            for (k in importIds)
-                                if (importIds.hasOwnProperty(k)) {
-                                    imp.push(k);
-                                }
-                            slices[1] = '{ ' + imp.join(", ") + ' }'; // new import
+                            // import insertion
+                            if (importStart > -1) {
+                                imp = [];
+                                for (k in importIds)
+                                    if (importIds.hasOwnProperty(k)) {
+                                        imp.push(k);
+                                    }
+                                slices[1] = '{ ' + imp.join(", ") + ' }'; // new import
+                            }
                             return [2 /*return*/, { fileContent: slices.join(""), convertLineNbr: getLineNbr }];
                     }
                 });
@@ -3995,15 +5103,17 @@ function compile(source, filePath) {
         function sameLineNbr(newLineNbr) {
             return newLineNbr;
         }
-        var srcFile, importStart, importEnd, importIds, templates, diagnostics, d, info;
+        var filePath, preProcessors, srcFile, importStart, importEnd, importIds, changes, diagnostics, d, info;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     // ignore files starting with iv:ignore comment
                     if (source.match(RX_IGNORE_FILE))
                         return [2 /*return*/, { fileContent: source, convertLineNbr: sameLineNbr }];
+                    filePath = (typeof pathOrOptions === "string") ? pathOrOptions : pathOrOptions.filePath;
+                    preProcessors = (typeof pathOrOptions === "string") ? undefined : pathOrOptions.preProcessors;
                     srcFile = createSourceFile(filePath, source, ScriptTarget.ES2015, /*setParentNodes */ true);
-                    importStart = 0, importEnd = 0, importIds = {}, templates = [];
+                    importStart = -1, importEnd = 0, importIds = {}, changes = [];
                     diagnostics = srcFile['parseDiagnostics'];
                     if (diagnostics && diagnostics.length) {
                         d = diagnostics[0];
@@ -4021,6 +5131,30 @@ function compile(source, filePath) {
                     scan(srcFile);
                     return [4 /*yield*/, generateNewFile(filePath)];
                 case 1: return [2 /*return*/, _a.sent()];
+            }
+        });
+    });
+}
+/**
+ * Return the new template string = e.g. '`<foo bar="blah"/>`'
+ * @param src template string - e.g. 'xtr `<foo bar="blah" @@xyz/>`'
+ */
+function processXtrString(src, filePath, lineNbr, colNbr, preProcessors) {
+    return __awaiter(this, void 0, void 0, function () {
+        var xtr, ctxt, root;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    xtr = src.replace(/(^xtr\s*\`)|(\s*\`\s*$)/g, ""), ctxt = {
+                        fileId: filePath,
+                        preProcessors: preProcessors,
+                        line1: lineNbr,
+                        col1: colNbr
+                    };
+                    return [4 /*yield*/, parse$3(xtr, ctxt)];
+                case 1:
+                    root = _a.sent();
+                    return [2 /*return*/, "`" + root.toString("", "", true, false).replace(RX_BACK_TICK, "\\`") + "`"];
             }
         });
     });
@@ -4057,21 +5191,21 @@ function ivy(opts) {
     if (!opts.include) {
         opts.include = '**/*.ts';
     }
-    var filter = createFilter(opts.include, opts.exclude);
+    var filter = createFilter(opts.include, opts.exclude), preProcessors = opts.preProcessors;
     return {
         name: 'ivy',
-        transform: function (code, id) {
+        transform: function (code, fileId) {
             return __awaiter(this, void 0, void 0, function () {
                 var result, e_1;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0:
-                            if (!filter(id))
+                            if (!filter(fileId))
                                 return [2 /*return*/, null];
                             _a.label = 1;
                         case 1:
                             _a.trys.push([1, 3, , 4]);
-                            return [4 /*yield*/, process(code, id)];
+                            return [4 /*yield*/, process(code, { filePath: fileId, preProcessors: preProcessors })];
                         case 2:
                             result = _a.sent();
                             return [3 /*break*/, 4];

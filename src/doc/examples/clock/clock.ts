@@ -1,7 +1,9 @@
 import './styles.css'; // rollup dependency
 import { template, Controller } from "../../../iv";
 
+// @@extract: controller
 @Controller class ClockCtl {
+    // internal data model
     iid: any; // interval id
     hours: number;
     minutes: number;
@@ -27,6 +29,7 @@ import { template, Controller } from "../../../iv";
     }
 };
 
+// @@extract: hand-template
 const hand = template(`(kind: string, rotation: number) => {
     <line class={kind} 
         y1="2" 
@@ -35,9 +38,9 @@ const hand = template(`(kind: string, rotation: number) => {
     />
 }`);
 
+// @@extract: clock-template
 const clock = template(`($:ClockCtl) => {
-    // original example from Rich Harris at http://www.ractivejs.org/examples/clock/ (site no longer available)
-
+    // original example from Rich Harris at https://svelte.dev/examples#clock
     <svg class="clock" viewBox="0 0 100 100">
         <g transform="translate(50,50)">
             // dial
@@ -56,11 +59,12 @@ const clock = template(`($:ClockCtl) => {
             // seconds hand
             <g transform={"rotate(" + 6 * ($.seconds + $.milliseconds*0.001) +")"}>
                 <line class="second" y1="10" y2="-38"/>
-                <circle class="second-counterweight" transform="translate(0,8)" r="1"/>
+                <circle class="second-cw" transform="translate(0,8)" r="1"/>
             </g>
         </g>
     </svg>
 }`, hand, ClockCtl);
 
+// @@extract: instantiation
 // main display
 clock().attach(document.getElementById("main")).render();

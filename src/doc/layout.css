@@ -4,7 +4,9 @@ main orange: #FF7019
 dark grey: #393939;
 */
 
-@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600|Roboto+Mono:300,400&display=swap');
+/* Fira-Mono ?*/
+
 body.main {
     font-size: 16px;
     color: #333;
@@ -25,7 +27,6 @@ body.main {
 body {
     display: flex;
     justify-content: center;
-    /* background-color: #313131; */
 }
 
 div.root {
@@ -73,7 +74,7 @@ nav.mainMenu li {
 }
 
 nav.mainMenu li:hover {
-    color: #FF7019;
+    color: #008BFC;
 }
 
 nav.mainMenu .mainLogo {
@@ -115,6 +116,14 @@ nav.mainMenu .active {
 }
 
 .layout .blockB {
+    flex: 1;
+}
+
+.layout .blockA2 {
+    flex: 3;
+}
+
+.layout .blockB2 {
     flex: 1;
 }
 
@@ -197,7 +206,7 @@ div.home {
 .home .mainB {
     width: 250px;
     flex-grow: 1;
-    background-color: #1677D1;
+    background-color: #0c5499;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -317,7 +326,142 @@ div.home {
 
 /* ------------------------------------------------------------------------------ */
 
-/* Tutorial & Example pages */
+/* Code & Extract highlighting */
+
+.code {
+    position: relative;
+    color: white;
+    overflow: scroll;
+    padding: 2.2rem 0 2rem 2rem;
+}
+
+.code svg.top {
+    position: absolute;
+    top: -1px;
+    left: 8rem;
+}
+
+.code svg.bottom {
+    position: absolute;
+    bottom: -1px;
+    left: 8rem;
+}
+
+.code .triangle {
+    stroke: #1670C5;
+    fill: #1670C5;
+}
+
+.extract.ts {
+    font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
+    font-weight: 300;
+    line-height: 1.3rem;
+    font-size: 1rem;
+    overflow-y: scroll;
+}
+
+.extract.ts .hc {
+    /* comments */
+    color: rgb(125, 159, 191);
+}
+
+.extract.ts .hr {
+    /* storage: const, let, => */
+    color: rgb(243, 162, 250);
+}
+
+.extract.ts .hs {
+    /* strings */
+    color: rgb(245, 189, 120);
+}
+
+.extract.ts .hf {
+    /* function */
+    color: rgb(255, 236, 129);
+}
+
+.extract.ts .hk {
+    /* keywords */
+    color: rgb(250, 165, 85);
+}
+
+.extract.ts .hn {
+    /* constants */
+    color: rgb(255, 236, 129);
+}
+
+.extract.ts .hv {
+    /* variable */
+    color: rgb(150, 255, 129);
+}
+
+.extract.ts .ht {
+    /* types */
+    color: rgb(199, 225, 254);
+}
+
+.extract.ts .hy {
+    /* types */
+    color: rgb(199, 225, 254);
+}
+
+.extract.ts .hg {
+    /* tags */
+    color: rgb(243, 162, 250);
+    font-weight: bold;
+}
+
+.extract.ts .ho {
+    /* entity.other - eg. tag attributes */
+    color: rgb(199, 225, 254);
+}
+
+.extract.ts .hp {
+    /* punctuation */
+    color: rgb(125, 159, 191);
+}
+
+/* Main menu --------------------------------------------------------------------- */
+
+.main_menu {
+    margin-top: 5rem;
+}
+
+.menu.cat.container {
+    border-left: 10px solid #3C3C3C;
+    padding: .4rem 0 .4rem 2rem;
+}
+
+.menu.cat.container.selected {
+    border-left: 10px solid #1670C5;
+    background-color: #3C3C3C;
+}
+
+.menu.cat .title {
+    font-weight: bold;
+    padding: .2rem 0 .2rem 0;
+}
+
+.menu.cat .content {
+    padding: .2rem 0 .2rem 1.2rem;
+}
+
+.menu.cat li {
+    padding: .1rem 0 .1rem 0;
+    cursor: pointer;
+}
+
+.menu.cat li:before {
+    content: "_";
+    padding-right: 5px;
+}
+
+.menu.cat li.selected {
+    font-weight: bold;
+    color: #008BFC;
+}
+
+/* Tutorial & Example pages ------------------------------------------------------ */
 
 div.layout2 {
     min-height: 100vh;
@@ -326,21 +470,41 @@ div.layout2 {
     justify-content: flex-start;
 }
 
-.layout2 .blockA {
+.layout2 .blockA2 {
     background-color: #313131;
     display: flex;
     flex-wrap: nowrap;
     justify-content: flex-start;
 }
 
-.layout2 .blockA .menu {
+.layout2 .blockA2 .menu {
     width: 270px;
     flex-grow: 0;
+    color: #FFFFFF;
 }
 
-.layout2 .blockA .mainpanel {
+.layout2 .blockA2 .mainpanel {
+    padding-top: 4rem;
     flex-grow: 1;
-    background-color: #1670C5;
+    background-color: #0c5499;
 }
 
-.layout2 .blockB {}
+.layout2 .blockB2 {
+    padding-top: 70px;
+}
+
+.examples iframe.clock {
+    width: 250px;
+    height: 250px;
+}
+
+div.text {
+    color: #FFFFFF;
+    background-color: #1670C5;
+    padding: 2rem 0 2rem 2rem;
+}
+
+.layout2 h1 {
+    font-size: 1.5rem;
+    padding-bottom: 1rem;
+}

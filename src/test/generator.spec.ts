@@ -37,9 +37,9 @@ describe('Code generator', () => {
         assert.deepEqual(await statics.template(`(name) => {
             # Hello {name} #
         }` ), [
-                'ζs0 = {}',
-                'ζs1 = [" Hello ", "", " "]'
-            ], '2');
+            'ζs0 = {}',
+            'ζs1 = [" Hello ", "", " "]'
+        ], '2');
 
         assert.equal(await body.template(`(name) => {
             # Hello {name} #
@@ -56,10 +56,10 @@ describe('Code generator', () => {
             # Hello {name}#
             # {name+1} {::name+2} #
         }` ), [
-                'ζs0 = {}',
-                'ζs1 = [" Hello ", ""]',
-                'ζs2 = [" ", "", " ", "", " "]'
-            ], '4');
+            'ζs0 = {}',
+            'ζs1 = [" Hello ", ""]',
+            'ζs2 = [" ", "", " ", "", " "]'
+        ], '4');
     });
 
     it("should support dynamic text nodes in fragments", async function () {
@@ -250,10 +250,10 @@ describe('Code generator', () => {
             }
             # \\(end) #
         }` ), [
-                'ζs0 = {}',
-                'ζs1 = [" Hello ", "", " "]',
-                'ζs2 = [1]'
-            ], 'first position statics');
+            'ζs0 = {}',
+            'ζs1 = [" Hello ", "", " "]',
+            'ζs2 = [1]'
+        ], 'first position statics');
 
         assert.equal(await body.template(`(name) => {
             if (test) {
@@ -287,11 +287,11 @@ describe('Code generator', () => {
                 # B {name} #
             }
         }`), [
-                'ζs0 = {}',
-                'ζs1 = [" A ", "", " "]',
-                'ζs2 = [" B ", "", " "]',
-                'ζs3 = [1, 2]'
-            ], 'all / if+else statics');
+            'ζs0 = {}',
+            'ζs1 = [" A ", "", " "]',
+            'ζs2 = [" B ", "", " "]',
+            'ζs3 = [1, 2]'
+        ], 'all / if+else statics');
 
         assert.equal(await body.template(`(name) => {
             # hello #
@@ -373,10 +373,10 @@ describe('Code generator', () => {
             }
             <section/>
         }` ), [
-                'ζs0 = {}',
-                'ζs1 = [" A ", "", " "]',
-                'ζs2 = [2]'
-            ], 'embedded & multiple child nodes statics');
+            'ζs0 = {}',
+            'ζs1 = [" A ", "", " "]',
+            'ζs2 = [2]'
+        ], 'embedded & multiple child nodes statics');
 
         assert.equal(await body.template(`(name) => {
             if (a) {
@@ -413,10 +413,10 @@ describe('Code generator', () => {
                 <div/>
             }
         }` ), [
-                'ζs0 = {}',
-                'ζs1 = [0]',
-                'ζs2 = [1]'
-            ], 'last statics');
+            'ζs0 = {}',
+            'ζs1 = [0]',
+            'ζs2 = [1]'
+        ], 'last statics');
     });
 
     it("should support js blocks in elements and fragments", async function () {
@@ -1280,6 +1280,25 @@ describe('Code generator', () => {
         assert.deepEqual(t3.importMap, {
             "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζu": 1, "ζend": 1, "ζo": 1, "ζΔD": 1, "ζt": 1
         }, 'imports 3');
+    });
+
+    it("should support $api injection ($api as param)", async function () {
+        const t = await test.template(`(firstName, $api) => {
+            # Hello {firstName} {::lastName} #
+        }`);
+
+        assert.equal(t.function, `(function () {
+        const ζs0 = {}, ζs1 = [" Hello ", "", " ", "", " "];
+        @ζΔD class ζParams {
+            firstName: any;
+        }
+        return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
+            let firstName = $api["firstName"];
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 2, ζe(ζ, 0, firstName), ζo(ζ, 0, ζc? lastName : ζu));
+            ζend(ζ, ζc);
+        }, ζParams);
+        })()` , 'f3');
     });
 
     it("should support optional params", async function () {

@@ -6,7 +6,15 @@ import css from 'rollup-plugin-css-only';
 
 const production = !process.env.ROLLUP_WATCH,
     config = [],
-    names = ['hello', 'greetings', 'clock'];
+    names = [
+        'hello',
+        'clock',
+        'expressions',
+        'subtemplates',
+        'loops',
+        'events',
+        'section'
+        ];
 
 for (let name of names) {
     config.push({

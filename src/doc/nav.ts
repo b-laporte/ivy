@@ -6,7 +6,7 @@ import { ivyLogo } from './common';
 
 
 @Data export class NavigationState {
-    homePage = true;
+    homePage = false;
     pageContent: any = ""; // xtr string or component reference
 }
 export const navState = new NavigationState();

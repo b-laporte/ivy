@@ -28,6 +28,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
     RX_EVT_HANDLER_DECORATOR = /^on(\w+)$/,
     PARAM_VALUE = "paramValue", // @paramValue reserved decorator
     API_ARG = "$",
+    FULL_API_ARG = "$api",
     TPL_ARG = "$template",
     ASYNC = "async",
     SVG = "svg",
@@ -274,6 +275,8 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
                 }
             } else if (arg.name === TPL_ARG) {
                 injectTpl = true;
+            } else if (arg.name === FULL_API_ARG) {
+                // $api injection - nothing to do as it is already in the argument list
             } else if (!argClassName) {
                 argInit.push(arg.name + ' = $api["' + arg.name + '"]')
                 switch (arg.typeRef) {

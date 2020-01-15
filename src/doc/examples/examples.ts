@@ -101,7 +101,10 @@ const mainLayout = template(`(state:PageState) => {
         </>
         <div class="blockB2">
             if (item.code) {
-                <iframe class="clock" src={"/examples/" + item.code + "/"}/>
+                <div class="demo">
+                    <h1> # live demo # </>
+                    <iframe class="clock" src={"/examples/" + item.code + "/"}/>
+                </>
             }
             
         </>

@@ -628,7 +628,7 @@ function parse$1(tpl, filePath, lineOffset, columnOffset) {
                 else if (lookup(V_RW)) {
                     advance(V_RW);
                     nd.defaultValue = currentText();
-                    console.log("default value as variable: ", nd.defaultValue);
+                    console.log("TODO: support default value as variable: ", nd.defaultValue);
                 }
                 else {
                     // console.log(cNode)
@@ -1402,7 +1402,7 @@ function parse$1(tpl, filePath, lineOffset, columnOffset) {
 }
 
 var RX_DOUBLE_QUOTE = /\"/g, RX_START_CR = /^\n*/, RX_LOG = /\/\/\s*log\s*/, RX_EVT_HANDLER_DECORATOR = /^on(\w+)$/, PARAM_VALUE = "paramValue", // @paramValue reserved decorator
-API_ARG = "$", TPL_ARG = "$template", ASYNC = "async", SVG = "svg", XMLNS = "xmlns", XMLNS_VALUES = {
+API_ARG = "$", FULL_API_ARG = "$api", TPL_ARG = "$template", ASYNC = "async", SVG = "svg", XMLNS = "xmlns", XMLNS_VALUES = {
     "xhtml": "http://www.w3.org/1999/xhtml",
     "html": "http://www.w3.org/1999/xhtml",
     "svg": "http://www.w3.org/2000/svg",
@@ -1619,6 +1619,7 @@ function templateStart(indent, tf, gc) {
             else if (arg.name === TPL_ARG) {
                 injectTpl = true;
             }
+            else if (arg.name === FULL_API_ARG) ;
             else if (!argClassName) {
                 argInit.push(arg.name + ' = $api["' + arg.name + '"]');
                 switch (arg.typeRef) {
@@ -4157,12 +4158,14 @@ function parse$3(xtr, context) {
                     // capture string
                     if (cc === CHAR_BANG) {
                         // escaped chars
+                        var newPcc = pcc;
                         cc = eat(CHAR_BANG); // !
                         var escValue = ESCAPED_CHARS["" + cc];
                         if (escValue !== U$1) {
                             lastIsSpace = (cc === CHAR_s || cc === CHAR_n);
                             moveNext();
                             charCodes.push(escValue);
+                            pcc = newPcc;
                         }
                         else {
                             charCodes.push(CHAR_BANG);

@@ -191,7 +191,7 @@ describe('Event emitters', () => {
             <*hello #hello2 
                 name="World2" 
                 @onhello={e=>trackEvent(e)} />
-        }`);
+        }`, trackEvent);
 
         let t = getTemplate(test, body).render();
 

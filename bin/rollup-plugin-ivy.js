@@ -4817,7 +4817,7 @@ function parse$3(xtr, context) {
     });
 }
 
-var SK$1 = SyntaxKind, TEMPLATE = "template", RX_START_WS = /^(\s*)/, RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/, RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/, RX_LOG$2 = /\/\/\s*ivy?\:\s*log/, RX_BACK_TICK = /\`/g, RX_LIST = /List$/, IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"], CR$2 = "\n", XTR_NAME = "xtr", SEPARATOR$1 = "----------------------------------------------------------------------------------------------------";
+var SK$1 = SyntaxKind, TEMPLATE = "template", RX_START_WS = /^(\s*)/, RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/, RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/, RX_LOG$2 = /\/\/\s*ivy?\:\s*log/, RX_BACK_TICK = /\`/g, RX_DOLLAR = /\$/g, RX_LIST = /List$/, IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"], CR$2 = "\n", XTR_NAME = "xtr", SEPARATOR$1 = "----------------------------------------------------------------------------------------------------";
 function process(source, options) {
     return __awaiter(this, void 0, void 0, function () {
         function log(title, forceLog) {
@@ -5157,7 +5157,7 @@ function processXtrString(src, filePath, lineNbr, colNbr, preProcessors) {
                     return [4 /*yield*/, parse$3(xtr, ctxt)];
                 case 1:
                     root = _a.sent();
-                    return [2 /*return*/, "`" + root.toString("", "", true, false).replace(RX_BACK_TICK, "\\`") + "`"];
+                    return [2 /*return*/, "`" + root.toString("", "", true, false).replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`"];
             }
         });
     });

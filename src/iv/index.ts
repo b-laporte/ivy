@@ -1,7 +1,7 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject, touch } from '../trax';
 import { logNodes } from '../test/utils';
-import {xtr as _xtr} from '../xtr/xtr';
+import { xtr as _xtr } from '../xtr/xtr';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -795,7 +795,7 @@ export function ζelt(v: IvView, cm: boolean, idx: number, parentLevel: number, 
     let e = v.createElement(name);
 
     if (staticAttributes) {
-        let len = staticAttributes.length;
+        const len = staticAttributes.length;
         for (let i = 0; len > i; i += 2) {
             e.setAttribute(staticAttributes[i], staticAttributes[i + 1]);
             // setAttribute(e, staticAttributes[i], staticAttributes[i + 1]);
@@ -1133,9 +1133,9 @@ export function ζcntD(v: IvView, cm: boolean, idx: number, parentLevel: number,
 export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parentLevel: number, exprCptRef: any, callImmediately: number, labels?: any[] | 0, staticParams?: any[] | 0, dynParamNames?: string[]) {
     let container: IvCptContainer;
     // console.log("ζcpt", cm, v.uid, "idx: " + idx, exprCptRef)
+    iFlag = iFlag || 0;
     if (cm) {
         // creation mode
-        iFlag = iFlag || 0;
 
         // create cpt container if not already done in ζcptD
         container = (v.nodes![idx] as IvCptContainer) || ζcnt(v, cm, idx, parentLevel, 2) as IvCptContainer;
@@ -1181,8 +1181,9 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
     if (dynParamNames) {
         container.dynamicParams = {};
     }
-    if (callImmediately) {
-        // callImmediately must be false when iFlag>0
+    if (iFlag === 0 && callImmediately) {
+        // callImmediately will be true if there are no child elements
+        // even if iFlag>0
         ζcall(v, idx, container, labels, dynParamNames);
     }
 }
@@ -1191,6 +1192,9 @@ export function ζcptD(v: IvView, cm: boolean, iFlag: number, idx: number, paren
     // component will be created to hold data nodes - but not fully initialized
     ζcpt(v, cm, iFlag, idx, parentLevel, exprCptRef, callImmediately, labels, staticParams, dynParamNames);
     addInstruction(v, initContainer, [v, v.nodes![idx], parentLevel]);
+    if (callImmediately) {
+        addInstruction(v, ζcall, [v, idx, 0, labels, dynParamNames]);
+    }
 }
 
 // Component call - used when a component has content, params or param nodes
@@ -1440,7 +1444,12 @@ export function ζatt(v: IvView, iFlag: number, eltIdx: number, name: string, ex
     if (expr === ζu) return;
     let val = getExprValue(v, iFlag, expr);
     if (val !== ζu) {
-        (v.nodes![eltIdx] as IvNode).domNode.setAttribute(name, val);
+        const nd = (v.nodes![eltIdx] as IvNode).domNode;
+        if (val === undefined) {
+            nd.removeAttribute(name);
+        } else {
+            nd.setAttribute(name, val);
+        }
     }
 }
 
@@ -1594,10 +1603,19 @@ export function ζbind(v: IvView, cm: boolean, iFlag: number, eltIdx: number, bi
                 propertyHolder: propertyHolder,
                 propertyName: propertyName as any,
                 watchFn: watch(api, function () {
-                    let newVal = api[name];
+                    const newVal = api[name], holder = b.propertyHolder;
                     // console.log("ζbind watch call:", newVal)
-                    if (b.propertyHolder !== U && b.propertyHolder !== null && b.propertyName !== U) {
-                        b.propertyHolder[b.propertyName] = newVal;
+                    if (holder !== U && holder !== null && b.propertyName !== U && holder[b.propertyName] !== newVal) {
+                        const v = version(holder);
+                        if (v===0 || v % 2 === 1) {
+                            // object is new or being changed -> delay update
+                            Promise.resolve().then(() => {
+                                holder[b.propertyName] = newVal;
+                            })
+                        } else {
+                            // object is stable => update now
+                            holder[b.propertyName] = newVal;
+                        }
                     }
                 }) as any
             }
@@ -1890,7 +1908,6 @@ export function ζins(v: IvView, iFlag: number, idx: number, contentExprOr$: any
     }
 
     if (projectionNode.contentView && projectionNode.contentView !== contentView) {
-        console.log("TODO: check once param nodes are available");
         // current projection node is already projecting a view
         removeFromDom(projectionNode.contentView, projectionNode.contentView.nodes![0]);
     }

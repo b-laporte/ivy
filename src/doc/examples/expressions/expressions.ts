@@ -11,7 +11,9 @@ const samples = template(`(data, text = "[no text]") => {
     <div [className]={data.className}> # This text should be blue # </div>
     <div class={data.cls}> # This text should be green # </div>
     <div> #{data.txt + "!"}# </div>
-    <div class="dynamic" title=123> # This is also dynamic: {processText(text)} # </div>
+    <div class="dynamic" title=123> 
+        # This is also dynamic: {processText(text)} # 
+    </div>
     <div> # This will be set only once: {::processText(text)} # </div>
     <div class="info blue"> # >>> Click to refresh # </div>
 }`);
@@ -23,7 +25,10 @@ let data = {
     cls: "green",
     txt: "Dynamic text"
 }
-const sample = samples().attach(document.body).render({ data, text: "Hello ivy" });
+const sample = samples().attach(document.body).render({
+    data,
+    text: "Hello ivy"
+});
 
 // @@extract: update
 let count = 0;

@@ -13,7 +13,15 @@ const production = !process.env.ROLLUP_WATCH,
         'subtemplates',
         'loops',
         'events',
-        'section'
+        'section',
+        'trax1',
+        'trax2',
+        'menu1',
+        'menu2',
+        'controller1',
+        'controller2',
+        'photos',
+        'tabs'
         ];
 
 for (let name of names) {

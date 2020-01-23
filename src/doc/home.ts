@@ -54,7 +54,7 @@ export default xtr`
                     </>
                     <p class="details">
                         based on 3 pillars: a <b> JS template engine,</> a <b> state managmenent </> solution (aka. trax)
-                        and a powerful <b> template syntax </> (aka. XJS).
+                        and a flexible <b> template syntax </> (aka. XJS).
                     </>
                 </>
             </>

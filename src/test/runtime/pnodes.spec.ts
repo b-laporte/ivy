@@ -849,7 +849,7 @@ describe('Param Nodes', () => {
             optionList.forEach((item) => {
                 <item data-id={item.id}> # {item.text} # </item>
             })
-        </menu>
+        </menu>    
     }`);
 
     it("should support a lists of param nodes on component (static)", function () {

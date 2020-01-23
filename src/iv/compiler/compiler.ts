@@ -18,6 +18,7 @@ const SK = ts.SyntaxKind,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_BACK_TICK = /\`/g,
+    RX_DOLLAR = /\$/g,
     RX_LIST = /List$/,
     IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"],
     CR = "\n",
@@ -374,7 +375,7 @@ async function processXtrString(src: string, filePath: string, lineNbr: number, 
     };
 
     const root: XtrFragment = await parse(xtr, ctxt);
-    return "`" + root.toString("", "", true, false).replace(RX_BACK_TICK, "\\`") + "`";
+    return "`" + root.toString("", "", true, false).replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`";
 }
 
 function getLineInfo(src: string, pos: number): { lineNbr: number, lineContent: string, columnNbr: number } {

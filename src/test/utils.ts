@@ -292,6 +292,11 @@ export class ElementNode {
         return s ? s : null;
     }
 
+    removeAttribute(key:string) {
+        let k = "a:" + key;
+        delete this[k];
+    }
+
     set className(v: string) {
         this["$className"] = v;
         incrementChanges(this, "$className");

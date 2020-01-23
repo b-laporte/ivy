@@ -1941,7 +1941,7 @@ describe('Content Components', () => {
                     # 2nd Message in panel: {message} #
                 </>
             </>
-        }`);
+        }`, panel);
 
         let t = getTemplate(tpl, body).render({ type: "info", open: true, message: "Hello" });
         assert.equal(stringify(t), `

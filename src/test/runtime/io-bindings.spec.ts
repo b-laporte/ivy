@@ -435,7 +435,7 @@ describe('Bindings', () => {
             <*section>
                 <*editor #edi text={=user.alias} />
             </>
-        }`);
+        }`, editor);
 
         let usr = new User();
         usr.alias = "Alan";

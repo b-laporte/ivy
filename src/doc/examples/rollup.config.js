@@ -21,8 +21,11 @@ const production = !process.env.ROLLUP_WATCH,
         'controller1',
         'controller2',
         'photos',
-        'tabs'
-        ];
+        'tabs',
+        'labels1',
+        'labels2',
+        'labels3'
+    ];
 
 for (let name of names) {
     config.push({

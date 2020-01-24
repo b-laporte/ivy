@@ -1,3 +1,4 @@
+import { NavController } from './../../../bin/iv/router.d';
 import { xtr } from '../../xtr/xtr';
 
 const hello = xtr`
@@ -417,6 +418,86 @@ const tabs = xtr`
     <*code @@extract="tabs/tabset.ts#template"/>
 `;
 
+const labels1 = xtr`
+    <div class="text">
+        <h1> Labels </>
+        <p>
+            New concepts:
+            - labels as a mean to get a reference to dom elements
+            - query() method to retrieve template elements
+        </>
+    </>
+    <*code @@extract="labels1/labels1.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels1/labels1.ts#focusTitle"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels1/labels1.ts#focus3rd"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels1/labels1.ts#focusNext"/>
+`;
+
+const labels2 = xtr`
+    <div class="text">
+        <h1> $template injection </>
+        <p>
+            New concepts:
+            - $template injection in template function
+            - $template injection in template NavController
+            - labels and query() from controller methods
+        </>
+    </>
+    <*code @@extract="labels2/labels2.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels2/labels2.ts#template"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels2/labels2.ts#controller"/>
+`;
+
+const labels3 = xtr`
+    <div class="text">
+        <h1> Component API methods </>
+        <p>
+            New concepts:
+            - exposing methods on component APIs
+            - labels on components
+            - query() to retrieve component public APIs
+        </>
+    </>
+    <*code @@extract="labels3/labels3.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels3/labels3.ts#actions"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="labels3/labels3.ts#item-component"/>
+`;
+
 const todo = xtr`
     <div class="text">
         <h1> Under Construction </>
@@ -459,13 +540,19 @@ export default {
         title: "components",
         code: "components",
         items: [{
-            title: "controllers & API", code: "controller1", content: controller1
+            title: "controllers & APIs", code: "controller1", content: controller1
         }, {
             title: "2-way binding params", code: "controller2", content: controller2
         }, {
             title: "life-cycle hooks", code: "photos", content: photos
         }, {
             title: "parameter nodes", code: "tabs", content: tabs
+        }, {
+            title: "labels", code: "labels1", content: labels1
+        }, {
+            title: "$template injection", code: "labels2", content: labels2
+        }, {
+            title: "public api methods", code: "labels3", content: labels3
         }, {
             title: "svg clock", code: "clock", content: clock
         }]

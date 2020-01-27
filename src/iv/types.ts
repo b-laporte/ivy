@@ -15,6 +15,7 @@ export interface IvContent {
 export interface IvTemplate {
     api: any | undefined;
     controller: any | undefined;
+    uid: number;
     attach(element: any): IvTemplate;
     render(data?: any): IvTemplate;
 

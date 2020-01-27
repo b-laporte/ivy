@@ -57,7 +57,7 @@ interface TemplateController {
  * Template object created at runtime
  */
 export class Template implements IvTemplate {
-    uid = ++TPL_COUNT;
+    _uid = ++TPL_COUNT;
     view: IvView;
     tplApi: any = undefined;
     tplCtl: any = undefined;
@@ -78,7 +78,7 @@ export class Template implements IvTemplate {
         this.watchCb = function () {
             self.notifyChange();
         }
-        this.watchCb["$templateId"] = this.uid;
+        this.watchCb["$templateId"] = this._uid;
         if (this.$Class !== U) {
             if (checkTemplateArgClass(this.$Class, CONTROLLER_FLAG)) {
                 this.hasCtlClass = true;
@@ -86,6 +86,10 @@ export class Template implements IvTemplate {
                 error(this.view, "Type of $ argument must be either a @Controller, an @API or a @Data class");
             }
         }
+    }
+
+    get uid() {
+        return this._uid;
     }
 
     get document() {
@@ -1607,7 +1611,7 @@ export function ζbind(v: IvView, cm: boolean, iFlag: number, eltIdx: number, bi
                     // console.log("ζbind watch call:", newVal)
                     if (holder !== U && holder !== null && b.propertyName !== U && holder[b.propertyName] !== newVal) {
                         const v = version(holder);
-                        if (v===0 || v % 2 === 1) {
+                        if (v === 0 || v % 2 === 1) {
                             // object is new or being changed -> delay update
                             Promise.resolve().then(() => {
                                 holder[b.propertyName] = newVal;

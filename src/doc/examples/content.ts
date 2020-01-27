@@ -1,3 +1,4 @@
+import { Debouncer } from './../../iv/inputs';
 import { NavController } from './../../../bin/iv/router.d';
 import { xtr } from '../../xtr/xtr';
 
@@ -498,6 +499,98 @@ const labels3 = xtr`
     <*code @@extract="labels3/labels3.ts#item-component"/>
 `;
 
+const forms1 = xtr`
+    <div class="text">
+        <h1> Input bindings </>
+        <p>
+            New concepts:
+            - @value input decorator
+            - template uid (instance unique id)
+        </>
+    </>
+    <*code @@extract="forms1/forms1.ts#data-model"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms1/forms1.ts#form"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms1/forms1.ts#value-import"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms1/forms1.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+`;
+
+const forms2 = xtr`
+    <div class="text">
+        <h1> Input binding options </>
+        <p>
+            New concepts:
+            - @value debounce time
+            - @value events specification
+        </>
+    </>
+    <*code @@extract="forms2/forms2.ts#form"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms2/forms2.ts#options"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms2/forms2.ts#options-editor"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+`;
+
+const forms3 = xtr`
+    <div class="text">
+        <h1> Input bindings data conversion </>
+        <p>
+            New concepts:  
+            - @value input2data & data2input
+        </>
+    </>
+    <*code @@extract="forms3/forms3.ts#data-model"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms3/forms3.ts#template"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="forms3/forms3.ts#conversions"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+`;
+
 const todo = xtr`
     <div class="text">
         <h1> Under Construction </>
@@ -555,6 +648,16 @@ export default {
             title: "public api methods", code: "labels3", content: labels3
         }, {
             title: "svg clock", code: "clock", content: clock
+        }]
+    }, {
+        title: "forms",
+        code: "forms",
+        items: [{
+            title: "input bindings", code: "forms1", content: forms1
+        },{
+            title: "debounce & change events", code: "forms2", content: forms2
+        },{
+            title: "data adaptation", code: "forms3", content: forms3
         }]
     }]
 }

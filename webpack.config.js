@@ -73,6 +73,6 @@ module.exports = [{
     },
     output: {
         filename: "samples/[name]/[name].js",
-        path: path.resolve(__dirname, "dist")
+        path: path.resolve(__dirname, "public")
     }
 }];

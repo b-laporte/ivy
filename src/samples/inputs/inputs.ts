@@ -5,7 +5,7 @@ import { value } from "../../iv/inputs";
 const main = template(`($, text:string="hello", option:boolean=true, color:string = "Green", quantity:number=42) => {
     <h3> # Text fields # </h3>
     <div>
-        # Some text (change only): # <input type="text" size=40 @value={=$.text}/>
+        # Some text (change only): # <input type="text" size=40 @value(data={=$.text} events="change")/>
     </>
     <div>
         # Some text (change+input+100ms debounce): # <input type="text" size=40 @value(data={=$.text} events="input" debounce=100)/>
@@ -14,7 +14,7 @@ const main = template(`($, text:string="hello", option:boolean=true, color:strin
         # Some text (change+input+500ms debounce): # <input type="text" size=40 @value(data={=$.text} events="input" debounce=500)/>
     </>
     <div>
-        # Some text (change+input+no debounce): # <input type="text" size=40 @value(data={=$.text} events="input")/>
+        # Some text (change+input+no debounce): # <input type="text" size=40 @value={=$.text}/>
     </>
     <div>
         # You typed: {$.text} # 
@@ -48,13 +48,13 @@ const main = template(`($, text:string="hello", option:boolean=true, color:strin
     </>
     <h3> # Number fields # </h3>
     <div>
-        # Quantity (change only): # <input type="number" size=5 @value={=$.quantity}/>
+        # Quantity (change only): # <input type="number" size=5 @value(data={=$.quantity} events="change")/>
     </>
     <div>
         # Quantity (change+input+200ms debounce): # <input type="number" size=5 @value(data={=$.quantity} events="input" debounce=200)/>
     </>
     <div>
-        # Quantity (change+input+no debounce): # <input type="number" size=5 @value(data={=$.quantity} events="input")/>
+        # Quantity (change+input+no debounce): # <input type="number" size=5 @value={=$.quantity}/>
     </>
     <div>
         # Selected quantity: {$.quantity} # 

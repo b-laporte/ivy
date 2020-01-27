@@ -9,7 +9,7 @@ const VALUE = "value",
 @API class Value {
     @required @defaultParam @io data: any;
     @required $targetElt: IvElement;
-    events: string;                     // semi-colon-separated lists of events that should be listened to, on top of change - e.g. "input;focus;blur"
+    events: string = "input";           // semi-colon-separated lists of events that should be listened to, on top of change - e.g. "input;focus;blur"
     input2data?: Function;              // default depends on input type
     data2input?: Function;              // default depends on input type
     debounce: number = 0;               // debounce time in ms

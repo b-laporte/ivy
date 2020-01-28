@@ -34,11 +34,11 @@ function log(msg: string) {
 }
 
 // @@extract: main
-const main = template(`(tabSelection:string, $api) => {
+const main = template(`(tabSelection:string, $) => {
     <div class="info">
         # Tab Selection: {tabSelection} #
     </>
-    <*tabs selection={=$api.tabSelection}>
+    <*tabs selection={=$.tabSelection}>
         <.tab id="tabA">
             <.title> # tab title # <b> # A # </></>
             <*heavyComponent id="cptA"/>

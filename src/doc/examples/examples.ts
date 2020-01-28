@@ -5,6 +5,7 @@ import { Data } from '../../trax';
 import { template } from '../../iv';
 import { xtrContent } from '../../iv/xtr-renderer';
 import { code } from '../common';
+import { IvContent } from '../../iv/types';
 
 
 @Data export class PageState {
@@ -54,8 +55,30 @@ const menu = template(`(content, state:PageState) => {
     </>
 }`, handleMenuClick);
 
+@Data class Notion {
+    name: string;
+    $content: IvContent;
+}
+const notions = template(`(notionList:Notion[]) => {
+    const len = notionList.length;
+    <div class="notions">
+        <div class="title"> # Notion{len!==1? "s": ""} covered in this example # </>
+        <ul>
+            for (let notion of notionList) {
+                <li class="notion"> 
+                    <span class="name"> #{notion.name}# </>
+                    if (notion.$content) {
+                        #: # <! @content={notion.$content}/>
+                    }
+                </>
+            }
+        </>
+    </>
+}`);
+
 async function resolver(ref: string): Promise<any> {
     if (ref === "code") return code;
+    if (ref === "notions") return notions;
     console.error("UNRESOLVED XTR REFERENCE (examples): " + ref);
     return null;
 }
@@ -102,7 +125,11 @@ const mainLayout = template(`(state:PageState) => {
         <div class="blockB2">
             if (item.code) {
                 <div class="demo">
-                    <h1> # live demo # </>
+                    <h1> 
+                        <a href={"/examples/" + item.code + "/"} target="_blank"
+                            title="Open demo in a separate window"
+                        > # live demo # </> 
+                    </>
                     <iframe class="clock" src={"/examples/" + item.code + "/"}/>
                 </>
             }

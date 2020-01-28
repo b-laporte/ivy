@@ -1,5 +1,5 @@
 // @@extract: all
-import { template } from '../../../iv';
+import { template, API } from '../../../iv';
 import { Data } from '../../../trax';
 import { IvContent } from '../../../iv/types';
 import { IvEventEmitter } from './../../../iv/events';
@@ -10,8 +10,8 @@ import { IvEventEmitter } from './../../../iv/events';
     $content: IvContent;
 }
 
-const menu = template(`(optionList: MenuOption[], clickEmitter:IvEventEmitter, $api) => {
-    <div class="menu" @onclick={e=>raiseEvent($api, e.target)}>
+const menu = template(`(optionList: MenuOption[], clickEmitter:IvEventEmitter, $) => {
+    <div class="menu" @onclick={e=>raiseEvent($, e.target)}>
         <ul class="main list">
             for (let option of optionList) {
                 <li class="option" data-code={option.id} @content={option.$content}/>
@@ -20,28 +20,32 @@ const menu = template(`(optionList: MenuOption[], clickEmitter:IvEventEmitter, $
     </>
 }`, MenuOption, IvEventEmitter, raiseEvent);
 
-function raiseEvent($api, target) {
+function raiseEvent(api, target) {
     if (target && target.dataset) {
-        $api.clickEmitter.emit(target.dataset.code);
+        api.clickEmitter.emit(target.dataset.code);
     }
 }
 
 // @@extract: main
-const main = template(`(extraLength=3, message="", $api) => {
+@API class Main {
+    extraLength = 3;
+    message = "";
+}
+const main = template(`($:Main) => {
     <div class="commands">
         # Number of extras: #
-        <button @onclick={=>$api.extraLength++}> # + # </>
-        <button @onclick={=>$api.extraLength--}> # - # </>
+        <button @onclick={=>$.extraLength++}> # + # </>
+        <button @onclick={=>$.extraLength--}> # - # </>
     </div>
-    <*menu @onclick={e=>$api.message="You clicked on item "+e.data}>
+    <*menu @onclick={e => $.message="You clicked on item "+e.data}>
         <.option id="A"> # Value A # </>
         <.option id="B"> # Value B # </>
         <.option id="C"> # Value C # </>
-        for (let i=0;extraLength>i;i++) {
+        for (let i=0;$.extraLength>i;i++) {
             <.option id={"X"+i}> # Extra \#{i} # </>
         }
     </>
-    <div class="logs"> #{message}# </>
+    <div class="logs"> #{$.message}# </>
 }`, menu);
 
 main().attach(document.getElementById("output")).render();

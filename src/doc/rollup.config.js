@@ -12,7 +12,7 @@ export default {
     output: {
         name: 'main',
         dir: 'public',
-        format: 'esm', // iife (immediately-invoked function expression) not supported for code-splitting modules
+        format: 'esm', // iife (immediately-invoked function expression) incompatible with code-splitting modules
         sourcemap: false
     },
     plugins: [

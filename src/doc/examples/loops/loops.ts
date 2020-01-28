@@ -16,6 +16,8 @@ const greetings = template(`(nameList:string[]) => {
         for (let name of nameList) {
             <*row text={name} oddBkg={count % 2 === 1}/>
             count++;
+            // open your console to see those logs
+            console.log("greetings data: ", name, count);
         }
     </>
 }`, row);

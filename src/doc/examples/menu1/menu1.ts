@@ -1,5 +1,5 @@
 // @@extract: all
-import { template } from '../../../iv';
+import { template, API } from '../../../iv';
 import { Data } from '../../../trax';
 import { IvContent } from '../../../iv/types';
 
@@ -17,20 +17,18 @@ import { IvContent } from '../../../iv/types';
 // @@extract: menu
 const menu = template(`(header:MenuHeader, optionList: MenuOption[]) => {
     <div class="menu" @onclick={e=>handleEvent(e.target)}>
-        if (header) {
-            if (header.title) {
-                <div class="title"> # {header.title} # </>
-                if (header.optionList.length) {
-                    // header list
-                    <ul class="header list">
-                        for (let option of header.optionList) {
-                            <li class="option" 
-                                data-code={option.id} 
-                                @content={option.$content}
-                            />
-                        }
-                    </>
-                }
+        if (header && header.title) {
+            <div class="title"> # {header.title} # </>
+            if (header.optionList.length) {
+                // header list
+                <ul class="header list">
+                    for (let option of header.optionList) {
+                        <li class="option" 
+                            data-code={option.id} 
+                            @content={option.$content}
+                        />
+                    }
+                </>
             }
         }
         // main list
@@ -45,17 +43,21 @@ const menu = template(`(header:MenuHeader, optionList: MenuOption[]) => {
 function handleEvent(target) {
     // we should raise an event here (cf. next example)
     if (target && target.dataset) {
-        document.getElementById("logs")!.innerHTML = 
+        document.getElementById("logs")!.innerHTML =
             `You clicked on menu item ${target.dataset.code}`;
     }
 }
 
 // @@extract: main
-const main = template(`(extraLength=3, $api) => {
+@API class MainApi {
+    // @API is a specialized version of @Data
+    extraLength = 3;
+}
+const main = template(`($:MainApi) => {
     <div class="commands">
         # Number of extras: #
-        <button @onclick={=>$api.extraLength++}> # + # </>
-        <button @onclick={=>$api.extraLength--}> # - # </>
+        <button @onclick={=>$.extraLength++}> # + # </>
+        <button @onclick={=>$.extraLength--}> # - # </>
     </div>
     <*menu>
         <.header title="Preferred options:">
@@ -65,7 +67,7 @@ const main = template(`(extraLength=3, $api) => {
         <.option id="A"> # Value A # </>
         <.option id="B"> # Value B # </>
         <.option id="C"> # Value C # </>
-        for (let i=0;extraLength>i;i++) {
+        for (let i=0; $.extraLength>i; i++) {
             <.option id={"X"+i}> # Extra \#{i} # </>
         }
     </>

@@ -7,7 +7,7 @@ import css from 'rollup-plugin-css-only';
 const production = !process.env.ROLLUP_WATCH,
     config = [],
     names = [
-        // 'hello',
+        'hello',
         // 'clock',
         // 'expressions',
         // 'subtemplates',
@@ -28,9 +28,9 @@ const production = !process.env.ROLLUP_WATCH,
         // 'forms1',
         // 'forms2',
         // 'forms3',
-        'innerHTML',
-        'xtr1',
-        'xtr2'
+        // 'innerHTML',
+        // 'xtr1',
+        // 'xtr2'
     ];
 
 for (let name of names) {

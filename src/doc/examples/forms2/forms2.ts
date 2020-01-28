@@ -32,7 +32,7 @@ const optionEditor = template(`(o:ValueOptions,
         evtInput:boolean = true, 
         evtFocus:boolean, 
         evtBlur:boolean, 
-        $api) => {
+        $) => {
     // sync o.events with the individual params
     let events:string[] = [];
     if (evtInput) events.push("input");
@@ -47,9 +47,9 @@ const optionEditor = template(`(o:ValueOptions,
         </>
         <div>
             <div class="lbl"> # Extra events: # </>
-            <label> <input type="checkbox" @value={=$api.evtInput}/> # input # </>
-            <label> <input type="checkbox" @value={=$api.evtFocus}/> # focus # </>
-            <label> <input type="checkbox" @value={=$api.evtBlur}/> # blur # </>
+            <label> <input type="checkbox" @value={=$.evtInput}/> # input # </>
+            <label> <input type="checkbox" @value={=$.evtFocus}/> # focus # </>
+            <label> <input type="checkbox" @value={=$.evtBlur}/> # blur # </>
         </>
         <div>
             <div class="lbl"> # Events value: # </>

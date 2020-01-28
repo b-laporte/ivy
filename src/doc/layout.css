@@ -429,7 +429,7 @@ div.home {
 
 .menu.cat.container {
     border-left: 10px solid #3C3C3C;
-    padding: .4rem 0 .4rem 2rem;
+    padding: .4rem 0 .4rem 1.7rem;
 }
 
 .menu.cat.container.selected {
@@ -443,7 +443,7 @@ div.home {
 }
 
 .menu.cat .content {
-    padding: .2rem 0 .2rem 1.2rem;
+    padding: .2rem 0 .2rem .8rem;
 }
 
 .menu.cat li {
@@ -500,7 +500,12 @@ div.layout2 {
 
 .examples .demo iframe {
     width: 100%;
-    min-height: 700px;
+    min-height: 730px;
+}
+
+.examples .demo a {
+    color: #333;
+    text-decoration: none;
 }
 
 div.text {
@@ -512,4 +517,25 @@ div.text {
 .layout2 h1 {
     font-size: 1.5rem;
     padding-bottom: 1rem;
+}
+
+/* ------------------------------------------------------------------------------ */
+
+.notions {
+    border-left: 5px solid #FF7019;
+    padding: .2rem 0 .2rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.notions .title {
+    font-size: 1.1rem;
+    padding: .2rem 0 .5rem 0;
+}
+
+.notions ul {
+    line-height: 1.3rem;
+}
+
+.notions .name {
+    font-weight: 600;
 }

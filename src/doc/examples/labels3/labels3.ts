@@ -22,8 +22,8 @@ import { IvTemplate, IvContent } from '../../../iv/types';
     }
 }
 
-const item = template(`($:ItemCtl, $api) => {
-    <li #root tabindex=0 @content={$api.$content}/>
+const item = template(`($:ItemCtl) => {
+    <li #root tabindex=0 @content={$.$api.$content}/>
 }`);
 
 // @@extract: main

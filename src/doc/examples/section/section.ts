@@ -25,6 +25,7 @@ const groups = template(`() => {
             # Hello World #
         </>
     </>
+    <hr/>
 }`);
 
 // @@extract: section

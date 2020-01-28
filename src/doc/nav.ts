@@ -24,7 +24,7 @@ router.add({
             ns.homePage = false;
         }
     },
-    "/tutorial/*": router.deferLoad(() => import('./tutorial/tutorial')),
+    // "/tutorial/*": router.deferLoad(() => import('./tutorial/tutorial')),
     "/examples/*": router.deferLoad(() => import('./examples/examples'))
 });
 router.init(navState, window, "#");
@@ -37,7 +37,7 @@ export const navBar = template(`(navState:NavigationState) => {
             </>
             <div class="menu">
                 <ul class="primary">
-                    <li @activeLink="/tutorial"> # tutorial # </li>
+                    // <li @activeLink="/tutorial"> # tutorial # </li>
                     <li @activeLink="/examples"> # examples # </li>
                     <li> # getting-started # </li>
                     <li> # api # </li>

@@ -37,14 +37,15 @@ import { IvContent } from '../../../iv/types';
 
 // @@extract: template
 export const tabs = template(`($:TabsCtl, $api) => {
-    const tabs = $api.tabList, selectedId="";
+    let api = $.$api;
+    const tabs = api.tabList, selectedId="";
     let selectedContent=null, isSelected=false;
     <div class="tabs">
         <ul class="header">
             for (let tab of tabs) {
-                isSelected = $api.selection === tab.id;
+                isSelected = api.selection === tab.id;
                 <li class={"tab " + (isSelected? "selected" : "")} 
-                    @onclick={=> $api.selection = tab.id}
+                    @onclick={=> api.selection = tab.id}
                     @content={tab.title}
                 />
                 if (isSelected) {

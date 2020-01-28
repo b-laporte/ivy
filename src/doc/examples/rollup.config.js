@@ -25,9 +25,12 @@ const production = !process.env.ROLLUP_WATCH,
         // 'labels1',
         // 'labels2',
         // 'labels3',
-        'forms1',
-        'forms2',
-        'forms3'
+        // 'forms1',
+        // 'forms2',
+        // 'forms3',
+        'innerHTML',
+        'xtr1',
+        'xtr2'
     ];
 
 for (let name of names) {

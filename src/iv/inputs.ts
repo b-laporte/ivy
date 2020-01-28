@@ -15,14 +15,13 @@ const VALUE = "value",
     debounce: number = 0;               // debounce time in ms
 }
 export const value = decorator(Value, ($api: Value) => {
-    let input: any,
+    let elt: any,
         inputType = "",
         lastValue = "",
         debouncer: Debouncer | undefined,
         lastEvents = "",
         listeners: { [key: string]: boolean } = {}; // true if event is being listened to
     function changeHandler(e: Event) {
-        // console.log("change", input.checked, input.value)
         if (inputType === "number" && e.type === "input") {
             let d = (e[DATA]);
             if (d === "e" || d === "E" || d === "-" || d === "+") {
@@ -42,12 +41,12 @@ export const value = decorator(Value, ($api: Value) => {
     function updateData() {
         let v: any;
         if (inputType === "text" || inputType === "number") {
-            v = input[VALUE];
+            v = elt[VALUE];
         } else if (inputType === "checkbox") {
-            v = input[CHECKED];
+            v = elt[CHECKED];
         } else if (inputType === "radio") {
-            if (input[CHECKED]) {
-                v = input[VALUE];
+            if (elt[CHECKED]) {
+                v = elt[VALUE];
             } else {
                 return;
             }
@@ -56,15 +55,19 @@ export const value = decorator(Value, ($api: Value) => {
     }
     return {
         $init() {
-            input = $api.$targetElt;
-            if (input.tagName !== "INPUT") {
-                throw "@value can only be used on input elements";
+            elt = $api.$targetElt;
+            if (elt.tagName !== "INPUT" && elt.tagName !== "TEXTAREA") {
+                throw "@value can only be used on input and textarea elements";
             }
-            inputType = input.getAttribute("type");
-            if (SUPPORTED_TYPES.indexOf(inputType) === -1) {
-                throw "Invalid input type '" + inputType + "': @value can only be used on types '" + SUPPORTED_TYPES.join("', '") + "'";
+            if (elt.tagName === "TEXTAREA") {
+                inputType = "text";
+            } else {
+                inputType = elt.getAttribute("type");
+                if (SUPPORTED_TYPES.indexOf(inputType) === -1) {
+                    throw "Invalid input type '" + inputType + "': @value can only be used on types '" + SUPPORTED_TYPES.join("', '") + "'";
+                }
             }
-            input.addEventListener("change", changeHandler, PASSIVE);
+            elt.addEventListener("change", changeHandler, PASSIVE);
         },
         $render() {
             if ($api.input2data === undefined) {
@@ -91,11 +94,11 @@ export const value = decorator(Value, ($api: Value) => {
                 lastValue = $api.data;
                 let val = $api.data2input(lastValue);
                 if (inputType === "text" || inputType === "number") {
-                    input[VALUE] = val;
+                    elt[VALUE] = val;
                 } else if (inputType === "checkbox") {
-                    input[CHECKED] = !!val;
+                    elt[CHECKED] = !!val;
                 } else if (inputType === "radio") {
-                    input[CHECKED] = (val === input[VALUE]);
+                    elt[CHECKED] = (val === elt[VALUE]);
                 }
             }
             if (lastEvents !== $api.events) {
@@ -104,7 +107,7 @@ export const value = decorator(Value, ($api: Value) => {
                 for (let t of oldEvents) {
                     if (t === "change") continue; // change cannot be removed
                     if (newEvents.indexOf(t) < 0 && listeners[t]) {
-                        input.removeEventListener(t, changeHandler, PASSIVE);
+                        elt.removeEventListener(t, changeHandler, PASSIVE);
                         listeners[t] = false;
                     }
                 }
@@ -113,7 +116,7 @@ export const value = decorator(Value, ($api: Value) => {
                 for (let t of newEvents) {
                     if (t === "change") continue; // change is already added
                     if (!listeners[t]) {
-                        input.addEventListener(t, changeHandler, PASSIVE);
+                        elt.addEventListener(t, changeHandler, PASSIVE);
                         listeners[t] = true;
                     }
                 }
@@ -121,14 +124,14 @@ export const value = decorator(Value, ($api: Value) => {
             }
         },
         $dispose() {
-            if (input) {
-                input.removeEventListener("change", changeHandler);
+            if (elt) {
+                elt.removeEventListener("change", changeHandler);
 
                 if (lastEvents !== "") {
                     let oldEvents = lastEvents.split(";");
                     for (let t of oldEvents) {
                         if (t === "change") continue; // change already removed
-                        input.removeEventListener(t, changeHandler, PASSIVE);
+                        elt.removeEventListener(t, changeHandler, PASSIVE);
                     }
                 }
                 lastEvents = "";

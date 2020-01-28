@@ -517,22 +517,14 @@ export function editElt(e: ElementNode, value: string | boolean | number, append
         focusElt(e);
     }
     // todo: check element tagName and type
+    if (e.tagName === "TEXTAREA") {
+        editText();
+        return;
+    }
     if (e.tagName !== "INPUT") return;
     let type = e.getAttribute("type"), vStart: any = undefined, vEnd: any = undefined;
     if (type === "text" || type === "number") {
-        vStart = e["value"] || "";
-        if (!append) {
-            if (vStart !== "") {
-                e["value"] = "";
-                raiseEvent("input", e);
-            }
-        }
-
-        for (let c of "" + value) {
-            e["value"] = (e["value"] || "") + c;
-            raiseEvent("input", e);
-        }
-        vEnd = e["value"];
+        editText();
     } else if (type === "checkbox") {
         vStart = e["checked"] || false;
         e["checked"] = value === true;
@@ -547,6 +539,22 @@ export function editElt(e: ElementNode, value: string | boolean | number, append
         if (vStart !== vEnd) {
             raiseEvent("change", e);
         }
+    }
+
+    function editText() {
+        vStart = e["value"] || "";
+        if (!append) {
+            if (vStart !== "") {
+                e["value"] = "";
+                raiseEvent("input", e);
+            }
+        }
+
+        for (let c of "" + value) {
+            e["value"] = (e["value"] || "") + c;
+            raiseEvent("input", e);
+        }
+        vEnd = e["value"];
     }
 }
 

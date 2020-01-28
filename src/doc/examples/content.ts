@@ -591,6 +591,93 @@ const forms3 = xtr`
     </div>
 `;
 
+const innerHTML = xtr`
+    <div class="text">
+        <h1> Unsafe InnerHTML </>
+        <p>
+            New concepts:  
+            - @unsafeInnerHTML to inject an html string into an element
+        </>
+    </>
+    <*code @@extract="innerHTML/innerHTML.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="innerHTML/innerHTML.ts#innerHTML-import"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+`;
+
+const xtr1 = xtr`
+    <div class="text">
+        <h1> XTR strings </>
+        <p>
+            New concepts:  
+            - xtr strings
+            - @xtrContent decorator to inject XTR content in an element
+        </>
+    </>
+    <*code @@extract="xtr1/xtr1.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="xtr1/xtr1.ts#xtr-import"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="xtr1/xtr1.ts#resolver"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="xtr1/xtr1.ts#template"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+`;
+
+const xtr2 = xtr`
+    <div class="text">
+        <h1> Static XTR strings </>
+        <p>
+            New concepts:
+            - static / pre-processed xtr strings
+            - xtr special chars
+            - cdata sections
+        </>
+    </>
+    <*code @@extract="xtr2/xtr2.ts#content"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="xtr2/xtr2.ts#xtr-import"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+    <*code @@extract="xtr2/xtr2.ts#main"/>
+    <div class="text">
+        <p>
+            Some comment
+        </>
+    </div>
+`;
+
 const todo = xtr`
     <div class="text">
         <h1> Under Construction </>
@@ -658,6 +745,16 @@ export default {
             title: "debounce & change events", code: "forms2", content: forms2
         },{
             title: "data adaptation", code: "forms3", content: forms3
+        }]
+    }, {
+        title: "dynamic content",
+        code: "content",
+        items: [{
+            title: "innerHTML", code: "innerHTML", content: innerHTML
+        },{
+            title: "xtr strings", code: "xtr1", content: xtr1
+        },{
+            title: "static xtr strings", code: "xtr2", content: xtr2
         }]
     }]
 }

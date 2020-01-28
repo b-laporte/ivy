@@ -27,7 +27,7 @@ describe('@value', () => {
     });
 
     @Data class User {
-        firstName: string;
+        firstName: string;w
         lastName: string;
         gender: string;
         checked: boolean;
@@ -77,7 +77,7 @@ describe('@value', () => {
 
     it("should work on text inputs with input events", async function () {
         const tpl = template(`(user:User) => {
-            <input #field type="text" @value(data={=user.firstName} events="input")/>
+            <input #field type="text" @value={=user.firstName}/>
         }`, value);
 
         const usr = new User();
@@ -161,6 +161,47 @@ describe('@value', () => {
             </body>
         `, '3');
         assert.equal(usr.firstName, "Bart", "4");
+    });
+
+    it("should work on textareas", async function () {
+        const tpl = template(`(user:User) => {
+            <textarea #ta @value={=user.firstName}/>
+        }`, value);
+
+        const usr = new User();
+        usr.firstName = "Homer";
+
+        const t = getTemplate(tpl, body).render({ user: usr });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <textarea::E3 value="Homer"/>
+                //::C2 template anchor
+            </body>
+        `, '1');
+        await changeComplete(usr);
+
+        // change the data
+        usr.firstName = "Marge";
+        await changeComplete(usr);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <textarea::E3 value="Marge"/>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        // edit the field
+        const ta = t.query("#ta") as ElementNode;
+        editElt(ta, "!!!", true, false);
+
+        await changeComplete(usr);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <textarea::E3 value="Marge!!!"/>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(usr.firstName, "Marge!!!", "4");
     });
 
     it("should work on checkboxes", async function () {
@@ -311,7 +352,7 @@ describe('@value', () => {
 
         assert.equal(error, `\
             IVY: @value $init hook execution error
-            @value can only be used on input elements
+            @value can only be used on input and textarea elements
             >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
             , "1");
 

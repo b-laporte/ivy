@@ -407,7 +407,7 @@ export async function renderXtrFragment(xf: XtrFragment, htmlElement: any, resol
     xtr?: string;
     fragment?: any; // XtrFragment; -> non trax interfaces cannot be used in @API and @Data
     // todo: support timeout;
-    @required resolver: (ref: string) => Promise<any>;
+    resolver: (ref: string) => Promise<any>;
     doc?: IvDocument;
     @required $targetElt: IvElement;
     completeEmitter: IvEventEmitter;

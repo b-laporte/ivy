@@ -588,6 +588,38 @@ describe('Renderer', () => {
         `, '2');
     });
 
+    it("should allow rendering XTR through @xtrContent w/o resolver (xtr)", async function () {
+        let resolve: (() => void) | undefined;
+        function done() {
+            if (resolve) {
+                resolve()
+            } else {
+                throw "DONE";
+            }
+        }
+        const tpl = template(`(xtrValue) => {
+            <div class="main" @xtrContent(xtr={xtrValue} doc={doc} @oncomplete={done})/>
+        }`, xtrContent, done);
+
+        let t = getTemplate(tpl, body).render({ xtrValue: `<div class="hello"> Hello World </>` });
+
+        // @xtrContent is async, so we need to wait for its completion
+        await new Promise((r: () => void) => {
+            resolve = r; // will be called by done()
+        });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="hello">
+                        #::T5 Hello World #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+    });
+
     it("should allow rendering XTR through @xtrContent (fragment)", async function () {
         let resolve: (() => void) | undefined;
         function done() {

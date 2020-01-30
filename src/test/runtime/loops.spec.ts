@@ -430,4 +430,215 @@ describe('Loops', () => {
             </body>
         `, '3');
     });
+
+    it("should work with if/else child blocks", function () {
+        const tpl = template(`(list, count=0) => {
+            <div class="main">
+                for (let item of list) {
+                    if (item.special) {
+                        <div class="special"> # {item.name} # </>
+                    } else {
+                        <span> # {item.name} # </>
+                    }
+                }
+            </>
+        }`);
+
+        let list: { name: string, special?: boolean }[] = [{ name: "Homer" }, { name: "Marge" }, { name: "Bart" }];
+        const t = getTemplate(tpl, body).render({ list });
+
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <span::E8>
+                        #::T9 Bart #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        list[1].special = true;
+        t.render({ count: 1 }); // count is to force a refresh
+
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <div::E10 a:class="special">
+                        #::T11 Marge #
+                    </div>
+                    <span::E8>
+                        #::T9 Bart #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        list[1].special = false;
+        t.render({ count: 2 }); // count is to force a refresh
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <span::E8>
+                        #::T9 Bart #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        list[0].special = true;
+        list[2].special = true;
+        t.render({ count: 3 }); // count is to force a refresh
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E12 a:class="special">
+                        #::T13 Homer #
+                    </div>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <div::E14 a:class="special">
+                        #::T15 Bart #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+
+        list[0].special = false;
+        list[2].special = false;
+        t.render({ count: 4 }); // count is to force a refresh
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <span::E8>
+                        #::T9 Bart #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
+
+    it("should work with if/if/else child blocks", function () {
+        const tpl = template(`(list, escapeName="", count=0) => {
+            <div class="main">
+                for (let item of list) {
+                    if (item.name!==escapeName) {
+                        if (item.special) {
+                            <div class="special"> # {item.name} # </>
+                        } else {
+                            <span> # {item.name} # </>
+                        }
+                    }
+                }
+            </>
+        }`);
+
+        let list: { name: string, special?: boolean }[] = [{ name: "Homer" }, { name: "Marge" }, { name: "Bart" }, { name: "Lisa" }];
+        const t = getTemplate(tpl, body).render({ list });
+
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <span::E8>
+                        #::T9 Bart #
+                    </span>
+                    <span::E10>
+                        #::T11 Lisa #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ escapeName: "Bart" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <span::E10>
+                        #::T11 Lisa #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        list[1].special = true;
+        t.render({ escapeName: "Bart", count:1 }); // count is to force refresh as list is not a Data list
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <div::E12 a:class="special">
+                        #::T13 Marge #
+                    </div>
+                    <span::E10>
+                        #::T11 Lisa #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+
+        list[1].special = false;
+        t.render({ escapeName: ""});
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 Homer #
+                    </span>
+                    <span::E6>
+                        #::T7 Marge #
+                    </span>
+                    <span::E8>
+                        #::T9 Bart #
+                    </span>
+                    <span::E10>
+                        #::T11 Lisa #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '4');
+    });
 });

@@ -1991,11 +1991,12 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
             } else if (nd.domNode.nodeType === DOCUMENT_FRAGMENT) {
                 return { position: "lastChild", parentDomNd: nd.domNode };
             }
-            // root node has no sibling
+            // root node has no sibling -> look in next view or next node in container
             let pView = v.parentView;
             if (!pView) {
                 return { position: "lastOnRoot", parentDomNd: v.rootDomNode, nextDomNd: v.anchorNode };
             } else {
+                // console.log("> parent view: ", pView.uid, "containing", v.uid);
                 if (v.projectionHost) {
                     // current node is the root of a light-dom that is projected in another container
                     let container = v.projectionHost.hostNode;
@@ -2006,6 +2007,30 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
                         return findNextSiblingDomNd(v.projectionHost.view, container);
                     }
                 } else {
+                    if (v.container && (v.container as IvContainer).subKind === "##block") {
+                        // look in the next views
+                        const cnt = v.container as IvBlockContainer;
+                        const idx = cnt.views.indexOf(v);
+                        if (idx > -1) {
+                            let v2: IvView, sdp2: any;
+                            for (let i = idx + 1; i < cnt.views.length; i++) {
+                                v2 = cnt.views[i];
+                                if (v2.nodes && v2.nodes.length) {
+                                    sdp2 = findFirstDomNd(v2, v2.nodes[0], cnt.domNode);
+                                    if (sdp2) return sdp2;
+                                }
+                            }
+                        }
+                        // look in container pool: next views may not have been detached yet
+                        const pool = cnt.viewPool;
+                        let sdp2: any;
+                        for (let v2 of pool) {
+                            if (v2.nodes && v2.nodes.length && v2.nodes[0].attached) {
+                                sdp2 = findFirstDomNd(v2, v2.nodes[0], cnt.domNode);
+                                if (sdp2) return sdp2;
+                            }
+                        }
+                    }
                     return findNextSiblingDomNd(pView, v.container as IvNode);
                 }
             }

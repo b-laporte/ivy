@@ -1673,36 +1673,14 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
     let nd: IvDecoNode | undefined;
     if (cm) {
         // create decorator
-        let nodes = v.nodes!, parent = nodes[parentIdx], targetElt: any = null, targetApi: any = null, invalidTarget = false;
-        if (parent.kind === undefined) {
-            // parent is a dom elt - cf. xtr renderer
-            targetElt = parent;
-        } else if (parent.kind === "#element") {
-            // todo: check type validity
-            targetElt = parent.domNode;
-        } else if (parent.kind === "#container" && (parent as IvContainer).subKind === "##cpt") {
-            let tpl = (parent as IvCptContainer).template!;
-            targetApi = tpl.api;
-            targetElt = tpl.query("#main");
-        } else {
-            invalidTarget = true;
-        }
+        const nodes = v.nodes!;
         if (decoRef === undefined) {
             error(v, "Undefined decorator reference: @" + decoName);
         } else if (typeof decoRef !== "function" && decoRef["$isDecorator"] !== true) {
             error(v, "Invalid decorator reference: @" + decoName);
-        } else if (invalidTarget) {
-            error(v, "Invalid decorator target for @" + decoName);
         } else {
-            let api = new (decoRef as IvDecorator<any>).$apiClass();
-            if (targetElt !== null && hasProperty(api, "$targetElt")) {
-                api.$targetElt = targetElt;
-            }
-            if (targetApi !== null && hasProperty(api, "$targetApi")) {
-                api.$targetApi = targetApi;
-            }
-            // todo: check @required
-            let deco = (decoRef as IvDecorator<any>)(api);
+            const api = new (decoRef as IvDecorator<any>).$apiClass();
+            const deco = (decoRef as IvDecorator<any>)(api);
             nd = {
                 kind: "#decorator",
                 uid: "deco" + (++uidCount),
@@ -1719,7 +1697,7 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
             nodes[idx] = nd;
 
             if (staticParams) {
-                let len = staticParams.length;
+                const len = staticParams.length;
                 for (let i = 0; len > i; i += 2) {
                     checkDecoParam(v, nd, staticParams[i]);
                     api[staticParams[i]] = staticParams[i + 1];
@@ -1730,12 +1708,9 @@ export function ζdeco(v: IvView, cm: boolean, iFlag: number, idx: number, paren
         nd = v.nodes![idx] as IvDecoNode;
     }
     if (nd !== U) {
-        let api = nd.api;
+        const api = nd.api;
         if (paramMode === 1) {
             setDecoDefaultParam(v, nd, defaultValue);
-        }
-        if (paramMode !== 2) {
-            callDecoInstance(v, cm, nd);
         }
         registerLabels(v, api, labels);
     }
@@ -1762,6 +1737,31 @@ function setDecoDefaultParam(v: IvView, nd: IvDecoNode, value: any): string {
 
 function callDecoInstance(v: IvView, cm: boolean, d: IvDecoNode) {
     if (cm) {
+        const api = d.api, parent = v.nodes![d.parentIdx];
+        let targetElt: any = null, targetApi: any = null, invalidTarget = false;
+
+        if (parent.kind === undefined) {
+            // parent is a dom elt - cf. xtr renderer
+            targetElt = parent;
+        } else if (parent.kind === "#element") {
+            // todo: check type validity
+            targetElt = parent.domNode;
+        } else if (parent.kind === "#container" && (parent as IvContainer).subKind === "##cpt") {
+            let tpl = (parent as IvCptContainer).template!;
+            targetApi = tpl.api;
+            targetElt = tpl.query("#main");
+        } else {
+            // invalid target
+            error(v, "Invalid decorator target for " + d.refName);
+        }
+
+        if (targetElt !== null && hasProperty(api, "$targetElt")) {
+            api.$targetElt = targetElt;
+        }
+        if (targetApi !== null && hasProperty(api, "$targetApi")) {
+            api.$targetApi = targetApi;
+        }
+
         d.validProps = checkRequiredProps(v, d.api, d.refName, DECORATOR_ERRORS);
         if (d.validProps) {
             callLcHook(v, d.instance, "$init", d.refName);
@@ -1776,15 +1776,15 @@ export function ζdecoD(v: IvView, cm: boolean, iFlag: number, idx: number, pare
     addInstruction(v, ζdeco, [v, cm, iFlag, idx, parentIdx, decoName, decoRef, paramMode, defaultValue, staticParams, labels]);
 }
 
-export function ζdecoEnd(v: IvView, cm: boolean, iFlag: number, idx: number) {
+export function ζdecoCall(v: IvView, cm: boolean, iFlag: number, idx: number) {
     let nd = v.nodes![idx] as IvDecoNode;
     if (nd !== U) {
         callDecoInstance(v, cm, nd);
     }
 }
 
-export function ζdecoEndD(v: IvView, cm: boolean, iFlag: number, idx: number) {
-    addInstruction(v, ζdecoEnd, [v, cm, iFlag, idx]);
+export function ζdecoCallD(v: IvView, cm: boolean, iFlag: number, idx: number) {
+    addInstruction(v, ζdecoCall, [v, cm, iFlag, idx]);
 }
 
 // Event listener

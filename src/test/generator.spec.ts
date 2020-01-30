@@ -1756,6 +1756,7 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "x.y.foo", x.y.foo, 1, exp());
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -1767,6 +1768,7 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "a.something", a.something, 0);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -1778,6 +1780,7 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 1, "bar");
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -1791,7 +1794,7 @@ describe('Code generator', () => {
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
             ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 0, exp1()));
             ζpar(ζ, ζc, 0, 1, "z", ζe(ζ, 1, exp2()));
-            ζdecoEnd(ζ, ζc, 0, 1);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -1805,7 +1808,7 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
             ζevt(ζ, ζc, 2, 1, "click", ()=>doSomething(), 1);
-            ζdecoEnd(ζ, ζc, 0, 1);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1a');
         assert.deepEqual(t1.statics, [
@@ -1822,6 +1825,7 @@ describe('Code generator', () => {
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 0, 0, 0, ζs1);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1a');
         assert.deepEqual(t1.statics, [
@@ -1839,7 +1843,7 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
             ζlbl(ζ, 0, 1, "#theThing", exp());
-            ζdecoEnd(ζ, ζc, 0, 1);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1a');
         assert.deepEqual(t1.statics, [
@@ -1854,11 +1858,11 @@ describe('Code generator', () => {
         }`), `
             let ζc = ζinit(ζ, ζs0, 2);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
-            ζcall(ζ, 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
             ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 1, exp1()));
             ζpar(ζ, ζc, 0, 1, "z", ζe(ζ, 2, exp2()));
-            ζdecoEnd(ζ, ζc, 0, 1);
+            ζcall(ζ, 0);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -1873,16 +1877,16 @@ describe('Code generator', () => {
         }`), `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
+            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
+            ζpar(ζ, ζc, 0, 1, "x", ζe(ζ, 1, exp1()));
+            ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 2, exp2()));
             ζ1 = ζviewD(ζ, 1, 0, 2, 0);
             ζc1 = ζ1.cm;
             ζeltD(ζ1, ζc1, 0, 0, "div", 1);
             ζtxtD(ζ1, ζc1, 1, 1, 1, 0, ζs1, 1, [0, exp3()]);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 0);
-            ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
-            ζpar(ζ, ζc, 0, 1, "x", ζe(ζ, 1, exp1()));
-            ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 2, exp2()));
-            ζdecoEnd(ζ, ζc, 0, 1);
+            ζdecoCall(ζ, ζc, 0, 1);
             ζend(ζ, ζc);
         `, '1');
     });
@@ -1903,8 +1907,8 @@ describe('Code generator', () => {
             ζdecoD(ζ1, ζc1, 1, 1, 0, "foo", foo, 2);
             ζparD(ζ1, ζc1, 1, 1, "x", [0, exp1()]);
             ζparD(ζ1, ζc1, 1, 1, "y", [1, exp2()]);
-            ζdecoEndD(ζ1, ζc1, 1, 1);
             ζtxtD(ζ1, ζc1, 1, 2, 1, 0, ζs1, 1, [2, exp3()]);
+            ζdecoCallD(ζ1, ζc1, 1, 1);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 0);
             ζend(ζ, ζc);
@@ -1966,10 +1970,10 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
             ζbind(ζ, ζc, 0, 1, 0, 0, a, "b");
-            ζdecoEnd(ζ, ζc, 0, 1);
             ζdeco(ζ, ζc, 0, 2, 0, "bar", bar, 2);
             ζbind(ζ, ζc, 0, 2, 0, "prop", c, "d");
-            ζdecoEnd(ζ, ζc, 0, 2);
+            ζdecoCall(ζ, ζc, 0, 1);
+            ζdecoCall(ζ, ζc, 0, 2);
             ζend(ζ, ζc);
         `, '1');
 
@@ -1985,10 +1989,10 @@ describe('Code generator', () => {
             ζeltD(ζ1, ζc1, 0, 0, "div", 0);
             ζdecoD(ζ1, ζc1, 1, 1, 0, "foo", foo, 2);
             ζbindD(ζ1, ζc1, 1, 1, 0, 0, a, "b");
-            ζdecoEndD(ζ1, ζc1, 1, 1);
             ζdecoD(ζ1, ζc1, 1, 2, 0, "bar", bar, 2);
             ζbindD(ζ1, ζc1, 1, 2, 0, "prop", c, "d");
-            ζdecoEndD(ζ1, ζc1, 1, 2);
+            ζdecoCallD(ζ1, ζc1, 1, 1);
+            ζdecoCallD(ζ1, ζc1, 1, 2);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 0);
             ζend(ζ, ζc);
@@ -2002,15 +2006,15 @@ describe('Code generator', () => {
             ζbind(ζ, ζc, 0, 0, 0, "xx", x, "x");
             ζbind(ζ, ζc, 0, 0, 1, "yy", y, "y");
             ζbind(ζ, ζc, 0, 0, 2, "zz", z, "z");
-            ζcall(ζ, 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
             ζbind(ζ, ζc, 0, 1, 0, "prop1", c, "d");
             ζbind(ζ, ζc, 0, 1, 1, "prop3", e, "f");
-            ζdecoEnd(ζ, ζc, 0, 1);
             ζdeco(ζ, ζc, 0, 2, 0, "bar", bar, 2);
             ζbind(ζ, ζc, 0, 2, 0, "propA", a, "b");
             ζbind(ζ, ζc, 0, 2, 1, "propB", c, "d");
-            ζdecoEnd(ζ, ζc, 0, 2);
+            ζcall(ζ, 0);
+            ζdecoCall(ζ, ζc, 0, 1);
+            ζdecoCall(ζ, ζc, 0, 2);
             ζend(ζ, ζc);
         `, '3');
     });

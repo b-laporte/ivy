@@ -3,7 +3,7 @@ import { XtrFragment, XtrElement, XtrParam, XtrText } from '../xtr/ast';
 import { parse } from '../xtr/parser';
 import { IvDocument, IvTemplate, IvView, IvNode, IvCptContainer } from './types';
 import { hasProperty, create } from '../trax';
-import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, required, IvElement, decorator, ζdeco, ζdecoEnd, createContainer, ζdecoD, ζdecoEndD, ζfraD } from '.';
+import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, required, IvElement, decorator, ζdeco, ζdecoCall, createContainer, ζdecoD, ζdecoCallD, ζfraD } from '.';
 import { IvEventEmitter } from './events';
 
 interface RenderOptions {
@@ -143,8 +143,8 @@ export async function renderXtrFragment(xf: XtrFragment, htmlElement: any, resol
         // ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
         // ζpar(ζ, ζc, 0, 1, "y", ζe(ζ, 1, exp1()));
         // ζpar(ζ, ζc, 0, 1, "z", ζe(ζ, 2, exp2()));
-        // ζdecoEnd(ζ, ζc, 0, 1);
-        const deco = deferred ? ζdecoD : ζdeco, decoEnd = deferred ? ζdecoEndD : ζdecoEnd;
+        // ζdecoCall(ζ, ζc, 0, 1);
+        const deco = deferred ? ζdecoD : ζdeco, decoEnd = deferred ? ζdecoCallD : ζdecoCall;
 
         if (decorators !== U) {
             // paramMode: 0=no params, 1=default param, 2=multiple params
@@ -182,9 +182,7 @@ export async function renderXtrFragment(xf: XtrFragment, htmlElement: any, resol
                     }
                     idx = v.nodeCount!++;
                     deco(v, true, 0, idx, parentIdx, d.name!, refs[d.name!], paramMode, defaultValue, params);
-                    if (paramMode === 2) {
-                        decoEnd(v, true, 0, idx);
-                    }
+                    decoEnd(v, true, 0, idx);
                 }
             }
         }

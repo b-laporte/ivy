@@ -641,6 +641,16 @@ const forms3 = xtr`
     </div>
 `;
 
+const select = xtr`
+    <div class="text">
+        <h1> Textarea and Select </>
+        <*notions>
+            <.notion name="@value for textarea and select elements"/>
+        </>
+    </>
+    <*code @@extract="select/select.ts#main"/>
+`;
+
 const innerHTML = xtr`
     <div class="text">
         <h1> Unsafe InnerHTML </>
@@ -793,6 +803,8 @@ export default {
             title: "debounce & change events", code: "forms2", content: forms2
         }, {
             title: "data adaptation", code: "forms3", content: forms3
+        }, {
+            title: "textarea & select", code: "select", content: select
         }]
     }, {
         title: "dynamic content",

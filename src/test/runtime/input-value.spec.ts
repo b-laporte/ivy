@@ -45,7 +45,7 @@ describe('@value', () => {
         const t = getTemplate(tpl, body).render({ user: usr });
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="Homer"/>
+                <input::E3 a:type="text" a:value="Homer"/>
                 //::C2 template anchor
             </body>
         `, '1');
@@ -56,7 +56,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="Marge"/>
+                <input::E3 a:type="text" a:value="Marge"/>
                 //::C2 template anchor
             </body>
         `, '2');
@@ -68,7 +68,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="Bart"/>
+                <input::E3 a:type="text" a:value="Bart"/>
                 //::C2 template anchor
             </body>
         `, '3');
@@ -86,7 +86,7 @@ describe('@value', () => {
         const t = getTemplate(tpl, body).render({ user: usr });
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="Homer"/>
+                <input::E3 a:type="text" a:value="Homer"/>
                 //::C2 template anchor
             </body>
         `, '1');
@@ -97,7 +97,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="Marge"/>
+                <input::E3 a:type="text" a:value="Marge"/>
                 //::C2 template anchor
             </body>
         `, '2');
@@ -109,7 +109,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="Marge!!!"/>
+                <input::E3 a:type="text" a:value="Marge!!!"/>
                 //::C2 template anchor
             </body>
         `, '3');
@@ -133,7 +133,7 @@ describe('@value', () => {
         const t = getTemplate(tpl, body).render({ user: usr });
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="::Homer"/>
+                <input::E3 a:type="text" a:value="::Homer"/>
                 //::C2 template anchor
             </body>
         `, '1');
@@ -144,7 +144,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="::Marge"/>
+                <input::E3 a:type="text" a:value="::Marge"/>
                 //::C2 template anchor
             </body>
         `, '2');
@@ -156,7 +156,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="text" value="::Bart"/>
+                <input::E3 a:type="text" a:value="::Bart"/>
                 //::C2 template anchor
             </body>
         `, '3');
@@ -174,7 +174,7 @@ describe('@value', () => {
         const t = getTemplate(tpl, body).render({ user: usr });
         assert.equal(stringify(t), `
             <body::E1>
-                <textarea::E3 value="Homer"/>
+                <textarea::E3 a:value="Homer"/>
                 //::C2 template anchor
             </body>
         `, '1');
@@ -185,7 +185,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <textarea::E3 value="Marge"/>
+                <textarea::E3 a:value="Marge"/>
                 //::C2 template anchor
             </body>
         `, '2');
@@ -197,11 +197,98 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <textarea::E3 value="Marge!!!"/>
+                <textarea::E3 a:value="Marge!!!"/>
                 //::C2 template anchor
             </body>
         `, '3');
         assert.equal(usr.firstName, "Marge!!!", "4");
+    });
+
+    it("should work on select elements", async function () {
+        @Data class FormData {
+            color: string;
+        }
+        const tpl = template(`(data:FormData) => {
+            <select #sel @value={=data.color}>
+                <option value="R"> # Red # </>
+                <option value="G"> # Green # </>
+                <option value="B"> # Blue # </>
+                <option value="W"> # White # </>
+            </>
+        }`, value, FormData);
+
+        const d = new FormData();
+        d.color = "B";
+
+        const t = getTemplate(tpl, body).render({ data:d });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <select::E3 a:value="B">
+                    <option::E4 a:value="R">
+                        #::T5 Red #
+                    </option>
+                    <option::E6 a:value="G">
+                        #::T7 Green #
+                    </option>
+                    <option::E8 a:value="B">
+                        #::T9 Blue #
+                    </option>
+                    <option::E10 a:value="W">
+                        #::T11 White #
+                    </option>
+                </select>
+                //::C2 template anchor
+            </body>
+        `, '1');
+        await changeComplete(d);
+
+        // change the data
+        d.color = "G";
+        await changeComplete(d);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <select::E3 a:value="G">
+                    <option::E4 a:value="R">
+                        #::T5 Red #
+                    </option>
+                    <option::E6 a:value="G">
+                        #::T7 Green #
+                    </option>
+                    <option::E8 a:value="B">
+                        #::T9 Blue #
+                    </option>
+                    <option::E10 a:value="W">
+                        #::T11 White #
+                    </option>
+                </select>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        // edit the field
+        const sel = t.query("#sel") as ElementNode;
+        editElt(sel, "W", true, false);
+        await changeComplete(d);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <select::E3 a:value="W">
+                    <option::E4 a:value="R">
+                        #::T5 Red #
+                    </option>
+                    <option::E6 a:value="G">
+                        #::T7 Green #
+                    </option>
+                    <option::E8 a:value="B">
+                        #::T9 Blue #
+                    </option>
+                    <option::E10 a:value="W">
+                        #::T11 White #
+                    </option>
+                </select>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(d.color, "W", "4");
     });
 
     it("should work on checkboxes", async function () {
@@ -258,7 +345,7 @@ describe('@value', () => {
         const t = getTemplate(tpl, body).render({ user: usr });
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="number" value="42"/>
+                <input::E3 a:type="number" a:value="42"/>
                 //::C2 template anchor
             </body>
         `, '1');
@@ -269,7 +356,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="number" value="43"/>
+                <input::E3 a:type="number" a:value="43"/>
                 //::C2 template anchor
             </body>
         `, '2');
@@ -281,7 +368,7 @@ describe('@value', () => {
         await changeComplete(usr);
         assert.equal(stringify(t), `
             <body::E1>
-                <input::E3 a:type="number" value="44"/>
+                <input::E3 a:type="number" a:value="44"/>
                 //::C2 template anchor
             </body>
         `, '3');
@@ -338,7 +425,7 @@ describe('@value', () => {
         assert.equal(usr.gender, "N", "4");
     });
 
-    it("will raise an error if @value is not used on an input element", function () {
+    it("will raise an error if @value is used on an invalid element", function () {
         const usr = new User();
         usr.firstName = "Homer";
 
@@ -352,7 +439,7 @@ describe('@value', () => {
 
         assert.equal(error, `\
             IVY: @value $init hook execution error
-            @value can only be used on input and textarea elements
+            @value can only be used on input, textarea and select elements
             >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
             , "1");
 

@@ -335,6 +335,16 @@ div.home {
     padding: 2.2rem 0 2rem 2rem;
 }
 
+@media(max-width:1500px) {
+    .code {
+        width: 670px;
+    }
+
+    .extract.ts {
+        width: 870px;
+    }
+}
+
 .code svg.top {
     position: absolute;
     top: -1px;

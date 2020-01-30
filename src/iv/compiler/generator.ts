@@ -539,7 +539,7 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     generateInstruction(siblings: XjsContentNode[], siblingIdx: number, parentLevel: number, iFlag: number, prevKind: string, nextKind: string) {
-        let nd: XjsContentNode = siblings[siblingIdx], content: XjsContentNode[] | undefined = undefined, idx = this.nodeCount;
+        let nd: XjsContentNode = siblings[siblingIdx], idx = this.nodeCount;
         if (nd.kind !== "#jsStatements" && nd.kind !== "#paramNode") {
             this.nodeCount++;
             this.hasChildNodes = true;
@@ -565,8 +565,9 @@ export class ViewInstruction implements RuntimeInstruction {
             case "#textNode":
                 this.rejectAsyncDecorator(nd as XjsText);
                 this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsText)));
-                this.generateDecoratorInstructions(nd, idx, iFlag);
+                const dis = this.generateDecoratorInstructions(nd, idx, iFlag);
                 this.generateDynLabelInstructions(nd as XjsText, idx, iFlag, this);
+                processDecoInstructions(this, dis);
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd as XjsFragment, idx, parentLevel, prevKind, nextKind)) {
@@ -575,8 +576,9 @@ export class ViewInstruction implements RuntimeInstruction {
                         this.instructions.push(new XmlNsInstruction(this, iFlag, true, xmlns));
                     }
                     this.instructions.push(new FraInstruction(nd, idx, this, iFlag, parentLevel));
-                    this.generateDecoratorInstructions(nd, idx, iFlag);
-                    content = nd.content;
+                    const dis = this.generateDecoratorInstructions(nd, idx, iFlag);
+                    processContent(this, nd.content);
+                    processDecoInstructions(this, dis);
                 }
                 break;
             case "#element":
@@ -588,9 +590,10 @@ export class ViewInstruction implements RuntimeInstruction {
                     this.instructions.push(new EltInstruction(nd as XjsElement, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsElement), stParams));
                     this.generateParamInstructions(nd as XjsElement, idx, iFlag, true, this);
                     this.generateDynLabelInstructions(nd as XjsElement, idx, iFlag, this);
-                    this.generateDecoratorInstructions(nd as XjsElement, idx, iFlag);
+                    const dis = this.generateDecoratorInstructions(nd as XjsElement, idx, iFlag);
                     this.createListeners(nd as XjsElement, idx, iFlag, this);
-                    content = nd.content;
+                    processContent(this, nd.content);
+                    processDecoInstructions(this, dis);
                 }
                 break;
             case "#component":
@@ -602,6 +605,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     if (containsParamExpr) {
                         this.generateParamInstructions(nd as XjsComponent, idx, iFlag, false, this);
                     }
+                    const dis = this.generateDecoratorInstructions(nd, idx, iFlag, false, true);
                     this.generateDynLabelInstructions(nd as XjsComponent, idx, iFlag, this);
                     if (nd.content && nd.content.length) {
                         let vi = new ViewInstruction("cptContent", nd as XjsComponent, idx, this, 1);
@@ -622,7 +626,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     if (!callImmediately) {
                         this.instructions.push(new CallInstruction(idx, this, iFlag, ci));
                     }
-                    this.generateDecoratorInstructions(nd, idx, iFlag, false, true);
+                    processDecoInstructions(this, dis);
                 }
                 break;
             case "#paramNode":
@@ -734,10 +738,20 @@ export class ViewInstruction implements RuntimeInstruction {
                 break;
         }
 
-        if (content) {
-            this.scanContent(content, parentLevel + 1, iFlag);
-            if (xmlns) {
-                this.instructions.push(new XmlNsInstruction(this, iFlag, false, xmlns));
+        function processContent(vi: ViewInstruction, content?: XjsContentNode[]) {
+            if (content) {
+                vi.scanContent(content, parentLevel + 1, iFlag);
+                if (xmlns) {
+                    vi.instructions.push(new XmlNsInstruction(vi, iFlag, false, xmlns));
+                }
+            }
+        }
+
+        function processDecoInstructions(vi: ViewInstruction, dis?: DecoInstruction[]) {
+            if (dis) {
+                for (let i = 0; dis.length > i; i++) {
+                    vi.instructions.push(new DecoCallInstruction(dis[i]));
+                }
             }
         }
     }
@@ -964,8 +978,13 @@ export class ViewInstruction implements RuntimeInstruction {
         this.asyncValue = asyncValue;
     }
 
-    generateDecoratorInstructions(nd: XjsComponent | XjsElement | XjsFragment | XjsText, idx: number, iFlag: number, includeBuiltIn = true, includeCustomDecorators = true) {
-        let d = nd.decorators, len1 = this.instructions.length;
+    generateDecoratorInstructions(
+        nd: XjsComponent | XjsElement | XjsFragment | XjsText,
+        idx: number,
+        iFlag: number,
+        includeBuiltIn = true,
+        includeCustomDecorators = true): DecoInstruction[] | undefined {
+        let d = nd.decorators, result: DecoInstruction[] | undefined = undefined;
         if (d) {
             let len = d.length, deco: XjsDecorator, kind = nd.kind, decoRef = "";
             for (let i = 0; len > i; i++) {
@@ -995,12 +1014,21 @@ export class ViewInstruction implements RuntimeInstruction {
                     }
                     this.generateDynLabelInstructions(deco, decoIdx, iFlag, this);
                     this.createListeners(deco, decoIdx, iFlag, this);
-                    if (decoInstr.paramMode === 2) {
-                        this.instructions.push(new DecoCallInstruction(decoInstr));
-                    }
+                    // if (nd.kind === "#textNode") {
+                    //     if (decoInstr.paramMode === 2) {
+                    //         this.instructions.push(new DecoCallInstruction(decoInstr));
+                    //     }
+                    // } else {
+                        if (!result) {
+                            result = [decoInstr];
+                        } else {
+                            result.push(decoInstr);
+                        }
+                    // }
                 }
             }
         }
+        return result;
     }
 
     // return true if some listeners have been created
@@ -1386,26 +1414,26 @@ class DecoInstruction implements RuntimeInstruction {
         body.push(');\n');
 
         if (isDfpBinding) {
+            // e.g. @deco={=a.b}
             // binding idx is always 0 in this case as there is only one expression
             generateBinding(body, (dfp! as XjsExpression).code, this.node, v, this.indent, this.iFlag, this.idx, 0, 0);
 
-            let decoCall = new DecoCallInstruction(this);
-            decoCall.pushCode(body);
+            // let decoCall = new DecoCallInstruction(this);
+            // decoCall.pushCode(body);
         }
     }
 }
 
 class DecoCallInstruction implements RuntimeInstruction {
     constructor(public di: DecoInstruction) {
-        di.view.gc.imports["ζdecoEnd" + getIhSuffix(di.iFlag)] = 1;
+        di.view.gc.imports["ζdecoCall" + getIhSuffix(di.iFlag)] = 1;
     }
 
     pushCode(body: BodyContent[]) {
-        // e.g. ζdecoEnd(ζ, ζc, 0, 1);
+        // e.g. ζdecoCall(ζ, ζc, 0, 1);
         let di = this.di, v = di.view, iSuffix = di.iFlag ? "D" : "";
 
-        body.push(`${di.indent}ζdecoEnd${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${di.iFlag ? 1 : 0}, ${di.idx});\n`);
-
+        body.push(`${di.indent}ζdecoCall${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${di.iFlag ? 1 : 0}, ${di.idx});\n`);
     }
 }
 

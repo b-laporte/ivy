@@ -1881,7 +1881,7 @@ var ViewInstruction = /** @class */ (function () {
     };
     ViewInstruction.prototype.generateInstruction = function (siblings, siblingIdx, parentLevel, iFlag, prevKind, nextKind) {
         var _a;
-        var nd = siblings[siblingIdx], content = undefined, idx = this.nodeCount;
+        var nd = siblings[siblingIdx], idx = this.nodeCount;
         if (nd.kind !== "#jsStatements" && nd.kind !== "#paramNode") {
             this.nodeCount++;
             this.hasChildNodes = true;
@@ -1906,8 +1906,9 @@ var ViewInstruction = /** @class */ (function () {
             case "#textNode":
                 this.rejectAsyncDecorator(nd);
                 this.instructions.push(new TxtInstruction(nd, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd)));
-                this.generateDecoratorInstructions(nd, idx, iFlag);
+                var dis = this.generateDecoratorInstructions(nd, idx, iFlag);
                 this.generateDynLabelInstructions(nd, idx, iFlag, this);
+                processDecoInstructions(this, dis);
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd, idx, parentLevel, prevKind, nextKind)) {
@@ -1916,8 +1917,9 @@ var ViewInstruction = /** @class */ (function () {
                         this.instructions.push(new XmlNsInstruction(this, iFlag, true, xmlns));
                     }
                     this.instructions.push(new FraInstruction(nd, idx, this, iFlag, parentLevel));
-                    this.generateDecoratorInstructions(nd, idx, iFlag);
-                    content = nd.content;
+                    var dis_1 = this.generateDecoratorInstructions(nd, idx, iFlag);
+                    processContent(this, nd.content);
+                    processDecoInstructions(this, dis_1);
                 }
                 break;
             case "#element":
@@ -1929,9 +1931,10 @@ var ViewInstruction = /** @class */ (function () {
                     this.instructions.push(new EltInstruction(nd, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd), stParams));
                     this.generateParamInstructions(nd, idx, iFlag, true, this);
                     this.generateDynLabelInstructions(nd, idx, iFlag, this);
-                    this.generateDecoratorInstructions(nd, idx, iFlag);
+                    var dis_2 = this.generateDecoratorInstructions(nd, idx, iFlag);
                     this.createListeners(nd, idx, iFlag, this);
-                    content = nd.content;
+                    processContent(this, nd.content);
+                    processDecoInstructions(this, dis_2);
                 }
                 break;
             case "#component":
@@ -1943,6 +1946,7 @@ var ViewInstruction = /** @class */ (function () {
                     if (containsParamExpr) {
                         this.generateParamInstructions(nd, idx, iFlag, false, this);
                     }
+                    var dis_3 = this.generateDecoratorInstructions(nd, idx, iFlag, false, true);
                     this.generateDynLabelInstructions(nd, idx, iFlag, this);
                     if (nd.content && nd.content.length) {
                         var vi = new ViewInstruction("cptContent", nd, idx, this, 1);
@@ -1963,7 +1967,7 @@ var ViewInstruction = /** @class */ (function () {
                     if (!callImmediately) {
                         this.instructions.push(new CallInstruction(idx, this, iFlag, ci));
                     }
-                    this.generateDecoratorInstructions(nd, idx, iFlag, false, true);
+                    processDecoInstructions(this, dis_3);
                 }
                 break;
             case "#paramNode":
@@ -2075,10 +2079,19 @@ var ViewInstruction = /** @class */ (function () {
                 jsb.scan();
                 break;
         }
-        if (content) {
-            this.scanContent(content, parentLevel + 1, iFlag);
-            if (xmlns) {
-                this.instructions.push(new XmlNsInstruction(this, iFlag, false, xmlns));
+        function processContent(vi, content) {
+            if (content) {
+                vi.scanContent(content, parentLevel + 1, iFlag);
+                if (xmlns) {
+                    vi.instructions.push(new XmlNsInstruction(vi, iFlag, false, xmlns));
+                }
+            }
+        }
+        function processDecoInstructions(vi, dis) {
+            if (dis) {
+                for (var i = 0; dis.length > i; i++) {
+                    vi.instructions.push(new DecoCallInstruction(dis[i]));
+                }
             }
         }
     };
@@ -2309,7 +2322,7 @@ var ViewInstruction = /** @class */ (function () {
         var _a;
         if (includeBuiltIn === void 0) { includeBuiltIn = true; }
         if (includeCustomDecorators === void 0) { includeCustomDecorators = true; }
-        var d = nd.decorators, len1 = this.instructions.length;
+        var d = nd.decorators, result = undefined;
         if (d) {
             var len = d.length, deco = void 0, kind = nd.kind, decoRef = "";
             for (var i = 0; len > i; i++) {
@@ -2341,12 +2354,22 @@ var ViewInstruction = /** @class */ (function () {
                     }
                     this.generateDynLabelInstructions(deco, decoIdx, iFlag, this);
                     this.createListeners(deco, decoIdx, iFlag, this);
-                    if (decoInstr.paramMode === 2) {
-                        this.instructions.push(new DecoCallInstruction(decoInstr));
+                    // if (nd.kind === "#textNode") {
+                    //     if (decoInstr.paramMode === 2) {
+                    //         this.instructions.push(new DecoCallInstruction(decoInstr));
+                    //     }
+                    // } else {
+                    if (!result) {
+                        result = [decoInstr];
                     }
+                    else {
+                        result.push(decoInstr);
+                    }
+                    // }
                 }
             }
         }
+        return result;
     };
     // return true if some listeners have been created
     ViewInstruction.prototype.createListeners = function (nd, parentIdx, iFlag, view) {
@@ -2758,10 +2781,11 @@ var DecoInstruction = /** @class */ (function () {
         }
         body.push(');\n');
         if (isDfpBinding) {
+            // e.g. @deco={=a.b}
             // binding idx is always 0 in this case as there is only one expression
             generateBinding(body, dfp.code, this.node, v, this.indent, this.iFlag, this.idx, 0, 0);
-            var decoCall = new DecoCallInstruction(this);
-            decoCall.pushCode(body);
+            // let decoCall = new DecoCallInstruction(this);
+            // decoCall.pushCode(body);
         }
     };
     return DecoInstruction;
@@ -2769,12 +2793,12 @@ var DecoInstruction = /** @class */ (function () {
 var DecoCallInstruction = /** @class */ (function () {
     function DecoCallInstruction(di) {
         this.di = di;
-        di.view.gc.imports["ζdecoEnd" + getIhSuffix(di.iFlag)] = 1;
+        di.view.gc.imports["ζdecoCall" + getIhSuffix(di.iFlag)] = 1;
     }
     DecoCallInstruction.prototype.pushCode = function (body) {
-        // e.g. ζdecoEnd(ζ, ζc, 0, 1);
+        // e.g. ζdecoCall(ζ, ζc, 0, 1);
         var di = this.di, v = di.view, iSuffix = di.iFlag ? "D" : "";
-        body.push(di.indent + "\u03B6decoEnd" + iSuffix + "(" + v.jsVarName + ", " + v.cmVarName + ", " + (di.iFlag ? 1 : 0) + ", " + di.idx + ");\n");
+        body.push(di.indent + "\u03B6decoCall" + iSuffix + "(" + v.jsVarName + ", " + v.cmVarName + ", " + (di.iFlag ? 1 : 0) + ", " + di.idx + ");\n");
     };
     return DecoCallInstruction;
 }());

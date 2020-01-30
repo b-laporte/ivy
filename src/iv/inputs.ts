@@ -56,12 +56,11 @@ export const value = decorator(Value, ($api: Value) => {
     return {
         $init() {
             elt = $api.$targetElt;
-            if (elt.tagName !== "INPUT" && elt.tagName !== "TEXTAREA") {
-                throw "@value can only be used on input and textarea elements";
+            if (elt.tagName !== "INPUT" && elt.tagName !== "TEXTAREA" && elt.tagName !== "SELECT") {
+                throw "@value can only be used on input, textarea and select elements";
             }
-            if (elt.tagName === "TEXTAREA") {
-                inputType = "text";
-            } else {
+            inputType = "text";
+            if (elt.tagName === "INPUT") {
                 inputType = elt.getAttribute("type");
                 if (SUPPORTED_TYPES.indexOf(inputType) === -1) {
                     throw "Invalid input type '" + inputType + "': @value can only be used on types '" + SUPPORTED_TYPES.join("', '") + "'";

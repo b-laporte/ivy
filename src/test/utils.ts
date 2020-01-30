@@ -282,9 +282,6 @@ export class ElementNode {
         let k = "a:" + key
         this[k] = value; // toUpperCase: to test that value has been set through setAttribute
         incrementChanges(this, k);
-        if (key === "value") {
-            this["value"] = value;
-        }
     }
 
     getAttribute(name: string) {
@@ -292,9 +289,32 @@ export class ElementNode {
         return s ? s : null;
     }
 
-    removeAttribute(key:string) {
+    removeAttribute(key: string) {
         let k = "a:" + key;
         delete this[k];
+    }
+
+    set value(v: any) {
+        if (this.tagName === "SELECT") {
+            const len = this.childNodes.length;
+            let val: any, defaultVal = "";
+            for (let i = 0; len > i; i++) {
+                val = this.childNodes[i].value;
+                if (i === 0) {
+                    defaultVal = val || "";
+                }
+                if (val === v) {
+                    this["a:value"] = "" + v;
+                    return;
+                }
+            }
+            this["a:value"] = defaultVal;
+        }
+        this["a:value"] = "" + v;
+    }
+
+    get value() {
+        return this["a:value"];
     }
 
     set className(v: string) {
@@ -520,6 +540,13 @@ export function editElt(e: ElementNode, value: string | boolean | number, append
     if (e.tagName === "TEXTAREA") {
         editText();
         return;
+    } else if (e.tagName === "SELECT") {
+        // todo
+        let v1 = e.value;
+        e.value = value;
+        if (v1 !== e.value) {
+            raiseEvent("change", e);
+        }
     }
     if (e.tagName !== "INPUT") return;
     let type = e.getAttribute("type"), vStart: any = undefined, vEnd: any = undefined;
@@ -542,19 +569,19 @@ export function editElt(e: ElementNode, value: string | boolean | number, append
     }
 
     function editText() {
-        vStart = e["value"] || "";
+        vStart = e["a:value"] || "";
         if (!append) {
             if (vStart !== "") {
-                e["value"] = "";
+                e["a:value"] = "";
                 raiseEvent("input", e);
             }
         }
 
         for (let c of "" + value) {
-            e["value"] = (e["value"] || "") + c;
+            e["a:value"] = (e["a:value"] || "") + c;
             raiseEvent("input", e);
         }
-        vEnd = e["value"];
+        vEnd = e["a:value"];
     }
 }
 

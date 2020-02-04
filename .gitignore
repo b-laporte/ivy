@@ -24,3 +24,5 @@ misc/
 .yarnclean
 .rpt2_cache
 yarn-error.log
+cypress.json
+cypress

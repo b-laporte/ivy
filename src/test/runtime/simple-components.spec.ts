@@ -1,6 +1,8 @@
 import * as assert from 'assert';
 import { template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
+import { Data } from '../../trax';
+import { IvContent } from '../../iv/types';
 
 // Components with no content
 describe('Simple Components', () => {
@@ -714,7 +716,7 @@ describe('Simple Components', () => {
             </body>
         `, '3');
 
-        
+
         t.render({ names: ["Bart", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
@@ -735,5 +737,256 @@ describe('Simple Components', () => {
                 //::C2 template anchor
             </body>
         `, '5');
+    });
+
+    it("should support dynamic references (no params, no content)", function () {
+        const tpl = template(`(cpt) => {
+            <div class="main">
+                <*cpt/>
+            </>
+        }`);
+
+        const cptA = template(`() => {
+            <span> # This is cptA # </>
+        }`);
+
+        const cptB = template(`() => {
+            # Begin #
+            <div> # This is cptB # </>
+            # End #
+        }`);
+
+        const t = getTemplate(tpl, body).render({ cpt: cptA });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4>
+                        #::T5 This is cptA #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ cpt: cptB });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    #::T6 Begin #
+                    <div::E7>
+                        #::T8 This is cptB #
+                    </div>
+                    #::T9 End #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.render({ cpt: cptA });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E10>
+                        #::T11 This is cptA #
+                    </span>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+    });
+
+    it("should support dynamic references (params and content)", function () {
+        const tpl = template(`(cpt, name, message) => {
+            <div class="main">
+                <*cpt {name} type="abc">
+                    # Some content #
+                    <div> # {message} # </>
+                </>
+            </>
+        }`);
+
+        const cptA = template(`(name, type, $content) => {
+            <span class={type}> # This is cptA: name={name} # </>
+            <! @content/>
+        }`);
+
+        const cptB = template(`(name, $content, type) => {
+            # Begin #
+            <div> # This is cptB: name={name} # </>
+            <div class={type} @content/>
+            # End #
+        }`);
+
+        const t = getTemplate(tpl, body).render({ cpt: cptA, name: "Homer", message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E4 a:class="abc">
+                        #::T5 This is cptA: name=Homer #
+                    </span>
+                    #::T6 Some content #
+                    <div::E7>
+                        #::T8 Hello #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ cpt: cptB, name: "Homer", message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    #::T9 Begin #
+                    <div::E10>
+                        #::T11 This is cptB: name=Homer #
+                    </div>
+                    <div::E12 a:class="abc">
+                        #::T6 Some content #
+                        <div::E7>
+                            #::T8 Hello2 # (1)
+                        </div>
+                    </div>
+                    #::T13 End #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.render({ cpt: cptA, name: "Homer2", message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <span::E14 a:class="abc">
+                        #::T15 This is cptA: name=Homer2 #
+                    </span>
+                    #::T6 Some content #
+                    <div::E7>
+                        #::T8 Hello2 # (1)
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
+    });
+
+    it("should support dynamic references (params nodes)", function () {
+        const tpl = template(`(cpt, name, message) => {
+            <div class="main">
+                <*cpt {name} type="abc">
+                    <.header> # {message} # </>
+                    <div> # content {message} # </>
+                    <.option code="a"> # A: {message} # </>
+                    <.option code="b"> # B: {name} # </>
+                </>
+            </>
+        }`);
+
+        @Data class Option {
+            code: string;
+            $content: IvContent;
+        }
+
+        const cptA = template(`(name, type, $content, optionList:Option[], header:IvContent) => {
+            <div class="headerA" @content={header}/>
+            <span class={type}> # This is cptA: name={name} # </>
+            <! @content/>
+            <div class="options">
+                for (let option of optionList) {
+                    <div title={option.code} @content={option.$content} />
+                }
+            </>
+        }`, Option);
+
+        const cptB = template(`(name, $content, optionList:Option[], header:IvContent, type) => {
+            # Begin #
+            <div> # This is cptB: name={name} # </>
+            <div class={type} @content/>
+            <ul>
+                for (let option of optionList) {
+                    <li title={option.code} @content={option.$content} />
+                }
+            </>
+            # End #
+        }`);
+
+        const t = getTemplate(tpl, body).render({ cpt: cptA, name: "Homer", message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="headerA">
+                        #::T5 Hello #
+                    </div>
+                    <span::E6 a:class="abc">
+                        #::T7 This is cptA: name=Homer #
+                    </span>
+                    <div::E8>
+                        #::T9 content Hello #
+                    </div>
+                    <div::E10 a:class="options">
+                        <div::E11 a:title="a">
+                            #::T12 A: Hello #
+                        </div>
+                        <div::E13 a:title="b">
+                            #::T14 B: Homer #
+                        </div>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ cpt: cptB, name: "Homer2", message: "Hello" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    #::T15 Begin #
+                    <div::E16>
+                        #::T17 This is cptB: name=Homer2 #
+                    </div>
+                    <div::E18 a:class="abc">
+                        <div::E8>
+                            #::T9 content Hello #
+                        </div>
+                    </div>
+                    <ul::E19>
+                        <li::E20 a:title="a">
+                            #::T12 A: Hello #
+                        </li>
+                        <li::E21 a:title="b">
+                            #::T14 B: Homer2 # (1)
+                        </li>
+                    </ul>
+                    #::T22 End #
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.render({ cpt: cptA, name: "Homer2", message: "Hello2" });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E23 a:class="headerA">
+                        #::T5 Hello2 # (1)
+                    </div>
+                    <span::E24 a:class="abc">
+                        #::T25 This is cptA: name=Homer2 #
+                    </span>
+                    <div::E8>
+                        #::T9 content Hello2 # (1)
+                    </div>
+                    <div::E26 a:class="options">
+                        <div::E27 a:title="a">
+                            #::T12 A: Hello2 # (1)
+                        </div>
+                        <div::E28 a:title="b">
+                            #::T14 B: Homer2 # (1)
+                        </div>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
     });
 });

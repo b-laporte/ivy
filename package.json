@@ -46,7 +46,8 @@
         "serve": "^11.3.0"
     },
     "dependencies": {
-        "typescript": "^3.5.2",
-        "tslib": "^1.10.0"
+        "cypress": "^3.8.3",
+        "tslib": "^1.10.0",
+        "typescript": "^3.5.2"
     }
 }

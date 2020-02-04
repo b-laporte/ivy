@@ -131,6 +131,7 @@ export interface IvBlockContainer extends IvContainer {
 
 export interface IvCptContainer extends IvContainer, IvParamNodeParent {
     subKind: "##cpt";
+    cptRef: any;                                      // reference to the template factory function
     template: IvTemplate | null;                      // current component template
     data: any;                                        // shortcut to cptTemplate.api
     contentView: IvView | null;                       // light-dom / content view

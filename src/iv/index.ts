@@ -34,6 +34,7 @@ const U = undefined,
     PROP_LOGGER = "$logger",
     RX_EVENT_EMITTER = /^ΔΔ(\w+)Emitter$/,
     RX_TRAX_PROP_PREFIX = /^ΔΔ/,
+    RX_TRAX_PROP_NAME = /^ΔΔ(.+)$/,
     RX_ERROR_ARGS = /([^ ]+)\s([^ ]+)/,
     API_FLAG = "ΔIsAPI",
     CONTROLLER_FLAG = "ΔIsController",
@@ -85,6 +86,15 @@ export class Template implements IvTemplate {
             } else if (!checkTemplateArgClass(this.$Class, API_FLAG) && !isDataObject(this.$Class.prototype)) {
                 error(this.view, "Type of $ argument must be either a @Controller, an @API or a @Data class");
             }
+        }
+    }
+
+    dispose(disconnectFromDom = false) {
+        const v = this.view;
+        this.disconnectObserver();
+        callLcHook(v, this.tplCtl, "$dispose", this.templateName);
+        if (disconnectFromDom && v && v.nodes && v.nodes.length) {
+            removeFromDom(v, v.nodes[0]);
         }
     }
 
@@ -299,9 +309,9 @@ function initApi(view: IvView, api: Object, staticCache: Object) {
     }
 }
 
-function callLcHook(view: IvView, hookHolder: any, hook: "$init" | "$render" | "$beforeRender" | "$afterRender", context: string) {
+function callLcHook(view: IvView, hookHolder: any, hook: "$init" | "$render" | "$beforeRender" | "$afterRender" | "$dispose", context: string) {
     // life cycle hook
-    if (typeof hookHolder[hook] === "function") {
+    if (hookHolder && typeof hookHolder[hook] === "function") {
         try {
             hookHolder[hook]!();
         } catch (ex) {
@@ -1094,6 +1104,7 @@ export function createContainer(idx: number, cmAppend: null | ((n: IvNode, domOn
             attached: true,            // always attached when created
             nextSibling: undefined,
             cmAppend: cmAppend,
+            cptRef: null,
             template: null,         // current component template
             data: null,           // shortcut to cptTemplate.params
             contentView: null,
@@ -1139,40 +1150,8 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
     // console.log("ζcpt", cm, v.uid, "idx: " + idx, exprCptRef)
     iFlag = iFlag || 0;
     if (cm) {
-        // creation mode
-
-        // create cpt container if not already done in ζcptD
+        // creation mode: create cpt container if not already done in ζcptD
         container = (v.nodes![idx] as IvCptContainer) || ζcnt(v, cm, idx, parentLevel, 2) as IvCptContainer;
-
-        if (!container.template) {
-            // even if we are in cm we could already have gone through this code if component is deferred
-            // cf. ζcptD - in which case the template will be defined
-
-            let cptRef = getExprValue(v, iFlag, exprCptRef);
-            if (cptRef === ζu) {
-                error(v, "Invalid component ref")
-                return;
-            }
-            let tpl: Template = container.template = cptRef()!;
-            setParentView(tpl.view, v, container);
-            tpl.disconnectObserver();
-            let p = container.data = tpl.api;
-            if (staticParams) {
-                // initialize static params
-                let len = staticParams.length;
-                if (!p && len) {
-                    error(v, "Invalid parameter: " + staticParams[0]);
-                } else {
-                    for (let i = 0; len > i; i += 2) {
-                        if (hasProperty(p, staticParams[i])) {
-                            p[staticParams[i]] = staticParams[i + 1];
-                        } else {
-                            error(v, "Invalid parameter: " + staticParams[i])
-                        }
-                    }
-                }
-            }
-        }
     } else {
         // update mode
         container = v.nodes![idx] as IvCptContainer;
@@ -1182,6 +1161,35 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
             container.lists.sizes = {};
         }
     }
+
+    const cptRef = getExprValue(v, iFlag, exprCptRef);
+    if (!container.template) {
+        // even if we are in cm we could already have gone through this code if component is deferred
+        // cf. ζcptD - in which case the template will be defined
+        if (cptRef === ζu) {
+            error(v, "Invalid component ref")
+            return;
+        }
+        instantiateCpt();
+    } else if (cptRef !== ζu && container.cptRef !== cptRef) {
+        // dispose previous template and create new one
+        const prevApi = container.data;
+        (container.template as Template).dispose(true);
+        // cleanup previous container?
+        instantiateCpt();
+        // transfer values from old api to new api
+        const newApi = container.data;
+        for (let propName in prevApi) {
+            if (prevApi.hasOwnProperty(propName) && propName.match(RX_TRAX_PROP_NAME)) {
+                const nm = RegExp.$1;
+                if (hasProperty(newApi, nm)) {
+                    // console.log("ζcpt transfer api param: " + nm);
+                    newApi[nm] = prevApi[nm];
+                }
+            }
+        }
+    }
+
     if (dynParamNames) {
         container.dynamicParams = {};
     }
@@ -1189,6 +1197,33 @@ export function ζcpt(v: IvView, cm: boolean, iFlag: number, idx: number, parent
         // callImmediately will be true if there are no child elements
         // even if iFlag>0
         ζcall(v, idx, container, labels, dynParamNames);
+    }
+
+    function instantiateCpt() {
+        const tpl: Template = container.template = cptRef()!;
+        container.cptRef = cptRef;
+        setParentView(tpl.view, v, container);
+        tpl.disconnectObserver();
+        container.data = tpl.api;
+        updateStaticParams(tpl.api);
+    }
+
+    function updateStaticParams(api: any) {
+        if (staticParams) {
+            // initialize static params
+            let len = staticParams.length;
+            if (!api && len) {
+                error(v, "Invalid parameter: " + staticParams[0]);
+            } else {
+                for (let i = 0; len > i; i += 2) {
+                    if (hasProperty(api, staticParams[i])) {
+                        api[staticParams[i]] = staticParams[i + 1];
+                    } else {
+                        error(v, "Invalid parameter: " + staticParams[i])
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1206,7 +1241,6 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
     container = container || v.nodes![idx] as IvCptContainer;
     let tpl = container ? container.template as Template : undefined;
     if (tpl !== undefined) {
-        let cm = v.cm;
         tpl.view.lastRefresh = v.lastRefresh - 1; // will be incremented by refresh()
 
         cleanDataLists(container);
@@ -1219,7 +1253,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
                 tpl.forceRefresh = true;
             }
         }
-        if (cm) {
+        if (tpl.view.cm) {
             // define cmAppend
             tpl.view.cmAppends = [container!.cmAppend!];
         } else {
@@ -1515,7 +1549,7 @@ export function ζparD(v: IvView, cm: boolean, iFlag: number, eltIdx: number, na
 }
 
 function checkCptParam(v: IvView, cm: boolean, nd: IvCptContainer, api: any, name: string) {
-    if (api && (!cm || hasProperty(api, name as string))) {
+    if (api && (!v.cm || hasProperty(api, name as string))) {
         return true;
     }
     let suffix = "";

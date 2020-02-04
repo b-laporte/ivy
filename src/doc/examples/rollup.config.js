@@ -31,7 +31,8 @@ const production = !process.env.ROLLUP_WATCH,
         'innerHTML',
         'xtr1',
         'xtr2',
-        'select'
+        'select',
+        'pages'
     ];
 
 for (let name of names) {

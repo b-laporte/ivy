@@ -34,6 +34,7 @@ const expressions = xtr`
         <*notions>
             <.notion name="binding expressions"> bind JS values to DOM elements and text nodes </>
             <.notion name="attributes vs. properties"> target DOM attributes or properties </>
+            <.notion name="setting or removing attributes"> e.g. to enable or disable an input or button </>
             <.notion name="one-time bindings"> avoid recalculating expressions that don't change (e.g. translation values) </>
             <.notion name="manual re-rendering"> to synchronously (re-)render a template instance </>
         </>
@@ -156,6 +157,25 @@ const events = xtr`
     <*code @@extract="events/events.ts#instantiation"/>
 `;
 
+const pages = xtr`
+    <div class="text">
+        <h1> Dynamic template references </>
+        <*notions>
+            <.notion name="Using dynamic component references"> to implement some kind of visual navigation </>
+        </>
+        <p>
+            Presentation...
+        </>
+    </div>
+    <*code @@extract="pages/pages.ts#main"/>
+    <div class="text">
+        <p>
+            ...
+        </>
+    </div>
+    <*code @@extract="pages/pages.ts#pages"/>
+`;
+
 const section = xtr`
     <div class="text">
         <h1> Templates with content elements </>
@@ -167,7 +187,7 @@ const section = xtr`
             <.notion name="simple param nodes"> to accept multiple content values </>
         </>
         <p>
-            Presentation...
+            Presentation... 
         </>
     </div>
     <*code @@extract="section/section.ts#groups"/>
@@ -397,6 +417,7 @@ const controller2 = xtr`
         <*notions>
             <.notion name="@io params"> to define params that are both input and output </>
             <.notion name="2-way biding expressions"> e.g. {=x.y} </>
+            <.notion name="setting or removing attributes"> e.g. to enable or disable an input or button </>
         </>
         ...
     </>
@@ -761,6 +782,8 @@ export default {
             title: "templates with content", code: "section", content: section
         }, {
             title: "event handlers", code: "events", content: events
+        }, {
+            title: "dynamic references", code: "pages", content: pages
         }]
     }, {
         title: "reactivity",

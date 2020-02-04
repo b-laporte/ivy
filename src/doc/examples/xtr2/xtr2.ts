@@ -61,12 +61,12 @@ const contentC = xtr`
 `;
 
 // @@extract: main
-const main = template(`(selection:string = "A", $api, $template) => {
+const main = template(`(selection:string = "A", $, $template) => {
     const nm = "type" + $template.uid;
     <span> #Choose your content: # </>
-    <label> <input type="radio" name={nm} value="A" @value={=$api.selection}/> # A # </>
-    <label> <input type="radio" name={nm} value="B" @value={=$api.selection}/> # B # </>
-    <label> <input type="radio" name={nm} value="C" @value={=$api.selection}/> # C # </>
+    <label> <input type="radio" name={nm} value="A" @value={=$.selection}/> # A # </>
+    <label> <input type="radio" name={nm} value="B" @value={=$.selection}/> # B # </>
+    <label> <input type="radio" name={nm} value="C" @value={=$.selection}/> # C # </>
 
     <div class="output"> # Output: # </>
     const c = selection==="A"? contentA : (selection==="B"? contentB : contentC);

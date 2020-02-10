@@ -36,7 +36,6 @@ module.exports = [{
     mode: 'production',
     target: 'web',
     entry: {
-        "todomvc": "./src/samples/todomvc/todomvc.ts",
         "triangles": "./src/samples/triangles/triangles.ts",
         "flex": "./src/samples/flex/flex.ts",
         "tree": "./src/samples/tree/tree.ts",

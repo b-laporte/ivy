@@ -58,6 +58,7 @@ export interface IvProjectionHost {
 export interface IvView {
     kind: "#view";
     uid: string;                                                           // unique id (debug)
+    attached: boolean;                                                     // true if the view is projected
     domNode?: any;
     nodes: IvNode[] | null;                                                // list of IvNodes associated to this view
     namespaces: string[] | undefined;                                      // namespace stack - cf. @xmlns or xmlns attributes
@@ -78,7 +79,7 @@ export interface IvView {
     paramNode: IvParamNode | undefined;                                    // the param node the view is attached to (if any)
     createElement: (name: string, namespace?: string) => any;              // create an element on the current namespace if none is provided as default
     nodeCount?: number;                                                    // used by XTR renderer
-    isEmpty: () => boolean;                                                // return true if the view contains DOM nodes (should be used on IvContent views to know if they are empty)
+    isEmpty: () => boolean;                                                // return true if the view doesn't contain DOM nodes (should be used on IvContent views to know if they are empty)
 }
 
 interface ListMetaData {

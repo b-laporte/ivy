@@ -601,7 +601,7 @@ describe('Loops', () => {
         `, '2');
 
         list[1].special = true;
-        t.render({ escapeName: "Bart", count:1 }); // count is to force refresh as list is not a Data list
+        t.render({ escapeName: "Bart", count: 1 }); // count is to force refresh as list is not a Data list
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -620,7 +620,7 @@ describe('Loops', () => {
         `, '3');
 
         list[1].special = false;
-        t.render({ escapeName: ""});
+        t.render({ escapeName: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -640,5 +640,68 @@ describe('Loops', () => {
                 //::C2 template anchor
             </body>
         `, '4');
+    });
+
+    it("should work with *cpt child blocks", function () {
+        const item = template(`(name) => {
+            <div> # {name} # </>
+        }`);
+
+        const tpl = template(`(list) => {
+            <div class="main">
+                for (let name of list) {
+                    <*item {name}/>
+                }
+            </>
+        }`);
+
+        const t = getTemplate(tpl, body).render({ list: ["Homer", "Marge", "Bart"] });
+
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4>
+                        #::T5 Homer #
+                    </div>
+                    <div::E6>
+                        #::T7 Marge #
+                    </div>
+                    <div::E8>
+                        #::T9 Bart #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        t.render({ list: ["Marge"] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4>
+                        #::T5 Marge # (1)
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        t.render({ list: ["Homer", "Marge", "Bart"] });
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4>
+                        #::T5 Homer # (2)
+                    </div>
+                    <div::E6>
+                        #::T7 Marge #
+                    </div>
+                    <div::E8>
+                        #::T9 Bart #
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '3');
     });
 });

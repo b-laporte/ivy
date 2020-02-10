@@ -376,6 +376,7 @@ export function createView(parentView: IvView | null, container: IvContainer | n
     let view: IvView = {
         kind: "#view",
         uid: "view" + (++uidCount),
+        attached: false,
         nodes: null,
         namespace: undefined,
         namespaces: undefined,
@@ -547,12 +548,13 @@ export function ζview(pv: IvView, iFlag: number, containerIdx: number, nbrOfNod
                 view = cnt.views[instanceIdx - 1];
                 if (!view) {
                     if (cnt.viewPool.length > 0) {
-                        // console.log(":: view: retrieve from pool: ", cnt.uid)
                         if (!cnt.insertFn) {
                             cnt.insertFn = getViewInsertFunction(pv, cnt);
                         }
                         view = views[instanceIdx - 1] = cnt.viewPool.shift()!;
+                        // console.log(":: view: retrieve from pool: ", view.uid, "from", cnt.uid);
                         insertInDom(view.nodes![0], cnt.insertFn, 1);
+                        view.attached = true;
                     } else {
                         view = views[instanceIdx - 1] = createView(pv, cnt, 2);
                         view.nodes = new Array(nbrOfNodes);
@@ -653,7 +655,7 @@ function runInstructions(v: IvView) {
 function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
     // determine the append mode
     let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(pv, cnt);
-    // console.log(`findNextSiblingDomNd of ${cnt.uid} position=${position} nextDomNd=${nextDomNd ? nextDomNd.uid : "XX"} parentDomNd=${parentDomNd ? parentDomNd.uid : "XX"}`)
+    // console.log(`:: findNextSiblingDomNd of ${cnt.uid} position=${position} nextDomNd=${nextDomNd ? nextDomNd.uid : "XX"} parentDomNd=${parentDomNd ? parentDomNd.uid : "XX"}`)
     if (position === "beforeChild" || position === "lastOnRoot") {
         return function (n: IvNode, domOnly: boolean) {
             // console.log("cmAppends #2.1", n.uid, domOnly);
@@ -703,6 +705,7 @@ function checkContainer(v: IvView, idx: number, firstTime: boolean) {
                 for (let i = 0; len > i; i++) {
                     view = pool[i];
                     removeFromDom(view, view.nodes![0]);
+                    view.attached = false;
                 }
             }
             bc.previousNbrOfViews = nbrOfViews; // all views are immediately inserted
@@ -731,11 +734,15 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
                 // console.log("forceRefresh #1");
                 tpl.forceRefresh = true;
             }
-            if (root) insertInDom(root, insertFn, 5);
+            if (root) {
+                insertInDom(root, insertFn, 5);
+                tpl.view.attached = true;
+            }
         } else if (k === "##block") {
             let cb = nd as IvBlockContainer, views = cb.views;
             for (let i = 0; views.length > i; i++) {
                 insertInDom(views[i].nodes![0], insertFn, 6);
+                views[i].attached = true;
             }
         }
     }
@@ -743,6 +750,7 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
         let cv = (nd as IvFragment | IvEltNode).contentView;
         if (cv) {
             insertInDom(cv.nodes![0], insertFn, 7);
+            cv.attached = true;
         }
     }
 }
@@ -2050,6 +2058,7 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
                             for (let i = idx + 1; i < cnt.views.length; i++) {
                                 v2 = cnt.views[i];
                                 if (v2.nodes && v2.nodes.length) {
+                                    // console.log(":: next active views")
                                     sdp2 = findFirstDomNd(v2, v2.nodes[0], cnt.domNode);
                                     if (sdp2) return sdp2;
                                 }
@@ -2059,7 +2068,8 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
                         const pool = cnt.viewPool;
                         let sdp2: any;
                         for (let v2 of pool) {
-                            if (v2.nodes && v2.nodes.length && v2.nodes[0].attached) {
+                            if (v2.nodes && v2.nodes.length && v2.attached) {
+                                // console.log(":: next views in pool ", v2.uid)
                                 sdp2 = findFirstDomNd(v2, v2.nodes[0], cnt.domNode);
                                 if (sdp2) return sdp2;
                             }
@@ -2156,12 +2166,12 @@ function getParentDomNd(v: IvView, nd: IvNode) {
 
 function removeFromDom(v: IvView, nd: IvNode) {
     if (!nd || !nd.attached) return;
-    // console.log("removeFromDom", nd.uid);
+    // console.log(":: removeFromDom", nd.uid);
     if (nd.kind === "#text" || nd.kind === "#element") {
         let pdn = getParentDomNd(v, nd);
         nd.attached = false;
         if (pdn) {
-            // console.log("removeChild:", nd.domNode.uid, "in", pdn ? pdn.uid : "XX")
+            // console.log(":: removeChild:", nd.domNode.uid, "in", pdn ? pdn.uid : "XX");
             pdn.removeChild(nd.domNode);
         } else {
             error(v, "Internal error - parent not found for: " + nd.uid);
@@ -2174,7 +2184,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
             for (let i = 0; len > i; i++) {
                 root = views[i].nodes![0];
                 removeFromDom(views[i], root);
-                root.attached = false;
+                views[i].attached = root.attached = false;
                 if (root.kind === "#container" || root.kind === "#fragment") {
                     root.domNode = undefined;
                 }
@@ -2187,7 +2197,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
             let tpl = (nd as IvCptContainer).template as Template
             let nodes = tpl.view.nodes!, root = nodes[0];
             removeFromDom(tpl.view, root);
-            root.attached = false;
+            tpl.view.attached = root.attached = false;
             if (root.kind === "#container" || root.kind === "#fragment") {
                 root.domNode = undefined;
             }

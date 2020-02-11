@@ -33,7 +33,8 @@ const production = !process.env.ROLLUP_WATCH,
         'xtr2',
         'select',
         'pages',
-        'todomvc'
+        'todomvc',
+        'range',
     ];
 
 for (let name of names) {

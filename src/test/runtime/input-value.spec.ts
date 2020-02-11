@@ -34,6 +34,12 @@ describe('@value', () => {
         age: number;
     }
 
+    @Data class Range {
+        min: number;
+        max:number;
+        value:number;
+    }
+
     it("should work on text inputs", async function () {
         const tpl = template(`(user:User) => {
             <input #field type="text" @value={=user.firstName}/>
@@ -458,7 +464,7 @@ describe('@value', () => {
 
         assert.equal(error, `\
             IVY: @value $init hook execution error
-            Invalid input type 'button': @value can only be used on types 'text', 'radio', 'checkbox', 'number'
+            Invalid input type 'button': @value can only be used on types 'text', 'radio', 'checkbox', 'number', 'range'
             >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
             , "1");
 
@@ -484,5 +490,72 @@ describe('@value', () => {
 
         error = "";
     });
+
+    it("should work on range", async function () {
+        let range = new Range();
+        range.min = 0;
+        range.max = 100;
+        range.value = 42;
+
+        const tpl = template(`(range: Range) => {
+            <input #field type="range"
+                min={range.min}
+                max={range.max}
+                @value={=range.value}/>
+        }`, value);
+
+        await changeComplete(range);
+        const t = getTemplate(tpl, body).render({range});
+        assert.equal(stringify(t), `
+            <body::E1>
+                <input::E3 a:type="range" a:min="0" a:max="100" a:value="42"/>
+                //::C2 template anchor
+            </body>
+        `, '1');
+        await changeComplete(range);
+
+        // change the data
+        range.value = 43;
+        await changeComplete(range);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <input::E3 a:type="range" a:min="0" a:max="100" a:value="43"/>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+        // edit the checkbox
+        const field = t.query("#field") as ElementNode;
+        editElt(field, 44, false, true);
+
+        await changeComplete(range);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <input::E3 a:type="range" a:min="0" a:max="100" a:value="44"/>
+                //::C2 template anchor
+            </body>
+        `, '3');
+        assert.equal(range.value, 44, "4");
+    });
+
+    it("will raise an error if the range value is not a number", function () {
+        const data = {
+            value: 'a'
+        };
+        const tpl1 = template(`() => {
+            <input type="range" @value={=data.value}/>
+        }`, data);
+
+        getTemplate(tpl1, body).render({});
+
+        assert.equal(error, `\
+            IVY: @value $render hook execution error
+            Invalid input value 'a': value of input type range shall be an integer
+            >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
+            , "1");
+
+        error = "";
+    });
+
 
 });

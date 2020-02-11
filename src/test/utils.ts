@@ -550,7 +550,7 @@ export function editElt(e: ElementNode, value: string | boolean | number, append
     }
     if (e.tagName !== "INPUT") return;
     let type = e.getAttribute("type"), vStart: any = undefined, vEnd: any = undefined;
-    if (type === "text" || type === "number") {
+    if (type === "text" || type === "number" || type === "range") {
         editText();
     } else if (type === "checkbox") {
         vStart = e["checked"] || false;

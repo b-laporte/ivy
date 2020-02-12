@@ -4,6 +4,23 @@ import * as assert from 'assert';
 
 describe('Code generator', () => {
 
+    it("should support empty templates", async function () {
+        assert.deepEqual(
+            await test.template(`() => {}`),
+            {
+              "body": "\n",
+              "function": "(function () {\nconst ζs0 = {};\nreturn ζt(\"testTpl\", \"test.ts\", ζs0, function (ζ) {\n});\n})()",
+              "importMap": {
+                "ζend": 1,
+                "ζinit": 1,
+                "ζt": 1,
+              },
+              "statics": [
+                "ζs0 = {}"
+              ]
+        }, '1');
+    });
+
     it("should support static text nodes", async function () {
         assert.equal(await body.template(`() => {
             # Hello World #

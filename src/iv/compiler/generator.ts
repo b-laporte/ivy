@@ -130,7 +130,6 @@ export async function compileTemplate(template: string, options: CompilationOpti
 
 function generate(tf: XjsTplFunction, template: string, options: CompilationOptions) {
     let body: BodyContent[] = []; // parts composing the function body (generated strings + included expressions/statements)
-    let root: ViewInstruction;
 
     return generateAll();
 
@@ -142,11 +141,9 @@ function generate(tf: XjsTplFunction, template: string, options: CompilationOpti
             }
         }
 
-        if (tf.content) {
-            root = new ViewInstruction("template", tf, 1, null, 0, gc, tf.indent);
-            root.scan();
-            root.pushCode(body);
-        }
+        const root = new ViewInstruction("template", tf, 1, null, 0, gc, tf.indent);
+        root.scan();
+        root.pushCode(body);
 
         let res: CompilationResult = {};
         if (options.function || options.body) {

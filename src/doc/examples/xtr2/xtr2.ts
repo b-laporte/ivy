@@ -1,4 +1,3 @@
-import { NavController } from './../../../../bin/iv/router.d';
 import { value } from "../../../iv/inputs";
 import { xtrContent } from '../../../iv/xtr-renderer';
 

@@ -6,7 +6,7 @@ function processText(t: string) {
 }
 
 // @@extract: template
-const samples = template(`(data, text = "[no text]") => {
+const samples = template(`(data, text = "[no text]", p:number = pi) => {
     <div title={data.title}> # This text has a dynamic tooltip # </div>
     <div [className]={data.className}> # This text should be blue # </div>
     <div class={data.cls}> # This text should be green # </div>
@@ -15,10 +15,12 @@ const samples = template(`(data, text = "[no text]") => {
         # This is also dynamic: {processText(text)} # 
     </div>
     <div> # This will be set only once: {::processText(text)} # </div>
+    <div> # Pi approximation: {p} # </div>
     <div class="info blue"> # >>> Click to refresh # </div>
 }`);
 
 // @@extract: instantiation
+const pi = 3.14159265358;
 let data = {
     title: "Hello World",
     className: "blue",

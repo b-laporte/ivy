@@ -35,6 +35,7 @@ const production = !process.env.ROLLUP_WATCH,
         'pages',
         'todomvc',
         'range',
+        'variableArgument',
     ];
 
 for (let name of names) {

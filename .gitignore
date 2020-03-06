@@ -1,13 +1,5 @@
 node_modules/
-public/**.d.ts
-public/**/**.d.ts
-public/doc
-public/iv
-public/samples
-public/test
-public/trax
-public/xjs
-public/xtr
+/public
 dist/
 old/
 bin/doc

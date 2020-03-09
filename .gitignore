@@ -2,13 +2,7 @@ node_modules/
 /public
 dist/
 old/
-bin/doc
-bin/iv
-bin/samples
-bin/test
-bin/trax
-bin/xtr
-bin/xjs
+/bin
 misc/
 .idea/
 .DS_STORE

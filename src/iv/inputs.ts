@@ -44,9 +44,13 @@ export const value = decorator(Value, ($api: Value) => {
             v = elt[VALUE];
         } else if (inputType === "range") {
             const value = elt[VALUE];
-            v = parseInt(value);
-            if (isNaN(v)) {
-                throw "Invalid input value '" + value + "': value of input type range shall be an integer";
+            if (value === '') {
+                v = 0;
+            } else {
+                v = parseInt(value);
+                if (isNaN(v)) {
+                    throw "Invalid input value '" + value + "': value of input type range shall be an integer";
+                }
             }
         } else if (inputType === "checkbox") {
             v = elt[CHECKED];

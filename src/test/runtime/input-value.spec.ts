@@ -27,7 +27,7 @@ describe('@value', () => {
     });
 
     @Data class User {
-        firstName: string;w
+        firstName: string;
         lastName: string;
         gender: string;
         checked: boolean;
@@ -36,8 +36,8 @@ describe('@value', () => {
 
     @Data class Range {
         min: number;
-        max:number;
-        value:number;
+        max: number;
+        value: number;
     }
 
     it("should work on text inputs", async function () {
@@ -226,7 +226,7 @@ describe('@value', () => {
         const d = new FormData();
         d.color = "B";
 
-        const t = getTemplate(tpl, body).render({ data:d });
+        const t = getTemplate(tpl, body).render({ data: d });
         assert.equal(stringify(t), `
             <body::E1>
                 <select::E3 a:value="B">
@@ -505,7 +505,7 @@ describe('@value', () => {
         }`, value);
 
         await changeComplete(range);
-        const t = getTemplate(tpl, body).render({range});
+        const t = getTemplate(tpl, body).render({ range });
         assert.equal(stringify(t), `
             <body::E1>
                 <input::E3 a:type="range" a:min="0" a:max="100" a:value="42"/>
@@ -536,6 +536,17 @@ describe('@value', () => {
             </body>
         `, '3');
         assert.equal(range.value, 44, "4");
+
+        // interpret '' as 0
+        editElt(field, '', false, true);
+        await changeComplete(range);
+        assert.equal(stringify(t), `
+            <body::E1>
+                <input::E3 a:type="range" a:min="0" a:max="100" a:value="0"/>
+                //::C2 template anchor
+            </body>
+        `, '5');
+        assert.equal(range.value, 0, "6");
     });
 
     it("will raise an error if the range value is not a number", function () {

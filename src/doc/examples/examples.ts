@@ -126,11 +126,11 @@ const mainLayout = template(`(state:PageState) => {
             if (item.code) {
                 <div class="demo">
                     <h1> 
-                        <a href={"/examples/" + item.code + "/"} target="_blank"
+                        <a href={"./examples/" + item.code + "/"} target="_blank"
                             title="Open demo in a separate window"
                         > # live demo # </> 
                     </>
-                    <iframe class="clock" src={"/examples/" + item.code + "/"}/>
+                    <iframe class="clock" src={"./examples/" + item.code + "/"}/>
                 </>
             }
             

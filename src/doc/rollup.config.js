@@ -2,7 +2,7 @@ import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy'
 import ivy from '../../bin/rollup-plugin-ivy';
 import { terser } from 'rollup-plugin-terser';
-import css from 'rollup-plugin-css-only';
+import postcss from 'rollup-plugin-postcss';
 import { extract } from '../../bin/rollup-plugin-ivy-extract';
 
 const production = !process.env.ROLLUP_WATCH;
@@ -16,8 +16,9 @@ export default {
         sourcemap: false
     },
     plugins: [
-        css({ // must be 1st to remove css imports - those files are watched
-            output: 'public/styles.css'
+        postcss({
+            extract: "public/styles.css",
+            minimize: production
         }),
         ivy({
             preProcessors: { "@@extract": extract }

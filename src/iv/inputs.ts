@@ -3,7 +3,7 @@ import { API, defaultParam, required, IvElement, io, decorator } from ".";
 const VALUE = "value",
     CHECKED = "checked",
     DATA = "data",
-    SUPPORTED_TYPES = ["text", "radio", "checkbox", "number"],
+    SUPPORTED_TYPES = ["text", "radio", "checkbox", "number", "range"],
     PASSIVE = { passive: true }
 
 @API class Value {
@@ -42,6 +42,12 @@ export const value = decorator(Value, ($api: Value) => {
         let v: any;
         if (inputType === "text" || inputType === "number") {
             v = elt[VALUE];
+        } else if (inputType === "range") {
+            const value = elt[VALUE];
+            v = parseInt(value);
+            if (isNaN(v)) {
+                throw "Invalid input value '" + value + "': value of input type range shall be an integer";
+            }
         } else if (inputType === "checkbox") {
             v = elt[CHECKED];
         } else if (inputType === "radio") {
@@ -94,6 +100,11 @@ export const value = decorator(Value, ($api: Value) => {
                 let val = $api.data2input(lastValue);
                 if (inputType === "text" || inputType === "number") {
                     elt[VALUE] = val;
+                } else if (inputType === "range") {
+                    if (!Number.isInteger(val)) {
+                        throw "Invalid input value '" + val + "': value of input type range shall be an integer";
+                    }
+                    elt[VALUE] = `${val}`;
                 } else if (inputType === "checkbox") {
                     elt[CHECKED] = !!val;
                 } else if (inputType === "radio") {

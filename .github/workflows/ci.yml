@@ -20,3 +20,28 @@ jobs:
             yarn-
       - run: yarn --frozen-lockfile
       - run: yarn build-all
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: public
+          path: public
+  gh-pages:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+          path: public
+      - run: rm -rf public/*
+      - uses: actions/download-artifact@v1
+        with:
+          name: public
+      - run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit --allow-empty -a -m "Updating from ${{ github.sha }}"
+          git push origin gh-pages
+        working-directory: ./public

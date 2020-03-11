@@ -49,7 +49,7 @@ describe('Code generation errors', () => {
             }\`);
         `), `
             TRAX: Constructors are not authorized in Data objects
-            File: file.ts - Line 8 / Col 30
+            File: file.ts - Line 8 / Col 31
             Extract: >> constructor() { <<
         `);
     });

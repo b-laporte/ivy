@@ -2,7 +2,7 @@ import { XtrChildElement, XtrCData } from '../xtr/ast';
 import { XtrFragment, XtrElement, XtrParam, XtrText } from '../xtr/ast';
 import { parse } from '../xtr/parser';
 import { IvDocument, IvTemplate, IvView, IvNode, IvCptContainer } from './types';
-import { hasProperty, create } from '../trax';
+import { hasProperty, createProperty } from '../trax';
 import { createView, ζtxtD, ζeltD, ζcptD, ζviewD, ζcallD, ζendD, ζpnode, API, required, IvElement, decorator, ζdeco, ζdecoCall, createContainer, ζdecoD, ζdecoCallD, ζfraD } from '.';
 import { IvEventEmitter } from './events';
 
@@ -226,19 +226,19 @@ export async function renderXtrFragment(xf: XtrFragment, htmlElement: any, resol
                     if (hasProperty(api, ch.name)) {
                         let pnd = api[ch.name];
                         if (!pnd) {
-                            pnd = create(api, ch.name);
+                            pnd = createProperty(api, ch.name);
                         }
                         setParamNode(ch, pnd, api, ch.name);
                     } else if (hasProperty(api, ch.name + "List")) {
                         // first ensure data list exists
                         let list = api[ch.name + "List"];
                         if (!list) {
-                            list = create(api, ch.name + "List");
+                            list = createProperty(api, ch.name + "List");
                         }
                         // then create item
                         let sz = list.length, pnd = list[sz];
                         if (!pnd) {
-                            pnd = create(list, sz);
+                            pnd = createProperty(list, sz);
                         }
                         setParamNode(ch, pnd);
                     } else {

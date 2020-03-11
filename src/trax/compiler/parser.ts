@@ -1,8 +1,12 @@
 import { TraxImport, DataObject, DataProperty, DataType, TraxError } from './types';
 import * as ts from "typescript";
 
-const LOG = "log",
+const RX_LOG = /\/\/\s*log[\s$]/,
     RX_IGNORE_COMMENT = /\/\/\s*trax:\s*ignore/i,
+    RX_LIST_PATTERN = /Array\s*\</,
+    RX_DICT_PATTERN = /(Map\s*\<)|(Set\s*\<)/,
+    RX_REF_DEPTH = /^ref\.depth\(\s*(\d+)\s*\)$/,
+    RX_LEAD_SPACE = /^(\s+)/,
     SK = ts.SyntaxKind;
 
 export interface ParserSymbols {
@@ -58,7 +62,12 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     return result;
 
     function error(message: string, node: ts.Node) {
-        let info = getLineInfo(src, node.pos);
+        const txt = node.getFullText() || "";
+        let shift = 0;
+        if (txt.match(/^(\s+)/)) {
+            shift = RegExp.$1.length;
+        }
+        const info = getLineInfo(src, node.pos + shift);
 
         throw {
             kind: "#Error",
@@ -126,7 +135,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
     }
 
     function processClass(node: ts.ClassDeclaration) {
-        let isData = false, decoPos = 0, printLogs = false;
+        let isData = false, decoPos = 0, printLogs = false, decoNode;
         if (node.decorators) {
             let decorators = node.decorators, idx = decorators.length, d: ts.Decorator;
             while (idx--) {
@@ -135,11 +144,13 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                     if (d.expression.getText() === SYMBOLS.Data) {
                         isData = true;
                         decoPos = d.expression.pos - 1;
+                        decoNode = d;
                         // comment the dataset expression to remove it from generated code (and don't impact line numbers)
                         // this.insert("/* ", d.expression.pos - 1);
                         // this.insert(" */", d.expression.end);
-                    } else if (d.expression.getText() === LOG) {
-                        printLogs = true;
+                        if (node.getFullText().match(RX_LOG)) {
+                            printLogs = true;
+                        }
                     }
                 }
             }
@@ -147,7 +158,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
         if (!isData) return;
 
         if (!node.name) {
-            error("Data class name must be defined", node);
+            error("Data class name must be defined", decoNode);
         }
 
         let obj: DataObject = {
@@ -170,16 +181,20 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 if (m.kind === SK.Constructor) {
                     error("Constructors are not authorized in Data objects", m["body"] || m);
                 } else if (m.kind === SK.GetAccessor) {
+                    // getter
                     // check @computed properties
                     if (m.decorators && m.decorators.length === 1) {
                         if (m.decorators[0].getText() === "@computed") continue;
                     }
-                    error("Unsupported Data accessor", m);
+                    continue; // ok
+                } else if (m.kind === SK.SetAccessor) {
+                    // setter
+                    continue; // ok
                 } else if (m.kind === SK.MethodDeclaration) {
                     if (options && options.acceptMethods) continue;
                     error("Methods cannot be defined in this object", m);
                 } else if (m.kind !== SK.PropertyDeclaration) {
-                    error("Invalid Data object member [kind: " + m.kind + "]", m);
+                    error("Invalid class member in trax object", m);
                 }
 
                 // add $$ in front of the property name
@@ -188,13 +203,16 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                     name: "",
                     namePos: 0,
                     end: m.end,
-                    shallowRef: hasRefDecorator(m),
+                    shallowRef: 0,
+                    shallowRefPos: 0,
                     type: undefined,
                     defaultValue: undefined
                 }, skipProperty = false;
 
+                updateShallowRef(m, prop);
+
                 m.forEachChild((c) => {
-                    if (c.kind === SK.Identifier) {
+                    if (c.kind === SK.Identifier && !prop.name) {
                         prop.name = c.getText();
                         prop.namePos = c.end - prop.name.length;
                     } else if (c.kind === SK.QuestionToken) {
@@ -204,7 +222,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                         if (tp) {
                             prop.type = tp;
                         } else if (!handleDefaultValue(c, prop) && c.kind !== SK.Decorator) {
-                            if (c.kind === SK.CallExpression || c.kind === SK.NewExpression) {
+                            if (c.kind === SK.CallExpression || c.kind === SK.NewExpression || c.kind === SK.Identifier) {
                                 prop.defaultValue = {
                                     pos: c.pos,
                                     end: c.end,
@@ -216,7 +234,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                                 prop.type = { kind: "any" };
                             } else if (c.kind !== SK.Parameter && c.getText() !== "any") {
                                 // console.log(c.getText(), c);
-                                error("Unsupported Syntax [" + c.kind + "]", c);
+                                error("Unsupported use case [" + c.kind + "]", c);
                             }
                         }
                     }
@@ -236,16 +254,27 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
         result!.push(obj);
     }
 
-    function hasRefDecorator(m: ts.ClassElement): boolean {
+    function updateShallowRef(m: ts.ClassElement, prop: DataProperty): number {
         if (m.decorators) {
             let decorators = m.decorators, idx = decorators.length, d: ts.Decorator;
             while (idx--) {
                 d = decorators[idx];
-                let e = d.expression;
-                if (e.getText() === SYMBOLS.ref) return true
+                const e = d.expression.getText();
+
+                if (e === SYMBOLS.ref) {
+                    prop.shallowRef = 1;
+                } else if (e.match(RX_REF_DEPTH)) {
+                    prop.shallowRef = parseInt(RegExp.$1, 10);
+                }
+                if (prop.shallowRef) {
+                    prop.shallowRefPos = d.pos;
+                    if (d.getFullText().match(RX_LEAD_SPACE)) {
+                        prop.shallowRefPos += RegExp.$1.length;
+                    }
+                }
             }
         }
-        return false;
+        return 0;
     }
 
     function getTypeObject(n: ts.Node, raiseErrorIfInvalid = false, canBeUnion = true): DataType | null {
@@ -259,7 +288,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 if (childNd && count === 1) {
                     n = childNd;
                 } else {
-                    error("Unsupported parenthesized type", n);
+                    error("Unsupported case", n);
                 }
             }
             if (n.kind === SK.AnyKeyword) {
@@ -277,9 +306,16 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                     && options.interfaceTypes.indexOf(n.getText()) > -1) {
                     return { kind: "any" }
                 }
+                const ref = n.getText();
+                if (ref.match(RX_LIST_PATTERN)) {
+                    error("Array collections must be defined through the xxx[] notation", n);
+                } else if (ref.match(RX_DICT_PATTERN)) {
+                    error("Maps and Sets are not supported. Please use Dictionary Objects instead", n);
+                }
+
                 return {
                     kind: "reference",
-                    identifier: n.getText()
+                    identifier: ref
                 }
             } else if (n.kind === SK.ArrayType) {
                 return {
@@ -292,10 +328,16 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 if (members && members.length === 1 && members[0].kind === SK.IndexSignature) {
                     let idxSignature = members[0] as ts.IndexSignatureDeclaration, parameters = idxSignature.parameters;
                     if (parameters && parameters.length === 1) {
-                        let tp = getTypeObject(parameters[0].type!);
+                        const idxType = getTypeObject(parameters[0].type!, true, true);
+                        const itmType = getTypeObject(idxSignature.type!, true, true);
+                        if (!idxType || idxType.kind !== "string") {
+                            error("Dictionaries can only be indexed by strings", n);
+                        }
                         return {
                             kind: "dictionary",
-                            itemType: tp!
+                            indexName: parameters[0].name.getText(),
+                            indexType: idxType!,
+                            itemType: itmType!
                         }
                     }
                 }
@@ -311,9 +353,12 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                         } else if (tp.kind === SK.UndefinedKeyword) {
                             canBeUndefined = true;
                         } else {
+                            if (dt !== null) {
+                                error("Multiple data types are not supported", tp);
+                            }
                             dt = getTypeObject(tp, false, false);
                             if (!dt) {
-                                error("Invalid value in union type", tp);
+                                error("Unsupported type", tp);
                                 return null;
                             }
                         }

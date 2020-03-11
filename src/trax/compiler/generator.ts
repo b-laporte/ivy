@@ -2,13 +2,13 @@ import { parse, ParserSymbols, getSymbols, getLineInfo } from './parser';
 import { DataObject, TraxImport, DataProperty, DataType, DataMember, TraxError } from './types';
 
 const PRIVATE_PREFIX = "ΔΔ",
-    CLASS_DECO = "ΔD", RX_LOG = /\/\/\s*trax\:\s*log/,
+    CLASS_DECO = "ΔD",
     RX_NULL_TYPE = /\|\s*null$/,
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
 
 interface GeneratorOptions {
-    acceptMethods?: boolean;           // default:false
+    acceptMethods?: boolean;           // default:true
     replaceDataDecorator?: boolean;    // default:true
     interfaceTypes?: string[];         // list of type names that should be considered as interfaces (-> any type)
     symbols?: ParserSymbols,           // redefine the symbols used to identify Data objects
@@ -28,23 +28,28 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
         traxImport: TraxImport,
         importList: string[] = [], // list of new imports
         importDict: { [key: string]: 1 },
+        logOutput = false,
         importDictForced: { [key: string]: 1 } = {};
 
     try {
         ast = parse(src, filePath, {
             symbols,
-            acceptMethods: options ? options.acceptMethods : false,
+            acceptMethods: options ? options.acceptMethods : true,
             interfaceTypes: options ? options.interfaceTypes : undefined
         });
         if (ast && ast.length) {
             initImports(ast);
 
-            let len = ast.length;
+            let len = ast.length, d:DataObject;
             for (let i = 1; len > i; i++) {
                 if (ast[i].kind === "import") {
                     error("Duplicate Data import", ast[i]);
                 } else {
-                    processDataObject(ast[i] as DataObject);
+                    d = ast[i] as DataObject;
+                    processDataObject(d);
+                    if (d.log) {
+                        logOutput = true;
+                    }
                 }
             }
             updateImports();
@@ -65,7 +70,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
         throw e;
     }
 
-    if (src.match(RX_LOG)) {
+    if (logOutput) {
         console.log(SEPARATOR);
         console.log("Trax Output:");
         console.log(output);
@@ -170,6 +175,10 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
             if (m.kind === "property") {
                 try {
                     prop = m as DataProperty;
+                    if (m.shallowRef > 0) {
+                        // remove @ref reference
+                        replaceRegExp(/\@ref(\.depth\(\s*\d+\s*\))?\s*$/, "", prop.namePos);
+                    }
                     insert(PRIVATE_PREFIX, prop.namePos);
 
                     tp = prop.type;
@@ -191,7 +200,8 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
                             defaultValues.push(`case "${prop.name}": return ${prop.defaultValue.text}`);
                         }
                     } else {
-                        error("Untyped property are not supported", n);
+                        // this case should not be reachable
+                        error("Invalid case", n);
                     }
                 } catch (ex) {
                     error(ex.message, n);
@@ -217,7 +227,7 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
     }
 
     function propertyDefinition(m: DataMember, includePrivateDefinition = true): string {
-        let tp = m.type, { typeRef, factory } = getTypeInfo(tp), privateDef = "", nullUndefinedArg = "", questionSymbol = "";
+        let tp = m.type, { typeRef, factory } = getTypeInfo(tp, m.shallowRef || 1000), privateDef = "", nullUndefinedArg = "", questionSymbol = "";
         if (tp && (tp.canBeNull || tp.canBeUndefined)) {
             if (tp.canBeNull && tp.canBeUndefined) {
                 questionSymbol = "?";
@@ -245,49 +255,61 @@ export function generate(src: string, filePath: string, options?: GeneratorOptio
     }
 
 
-    function getTypeInfo(tp: DataType | undefined): { typeRef: string, factory: string } {
+    function getTypeInfo(tp: DataType | undefined, refDepth: number): { typeRef: string, factory: string } {
         let typeRef = "", factory = "";
         if (!tp) {
             return { typeRef: "any", factory: "" };
         }
-
         if (tp.kind === "any") {
             typeRef = "any";
             factory = "";
         } else if (tp.kind === "string") {
             typeRef = "string";
             factory = libPrefix + "ΔfStr";
-            addImport(factory);
         } else if (tp.kind === "number") {
             typeRef = "number";
             factory = libPrefix + "ΔfNbr";
-            addImport(factory);
         } else if (tp.kind === "boolean") {
             typeRef = "boolean";
             factory = libPrefix + "ΔfBool";
-            addImport(factory);
         } else if (tp.kind === "reference") {
             typeRef = tp.identifier;
             factory = libPrefix + "Δf(" + typeRef + ")";
-            addImport(libPrefix + "Δf");
         } else if (tp.kind === "array") {
             if (tp.itemType) {
-                let info = getTypeInfo(tp.itemType);
+                let info = getTypeInfo(tp.itemType, refDepth - 1);
                 if (info.typeRef.match(RX_NULL_TYPE)) {
-                    typeRef = "(" + info.typeRef + ")[]"
+                    typeRef = "(" + info.typeRef + ")[]";
                 } else {
-                    typeRef = info.typeRef + "[]"
+                    typeRef = info.typeRef + "[]";
                 }
                 factory = libPrefix + "Δlf(" + info.factory + ")";
-                addImport(libPrefix + "Δlf");
             } else {
-                throw new Error("Item type must be specified in Arrays");
+                // this case should not occur (caught by parser)
+                throw "Item type must be specified in Arrays";
+            }
+        } else if (tp.kind === "dictionary") {
+            if (tp.itemType) {
+                let info = getTypeInfo(tp.itemType, refDepth - 1);
+                typeRef = "{ [" + tp.indexName! + ": string]: " + info.typeRef + " }";
+                factory = libPrefix + "Δdf(" + info.factory + ")";
+            } else {
+                // this case should not occur (caught by parser)
+                throw "Invalid Dictionary type";
             }
         } else {
-            throw new Error("Generator doesn't support type " + tp.kind + " yet");
+            // this case will only occur when a new type kind is introduced
+            throw "TODO: support type " + tp.kind;
         }
         if (tp.canBeNull) {
             typeRef += " | null";
+        }
+
+        if (refDepth <= 1) {
+            factory = "ΔfRef";
+            addImport("ΔfRef");
+        } else if (factory !== "" && factory.match(/^([^\(]+)/)) {
+            addImport(RegExp.$1);
         }
         return { typeRef, factory };
     }

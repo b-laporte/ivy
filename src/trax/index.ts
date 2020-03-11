@@ -8,7 +8,10 @@ const MP_TRACKABLE = "ΔTrackable",
     MP_IS_PROXY = "ΔIsProxy",
     MP_DEFAULT = "ΔDefault",
     MP_CREATE_PROXY = "ΔCreateProxy",
-    MP_NEW_ITEM = "$newItem";
+    MP_NEW_ITEM = "ΔnewItem",
+    MP_DISPOSE = "Δdispose",
+    MP_JSON = "Δjson",
+    RX_PROP_NAME = /^ΔΔ(.*)$/;
 
 let FORCE_CREATION = false;
 
@@ -34,7 +37,7 @@ export interface Constructor<T> {
 export interface Factory<T> {
     ΔIsFactory: true;
     ΔCreateProxy?: (v: any) => TraxObject | null;
-    (json?: Object): T;
+    (): T;
 }
 
 function initMetaData(o: TraxObject): TraxMetaData | null {
@@ -49,7 +52,7 @@ function initMetaData(o: TraxObject): TraxMetaData | null {
     return o.ΔMd;
 }
 // -----------------------------------------------------------------------------------------------------------------------------
-// Soft Array functions
+// Flex Array functions
 
 // The purpose of FlexArray is to avoid the creation of an Array when we don't need it in most cases (here in 95% of cases)
 type FlexArray<T> = T | T[] | undefined;
@@ -119,25 +122,32 @@ function FA_addItem<T>(a: FlexArray<T>, item: T): FlexArray<T> {
  */
 export function Data(c: any) { } // empty: will be replaced at compilation time
 
-/** 
- * Debug utility to print the generated class on the standard output
- * e.g. @Data @log MyData {}
+/**
+ * Decorator to express that a property should be tracked as a reference only
+ * i.e. if the property refers to an object if on of the object property changes, 
+ * the object will not be considered as change.
+ * This should be used for read-only sub-graphs that will not change
+ * This must also be used for types expressed as interfaces
+ * @param proto 
+ * @param key 
  */
-export function log(c: any) { }
+function refDeco(proto: any, key: string) { }
+(refDeco as any).depth = function () { return function () { } };
 
-// TODO
-export function ref(proto, key: string) {
+export const ref = (refDeco as {
+    (proto: any, key: string): void;
+    depth: (depth: number) => ((proto: any, key: string) => void);
+});
 
-}
-
-export function computed(proto, propName: string, descriptor: PropertyDescriptor) {
+/**
+ * Decorator to express properties calculated from other properties
+ * @param proto 
+ * @param propName 
+ * @param descriptor 
+ */
+export function computed(proto: any, propName: string, descriptor: PropertyDescriptor) {
     // we must wrap the getter with a new getter that will ensure the memoization
     let processor: Function = descriptor.get!, ΔΔPropName = "ΔΔ" + propName;
-    if (!descriptor.get || descriptor.set !== undefined) {
-        console.error("[Trax] @computed properties must be defined on property getters only");
-        return;
-    }
-    descriptor.set = undefined;
     descriptor.get = function () {
         if (!isDataObject(this)) {
             console.error("[Trax] @computed properties can only be used on Data objects");
@@ -221,8 +231,58 @@ export function version(o: any /*DataObject*/): number {
     return (o && o[MP_TRACKABLE] === true) ? o[MP_CHANGE_VERSION] : 0;
 }
 
-export function hasProperty(o: any /*TraxObject*/, propName: string): boolean {
-    return (o && typeof o === "object") ? ("ΔΔ" + propName) in o : false;
+export function dispose(traxObject: any /*DataObject*/, recursive = false) {
+    if (!isDataObject(traxObject)) return;
+    if (traxObject[MP_DISPOSE]) {
+        // traxObject is a collection that exposes Δdispose()
+        traxObject[MP_DISPOSE](recursive);
+    } else {
+        forEachProperty(traxObject, (k, o) => {
+            ΔDisconnectChildFromParent(traxObject, o);
+            traxObject["ΔΔ" + k] = undefined;
+            if (recursive) {
+                dispose(o, true);
+            }
+        });
+    }
+    const md = (traxObject as TraxObject).ΔMd;
+    if (md) {
+        // disconnect the traxObject from its own parents
+        const parents: any[] = [];
+        FA_forEach(md.parents, p => {
+            parents.push(p);
+        });
+        for (let p of parents) {
+            // we have to go through an intermediate array
+            // as ΔDisconnectChildFromParent changes the parents collection
+            forEachProperty(p, (name, internalValue) => {
+                if (internalValue === traxObject) {
+                    ΔDisconnectChildFromParent(p, traxObject);
+                    p["ΔΔ" + name] = undefined;
+                }
+            });
+            touch(p);
+        }
+    }
+}
+
+export function forEachProperty(traxObject: any /*TraxObject*/, processor: (propName: string, internalValue: any, factory: Factory<any>) => void) {
+    if (!isDataObject(traxObject)) return;
+    const factories = traxObject.constructor.prototype["ΔDefFactories"];
+    for (let k in factories) if (factories.hasOwnProperty(k)) {
+        processor(k, traxObject["ΔΔ" + k], factories[k]);
+    }
+    // for (let k in traxObject) if (traxObject.hasOwnProperty(k) && k.match(RX_PROP_NAME)) {
+    //     processor(RegExp.$1, traxObject[k]);
+    // }
+}
+
+export function hasProperty(traxObject: any /*TraxObject*/, propName: string): boolean {
+    return (traxObject && typeof traxObject === "object") ? ("ΔΔ" + propName) in traxObject : false;
+}
+
+export function hasParents(o: any) {
+    return (o['ΔMd'] && !!o['ΔMd'].parents);
 }
 
 export function isDataObject(o: any /*TraxObject*/): boolean {
@@ -336,7 +396,7 @@ export function untrack(o: any, trackFn: TrackFunction) {
  * @param propName the property name
  * @returns the new property value
  */
-export function create(o: any, propName: string | number): any {
+export function createProperty(o: any, propName: string | number): any {
     if (o && propName !== undefined) {
         if (o[MP_NEW_ITEM]) {
             return o[MP_NEW_ITEM](propName);
@@ -374,6 +434,163 @@ export function reset(o: any, propName: string): any {
     }
     return undefined;
 }
+
+export interface JSConversionContext {
+    getDefaultConversion(): any;
+    getPreviousConversion(): any;
+}
+
+export interface JSConverter {
+    (obj: any, cc: JSConversionContext): any;
+}
+
+function convertFactory() {
+    let processedNodes: any[] = [],
+        stack: any[] = [],
+        ds: any,
+        currentConverter: JSConverter | undefined;
+
+    let cc: JSConversionContext = {
+        getDefaultConversion() {
+            return defaultConverter(ds, cc);
+        },
+        getPreviousConversion() {
+            return ds.ΔtoJsResult;
+        }
+    }
+
+    function defaultConverter(o: any, cc: JSConversionContext) {
+        let pc = cc.getPreviousConversion();
+        if (pc) {
+            return pc; // use the same conversion if the object has already been converted (avoid infinite loops)
+        }
+        let res: any = undefined;
+        if (o.Δconvert) {
+            // for lists and dictionaries
+            res = o.Δconvert(currentConverter);
+        } else if (o["Δjson"]) {
+            return o["Δjson"];
+        } else {
+            res = {};
+            forEachProperty(o, (propName: string, value: any) => {
+                if (isDataObject(value)) {
+                    value = convert2JS(value, currentConverter);
+                }
+                if (value !== undefined) {
+                    res[propName] = value;
+                }
+            });
+        }
+        return res;
+    }
+
+    function convert2JS(d: any, converter?: JSConverter): any {
+        let isFirst = (processedNodes.length === 0), result: any = d;
+
+        if (d && isDataObject(d)) {
+            processedNodes.push(d);
+
+            result = undefined;
+            stack.push(d);
+            ds = d;
+            if (converter) {
+                currentConverter = converter;
+                result = converter(d, cc);
+            } else {
+                result = defaultConverter(d, cc);
+            }
+            d.ΔtoJsResult = result; // cache of previous result - will be removed at the end of the conversion
+            stack.pop();
+            ds = stack[stack.length - 1];
+        }
+
+        if (isFirst) {
+            // remove ΔtoJsResult prop on all nodes
+            let idx = processedNodes.length;
+            while (idx--) {
+                processedNodes[idx]["ΔtoJsResult"] = undefined;
+            }
+            // cleanup context variables
+            ds = null;
+            processedNodes = [];
+            currentConverter = undefined;
+        }
+        return result;
+    }
+    return convert2JS;
+}
+
+export const convertToJson = convertFactory();
+
+
+/**
+ * Create a trax object instance from a JSON object that use the same key-values as the data set properties
+ * The data will actually be lazy-loaded so that the json object will only be read when the
+ * equivalent property is read on the data node instance
+ * Note: the returned dataset will be initialized with the json data and will be considered as mutable, with no on-going mutations
+ * @param c the @Data object constructor (i.e. class reference)
+ * @param json the json data to feed in the data node
+ * @return the new object instance
+ */
+export function create<T>(c: Constructor<T> | Factory<T>, json?: Object): T {
+    let d: any;
+
+    if ((c as Factory<T>).ΔIsFactory) {
+        d = (c as Factory<T>)();
+    } else {
+        d = new (c as Constructor<T>)();
+        if (!isDataObject(d)) {
+            console.error("[TRAX:create] Constructor argument doesn't correspond to a Trax Object");
+        }
+    }
+    initObject(d, json);
+    return d;
+}
+
+function initObject(o: any /* Trax object */, json: any) {
+    if (json) {
+        let val: any, ΔΔpropName: string;
+        forEachProperty(o, (propName: string, value: any, factory) => {
+            const isRef = factory === ΔfRef;
+            val = json[propName];
+            ΔΔpropName = "ΔΔ" + propName;
+            if (val === undefined) {
+                if (isRef) {
+                    o[ΔΔpropName] = undefined;
+                }
+            } else {
+                const tp = typeof (val);
+                if (val === null) {
+                    if (isRef || factory === ΔfNull) {
+                        o[ΔΔpropName] = null;
+                    }
+                } else if (tp === "object") {
+                    let obj = createProperty(o, propName);
+                    if (obj) {
+                        obj[MP_JSON] = val;
+                    } else if (isRef) {
+                        o[ΔΔpropName] = val;
+                    }
+                } else if (tp === "string") {
+                    if (isRef || factory === ΔfStr) {
+                        o[ΔΔpropName] = val;
+                    }
+                } else if (tp === "number") {
+                    if (isRef || factory === ΔfNbr) {
+                        o[ΔΔpropName] = val;
+                    }
+                } else if (tp === "boolean") {
+                    if (isRef || factory === ΔfBool) {
+                        o[ΔΔpropName] = val;
+                    }
+                } else if (isRef) {
+                    o[ΔΔpropName] = val;
+                }
+            }
+        });
+    }
+    o[MP_JSON] = undefined;
+};
 
 // -----------------------------------------------------------------------------------------------------------------------------
 // trax private apis (generated code)
@@ -440,7 +657,7 @@ export function Δf<T>(dataObjectClassRef: Constructor<T>): Factory<T> {
     let f = dataObjectClassRef.ΔFactory;
     if (f) return f;
 
-    function factory(json: Object) {
+    function factory() {
         return new dataObjectClassRef();
     }
     factory[MP_IS_FACTORY] = true;
@@ -453,31 +670,32 @@ export function Δf<T>(dataObjectClassRef: Constructor<T>): Factory<T> {
  */
 function $fStr() { return "" }
 $fStr[MP_IS_FACTORY] = true;
-export let ΔfStr: Factory<string> = $fStr as Factory<string>;
+export const ΔfStr: Factory<string> = $fStr as Factory<string>;
 
 /**
  * Factory function for numbers
  */
 function $fNbr() { return 0 }
 $fNbr[MP_IS_FACTORY] = true;
-export let ΔfNbr: Factory<number> = $fNbr as Factory<number>;
+export const ΔfNbr: Factory<number> = $fNbr as Factory<number>;
 
 /**
  * Factory function for booleans
  */
 function $fBool() { return false }
 $fBool[MP_IS_FACTORY] = true;
-export let ΔfBool: Factory<boolean> = $fBool as Factory<boolean>;
+export const ΔfBool: Factory<boolean> = $fBool as Factory<boolean>;
 
 /**
  * Factory function for null (!)
  */
 function $fNull() { return null }
 $fNull[MP_IS_FACTORY] = true;
-export let ΔfNull: Factory<null> = $fNull as Factory<null>;
+export const ΔfNull: Factory<null> = $fNull as Factory<null>;
 
 function $fUndefined() { return undefined };
 $fUndefined[MP_IS_FACTORY] = true;
+export const ΔfRef: Factory<undefined> = $fUndefined as Factory<undefined>;
 
 /**
  * Fills a proto info structure with some more property description
@@ -486,21 +704,6 @@ $fUndefined[MP_IS_FACTORY] = true;
  * @param isDataNode true if the property is a datanode
  */
 function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc: PropertyDescriptor | undefined) {
-    // let nm1 = isDataNode ? "$dProps" : "$vProps",
-    //     nm2 = isDataNode ? "$dProps2" : "$vProps2";
-    // if (!proto[nm1]) {
-    //     proto[nm1] = [];
-    //     proto[nm2] = [];
-    //     proto["$pMap"] = {}; // property map
-    // } else if (!proto.hasOwnProperty(nm1)) {
-    //     // we are in a sub-class of a dataset -> copy the proto arrays
-    //     proto[nm1] = proto[nm1].slice(0);
-    //     proto[nm2] = proto[nm2].slice(0);
-    // }
-    // no: proto[nm1].push(propName);
-    // no: proto[nm2].push("$$" + propName);
-    // proto["$pMap"][propName] = 1;
-    // proto["$$" + propName] = defaultValue;
     if (desc && delete proto[propName]) {
         Object.defineProperty(proto, propName, desc);
     }
@@ -509,71 +712,23 @@ function addPropertyInfo(proto: any, propName: string, isDataNode: boolean, desc
 /**
  * Internal property getter function
  * @param o the Data object on which to get the property
- * @param ΔΔPropName the property name (should start with "$$" - e.g. "$$value")
+ * @param ΔΔPropName the property name (should start with "ΔΔ" - e.g. "ΔΔvalue")
  * @param propName [optional] the json data node property name - should only be set for data node properties. Same value as propName but without the $$ prefix
- * @param cf [optional] the constructor or factory associated with the property Object
+ * @param factory [optional] the constructor or factory associated with the property Object
+ * @param canBeNullOrUndefined [optional] 1=can be null, 2=can be undefined, 3=can be both null or undefined
  */
 function ΔGet<T>(o: TraxObject, ΔΔPropName: string, propName: string, factory: Factory<T>, canBeNullOrUndefined?: 1 | 2 | 3): any {
     if (o.ΔComputeDependencies) {
         o.ΔComputeDependencies[propName] = true;
     }
-    // if (propName && cf && o["$json"]) {
-    //     // init object from json structure
-    //     let json = o["$json"];
-    //     if (json.data) {
-    //         let target = o, $$value: any = undefined;
-    //         if (o.$next) {
-    //             // object is now immutable
-    //             if (o[$$propName] !== undefined) {
-    //                 // prop has already been set
-    //                 return o[$$propName];
-    //             }
-    //             // as object is immutable and as value has never been set on this object
-    //             // we get the value from the last version
-    //             target = latestVersion(target);
-    //         }
-    //         target = target.$mn || target;
 
-    //         if (target[$$propName] === undefined) {
-    //             // first time this property is retrieved
-    //             let newCount = (--json.count), // a new property is read
-    //                 jsonValue = json.data[propName];
-    //             if (newCount === 0) {
-    //                 // delete $json.data reference as all dn props have been read
-    //                 json.data = undefined;
-    //                 target["$json"] = undefined;
-    //             }
-    //             if ((jsonValue === undefined || jsonValue === null) && !createDefault) {
-    //                 $$value = null;
-    //             } else {
-    //                 $$value = create(<any>cf, jsonValue);
-    //                 // connect to parent
-    //                 connectChildToParent(target, $$value);
-    //             }
-    //             target[$$propName] = $$value;
-    //         }
+    // console.log("ΔGet", ΔΔPropName)
+    if (!FORCE_CREATION && o[MP_JSON]) {
+        initObject(o, o[MP_JSON]);
+    }
 
-    //         if ($$value !== undefined) {
-    //             if (o.$next) {
-    //                 // push new value to all next versions
-    //                 let nd = o, c = 0;
-    //                 while (o.$next && c < MAX_ITERATION) {
-    //                     o[$$propName] = $$value;
-    //                     o = o.$next;
-    //                     c++;
-    //                 }
-    //                 if (c === MAX_ITERATION) {
-    //                     console.error("Hibe error: Max Iteration reached on dataset get");
-    //                 }
-    //                 if (o.$mn) {
-    //                     o.$mn[$$propName] = $$value;
-    //                 }
-    //             }
-    //             return $$value
-    //         }
-    //     }
-    // }
     let value = o[ΔΔPropName];
+    // FORCE_CREATION is true when createProperty is called
     if (value === undefined || (FORCE_CREATION && value === null)) {
         if (!FORCE_CREATION && canBeNullOrUndefined) {
             if (canBeNullOrUndefined > 1) {
@@ -597,15 +752,18 @@ function ΔGet<T>(o: TraxObject, ΔΔPropName: string, propName: string, factory
  * @param ΔΔpropName the name or index of the property (should start with "ΔΔ" - e.g. "ΔΔvalue")
  * @param newValue the new property value (will be compared to current value)
  * @param cf [optional] the constructor or factory associated with the property Object
- * @param propHolder the name of the property holding all properties (e.g. for DatList) - optional
+ * @param propHolder the name of the property holding all properties (e.g. for Lists or Dictionaries) - optional
  */
 function ΔSet<T>(o: TraxObject, propName: string | number, ΔΔPropName: string | number, newValue: any, factory: Factory<T>, propHolder: any) {
     let isTraxValue = isDataObject(newValue);
+    const isRef = (factory as any) === ΔfRef;
 
     if (o.ΔComputeDependencies) {
         console.error("[Trax] @computed properties must not mutate the Data object when calculated");
         return;
     }
+
+    // console.log("ΔSet", propName, "=", newValue, isRef)
 
     if (newValue && !isTraxValue && factory.ΔCreateProxy) {
         newValue = factory.ΔCreateProxy(newValue) || newValue;
@@ -629,13 +787,14 @@ function ΔSet<T>(o: TraxObject, propName: string | number, ΔΔPropName: string
         }
 
         if (isTraxValue || (currentValue && isDataObject(currentValue))) {
-            updateSubDataRefs(o, currentValue, newValue as TraxObject);
+            updateSubDataRefs(o, currentValue, newValue as TraxObject, isRef);
         }
         propHolder[ΔΔPropName] = newValue;
 
         // notify trackers
         notifyTrackers(o as TraxObject, "set", propName, currentValue, newValue);
     }
+    return newValue;
 }
 
 function notifyTrackers(o: TraxObject, operation: string, propName?: string | number, currentValue?: any, newValue?: any) {
@@ -685,11 +844,13 @@ export function touch(o: TraxObject) {
  * @param currentChild 
  * @param newChild 
  */
-function updateSubDataRefs(o: TraxObject, currentChild: TraxObject | null, newChild: TraxObject | null) {
+function updateSubDataRefs(o: TraxObject, currentChild: TraxObject | null, newChild: TraxObject | null, isRef: boolean) {
     // remove parent ref from old ref
     ΔDisconnectChildFromParent(o, currentChild);
     // add parent ref to new ref
-    ΔConnectChildToParent(o, newChild);
+    if (!isRef) {
+        ΔConnectChildToParent(o, newChild);
+    }
 }
 
 /**
@@ -703,7 +864,6 @@ export function ΔDisconnectChildFromParent(parent: TraxObject, child: TraxObjec
         // if child is immutable, it last version still holds the reference to the current parent
         let md = child.ΔMd;
         if (md && md.parents) {
-            // console.log("FA_removeItem:ΔDisconnectChildFromParent")
             md.parents = FA_removeItem(md.parents, parent);
         }
     }
@@ -851,6 +1011,7 @@ const ARRAY_MUTATION_METHODS = ["push", "pop", "shift", "unshift", "splice"],
     RX_INT = /^\d+$/,
     RX_TRAX_PROP = /^\Δ/;
 
+// TraxList is the handler of the Array proxies
 class TraxList<T> implements TraxObject {
     ΔTrackable: true = true;
     ΔDataFactory: true = true;
@@ -862,7 +1023,6 @@ class TraxList<T> implements TraxObject {
     ΔIsProxy = false;
     ΔItemFactory: Factory<T>;
     // ΔComputeDependencies: any;           // object set during the processing of a computed property - undefined otherwise
-    // $acceptsJson = true;
 
     constructor(itemFactory: Factory<T>) {
         this.ΔItemFactory = itemFactory;
@@ -876,6 +1036,7 @@ class TraxList<T> implements TraxObject {
 
     /**
      * Create a proxy around an existing array
+     * This is called when an array property is changed by another array
      */
     static ΔCreateProxy<T>(arr: any, itemFactory: Factory<T>): TraxObject | null {
         if ($isArray(arr)) {
@@ -894,7 +1055,7 @@ class TraxList<T> implements TraxObject {
      * Create a new Item and store it in the list
      * @param index [optional] the index where to store the item - default = list length. If negative, the item will be created but not stored in the list
      */
-    $newItem(index?: number): T {
+    ΔnewItem(index?: number): T {
         let itm = (<any>this).ΔItemFactory();
         if (index === undefined) {
             index = this.ΔΔList.length;
@@ -910,16 +1071,57 @@ class TraxList<T> implements TraxObject {
      * The TraxList shall not be used after calling this function
      * @return the array of list items
      */
-    $dispose(): any[] {
-        let ls = this.ΔΔList, idx = ls.length;
+    Δdispose(recursive = false): any[] {
+        const ls = this.ΔΔList;
+        let idx = ls.length, itm: any;
         while (idx--) {
-            ΔDisconnectChildFromParent(this.ΔΔSelf, ls[idx]);
+            itm = ls[idx];
+            ΔDisconnectChildFromParent(this.ΔΔSelf, itm);
+            ls[idx] = undefined;
+            if (recursive) {
+                dispose(itm, true);
+            }
         }
         return ls;
     }
 
+    Δconvert(converter?: JSConverter) {
+        const res: any[] = [], arr = this.ΔΔList;
+        let idx = arr.length;
+        while (idx--) {
+            res[idx] = convertToJson(arr[idx], converter);
+        }
+        return res;
+    }
+
     ΔToString() {
         return "Trax List [" + this.ΔΔList.join(", ") + "]";
+    }
+
+    ΔinitFromJson() {
+        const l = this["Δjson"] as any[];
+        if (l) {
+            if (l.constructor !== Array) {
+                console.error("[Trax] Invalid json type: Lists can only be initialized from Arrays");
+            } else {
+                let idx = l.length, itm, ΔΔList: any[] = this.ΔΔList, val;
+                while (idx--) {
+                    val = itm = l[idx];
+                    if (itm) {
+                        const o = (<any>this).ΔItemFactory();
+                        if (isDataObject(o)) {
+                            o["Δjson"] = itm;
+                            val = o;
+                        }
+                        ΔΔList[idx] = val;
+                    } else if (itm === null) {
+                        ΔΔList[idx] = null;
+                    }
+                }
+            }
+
+            this["Δjson"] = undefined;
+        }
     }
 
     /**
@@ -937,7 +1139,7 @@ class TraxList<T> implements TraxObject {
             let idx = parseInt(prop, 10);
             ΔSet(this.ΔΔSelf, idx, idx, value, this.ΔItemFactory, this.ΔΔList);
         } else if (prop.match(RX_TRAX_PROP)) {
-            // prop starts with a $
+            // prop starts with a Δ
             this[prop] = value;
         }
         return true;
@@ -956,6 +1158,9 @@ class TraxList<T> implements TraxObject {
             return true;
         }
         let tp = typeof prop;
+        if (this["Δjson"]) {
+            this.ΔinitFromJson();
+        }
         if (tp === "string") {
             if (prop.match(RX_TRAX_PROP)) {
                 return this[prop];
@@ -1009,27 +1214,206 @@ class TraxList<T> implements TraxObject {
     }
 }
 
-export interface ArrayProxy<T> extends Array<T> {
-    $newItem(index?: number): T;
-    $dispose(): T[];
-}
-
-/**
- * Return a new list of cf items 
- * @param cf list item Constructor or Factory object
- */
-export function list<T>(cf: Constructor<T> | Factory<T>): ArrayProxy<T> {
-    return TraxList.ΔNewProxy(createFactory(cf));
-}
-
 // Creates a list factory for a specific ItemFactory
-function $lf<T>(itemFactory?: Factory<T>): Factory<ArrayProxy<T>> {
+function $lf<T>(itemFactory?: Factory<T>): Factory<Array<T>> {
     itemFactory = itemFactory || ΔfNull as any;
     function listFactory() { return TraxList.ΔNewProxy(itemFactory!) }
     listFactory[MP_IS_FACTORY] = true;
     listFactory[MP_CREATE_PROXY] = function (arr) {
         return TraxList.ΔCreateProxy(arr, itemFactory!);
     }
-    return listFactory as Factory<ArrayProxy<T>>;
+    return listFactory as Factory<Array<T>>;
 };
-export let Δlf = $lf as <T>(itemFactory?: Factory<T>) => Factory<ArrayProxy<T>>;
+export let Δlf = $lf as <T>(itemFactory?: Factory<T>) => Factory<Array<T>>;
+
+// -----------------------------------------------------------------------------------------------------------------------------
+// Dictionary classes
+
+// TraxDict is the handler of the Dictionary proxies
+class TraxDict<T> implements TraxObject {
+    ΔTrackable: true = true;
+    ΔDataFactory: true = true;
+    ΔChangeVersion = 0;
+    ΔMd: TraxMetaData | undefined = undefined;
+    ΔΔDict: { [name: string]: any };  // the actual Object that is behind the Proxy
+    ΔΔSelf = this;                    // reference to the object behind the proxy
+    ΔΔProxy: any;                     // the proxy object - cf. MP_PROXY
+    ΔIsProxy = false;
+    ΔItemFactory: Factory<T>;
+    // ΔComputeDependencies: any;     // object set during the processing of a computed property - undefined otherwise
+    // $acceptsJson = true;
+
+    constructor(itemFactory: Factory<T>) {
+        this.ΔItemFactory = itemFactory;
+    }
+
+    static ΔNewProxy<T>(itemFactory: Factory<T>) {
+        let p = new Proxy({}, new TraxDict(itemFactory));
+        p[MP_PROXY] = p;
+        return p;
+    }
+
+    /**
+     * Create a proxy around an existing object
+     * This is called when an object is set as a dictionary property
+     */
+    static ΔCreateProxy<T>(o: any, itemFactory: Factory<T>): TraxObject | null {
+        if (typeof o === "object") {
+            let p = new Proxy(o, new TraxDict(itemFactory));
+            touch(p);
+            for (let k in o) if (o.hasOwnProperty(k)) {
+                ΔConnectChildToParent(p, o[k]);
+            }
+            return p;
+        }
+        return null;
+    }
+
+    /**
+     * Create a new Item and store it in the dictionary - used by create()
+     * @param key the key where to store the item
+     */
+    ΔnewItem(key: string): T {
+        let itm = (<any>this).ΔItemFactory();
+        return ΔSet(this.ΔΔSelf, key, key, itm, this.ΔItemFactory, this.ΔΔDict) as T;
+    }
+
+    /**
+     * Dispose the current TraxDict so that all items don't have any backward reference to it
+     * The TraxList shall not be used after calling this function
+     * @return the dictionary object
+     */
+    Δdispose(recursive = false): { [name: string]: any } {
+        let d = this.ΔΔDict, o: any;
+        for (let k in d) if (d.hasOwnProperty(k)) {
+            o = d[k];
+            ΔDisconnectChildFromParent(this.ΔΔSelf, o);
+            d[k] = undefined;
+            if (recursive) {
+                dispose(o, true);
+            }
+        }
+        return d;
+    }
+
+    Δconvert(converter?: JSConverter) {
+        const res: any = {}, dict = this.ΔΔDict;
+        for (let k in dict) if (dict.hasOwnProperty(k)) {
+            res[k] = convertToJson(dict[k], converter);
+        }
+        return res;
+    }
+
+    ΔinitFromJson() {
+        const o = this["Δjson"] as any[];
+        if (o) {
+            if (o.constructor !== Object) {
+                console.error("[Trax] Invalid json type: Dictionaries can only be initialized from Objects");
+            } else {
+                const ΔΔDict = this.ΔΔDict;
+                let itm: any, val: any;
+                for (let k in o) if (o.hasOwnProperty(k)) {
+                    val = itm = o[k];
+                    if (itm) {
+                        const v = (<any>this).ΔItemFactory();
+                        if (isDataObject(v)) {
+                            v["Δjson"] = itm;
+                            val = v;
+                        }
+                        ΔΔDict[k] = val;
+                    } else if (itm === null) {
+                        ΔΔDict[k] = null;
+                    }
+                }
+            }
+            this["Δjson"] = undefined;
+        }
+    }
+
+    ΔToString() {
+        return "Trax Dict {...}";
+    }
+
+    /**
+     * Proxy handler method called on each property set
+     * @param target the dictionary object
+     * @param prop the property name
+     * @param value the value
+     */
+    set(target: any, prop: string, value: any) {
+        // console.log("TraxDict.set", prop, value)
+        if (!this.ΔΔDict) {
+            this.ΔΔDict = target;
+        }
+        if (prop.match(RX_TRAX_PROP)) {
+            // prop starts with a Δ
+            this[prop] = value;
+        } else {
+            ΔSet(this.ΔΔSelf, prop, prop, value, this.ΔItemFactory, this.ΔΔDict);
+        }
+        return true;
+    }
+
+    /**
+     * Proxy handler method called on each property get
+     * @param target the dictionary object
+     * @param prop the property name
+     */
+    get(target, prop) {
+        // console.log("TraxDict.get", prop)
+        if (!this.ΔΔDict) {
+            this.ΔΔDict = target;
+        }
+        if (prop === MP_IS_PROXY) {
+            return true;
+        }
+        if (this["Δjson"]) {
+            this.ΔinitFromJson();
+        }
+        if (prop === Symbol.iterator) {
+            return (this.ΔΔDict as any)[Symbol.iterator];
+        }
+
+        let tp = typeof prop;
+        if (tp === "string") {
+            if (prop.match(RX_TRAX_PROP)) {
+                return this[prop];
+            } else {
+                //console.log("TraxDict get value:", prop, "is proxy:", this.ΔΔDict[prop][MP_IS_PROXY])
+                return this.ΔΔDict[prop];
+            }
+        }
+        return this[prop];
+    }
+
+    /**
+     * Proxy handler method called on each property delete
+     * @param target the dictionary object
+     * @param prop the property name
+     */
+    deleteProperty(target, prop) {
+        if (!this.ΔΔDict) {
+            this.ΔΔDict = target;
+        }
+        if (!prop.match(RX_TRAX_PROP)) {
+            ΔSet(this.ΔΔSelf, prop, prop, null, this.ΔItemFactory, this.ΔΔDict);
+            delete this.ΔΔDict[prop];
+            return true;
+        }
+        return false;
+    }
+}
+
+// Creates a dictionary factory for a specific ItemFactory
+function $df<T>(itemFactory?: Factory<T>): Factory<{ [k: string]: T }> {
+    itemFactory = itemFactory || ΔfNull as any;
+    function dictFactory() {
+        return TraxDict.ΔNewProxy(itemFactory!)
+    }
+    dictFactory[MP_IS_FACTORY] = true;
+    dictFactory[MP_CREATE_PROXY] = function (d: any) {
+        return TraxDict.ΔCreateProxy(d, itemFactory!);
+    }
+    return dictFactory as Factory<{ [k: string]: T }>;
+};
+export let Δdf = $df as <T>(itemFactory?: Factory<T>) => Factory<{ [k: string]: T }>;

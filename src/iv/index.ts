@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, create, Δu, hasProperty, isDataObject, touch } from '../trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
 import { xtr as _xtr } from '../xtr/xtr';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
@@ -1398,7 +1398,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
             // get an existing item from the current list or create one
             data = dataHolder[dataName][size];
             if (!data) {
-                data = create(dataHolder[dataName], size);
+                data = createProperty(dataHolder[dataName], size);
             }
             parentLists.sizes[dataName] += 1;
             pnd.data = data;
@@ -1407,7 +1407,7 @@ export function ζpnode(v: IvView, cm: boolean, iFlag: number, idx: number, pare
             pnd.data = data = dataHolder[dataName];
             if (data === undefined) {
                 // create the property node
-                pnd.data = data = create(dataHolder, dataName);
+                pnd.data = data = createProperty(dataHolder, dataName);
             }
         }
 

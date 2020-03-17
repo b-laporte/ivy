@@ -7,6 +7,7 @@ const RX_LOG = /\/\/\s*log[\s$]/,
     RX_DICT_PATTERN = /(Map\s*\<)|(Set\s*\<)/,
     RX_REF_DEPTH = /^ref\.depth\(\s*(\d+)\s*\)$/,
     RX_LEAD_SPACE = /^(\s+)/,
+    UNSUPPORTED_TYPE = 'Unsupported type',
     SK = ts.SyntaxKind;
 
 export interface ParserSymbols {
@@ -218,7 +219,15 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                     } else if (c.kind === SK.QuestionToken) {
                         canBeUndefined = true;
                     } else {
-                        let tp = getTypeObject(c, false);
+                        let tp: any;
+                        try {
+                            tp = getTypeObject(c, false);
+                        } catch (ex) {
+                            if (prop.shallowRef > 0 && ex.message === UNSUPPORTED_TYPE) {
+                                prop.type = { kind: "any" };
+                                return;
+                            } else throw ex;
+                        }
                         if (tp) {
                             prop.type = tp;
                         } else if (!handleDefaultValue(c, prop) && c.kind !== SK.Decorator) {
@@ -292,19 +301,19 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 }
             }
             if (n.kind === SK.AnyKeyword) {
-                return { kind: "any" }
+                return { kind: "any" };
             } if (n.kind === SK.StringKeyword) {
-                return { kind: "string" }
+                return { kind: "string" };
             } else if (n.kind === SK.BooleanKeyword) {
-                return { kind: "boolean" }
+                return { kind: "boolean" };
             } else if (n.kind === SK.NumberKeyword) {
-                return { kind: "number" }
+                return { kind: "number" };
             } else if (n.getText() === "Function") {
-                return { kind: "any" }
+                return { kind: "any" };
             } else if (n.kind === SK.TypeReference) {
                 if (options && options.interfaceTypes
                     && options.interfaceTypes.indexOf(n.getText()) > -1) {
-                    return { kind: "any" }
+                    return { kind: "any" };
                 }
                 const ref = n.getText();
                 if (ref.match(RX_LIST_PATTERN)) {
@@ -316,12 +325,12 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                 return {
                     kind: "reference",
                     identifier: ref
-                }
+                };
             } else if (n.kind === SK.ArrayType) {
                 return {
                     kind: "array",
                     itemType: getTypeObject(n["elementType"], true, true) as any
-                }
+                };
             } else if (n.kind === SK.TypeLiteral) {
                 // expected to be something like dict: { [key: string]: Address }
                 let members = (n as ts.TypeLiteralNode).members;
@@ -358,7 +367,7 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
                             }
                             dt = getTypeObject(tp, false, false);
                             if (!dt) {
-                                error("Unsupported type", tp);
+                                error(UNSUPPORTED_TYPE, tp);
                                 return null;
                             }
                         }
@@ -372,8 +381,8 @@ export function parse(src: string, filePath: string, options?: ParserOptions): (
             }
         }
         if (raiseErrorIfInvalid && n.kind !== SK.Decorator) {
-            // console.log("Unsupported type", n)
-            error("Unsupported type", n);
+            // console.log(UNSUPPORTED_TYPE, n)
+            error(UNSUPPORTED_TYPE, n);
         }
         return null;
     }

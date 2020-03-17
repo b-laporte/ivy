@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, reset, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
+import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
 import { xtr as _xtr } from '../xtr/xtr';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
@@ -1271,7 +1271,7 @@ export function ζcall(v: IvView, idx: number, container?: IvCptContainer | 0, l
                     if (!dp[dynParamNames[i]]) {
                         // this param node has not been called - so we need to reset it
                         // console.log("reset", dynParamNames[i]);
-                        reset(params, dynParamNames[i]);
+                        resetProperty(params, dynParamNames[i]);
                     }
                 }
             }
@@ -1474,7 +1474,7 @@ export function ζpnEnd(v: IvView, cm: boolean, iFlag: number, idx: number, labe
             if (dp && !dp[dynParamNames[i]]) {
                 // this param node has not been called - so we need to reset it
                 // console.log("reset", dynParamNames[i]);
-                reset(pn.data, dynParamNames[i]);
+                resetProperty(pn.data, dynParamNames[i]);
             }
         }
     }

@@ -177,18 +177,22 @@ export class Template implements IvTemplate {
      * @param label 
      * @return the DOM element or the Component api or null if nothing is found
      */
-    query(label: string, all: boolean = false): any | any[] | null {
+    query(selector: string, all: boolean = false): any | any[] | null {
         if (this.rendering) return null; // query cannot be used during template rendering
-        if (label && label.charAt(0) !== '#') {
-            error(this.view, "[$template.query()] Invalid label argument: '" + label + "' (labels must start with #)");
-            return null;
+        const labels = selector.split(';');
+        let result : any[] = [];
+        for (const label of labels) {
+            if (label && label.charAt(0) !== '#') {
+                error(this.view, "[$template.query()] Invalid label argument: '" + label + "' (labels must start with #)");
+                return null;
+            }
+            let target = this.labels ? this.labels[label] || null : null;
+            if (target && target.length) {
+                if (!all) return target[0];
+                result = result.concat(target);
+            }
         }
-        let target = this.labels ? this.labels[label] || null : null;
-        if (target && target.length) {
-            if (!all) return target[0];
-            return target
-        }
-        return null;
+        return result.length ? result : null;
     }
 
     notifyChange() {

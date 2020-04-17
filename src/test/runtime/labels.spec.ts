@@ -530,6 +530,19 @@ describe('Labels', () => {
         assert.equal(col![1].text, "BBB", "BBB (2)");
     });
 
+    it("should be supported by union query", async function () {
+        const tpl = template(`(condition=true) => {
+            <div #main>
+                <div #elt1/>
+                <div #elt2/>
+            </div>
+        }`);
+
+        let t = getTemplate(tpl, body).render();
+        let col = t.query("#elt1;#elt2", true)!;
+        assert.equal(col.length, 2, "both #elt1 and #elt2");
+    });
+
     // interface IvQuery<T extends Array<string>> {
     //     (selector: string, firstOnly: boolean): any | null;
     // }

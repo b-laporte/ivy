@@ -1,27 +1,29 @@
 import * as assert from 'assert';
 import { compile, process } from '../iv/compiler/compiler';
-import { IvError } from '../iv/compiler/generator';
+import { IvError } from '../iv/compiler/types';
 import { formatError } from './utils';
+import { XjsParamHost, XjsParamDictionary } from '../xjs/types';
+import { createParam, addParam } from '../xjs/parser';
 
 describe('Template compiler', () => {
     const options = { filePath: "a/b/c.ts" }
 
     it("should compile a single function with no params", async function () {
         let r = await compile(`\// start
-            import { template } from "../iv";
+            import { $template } from "../iv";
 
-            const x = template(\`() => {
-                # hello world #
-            }\`);
+            const x = $template\`() => {
+                hello world
+            }\`;
 
             // end`, options)
 
         assert.equal(r.fileContent, `\// start
-            import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
+            import { $template, ζinit, ζend, ζtxt, ζt } from "../iv";
 
             const x = (function () {
             const ζs0 = {};
-            return ζt("x", "b/c.ts", ζs0, function (ζ) {
+            return ζt("x", ".../b/c.ts", ζs0, function (ζ) {
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " hello world ", 0);
                 ζend(ζ, ζc);
@@ -31,19 +33,18 @@ describe('Template compiler', () => {
             // end`, "1");
 
         // test with import at position 0
-        r = await compile(`import { template } from "../iv";
+        r = await compile(`import { $template } from "../iv";
 
-            const x = template(\`() => {
-                # hello world #}\`
-            );
+            const x = $template\`() => {
+                hello world }\`;
 
             // end`, options)
 
-        assert.equal(r.fileContent, `import { template, ζinit, ζend, ζtxt, ζt } from "../iv";
+        assert.equal(r.fileContent, `import { $template, ζinit, ζend, ζtxt, ζt } from "../iv";
 
             const x = (function () {
             const ζs0 = {};
-            return ζt("x", "b/c.ts", ζs0, function (ζ) {
+            return ζt("x", ".../b/c.ts", ζs0, function (ζ) {
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, " hello world ", 0);
                 ζend(ζ, ζc);
@@ -53,21 +54,21 @@ describe('Template compiler', () => {
             // end`, "2");
     });
 
-    it("should compile a template with dependency arguments", async function () {
+    it("should compile a template with arguments", async function () {
         let src1 = `\// start
-            import { template } from "../iv";
+            import { $template } from "../iv";
             const abc=123;
 
-            const x = template(\`(name) => {
-                # hello world {name} #
-            }\`, abc);
+            const x = $template\`(name) => {
+                hello world {name}
+            }\`;
 
             // end`;
 
         let r = await compile(src1, options);
 
         assert.equal(r.fileContent, `\// start
-            import { template, ζinit, ζend, ζtxt, ζe, ζΔD, ζt } from "../iv";
+            import { $template, ζinit, ζend, ζtxt, ζe, ζΔD, ζt } from "../iv";
             const abc=123;
 
             const x = (function () {
@@ -75,7 +76,7 @@ describe('Template compiler', () => {
             @ζΔD class ζParams {
                 name: any;
             }
-            return ζt("x", "b/c.ts", ζs0, function (ζ, $, $api) {
+            return ζt("x", ".../b/c.ts", ζs0, function (ζ, $, $api) {
                 let name = $api["name"];
                 let ζc = ζinit(ζ, ζs0, 1);
                 ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
@@ -88,21 +89,21 @@ describe('Template compiler', () => {
 
     it("should compile multiple functions with params and partial imports", async function () {
         let src2 = `\
-            import{ template, ζtxt } from "../iv";
+            import{ $template, ζtxt } from "../iv";
 
-            let t1 = template(\`(a) => {
-                # T1 #
-            }\`);
-            let x = 123, t2 = template(\`(p1:string, p2:number) => {
-                # T1 #
-            }\`);
+            let t1 = $template\`(a) => {
+                T1
+            }\`;
+            let x = 123, t2 = $template\`(p1:string, p2:number) => {
+                T1
+            }\`;
             let z = "ABCD";
             `;
 
         let r = await compile(src2, { filePath: "test2.ts" });
 
         assert.equal(r.fileContent, `\
-            import{ template, ζtxt, ζinit, ζend, ζΔD, ζt } from "../iv";
+            import{ $template, ζtxt, ζinit, ζend, ζΔD, ζt } from "../iv";
 
             let t1 = (function () {
             const ζs0 = {};
@@ -135,7 +136,7 @@ describe('Template compiler', () => {
 
     it("should process api classes", async function () {
         const src = `\
-            import{ template, API } from "../iv";
+            import{ $template, API } from "../iv";
 
             @API class FooApi {
                 p1:string;
@@ -143,15 +144,15 @@ describe('Template compiler', () => {
 
                 doSth:()=>void;
             }
-            let tpl = template(\`($:FooApi) => {
-                # tpl #
-            }\`);
+            let tpl = $template\`($:FooApi) => {
+                tpl
+            }\`;
             `;
 
         const r = await process(src, { filePath: "test2.ts" });
 
         assert.equal(r, `\
-            import{ template, API, ζΔfStr, ζΔp, ζΔfNbr, ζinit, ζend, ζtxt, ζt } from "../iv";
+            import{ $template, API, ζΔfStr, ζΔp, ζΔfNbr, ζinit, ζend, ζtxt, ζt } from "../iv";
 
             @API class FooApi {
                 ΔΔp1:string; @ζΔp(ζΔfStr) p1: string;
@@ -173,14 +174,14 @@ describe('Template compiler', () => {
     it("should skipped files marked with iv:ignore comment", async function () {
         const src = `
             // iv:ignore
-            import{ template, ζtxt } from "../iv";
+            import{ $template, ζtxt } from "../iv";
 
-            let t1 = template(\`(a) => {
-                # T1 #
-            }\`);
-            let x = 123, t2 = template(\`(p1:string, p2:number) => {
-                # T1 #
-            }\`);
+            let t1 = $template\`(a) => {
+                T1
+            }\`;
+            let x = 123, t2 = $template\`(p1:string, p2:number) => {
+                T1
+            }\`;
             let z = "ABCD";
             `;
         const r = await compile(src, options);
@@ -196,41 +197,251 @@ describe('Template compiler', () => {
     it("should raise errors with file name and line numbers", async function () {
         let err: IvError | undefined;
         try {
-            await compile(` 
-                import{ template } from "../iv";
+            await compile(`\
+                import{ $template } from "../iv";
 
-                let t = template(\`(a) => {
-                    # T1 
-
-                }\`);
+                let t = $template\`(a) => {
+                    <div> T1
+                };\`;
                 `, options)
         } catch (e) {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
-            XJS: Invalid text node - Unexpected end of template
-            File: b/c.ts - Line 7 / Col 17
-            Extract: >> } <<
+            XJS: Invalid element: Unexpected characters '};' instead of '</'
+            File: .../b/c.ts - Line 5 / Col 17
+            Extract: >> }; <<
         `, '1');
 
+        err = undefined;
         try {
             await compile(` 
-                import{ template } from "../iv";
+                import{ $template } from "../iv";
 
-                let t = template(\`(a) => {
+                let t = $template\`(a) => {
                     <! foo="bar">
-                        # Hello #
+                        Hello
                     </>
-                }\`);
+                }\`;
                 `, options)
         } catch (e) {
             err = e as IvError;
         }
         assert.equal(formatError(err, 2), `
             IVY: Invalid param - Parameters are not supported on Fragment nodes
-            File: b/c.ts - Line 5 / Col 24
+            File: .../b/c.ts - Line 5 / Col 24
             Extract: >> <! foo="bar"> <<
         `, '2');
+    });
+
+    it("should compile a simple $content string", async function () {
+        const src1 = `\// start
+            import { $content } from "../iv";
+
+            const x = $content\`
+                <div>
+                    Message: <*hello name="world"/>
+                </>
+            \`;
+
+            // end`;
+        const r = await compile(src1, "a/b/c.ts");
+
+        assert.equal(r.fileContent, `\// start
+            import { $content } from "../iv";
+
+            const x = \`<!><div> Message: <*hello name='world'/></></>\`;
+
+            // end`, "1");
+    });
+
+    it("should ignore dynamic $content strings", async function () {
+        const src1 = `\// start
+            import { $content } from "../iv";
+
+            const x = $content \`
+                <div> Message: \${123} </>
+            \`;
+
+            // end`;
+
+        let r = await compile(src1, "a/b/c.ts")
+
+        assert.equal(r.fileContent, `\// start
+            import { $content } from "../iv";
+
+            const x = $content \`
+                <div> Message: \${123} </>
+            \`;
+
+            // end`, "1");
+
+        const src2 = `\// start
+            import { $content } from "../iv";
+
+            const x = $content\`
+                <div> Message: \${123} </>
+            \`;
+            const y = $content   \`
+                <div> Message: <*hi @deco(foo={bar})/> </>
+            \`
+            const z = $content\`
+                <div> {blah} <*hi @deco(foo={bar})/> </>
+            \`;
+
+            // end`
+
+        r = await compile(src2, "a/b/c.ts")
+
+        assert.equal(r.fileContent, `\// start
+            import { $content } from "../iv";
+
+            const x = $content\`
+                <div> Message: \${123} </>
+            \`;
+            const y = \`<!><div> Message: <*hi @deco( foo={bar})/></></>\`
+            const z = \`<!><div> {blah} <*hi @deco( foo={bar})/></></>\`;
+
+            // end`, "2");
+    });
+
+    it("should compile multiple $content strings with xjs $templates", async function () {
+        const src1 = `\// start
+            import { $template, $content } from "../iv";
+
+            const a=$content\`
+                ABC <def
+                    g={xxx}
+                />
+            \`;
+            const x = $template\`() => {
+                hello world
+            }\`;
+            const b = $content\`
+                <*hello name={name}/>
+            \`;//here
+
+            // end`;
+
+        const r = await compile(src1, "a/b/c.ts")
+
+        assert.equal(r.fileContent, `\// start
+            import { $template, $content, ζinit, ζend, ζtxt, ζt } from "../iv";
+
+            const a=\`<!> ABC <def g={xxx}/></>\`;
+            const x = (function () {
+            const ζs0 = {};
+            return ζt("x", ".../b/c.ts", ζs0, function (ζ) {
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, 0, 0, " hello world ", 0);
+                ζend(ζ, ζc);
+            });
+            })();
+            const b = \`<!><*hello name={name}/></>\`;//here
+
+            // end`, "1");
+    });
+
+    // simple pre-processor to add a new param
+    // supports 2 parameters: name and value: @@newParam(name="x" value="y")
+    function newParam() {
+        return {
+            process(target: XjsParamHost, params: XjsParamDictionary) {
+                let value = params["$$default"] ? params["$$default"].value || "" : "";
+                addParam(createParam("the_param", value), target);
+            }
+        }
+    }
+
+    it("should support $content pre-processors", async function () {
+        const src1 = `\// start
+            import { $content } from "../iv";
+
+            const x = $content\`
+                <div @@newParam="a"> <*hello @@newParam={abc}/> </div>
+            \`;
+
+            // end`;
+
+        const r = await compile(src1, { filePath: "a/b/c.ts", preProcessors: { "@@newParam": newParam } });
+
+        assert.equal(r.fileContent, `\// start
+            import { $content } from "../iv";
+
+            const x = \`<!><div the_param='a'><*hello the_param={abc}/></></>\`;
+
+            // end`, "1");
+    });
+
+    it("should support $template pre-processors", async function () {
+        const src1 = `\// start
+            import { $template } from "../iv";
+
+            const x = $template\`() => {
+                <div @@newParam="a"> 
+                    <*hello @@newParam={abc}/> 
+                </div>
+            }\`;
+
+            // end`;
+
+        const r = await compile(src1, { filePath: "a/b/c.ts", preProcessors: { "@@newParam": newParam } });
+
+        assert.equal(r.fileContent, `\// start
+            import { $template, ζinit, ζend, ζelt, ζcpt, ζpar, ζcall, ζe, ζt } from "../iv";
+
+            const x = (function () {
+            const ζs0 = {}, ζs1 = ["the_param", "a"];
+            return ζt("x", ".../b/c.ts", ζs0, function (ζ) {
+                let ζc = ζinit(ζ, ζs0, 2);
+                ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
+                ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, hello), 0);
+                ζpar(ζ, ζc, 0, 1, "the_param", ζe(ζ, 1, abc));
+                ζcall(ζ, 1);
+                ζend(ζ, ζc);
+            });
+            })();
+
+            // end`, "1");
+    });
+
+    it("should raise errors with file name and line numbers", async function () {
+        let err: any;
+        try {
+            await compile(`
+                import{ $content } from "../iv";
+
+                const x = $content\`
+                    <*cpt-x> Message: <*hello> </>
+                \`;
+
+                `, "file-name.ts")
+        } catch (e) {
+            err = e;
+        }
+        assert.equal(formatError(err, 3), `
+                XJS: Invalid component: Invalid character in component identifier: '-'
+                File: file-name.ts - Line 5 / Col 26
+                Extract: >> <*cpt-x> Message: <*hello> </> <<
+            `, '1');
+
+        try {
+            await compile(`
+                import{ $content } from "../iv";
+
+                const x = $content\`
+                    <*cpt> Message: <*hello/> </>
+                \`); // JS error here
+
+                `, "file-name.ts")
+        } catch (e) {
+            err = e;
+        }
+        assert.equal(formatError(err, 3), `
+                TS: ',' expected.
+                File: file-name.ts - Line 6 / Col 18
+                Extract: >> \`); // JS error here <<
+            `, '2');
     });
 
 });

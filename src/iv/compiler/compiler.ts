@@ -1,18 +1,18 @@
-import { XtrPreProcessorDictionary } from './../../xtr/parser';
+import { XjsFragment, XjsPreProcessor } from './../../xjs/types';
 import * as ts from "typescript";
-import { compileTemplate, IvError } from './generator';
+import { compileTemplate } from './generator';
 import { generate } from '../../trax/compiler/generator';
 import { DataMember } from '../../trax/compiler/types';
-import { XtrFragment } from '../../xtr/ast';
-import { parse, XtrParserContext } from '../../xtr/parser';
+import { validator } from './validator';
+import { IvError } from './types';
+import { parse, XjsParserContext, toString } from '../../xjs/parser';
 
 const enum CHANGES {
     TEMPLATE = 1,
-    XTR = 2
+    CONTENT = 2
 }
 
 const SK = ts.SyntaxKind,
-    TEMPLATE = "template",
     RX_START_WS = /^(\s*)/,
     RX_IGNORE_FILE = /[\n\s]*\/\/\s*iv:ignore/,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
@@ -22,12 +22,13 @@ const SK = ts.SyntaxKind,
     RX_LIST = /List$/,
     IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"],
     CR = "\n",
-    XTR_NAME = "xtr",
+    TEMPLATE_TAG = "$template",
+    CONTENT_TAG = "$content",
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
 export interface ProcessOptions {
     filePath: string;
-    preProcessors?: XtrPreProcessorDictionary;
+    // preProcessors?: XtrPreProcessorDictionary;
     logErrors?: boolean;
 }
 
@@ -37,7 +38,7 @@ export async function process(source: string, options: ProcessOptions) {
 
     try {
         // ivy processing
-        ivyResult = await compile(source, { filePath: resourcePath, preProcessors: options.preProcessors });
+        ivyResult = await compile(source, { filePath: resourcePath }); // , preProcessors: options.preProcessors
         result = ivyResult.fileContent;
         log("Ivy: Template Processing");
 
@@ -81,14 +82,19 @@ export async function process(source: string, options: ProcessOptions) {
         log("Ivy: Generated Code", !!source.match(RX_LOG));
     } catch (e) {
         if (ivyResult && e.kind === "#Error") {
+            let err = e as IvError;
             // shift line numbers
-            (e as IvError).line = ivyResult.convertLineNbr(e.line);
+            err.line = ivyResult.convertLineNbr(e.line);
+            if (!err.description) {
+                err.description = err.message;
+                err.message = validator.getErrorMessage(err.origin, err.description, err.file, err.line, err.column, err.lineExtract);
+            }
         }
         if (options.logErrors !== false) {
             let err = e as IvError, msg: string;
             if (err.kind === "#Error") {
                 let ls = "  >  ";
-                msg = `${ls} ${err.origin}: ${e.message}\n`
+                msg = `${ls} ${err.origin}: ${e.description}\n`
                     + `${ls} File: ${e.file} - Line ${e.line} / Col ${e.column}\n`
                     + `${ls} Extract: >> ${e.lineExtract} <<`;
             } else {
@@ -133,7 +139,7 @@ export interface CompilationResult {
 
 export interface CompilationOptions {
     filePath: string;
-    preProcessors?: XtrPreProcessorDictionary;
+    preProcessors?: { [name: string]: () => XjsPreProcessor };
 }
 
 export async function compile(source: string, pathOrOptions: string | CompilationOptions): Promise<CompilationResult> {
@@ -153,32 +159,15 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
     let diagnostics = srcFile['parseDiagnostics'];
     if (diagnostics && diagnostics.length) {
         let d: ts.Diagnostic = diagnostics[0] as any;
-        let info = getLineInfo(source, d.start || -1);
-        throw {
-            kind: "#Error",
-            origin: "TS",
-            message: d.messageText.toString(),
-            line: info.lineNbr,
-            column: info.columnNbr,
-            lineExtract: info.lineContent.trim(),
-            file: filePath
-        } as IvError;
+        validator.throwError(d.messageText.toString(), d.start || -1, source, filePath, "TS");
     }
 
     scan(srcFile);
 
     return await generateNewFile(filePath);
 
-    function error(msg: string) {
-        throw {
-            kind: "#Error",
-            origin: "IVY",
-            message: msg,
-            line: 0,
-            column: 0,
-            lineExtract: "",
-            file: filePath
-        } as IvError;
+    function error(msg: string, pos: number) {
+        validator.throwError(msg, pos, source, filePath, "IVY");
     }
 
     function scan(node: ts.Node) {
@@ -195,7 +184,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
 
             if (id.importClause && id.importClause.namedBindings) {
                 id.importClause.namedBindings!.forEachChild((nd: ts.Node) => {
-                    if (nd.kind === SK.ImportSpecifier && (nd as ts.ImportSpecifier).name.getText() === TEMPLATE) {
+                    if (nd.kind === SK.ImportSpecifier && (nd as ts.ImportSpecifier).name.getText() === TEMPLATE_TAG) {
                         isTemplateImport = true;
                     }
                 });
@@ -214,23 +203,24 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                 importEnd = id.importClause!.end;
             }
 
-        } else if (node.kind === SK.CallExpression) {
-            // check if function is named template and if its argument is a template string
-            let ce = node as ts.CallExpression;
-
-            if (ce.expression.getText() === TEMPLATE && ce.arguments.length >= 1 && ce.arguments[0].kind === SK.NoSubstitutionTemplateLiteral) {
-                let tpl = ce.arguments[0], txt = tpl.getText();
-
+        } else if (node.kind === SK.TaggedTemplateExpression) {
+            const tt = node as ts.TaggedTemplateExpression, name = tt.tag.getText();
+            let nbrOfArgs = 0;
+            if (name === TEMPLATE_TAG) {
+                if (tt.template.getChildCount() > 1) {
+                    nbrOfArgs = tt.template.getChildAt(1).getChildCount();
+                    if (nbrOfArgs > 0) {
+                        error("$template strings don't accept dynamic values", node.pos); // todo: line number?
+                    }
+                }
                 changes.push({
                     start: getNodePos(node),
                     end: node.end,
-                    src: txt.substring(1, txt.length - 1),
+                    src: tt.template.getText().slice(1, -1),
                     type: CHANGES.TEMPLATE
                 });
-            }
-        } else if (node.kind === SK.TaggedTemplateExpression) {
-            let tt = node as ts.TaggedTemplateExpression, nbrOfArgs = 0;
-            if (tt.tag.getText() === XTR_NAME) {
+            } else if (name === CONTENT_TAG) {
+                let nbrOfArgs = 0;
                 if (tt.template.getChildCount() > 1) {
                     nbrOfArgs = tt.template.getChildAt(1).getChildCount();
                 }
@@ -240,11 +230,9 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                     changes.push({
                         start: getNodePos(node),
                         end: node.end,
-                        src: tt.getText(),
-                        type: CHANGES.XTR
+                        src: tt.template.getText().slice(1, -1),
+                        type: CHANGES.CONTENT
                     });
-                } else {
-                    // ensure xtr import is not removed in this case
                 }
             }
         }
@@ -269,7 +257,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
 
         let paths = filePath.split(/\/|\\/);
         if (paths.length > 2) {
-            filePath = paths[paths.length - 2] + "/" + paths[paths.length - 1];
+            filePath = ".../" + paths[paths.length - 2] + "/" + paths[paths.length - 1];
         }
 
         // manage templates
@@ -283,28 +271,29 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
             colOffset = lastSlice.length - lastSlice.lastIndexOf(CR);
             if (chg.type === CHANGES.TEMPLATE) {
                 if (importStart < 0) {
-                    error("Missing 'template' import statement");
+                    error("Missing '$template' import statement", 0);
                 }
-                colOffset += 9; // 9 = length of "template("
+                colOffset += 10; // 10 = length of "$template`"
 
                 if (lastSlice.match(/(\$?\w+)[\s\n]*\=[\s\n]*$/)) {
                     tplName = RegExp.$1;
                 } else {
                     tplName = "";
                 }
-                let r = await compileTemplate(chg.src, { templateName: tplName, function: true, importMap: importIds, filePath: filePath, lineOffset: getLineNumber(chg.start + 1) - 1, columnOffset: colOffset });
+                let r = await compileTemplate(chg.src, {
+                    templateName: tplName,
+                    function: true,
+                    importMap: importIds,
+                    filePath: filePath,
+                    lineOffset: getLineNumber(chg.start + 1) - 1,
+                    columnOffset: colOffset,
+                    preProcessors: preProcessors
+                });
                 addSlice(r.function!, chg.src);
             } else {
-                // XTR change
-                const li = getLineInfo(source, chg.start);
-                // try {
-                addSlice(await processXtrString(chg.src, filePath, li.lineNbr, li.columnNbr, preProcessors), chg.src);
-                // } catch (ex) {
-
-                //     console.log(li);
-                //     console.log("abc", ex)
-                //     error("HERE")
-                // }
+                // $content template
+                const li = validator.getLineInfo(source, chg.start);
+                addSlice(await processContentString(chg.src, filePath, li.lineNbr, li.columnNbr, preProcessors), chg.src);
             }
             pos = chg.end;
         }
@@ -360,46 +349,17 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
     function sameLineNbr(newLineNbr: number): number {
         return newLineNbr;
     }
-}
 
-/**
- * Return the new template string = e.g. '`<foo bar="blah"/>`'
- * @param src template string - e.g. 'xtr `<foo bar="blah" @@xyz/>`'
- */
-async function processXtrString(src: string, filePath: string, lineNbr: number, colNbr: number, preProcessors?: XtrPreProcessorDictionary): Promise<string> {
-    const xtr = src.replace(/(^xtr\s*\`)|(\s*\`\s*$)/g, ""), ctxt: XtrParserContext = {
-        fileId: filePath,
-        preProcessors: preProcessors,
-        line1: lineNbr,
-        col1: colNbr
-    };
+    async function processContentString(src: string, filePath: string, lineNbr: number, colNbr: number, preProcessors?: { [name: string]: () => XjsPreProcessor }): Promise<string> {
+        const ctxt: XjsParserContext = {
+            fileId: filePath,
+            preProcessors: preProcessors,
+            line1: lineNbr,
+            col1: colNbr,
+            templateType: "$content"
+        };
 
-    const root: XtrFragment = await parse(xtr, ctxt);
-    return "`" + root.toString("", "", true, false).replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`";
-}
-
-function getLineInfo(src: string, pos: number): { lineNbr: number, lineContent: string, columnNbr: number } {
-    let lines = src.split("\n"), lineLen = 0, posCount = 0, idx = 0;
-    if (pos > -1) {
-        while (idx < lines.length) {
-            lineLen = lines[idx].length;
-            if (posCount + lineLen < pos) {
-                // continue
-                idx++;
-                posCount += lineLen + 1; // +1 for carriage return
-            } else {
-                // stop
-                return {
-                    lineNbr: idx + 1,
-                    lineContent: lines[idx],
-                    columnNbr: 1 + pos - posCount
-                }
-            }
-        }
-    }
-    return {
-        lineNbr: 0,
-        lineContent: "",
-        columnNbr: 0
+        const root = await parse(src, ctxt) as XjsFragment;
+        return "`" + toString(root, "").replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`";
     }
 }

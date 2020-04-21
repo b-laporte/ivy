@@ -4,90 +4,94 @@ import * as assert from 'assert';
 
 describe('Code generator', () => {
 
+    beforeEach(() => {
+        test.importMap = undefined;
+    });
+
     it("should support empty templates", async function () {
         assert.deepEqual(
-            await test.template(`() => {}`),
-            {
-              "body": "\n",
-              "function": "(function () {\nconst ζs0 = {};\nreturn ζt(\"testTpl\", \"test.ts\", ζs0, function (ζ) {\n});\n})()",
-              "importMap": {
+            await test.$template`() => {}`, {
+            "body": "\n",
+            "function": "(function () {\nconst ζs0 = {};\nreturn ζt(\"testTpl\", \"test.ts\", ζs0, function (ζ) {\n});\n})()",
+            "importMap": {
                 "ζend": 1,
                 "ζinit": 1,
                 "ζt": 1,
-              },
-              "statics": [
+            },
+            "statics": [
                 "ζs0 = {}"
-              ]
+            ]
         }, '1');
     });
 
     it("should support static text nodes", async function () {
-        assert.equal(await body.template(`() => {
-            # Hello World #
-        }`), `
+        assert.equal(await body.$template`() => {
+            Hello World 
+        }`, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, " Hello World ", 0);
             ζend(ζ, ζc);
         `, '1');
 
-        assert.equal(await body.template(`() => {
-            # Hello #
-            # World #
-        }`), `
-            let ζc = ζinit(ζ, ζs0, 3);
-            ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, 0, " Hello ", 0);
-            ζtxt(ζ, ζc, 0, 2, 1, 0, " World ", 0);
+        assert.equal(await body.$template`() => {
+            Hello
+            World
+        }`, `
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, " Hello World ", 0);
             ζend(ζ, ζc);
         `, '2');
     });
 
     it("should support dynamic text nodes and expressions", async function () {
-        assert.equal(await body.template(`(name) => {
-            # Hello {name} #
-        }`), `
+        assert.equal(await body.$template`(name) => {
+            Hello {name}
+        }`, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζtxt(ζ, ζc, 0, 0, 0, 0, ζs1, 1, ζe(ζ, 0, name));
             ζend(ζ, ζc);
         `, '1');
 
-        assert.deepEqual(await statics.template(`(name) => {
-            # Hello {name} #
-        }` ), [
+        assert.deepEqual(await statics.$template`(name) => {
+            Hello {name}
+        }`, [
             'ζs0 = {}',
             'ζs1 = [" Hello ", "", " "]'
         ], '2');
 
-        assert.equal(await body.template(`(name) => {
-            # Hello {name} #
-            # {name+1} {::name+2} #
-        }`), `
-            let ζc = ζinit(ζ, ζs0, 3);
+        assert.equal(await body.$template`(name) => {
+            Hello {name}
+            <div/>
+            {name+1} {::name+2}
+        }`, `
+            let ζc = ζinit(ζ, ζs0, 4);
             ζfra(ζ, ζc, 0, 0);
             ζtxt(ζ, ζc, 0, 1, 1, 0, ζs1, 1, ζe(ζ, 0, name));
-            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs2, 2, ζe(ζ, 1, name+1), ζo(ζ, 0, ζc? name+2 : ζu));
+            ζelt(ζ, ζc, 2, 1, "div", 0);
+            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs2, 2, ζe(ζ, 1, name+1), ζo(ζ, 0, ζc? name+2 : ζu));
             ζend(ζ, ζc);
         `, '3');
 
-        assert.deepEqual(await statics.template(`(name) => {
-            # Hello {name}#
-            # {name+1} {::name+2} #
-        }` ), [
+        assert.deepEqual(await statics.$template`(name) => {
+            Hello {name}
+            <div/>
+            {name+1} {::name+2}
+        }` , [
             'ζs0 = {}',
-            'ζs1 = [" Hello ", ""]',
+            'ζs1 = [" Hello ", "", " "]',
             'ζs2 = [" ", "", " ", "", " "]'
         ], '4');
     });
 
     it("should support dynamic text nodes in fragments", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div>
                 <!> 
-                    # Hello {name} #
-                    <span> # {name} # </span>
+                    Hello {name}
+                    <span> {name} </span>
                 </!>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 5);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζfra(ζ, ζc, 1, 1);
@@ -99,12 +103,12 @@ describe('Code generator', () => {
     });
 
     it("should support element nodes", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div class="main">
-                <span class="foo" enabled=true col = 2> # Hello # </span>
-                <span> # World # </span>
+                <span class="foo" enabled=true col = 2> Hello </span>
+                <span> World </span>
             </>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 5);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
@@ -120,12 +124,12 @@ describe('Code generator', () => {
             'ζs2 = ["class", "foo", "enabled", true, "col", 2]'
         ], '1b');
 
-        let t2 = await test.template(`() => {
+        let t2 = await test.$template`() => {
             <div [className]="main">
-                <span class="foo" [enabled]=true [col] = 2> # Hello # </span>
-                <section> # World # </section>
+                <span class="foo" [enabled]=true [col] = 2> Hello </span>
+                <section> World </section>
             </>
-        }`);
+        }`;
         assert.equal(t2.body, `
             let ζc = ζinit(ζ, ζs0, 5);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, 0, ζs1);
@@ -144,9 +148,9 @@ describe('Code generator', () => {
     });
 
     it("should support orphan attributes", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div disabled/>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζelt(ζ, ζc, 0, 0, "div", 0, 0, ζs1);
@@ -159,11 +163,11 @@ describe('Code generator', () => {
     });
 
     it("should support dynamic attributes", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div title={exp()+123}>
                 <span class={getClass()}/>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζatt(ζ, 0, 0, "title", ζe(ζ, 0, exp()+123));
@@ -174,11 +178,11 @@ describe('Code generator', () => {
     });
 
     it("should support dynamic properties", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div [title]={exp()+123}>
                 <span [className]={::getClass()}/>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζpro(ζ, 0, 0, "title", ζe(ζ, 0, exp()+123));
@@ -189,14 +193,14 @@ describe('Code generator', () => {
     });
 
     it("should support fragments", async function () {
-        let t = await test.template(`() => {
+        let t = await test.$template`() => {
             <!>
-                # fragment 1 #
+                fragment 1
                 <!>
-                    <div> # fragment 2 # </div>
+                    <div> fragment 2 </div>
                 </>
             </>
-        }`);
+        }`;
         assert.equal(t.body, `
             let ζc = ζinit(ζ, ζs0, 5);
             ζfra(ζ, ζc, 0, 0);
@@ -209,13 +213,13 @@ describe('Code generator', () => {
     });
 
     it("should support js statements", async function () {
-        assert.equal(await body.template(`() => {
-            let x = 42;
-            # Something #
-            x++;
-            let bar = { a:"xyz"};
-            # Something else #
-        }`), `
+        assert.equal(await body.$template`() => {
+            $let x = 42;
+            Something
+            $exec x++;
+            $let bar = { a:"xyz"};
+            Something else
+        }`, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             let x = 42;
@@ -225,29 +229,15 @@ describe('Code generator', () => {
             ζtxt(ζ, ζc, 0, 2, 1, 0, " Something else ", 0);
             ζend(ζ, ζc);
         `, 'statements first and embedded');
-
-        assert.equal(await body.template(`() => {
-            # Something #
-            do {
-                callSomething();
-            } while (test);
-        }`), `
-            let ζc = ζinit(ζ, ζs0, 1);
-            ζtxt(ζ, ζc, 0, 0, 0, 0, " Something ", 0);
-            do {
-                callSomething();
-            } while (test);
-            ζend(ζ, ζc);
-        `, 'statements last');
     });
 
     it("should support js blocks", async function () {
-        assert.equal(await body.template(`(name) => {
-            if (test) {
-                # Hello {name} #
+        assert.equal(await body.$template`(name) => {
+            $if (test) {
+                Hello {name}
             }
-            # \\(end) #
-        }`), `
+            (end)
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             ζcnt(ζ, ζc, 1, 1, 1);
@@ -257,28 +247,28 @@ describe('Code generator', () => {
                 ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
             }
-            ζtxt(ζ, ζc, 0, 2, 1, 0, " \\(end) ", 0);
+            ζtxt(ζ, ζc, 0, 2, 1, 0, " (end) ", 0);
             ζend(ζ, ζc, ζs2);
         `, 'first position');
 
-        assert.deepEqual(await statics.template(`(name) => {
-            if (test) {
-                # Hello {name} #
+        assert.deepEqual(await statics.$template`(name) => {
+            $if (test) {
+                Hello {name}
             }
-            # \\(end) #
-        }` ), [
+            (end)
+        }`, [
             'ζs0 = {}',
             'ζs1 = [" Hello ", "", " "]',
             'ζs2 = [1]'
         ], 'first position statics');
 
-        assert.equal(await body.template(`(name) => {
-            if (test) {
-                # A {name} #
+        assert.equal(await body.$template`(name) => {
+            $if (test) {
+                A {name}
             } else {
-                # B {name} #
+                B {name}
             }
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             ζcnt(ζ, ζc, 1, 1, 1);
@@ -288,7 +278,8 @@ describe('Code generator', () => {
                 ζc1 = ζ1.cm;
                 ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
-            } else {
+            }
+            else {
                 ζ2 = ζview(ζ, 0, 2, 1, ++ζi2);
                 ζc2 = ζ2.cm;
                 ζtxt(ζ2, ζc2, 0, 0, 0, 0, ζs2, 1, ζe(ζ2, 0, name));
@@ -297,59 +288,60 @@ describe('Code generator', () => {
             ζend(ζ, ζc, ζs3);
         `, 'all / if+else');
 
-        assert.deepEqual(await statics.template(`(name) => {
-            if (test) {
-                # A {name} #
+        assert.deepEqual(await statics.$template`(name) => {
+            $if (test) {
+                A {name}
             } else {
-                # B {name} #
+                B {name}
             }
-        }`), [
+        }`, [
             'ζs0 = {}',
             'ζs1 = [" A ", "", " "]',
             'ζs2 = [" B ", "", " "]',
             'ζs3 = [1, 2]'
         ], 'all / if+else statics');
 
-        assert.equal(await body.template(`(name) => {
-            # hello #
-            do {
-                let x=123;
-                # A {name} #
-            } while (test)
-        }`), `
+        assert.equal(await body.$template`(name) => {
+            hello
+            $for (let i=0;10>i;i++) {
+                $let x=123;
+                A {name}
+            }
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             ζtxt(ζ, ζc, 0, 1, 1, 0, " hello ", 0);
             ζcnt(ζ, ζc, 2, 1, 1);
-            do {
+            for (let i=0;10>i;i++) {
                 ζ1 = ζview(ζ, 0, 2, 1, ++ζi1);
                 ζc1 = ζ1.cm;
                 let x=123;
                 ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
-            } while (test)
+            }
             ζend(ζ, ζc, ζs2);
         `, 'last + js Statements first & last');
 
-        assert.equal(await body.template(`(name) => {
-            if (a) {
-                # A {name} #
+        assert.equal(await body.$template`(name) => {
+            $if (a) {
+                A {name}
             }
-            let x=1;
-            if (b) {
-                # B {name} #
+            $let x=1;
+            $if (b) {
+                B {name}
             }
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             ζcnt(ζ, ζc, 1, 1, 1);
-            ζcnt(ζ, ζc, 2, 1, 1);
             if (a) {
                 ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
                 ζc1 = ζ1.cm;
                 ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, name));
                 ζend(ζ1, ζc1);
-            } let x=1;
+            }
+            let x=1;
+            ζcnt(ζ, ζc, 2, 1, 1);
             if (b) {
                 ζ2 = ζview(ζ, 0, 2, 1, ++ζi2);
                 ζc2 = ζ2.cm;
@@ -359,14 +351,14 @@ describe('Code generator', () => {
             ζend(ζ, ζc, ζs3);
         `, 'series of block & statements');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <span/>
-            if (a) {
-                # A {name} #
+            $if (a) {
+                A {name}
                 <div/>
             }
             <section/>
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 4);
             ζfra(ζ, ζc, 0, 0);
             ζelt(ζ, ζc, 1, 1, "span", 0);
@@ -382,27 +374,27 @@ describe('Code generator', () => {
             ζelt(ζ, ζc, 3, 1, "section", 0);
             ζend(ζ, ζc, ζs2);
         `, 'embedded & multiple child nodes');
-        assert.deepEqual(await statics.template(`(name) => {
+        assert.deepEqual(await statics.$template`(name) => {
             <span/>
-            if (a) {
-                # A {name} #
+            $if (a) {
+                A {name}
                 <div/>
             }
             <section/>
-        }` ), [
+        }` , [
             'ζs0 = {}',
             'ζs1 = [" A ", "", " "]',
             'ζs2 = [2]'
         ], 'embedded & multiple child nodes statics');
 
-        assert.equal(await body.template(`(name) => {
-            if (a) {
-                if (b) {
+        assert.equal(await body.$template`(name) => {
+            $if (a) {
+                $if (b) {
                     <span/>
                 }
                 <div/>
             }
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcnt(ζ, ζc, 0, 0, 1);
             if (a) {
@@ -422,14 +414,14 @@ describe('Code generator', () => {
             }
             ζend(ζ, ζc, ζs1);
         `, 'last');
-        assert.deepEqual(await statics.template(`(name) => {
-            if (a) {
-                if (b) {
+        assert.deepEqual(await statics.$template`(name) => {
+            $if (a) {
+                $if (b) {
                     <span/>
                 }
                 <div/>
             }
-        }` ), [
+        }`, [
             'ζs0 = {}',
             'ζs1 = [0]',
             'ζs2 = [1]'
@@ -437,14 +429,14 @@ describe('Code generator', () => {
     });
 
     it("should support js blocks in elements and fragments", async function () {
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <div>
-                # first #
-                if (condition) {
+                first
+                $if (condition) {
                     <span/>
                 }
             </div>
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζtxt(ζ, ζc, 0, 1, 1, 0, " first ", 0);
@@ -458,18 +450,18 @@ describe('Code generator', () => {
             ζend(ζ, ζc, ζs1);
         `, '1');
 
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <div>
                 <!>
-                    if (condition) {
+                    $if (condition) {
                         <span/>
                     }
                 </>
-                if (condition) {
+                $if (condition) {
                     <span/>
                 }
             </div>
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 4);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζfra(ζ, ζc, 1, 1);
@@ -492,16 +484,16 @@ describe('Code generator', () => {
     });
 
     it("should support js blocks in js blocks", async function () {
-        assert.equal(await body.template(`(condition1, condition2) => {
+        assert.equal(await body.$template`(condition1, condition2) => {
             <div>
-                if (condition1) {
+                $if (condition1) {
                     <span/>
-                    if (condition2) {
+                    $if (condition2) {
                         <div/>
                     }
                 }
             </div>
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 1);
@@ -523,19 +515,19 @@ describe('Code generator', () => {
             ζend(ζ, ζc, ζs1);
         `, '1');
 
-        assert.equal(await body.template(`(condition1, condition2, condition3) => {
+        assert.equal(await body.$template`(condition1, condition2, condition3) => {
             <div>
-                if (condition1) {
+                $if (condition1) {
                     <span/>
-                    if (condition2) {
+                    $if (condition2) {
                         <div/>
                     }
-                    if (condition3) {
+                    $if (condition3) {
                         <div/>
                     }
                 }
             </div>
-        }`), `
+        }`, `
             let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζi3 = 0, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 1);
@@ -552,7 +544,8 @@ describe('Code generator', () => {
                     ζc2 = ζ2.cm;
                     ζelt(ζ2, ζc2, 0, 0, "div", 0);
                     ζend(ζ2, ζc2);
-                } if (condition3) {
+                }
+                if (condition3) {
                     ζ3 = ζview(ζ1, 0, 3, 1, ++ζi3);
                     ζc3 = ζ3.cm;
                     ζelt(ζ3, ζc3, 0, 0, "div", 0);
@@ -565,9 +558,9 @@ describe('Code generator', () => {
     });
 
     it("should support components with no content", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <*alert class="important" position="bottom"/>
-        }`);
+        }`;
 
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 1);
@@ -581,9 +574,9 @@ describe('Code generator', () => {
         ], '1b');
 
         // with dynamic api
-        let t2 = await test.template(`() => {
+        let t2 = await test.$template`() => {
             <*b.section position={getPosition()} msg={myMessage} type="big" important/>
-        }`);
+        }`;
         assert.equal(t2.body, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, b.section), 0, 0, ζs1);
@@ -598,64 +591,12 @@ describe('Code generator', () => {
         ], '2b');
     });
 
-    it("should support event handlers on elements", async function () {
-        assert.equal(await body.template(`(name) => {
-            <div @onclick={e=>doSomething(e)} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
-                # Click {name} #
-            </div>
-            }`), `
-            let ζc = ζinit(ζ, ζs0, 4);
-            ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething(e));
-            ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
-            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
-            ζend(ζ, ζc);
-        `, '1');
-
-        assert.equal(await body.template(`(name) => {
-            <div @onclick={=>doSomething()} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
-                # Click {name} #
-            </div>
-            }`), `
-            let ζc = ζinit(ζ, ζs0, 4);
-            ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζevt(ζ, ζc, 1, 0, "click", ()=>doSomething(), 1);
-            ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
-            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
-            ζend(ζ, ζc);
-        `, '2');
-
-        assert.equal(await body.template(`(name) => {
-            <div @onclick(listener={e=>doSomething(e)} options={{capture:true}})>
-                # Click {name} #
-            </div>
-            }`), `
-            let ζc = ζinit(ζ, ζs0, 3);
-            ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething(e), 0, {capture:true});
-            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs1, 1, ζe(ζ, 0, name));
-            ζend(ζ, ζc);
-        `, '3');
-
-        assert.equal(await body.template(`(name) => {
-            <div @onclick(listener={=>doSomething()} options={{capture:true}})>
-                # Click {name} #
-            </div>
-            }`), `
-            let ζc = ζinit(ζ, ζs0, 3);
-            ζelt(ζ, ζc, 0, 0, "div", 1);
-            ζevt(ζ, ζc, 1, 0, "click", ()=>doSomething(), 1, {capture:true});
-            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs1, 1, ζe(ζ, 0, name));
-            ζend(ζ, ζc);
-        `, '4');
-    });
-
     it("should support components with content & no param nodes", async function () {
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <*myComponent>
                 <span title={getTitle()}/>
             </>
-            }`), `
+            }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
             ζ1 = ζviewD(ζ, 1, 0, 1, 0);
@@ -667,14 +608,14 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, 'single node + dynamic param');
 
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <*myComponent>
-                # hello {name1} #
+                hello {name1}
                 <*otherComponent p1={expr()}>
-                    # hello {name2} #
+                    hello {name2}
                 </>
             </>
-            }`), `
+            }`, `
             let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
@@ -695,14 +636,14 @@ describe('Code generator', () => {
     });
 
     it("should support js blocks in component content", async function () {
-        assert.equal(await body.template(`(foo) => {
+        assert.equal(await body.$template`(foo) => {
             <*cpt>
-                # first #
-                if (condition) {
+                first
+                $if (condition) {
                     <span class={foo} title={foo+1}/>
                 }
             </*cpt>
-            }`), `
+            }`, `
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζi2 = 0;
@@ -725,15 +666,67 @@ describe('Code generator', () => {
         `, '1');
     });
 
+    it("should support event handlers on elements", async function () {
+        assert.equal(await body.$template`(name) => {
+            <div @onclick={e=>doSomething(e)} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
+                Click {name}
+            </div>
+            }`, `
+            let ζc = ζinit(ζ, ζs0, 4);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething(e));
+            ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
+            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '1');
+
+        assert.equal(await body.$template`(name) => {
+            <div @onclick={=>doSomething()} @onmousemove={(x,y)=>doSomethingElse(y,x)}>
+                Click {name}
+            </div>
+            }`, `
+            let ζc = ζinit(ζ, ζs0, 4);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", ()=>doSomething(), 1);
+            ζevt(ζ, ζc, 2, 0, "mousemove", (x,y)=>doSomethingElse(y,x));
+            ζtxt(ζ, ζc, 0, 3, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '2');
+
+        assert.equal(await body.$template`(name) => {
+            <div @onclick(listener={e=>doSomething(e)} options={{capture:true}})>
+                Click {name}
+            </div>
+            }`, `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", e=>doSomething(e), 0, {capture:true});
+            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '3');
+
+        assert.equal(await body.$template`(name) => {
+            <div @onclick(listener={=>doSomething()} options={{capture:true}})>
+                Click {name}
+            </div>
+            }`, `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζevt(ζ, ζc, 1, 0, "click", ()=>doSomething(), 1, {capture:true});
+            ζtxt(ζ, ζc, 0, 2, 1, 0, ζs1, 1, ζe(ζ, 0, name));
+            ζend(ζ, ζc);
+        `, '4');
+    });
+
     it("should not create content view for content with single js statements block", async function () {
-        let t = await test.template(`() => {
+        let t = await test.$template`() => {
             <span>
-                let x=123;
+                $let x=123;
             </span>
             <*foo>
-                let bar=foo;
+                $let bar=foo;
             </>
-        }`);
+        }`;
 
         assert.equal(t.body, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
@@ -751,11 +744,11 @@ describe('Code generator', () => {
     });
 
     it("should support api argument", async function () {
-        let t = await test.template(`($, a, b) => {
+        let t = await test.$template`($, a, b) => {
             <div class="main">
-                # text {$.a} #
+                text {$.a}
             </>
-        }`);
+        }`;
 
         assert.equal(t.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = [" text ", "", " "];
@@ -774,28 +767,29 @@ describe('Code generator', () => {
     });
 
     it("should support import re-injection", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div class="main">
-                let x=123;
-                # x = {x} #
+                $let x=123;
+                x = {x}
             </>
-        }`);
+        }`;
         assert.deepEqual(t1.importMap, {
             "ζelt": 1, "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζend": 1, "ζt": 1
         }, "t1 imports");
 
-        let t2 = await test.template(`(comp) => {
+        test.importMap = t1.importMap as any;
+        let t2 = await test.$template`(comp) => {
             <*comp/>
-        }`, t1.importMap);
+        }`;
         assert.deepEqual(t2.importMap, {
             "ζelt": 1, "ζtxt": 1, "ζinit": 1, "ζe": 1, "ζend": 1, "ζt": 1, "ζcpt": 1, "ζΔD": 1
         }, "t2 imports");
     });
 
     it("should support external API class definition", async function () {
-        let t1 = await test.template(`($:MyParamClass) => {
-            # Hello {$.name} #
-        }`);
+        let t1 = await test.$template`($:MyParamClass) => {
+            Hello {$.name}
+        }`;
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
@@ -805,9 +799,9 @@ describe('Code generator', () => {
         }, MyParamClass);
         })()`, 'simple param class');
 
-        let t2 = await test.template(`($:MyParamClass, name) => {
-            # Hello {name} #
-        }`);
+        let t2 = await test.$template`($:MyParamClass, name) => {
+            Hello {name}
+        }`;
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
@@ -820,9 +814,9 @@ describe('Code generator', () => {
     });
 
     it("should support external Controller class definition", async function () {
-        let t1 = await test.template(`($:MyCtlClass) => {
-            # Hello {$.name} #
-        }`);
+        let t1 = await test.$template`($:MyCtlClass) => {
+            Hello {$.name}
+        }`;
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         return ζt("testTpl", "test.ts", ζs0, function (ζ, $, $api) {
@@ -834,9 +828,9 @@ describe('Code generator', () => {
     });
 
     it("should support $template injection", async function () {
-        let t1 = await test.template(`(name, $template:IvTemplate) => {
-            # Hello {name} #
-        }`);
+        let t1 = await test.$template`(name, $template:IvTemplate) => {
+            Hello {name}
+        }`;
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " "];
         @ζΔD class ζParams {
@@ -852,11 +846,11 @@ describe('Code generator', () => {
     });
 
     it("should support built-in @content with expression on fragments", async function () {
-        assert.equal(await body.template(`($content) => {
+        assert.equal(await body.$template`($content) => {
             <div>
                 <! @content={$content}/>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζfra(ζ, ζc, 1, 1);
@@ -866,9 +860,9 @@ describe('Code generator', () => {
     });
 
     it("should support built-in @content without expression on elements", async function () {
-        assert.equal(await body.template(`($content) => {
+        assert.equal(await body.$template`($content) => {
             <div class="foo" @content/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζelt(ζ, ζc, 0, 0, "div", 0, 0, ζs1);
             ζins(ζ, 0, 0, $, 1);
@@ -877,15 +871,15 @@ describe('Code generator', () => {
     });
 
     it("should support components with content & param nodes", async function () {
-        assert.equal(await body.template(`() => {
-            # first #
+        assert.equal(await body.$template`() => {
+            first
             <*myComponent>
                 <.header position="top" foo={bar()}/>
-                # some content {baz()} #
+                some content {baz()}
                 <.footer type="small"/>
             </>
-            # last #
-            }`), `
+            last
+            }`, `
             let ζ1, ζc1, ζp0, ζp1, ζc = ζinit(ζ, ζs0, 6);
             ζp0 = ζp1 = 0;
             ζfra(ζ, ζc, 0, 0);
@@ -903,16 +897,16 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '1');
 
-        assert.equal(await body.template(`() => {
-            # first #
+        assert.equal(await body.$template`() => {
+            first
             <*myComponent>
                 <.header position="top" foo={bar()}>
-                    <.title> <b> # Complex {exp()} # </b> </.title>
-                    # header content #
+                    <.title> <b> Complex {exp()} </b> </.title>
+                    header content
                 </>
-                # cpt content {foo()} #
+                cpt content {foo()}
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζp1, ζ3, ζc3, ζc = ζinit(ζ, ζs0, 5);
             ζp0 = ζp1 = 0;
             ζfra(ζ, ζc, 0, 0);
@@ -940,7 +934,7 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '2');
 
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <*myComponent>
                 <.header foo={bar()}>
                     <.foo position="top">
@@ -949,7 +943,7 @@ describe('Code generator', () => {
                     </>
                 </>
             </>
-            }`), `
+            }`, `
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζp1, ζ3, ζc3, ζp2, ζc = ζinit(ζ, ζs0, 5);
             ζp0 = ζp1 = ζp2 = 0;
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, myComponent), 0);
@@ -968,13 +962,13 @@ describe('Code generator', () => {
     });
 
     it("should support param nodes with event listeners", async function () {
-        assert.equal(await body.template(`() => {
-            # first #
+        assert.equal(await body.$template`() => {
+            first
              <*hello #hello name="World">
                 <.header title={"Header"} @onclick={e=>trackEvent(e, true)}/>
             </*hello>
-            # last #
-            }`), `
+            last
+            }`, `
             let ζ1, ζc1, ζp0, ζc = ζinit(ζ, ζs0, 6);
             ζp0 = 0;
             ζfra(ζ, ζc, 0, 0);
@@ -990,21 +984,21 @@ describe('Code generator', () => {
     });
 
     it("should support components with param nodes and control statements", async function () {
-        let t1 = await test.template(`(x, y) => {
-            # first #
+        let t1 = await test.$template`(x, y) => {
+            first
             <*myComponent>
-                if (x) {
-                    # foo #
+                $if (x) {
+                    foo
                     <.header position="top" foo={bar()}/>
                 }
-                # abc #
-                if (y) {
-                    # some content {baz()} #
+                abc
+                $if (y) {
+                    some content {baz()}
                 }
                 <.footer type="small"/>
             </>
-            # last #
-            }`);
+            last
+            }`;
 
         assert.equal(t1.body, `
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζp0, ζi3 = 0, ζ3, ζc3, ζp1, ζc = ζinit(ζ, ζs0, 6);
@@ -1049,21 +1043,21 @@ describe('Code generator', () => {
             "ζs5 = [1, 3]"
         ], "1s");
 
-        let t2 = await test.template(`(x, y, z) => {
+        let t2 = await test.$template`(x, y, z) => {
             <*myComponent>
-                if (x) {
+                $if (x) {
                     <.header position="top" foo={bar()}>
-                    if (y) {
+                    $if (y) {
                         <.title type="small"/>
                     }
                     </.header>
                 }
-                # abc #
-                if (z) {
+                abc
+                $if (z) {
                     <.footer foo="bar"/>
                 }
             </>
-            }`);
+            }`;
 
         assert.equal(t2.body, `
             let ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζp0, ζ3, ζc3, ζi4 = 0, ζ4, ζc4, ζp1, ζi5 = 0, ζ5, ζc5, ζp2, ζc = ζinit(ζ, ζs0, 4);
@@ -1110,17 +1104,17 @@ describe('Code generator', () => {
     });
 
     it("should support components with param nodes within control statements", async function () {
-        let t1 = await test.template(`(nbrOfRows=0) => {
-            if (nbrOfRows>0) {
+        let t1 = await test.$template`(nbrOfRows=0) => {
+            $if (nbrOfRows>0) {
                 <*grid>
-                    for (let i=0;nbrOfRows>i;i++) {
+                    $for (let i=0;nbrOfRows>i;i++) {
                         <.row>
-                            <.summary id={i}> # Summary {i} # </>
+                            <.summary id={i}> Summary {i} </>
                         </>
                     }
                 </>
             }
-        }`);
+        }`;
 
         assert.equal(t1.body, `
             let ζi1 = 0, ζ1, ζc1, ζ2, ζc2, ζi3 = 0, ζ3, ζc3, ζp0, ζ4, ζc4, ζp1, ζ5, ζc5, ζc = ζinit(ζ, ζs0, 1);
@@ -1154,13 +1148,13 @@ describe('Code generator', () => {
     });
 
     it("should not create content fragments components with only param nodes and js statements", async function () {
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <*foo>
                 <.paramA value="a"/>
-                let bar=foo;
+                $let bar=foo;
                 <.paramB value={exp(bar)}/>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζp0, ζp1, ζc = ζinit(ζ, ζs0, 3);
             ζp0 = ζp1 = 0;
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
@@ -1174,14 +1168,14 @@ describe('Code generator', () => {
     });
 
     it("should properly generate 2 components with or without param nodes", async function () {
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <*foo>
                 <.paramA value="a"/>
             </>
             <*bar>
-                let x = 123;
+                $let x = 123;
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 4);
             ζp0 = 0;
             ζfra(ζ, ζc, 0, 0);
@@ -1195,14 +1189,14 @@ describe('Code generator', () => {
     });
 
     it("should support deferred param nodes", async function () {
-        assert.equal(await body.template(`() => {
+        assert.equal(await body.$template`() => {
             <*foo>
                 <.paramA value="a"/>
                 <*bar>
                     <.paramB value="b"/>
                 </>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζp0, ζ2, ζc2, ζp1, ζc = ζinit(ζ, ζs0, 2);
             ζp0 = 0;
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, foo), 0);
@@ -1220,14 +1214,14 @@ describe('Code generator', () => {
     });
 
     it("should generate the full template function", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div class="main">
                 <*b.section type="important">
-                    <.header> # The big title #</>
-                    <span class="content"> # Section content # </>
+                    <.header> The big title </>
+                    <span class="content"> Section content </>
                 </>
             </>
-        }`);
+        }`;
 
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = ["type", "important"], ζs3 = ["class", "content"];
@@ -1255,11 +1249,11 @@ describe('Code generator', () => {
             "ζinit": 1, "ζelt": 1, "ζeltD": 1, "ζpnode": 1, "ζtxtD": 1, "ζcpt": 1, "ζe": 1, "ζcall": 1, "ζend": 1, "ζendD": 1, "ζviewD": 1, "ζpnEnd": 1, "ζt": 1
         }, 'imports 1');
 
-        let t2 = await test.template(`(name) => {
+        let t2 = await test.$template`(name) => {
             <div class="msg" [title]={"Message for " + name}>
-                # Hello {name} #
+                Hello {name}
             </>
-        }`);
+        }`;
         assert.equal(t2.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "msg"], ζs2 = [" Hello ", "", " "];
         @ζΔD class ζParams {
@@ -1278,9 +1272,9 @@ describe('Code generator', () => {
             "ζinit": 1, "ζelt": 1, "ζtxt": 1, "ζe": 1, "ζend": 1, "ζpro": 1, "ζΔD": 1, "ζt": 1
         }, 'imports 2');
 
-        let t3 = await test.template(`(firstName, lastName) => {
-            # Hello {firstName} {::lastName} #
-        }`);
+        let t3 = await test.$template`(firstName, lastName) => {
+            Hello {firstName} {::lastName}
+        }`;
         assert.equal(t3.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " ", "", " "];
         @ζΔD class ζParams {
@@ -1300,9 +1294,9 @@ describe('Code generator', () => {
     });
 
     it("should support $api injection ($api as param)", async function () {
-        const t = await test.template(`(firstName, $api) => {
-            # Hello {firstName} {::lastName} #
-        }`);
+        const t = await test.$template`(firstName, $api) => {
+            Hello {firstName} {::lastName}
+        }`;
 
         assert.equal(t.function, `(function () {
         const ζs0 = {}, ζs1 = [" Hello ", "", " ", "", " "];
@@ -1319,13 +1313,13 @@ describe('Code generator', () => {
     });
 
     it("should support optional params", async function () {
-        let t1 = await test.template(`(header?: MyHeader) => {
+        let t1 = await test.$template`(header?: MyHeader) => {
             <div class="main">
-                if (header) {
+                $if (header) {
                     <div class="header" @content={header}/>
                 }
             </>
-        }`);
+        }`;
 
         assert.equal(t1.function, `(function () {
         const ζs0 = {}, ζs1 = ["class", "main"], ζs2 = ["class", "header"], ζs3 = [1];
@@ -1350,13 +1344,13 @@ describe('Code generator', () => {
     });
 
     it("should support async elements", async function () {
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <div>
                 <div @async class="foo">
-                    # Message: {msg} #
+                    Message: {msg}
                 </div>
             </div>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 3);
@@ -1370,11 +1364,11 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '1');
 
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <div @async=3>
-                # Message: {msg} #
+                Message: {msg}
             </div>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcnt(ζ, ζc, 0, 0, 3);
             ζasync(ζ, 0, 0, 3, function () {
@@ -1387,12 +1381,12 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '2');
 
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <div @async={expr()} @onclick={e=>doSomething(e)}>
-                # Message1: {msg} #
+                Message1: {msg}
             </div>
-            # Message2: {msg} #
-        }`), `
+            Message2: {msg}
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 3);
             ζfra(ζ, ζc, 0, 0);
             ζcnt(ζ, ζc, 1, 1, 3);
@@ -1410,13 +1404,13 @@ describe('Code generator', () => {
     });
 
     it("should support async fragments", async function () {
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <div>
                 <! @async={expr()}>
-                    # Message: {msg} #
+                    Message: {msg}
                 </>
             </div>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 3);
@@ -1432,13 +1426,13 @@ describe('Code generator', () => {
     });
 
     it("should support async components", async function () {
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <div>
                 <*section title={msg} @async>
-                    # Message: {msg} #
+                    Message: {msg}
                 </>
             </div>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcnt(ζ, ζc, 1, 1, 3);
@@ -1459,14 +1453,14 @@ describe('Code generator', () => {
     });
 
     it("should support async in component content", async function () {
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <*cpt>
-                # {msg} #
+                {msg}
                 <div @async>
-                    # other text #
+                    other text
                 </div>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
@@ -1487,20 +1481,20 @@ describe('Code generator', () => {
         `, '1');
 
         // cpt in cpt
-        assert.equal(await body.template(`(msg) => {
+        assert.equal(await body.$template`(msg) => {
             <*cpt>
-                # {msg} #
+                {msg}
                 <div @async>
-                    # other text #
+                    other text
                     <*cpt>
-                        # M2: {msg} #
+                        M2: {msg}
                         <div @async>
-                            # M3: {msg} #
+                         M3: {msg}
                         </div>
                     </>
                 </div>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζ2, ζc2, ζ3, ζc3, ζ4, ζc4, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
@@ -1537,9 +1531,9 @@ describe('Code generator', () => {
     });
 
     it("should support default values on template api", async function () {
-        let t = await test.template(`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
-            # a:{a} b:{b} c:{c} d:{d} e:{e} #
-        }`);
+        let t = await test.$template`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
+            a:{a} b:{b} c:{c} d:{d} e:{e}
+        }`;
 
         assert.equal(t.function, `(function () {
         const ζs0 = {}, ζs1 = [" a:", "", " b:", "", " c:", "", " d:", "", " e:", "", " "];
@@ -1561,11 +1555,11 @@ describe('Code generator', () => {
 
     it("should support static labels on elements", async function () {
         // support labels on elts, text nodes and components -> error otherwise
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div #divA class="main">
-                <span #spanB #col> # Hello # </span>
+                <span #spanB #col> Hello </span>
             </>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1, ζs2, ζs1);
@@ -1582,38 +1576,15 @@ describe('Code generator', () => {
         ], "1s");
     });
 
-    it("should support static labels on text nodes", async function () {
-        let t1 = await test.template(`() => {
-            # (#txt1 #txt) Hello #
-            <div>
-                 # (#txt) World #
-            </div>
-        }`);
-        assert.equal(t1.body, `
-            let ζc = ζinit(ζ, ζs0, 4);
-            ζfra(ζ, ζc, 0, 0);
-            ζtxt(ζ, ζc, 0, 1, 1, ζs1, " Hello ", 0);
-            ζelt(ζ, ζc, 2, 1, "div", 1);
-            ζtxt(ζ, ζc, 0, 3, 2, ζs2, " World ", 0);
-            ζend(ζ, ζc);
-        `, '1a');
-
-        assert.deepEqual(t1.statics, [
-            "ζs0 = {}",
-            "ζs1 = [\"#txt1\", \"#txt\"]",
-            "ζs2 = [\"#txt\"]"
-        ], "1s");
-    });
-
     it("should support static labels on components", async function () {
         // callImmediately: false
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <*cpt #label1 arg1=1>
                 <*cpt #label2 #label3 arg2=2>
-                    # Hello #
+                    Hello
                 </>
             </>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζ1, ζc1, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0, 0, ζs1);
@@ -1639,10 +1610,10 @@ describe('Code generator', () => {
         ], "1s");
 
         // callImmediately: true
-        let t2 = await test.template(`() => {
+        let t2 = await test.$template`() => {
             <*cpt #label1 arg1=1 />
             <*cpt #label2 #label3 arg2=2/>
-        }`);
+        }`;
 
         assert.equal(t2.body, `
             let ζc = ζinit(ζ, ζs0, 3);
@@ -1661,27 +1632,29 @@ describe('Code generator', () => {
         ], "2s");
     });
 
-    it("should support dynamic labels on elements, components and text nodes", async function () {
+    it("should support dynamic labels on elements and components", async function () {
         // support labels on elts, text nodes and components -> error otherwise
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div #divA={expr()} #divB class="main">
-                <span #spanB #col> # (#txt={expr2()}) Hello # </span>
-                <*cpt #foo={expr3()}> # (#txt={expr3()}) HelloD # </*cpt>
+                <span #spanB #col> Hello </span>
+                <*cpt #foo={expr2()}> 
+                    <span #spanC={expr3()}> HelloD </>
+                </*cpt>
             </>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 4);
             ζelt(ζ, ζc, 0, 0, "div", 1, ζs2, ζs1);
             ζlbl(ζ, 0, 0, "#divA", expr());
             ζelt(ζ, ζc, 1, 1, "span", 1, ζs3);
             ζtxt(ζ, ζc, 0, 2, 2, 0, " Hello ", 0);
-            ζlbl(ζ, 0, 2, "#txt", expr2());
             ζcpt(ζ, ζc, 0, 3, 1, ζe(ζ, 0, cpt), 0);
-            ζlbl(ζ, 0, 3, "#foo", expr3());
-            ζ1 = ζviewD(ζ, 1, 3, 1, 0);
+            ζlbl(ζ, 0, 3, "#foo", expr2());
+            ζ1 = ζviewD(ζ, 1, 3, 2, 0);
             ζc1 = ζ1.cm;
-            ζtxtD(ζ1, ζc1, 1, 0, 0, 0, " HelloD ", 0);
-            ζlblD(ζ1, 1, 0, "#txt", expr3());
+            ζeltD(ζ1, ζc1, 0, 0, "span", 1);
+            ζlblD(ζ1, 1, 0, "#spanC", expr3());
+            ζtxtD(ζ1, ζc1, 1, 1, 1, 0, " HelloD ", 0);
             ζendD(ζ1, ζc1);
             ζcall(ζ, 3);
             ζend(ζ, ζc);
@@ -1696,13 +1669,13 @@ describe('Code generator', () => {
     });
 
     it("should support xmlns", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div class="foo">
                 <svg xmlns="http://www.w3.org/2000/svg">
                     <circle class="clock-face" r="48"/>
                 </>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
@@ -1712,13 +1685,13 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '1');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div class="foo">
                 <svg @xmlns="svg">
                     <circle class="clock-face" r="48"/>
                 </>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
@@ -1728,7 +1701,7 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '2');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div class="foo">
                 <! @xmlns="svg">
                     <svg>
@@ -1736,7 +1709,7 @@ describe('Code generator', () => {
                     </>
                 </>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 4);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
@@ -1749,13 +1722,13 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '3');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div class="foo">
                 <svg>
                     <circle class="clock-face" r="48"/>
                 </>
             </div>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 1, 0, ζs1);
             ζxmlns(ζ, 0, "http://www.w3.org/2000/svg");
@@ -1767,9 +1740,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - default param with expression", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div @x.y.foo={exp()}/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "x.y.foo", x.y.foo, 1, exp());
@@ -1779,9 +1752,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - no values", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div @a.something/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "a.something", a.something, 0);
@@ -1791,9 +1764,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - literal value", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div @foo = "bar"/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 1, "bar");
@@ -1803,9 +1776,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - multiple params", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div @foo(x="abc" y={exp1()} z={exp2()})/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
@@ -1817,9 +1790,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - multiple params w/ listener", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div @foo(x="abc" @onclick={=>doSomething()})/>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 0);
@@ -1835,9 +1808,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - multiple params w/ static label", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div @foo(#theKing)/>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
@@ -1852,9 +1825,9 @@ describe('Code generator', () => {
     });
 
     it("should support simple decorators - multiple params w/ dynamic label", async function () {
-        let t1 = await test.template(`() => {
+        let t1 = await test.$template`() => {
             <div @foo(#theThing={exp()} baz)/>
-        }`);
+        }`;
         assert.equal(t1.body, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 0);
@@ -1870,9 +1843,9 @@ describe('Code generator', () => {
     });
 
     it("should support decorators on components - no content", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt @foo(x="abc" y={exp1()} z={exp2()})/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2, 0, ζs1);
@@ -1885,13 +1858,13 @@ describe('Code generator', () => {
     });
 
     it("should support decorators on components - with content", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt @foo(x={exp1()} y={exp2()})>
                 <div>
-                    # Hello {exp3()} #
+                    Hello {exp3()}
                 </>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
@@ -1909,13 +1882,13 @@ describe('Code generator', () => {
     });
 
     it("should support decorators inside component content", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt>
                 <div @foo(x={exp1()} y={exp2()})>
-                    # Hello {exp3()} #
+                    Hello {exp3()}
                 </>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
@@ -1933,11 +1906,11 @@ describe('Code generator', () => {
     });
 
     it("should support bindings on components", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div>
                 <*cpt prop={=a.b.c}/>
             </>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 2);
             ζelt(ζ, ζc, 0, 0, "div", 1);
             ζcpt(ζ, ζc, 0, 1, 1, ζe(ζ, 0, cpt), 0);
@@ -1946,12 +1919,12 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '1');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*section>
-                # text {name} #
+                text {name}
                 <*cpt prop={=a[b()](123).c}/>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, section), 0);
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
@@ -1966,9 +1939,9 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '2');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt prop1={=a.b.c} prop2={exp()} prop3={=d.e}/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζbind(ζ, ζc, 0, 0, 0, "prop1", a.b, "c");
@@ -1980,9 +1953,9 @@ describe('Code generator', () => {
     });
 
     it("should support bindings on decorators", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <div @foo = {=a.b} @bar(prop={=c.d})/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζelt(ζ, ζc, 0, 0, "div", 0);
             ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
@@ -1994,11 +1967,11 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '1');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt>
                 <div @foo = {=a.b} @bar(prop={=c.d})/>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζc = ζinit(ζ, ζs0, 1);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζ1 = ζviewD(ζ, 1, 0, 3, 0);
@@ -2015,9 +1988,9 @@ describe('Code generator', () => {
             ζend(ζ, ζc);
         `, '2');
 
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt xx={=x.x} @foo(prop1={=c.d} prop2=123 prop3={=e.f}) yy={=y.y} @bar(propA={=a.b} propB={=c.d}) zz={=z.z}/>
-        }`), `
+        }`, `
             let ζc = ζinit(ζ, ζs0, 3);
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
             ζbind(ζ, ζc, 0, 0, 0, "xx", x, "x");
@@ -2037,11 +2010,11 @@ describe('Code generator', () => {
     });
 
     it("should support bindings on param nodes", async function () {
-        assert.equal(await body.template(`(name) => {
+        assert.equal(await body.$template`(name) => {
             <*cpt>
                 <.foo @paramValue={=a.b}/>
             </>
-        }`), `
+        }`, `
             let ζ1, ζc1, ζp0, ζc = ζinit(ζ, ζs0, 2);
             ζp0 = 0;
             ζcpt(ζ, ζc, 0, 0, 0, ζe(ζ, 0, cpt), 0);
@@ -2050,6 +2023,30 @@ describe('Code generator', () => {
             ζcall(ζ, 0);
             ζend(ζ, ζc);
         `, '1');
+    });
+
+    it("should support cdata sections", async function () {
+        assert.equal(await body.$template`() => {
+            <!cdata> 
+                Hello 
+                World 
+            </!cdata>
+        }`, `
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, " \\n                Hello \\n                World \\n            ", 0);
+            ζend(ζ, ζc);
+        `, '1');
+
+        assert.equal(await body.$template`() => {
+            <!cdata>\
+                Hello !</!cdata> {x}
+                "again" 
+            </!cdata>
+        }`, `
+            let ζc = ζinit(ζ, ζs0, 1);
+            ζtxt(ζ, ζc, 0, 0, 0, 0, "                Hello </!cdata> {x}\\n                \\"again\\" \\n            ", 0);
+            ζend(ζ, ζc);
+        `, '2');
     });
 
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes

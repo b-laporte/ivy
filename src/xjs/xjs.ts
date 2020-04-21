@@ -1,6 +1,6 @@
 
-// tagged template function for xtr strings
-export function xtr(strings: TemplateStringsArray, ...keys: any[]) {
+// tagged template function for xjs $content strings
+export function $content(strings: TemplateStringsArray, ...keys: any[]) {
     if (keys.length === 0) {
         return strings[0];
     }
@@ -12,4 +12,8 @@ export function xtr(strings: TemplateStringsArray, ...keys: any[]) {
         }
     }
     return buf.join("");
+}
+
+export function $template(strings: TemplateStringsArray) {
+    return strings[0]; // will never be called
 }

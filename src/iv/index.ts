@@ -1,6 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
-import { xtr as _xtr } from '../xtr/xtr';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -468,8 +467,6 @@ export function template(template: string, ...dependencies: any[]): () => IvTemp
         return new Template("", "", {}, () => { })
     }
 };
-
-export const xtr = _xtr;
 
 /**
  * Template runtime factory

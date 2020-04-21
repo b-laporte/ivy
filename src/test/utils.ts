@@ -1,33 +1,29 @@
 import { logViewNodes } from './../iv/index';
-import { CompilationResult, IvError } from '../iv/compiler/generator';
 import { compileTemplate } from '../iv/compiler/generator';
 import { IvTemplate, IvView } from '../iv/types';
 import { process } from '../iv/compiler/compiler';
+import { IvError, CompilationResult } from '../iv/compiler/types';
 
 export let body = {
-    async template(tpl: string, log = false) {
-        let r = await compileTemplate(tpl, { templateName: "testTpl", filePath: "test.ts", body: true });
-        if (log) {
-            console.log(`body: '${r.body}'`)
-        }
+    async $template(tsa: TemplateStringsArray) {
+        let r = await compileTemplate(tsa[0], { templateName: "testTpl", filePath: "test.ts", body: true });
+        // console.log(`body: '${r.body}'`);
         return r.body;
     }
 }
 
 export let statics = {
-    async template(tpl: string, log = false) {
-        let r = await compileTemplate(tpl, { templateName: "testTpl", filePath: "test.ts", statics: true });
-        if (log) {
-            console.log(`statics: '${r.statics}'`)
-        }
+    async $template(tsa: TemplateStringsArray) {
+        let r = await compileTemplate(tsa[0], { templateName: "testTpl", filePath: "test.ts", statics: true });
+        // console.log(`statics: '${r.statics}'`);
         return r.statics;
     }
 }
 
 export let test = {
-    async template(tpl: string, importMap?: { [key: string]: 1 }): Promise<CompilationResult> {
-        let r = await compileTemplate(tpl, { templateName: "testTpl", filePath: "test.ts", body: true, statics: true, function: true, imports: true, importMap: importMap });
-
+    importMap: undefined, // { [key: string]: 1 }
+    async $template(tsa: TemplateStringsArray): Promise<CompilationResult> {
+        let r = await compileTemplate(tsa[0], { templateName: "testTpl", filePath: "test.ts", body: true, statics: true, function: true, imports: true, importMap: this.importMap });
         return r;
     }
 }
@@ -53,22 +49,22 @@ export async function compilationError(src: string, lineOffset = 0) {
 
 export const error = {
     // this api allows to trigger the vs-code text mate completion
-    async template(tpl: string) {
+    async $template(tsa: TemplateStringsArray) {
         return compilationError(`\
-            import{ template } from "../iv";
-            const t = template(\`${tpl}\`);
+            import{ $template } from "../iv";
+            const t = $template\`${tsa[0]}\`;
         `, -1); // offset -1 to remove the import line
     },
-    template2: async function (s: string) { return '' }
+    template2: async function (tsa: TemplateStringsArray) { return '' }
 }
-error.template2 = error.template; // to avoid TextMate highlighting for some wrong templates
+error.template2 = error.$template; // to avoid TextMate highlighting for some wrong templates
 
 
 export function formatError(e?: IvError, indentLevel = 2) {
     if (!e) return "NO ERROR";
     const indents = ["", "    ", "        ", "            ", "                "], ls = "\n" + indents[indentLevel];
     if (e.kind === "#Error") {
-        return `${ls}    ${e.origin}: ${e.message}`
+        return `${ls}    ${e.origin}: ${e.description}`
             + `${ls}    File: ${e.file} - Line ${e.line} / Col ${e.column}`
             + `${ls}    Extract: >> ${e.lineExtract} <<`
             + `${ls}`;

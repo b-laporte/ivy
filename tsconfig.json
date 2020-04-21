@@ -26,8 +26,7 @@
         "noEmitOnError": true
     },
     "include": [
-        "src",
-        "src/samples",
-        "src/doc"
+        "src/iv/compiler",
+        "src/test/*.ts"
     ]
 }

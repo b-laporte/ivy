@@ -1,29 +1,14 @@
-import { XjsTplFunction, XjsContentNode, XjsExpression, XjsElement, XjsParam, XjsNumber, XjsBoolean, XjsString, XjsProperty, XjsFragment, XjsJsStatements, XjsJsBlock, XjsComponent, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsLabel } from '../../xjs/types';
-import { parse } from '../../xjs/parser';
+import { XjsTplFunction, XjsContentNode, XjsNodeParam, XjsExpression, XjsElement, XjsParam, XjsCData, XjsProperty, XjsFragment, XjsJsStatement, XjsJsBlock, XjsComponent, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsLabel } from '../../xjs/types';
+import { parse, XjsParserContext } from '../../xjs/parser';
+import { validator } from './validator';
+import { CompilationOptions, CompilationResult } from './types';
 
-export interface CompilationOptions {
-    templateName: string;
-    filePath: string;                   // file name - used for error reporting
-    body?: boolean;                     // if true, will output the template function body in the result
-    statics?: boolean;                  // if true, the statics array will be in the result
-    function?: boolean;                 // if true the js function will be in the result
-    imports?: boolean;                  // if true the imports will be added as comment to the js function
-    importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
-    lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
-    columnOffset?: number;              // shift error column number on the first template line
-}
+type BodyContent = string | XjsExpression | XjsJsStatement | XjsJsBlock;
 
-export interface CompilationResult {
-    body?: string;                      // template function body
-    statics?: any[];                    // statics outside function body
-    function?: string;                  // full result function as a string
-    importMap?: { [key: string]: 1 },   // imports as a map
-}
-
-type BodyContent = string | XjsExpression | XjsJsStatements | XjsJsBlock;
-
-const RX_DOUBLE_QUOTE = /\"/g,
+const U = undefined,
+    RX_DOUBLE_QUOTE = /\"/g,
     RX_START_CR = /^\n*/,
+    RX_CR = /\n/g,
     RX_LOG = /\/\/\s*log\s*/,
     RX_EVT_HANDLER_DECORATOR = /^on(\w+)$/,
     PARAM_VALUE = "paramValue", // @paramValue reserved decorator
@@ -39,69 +24,7 @@ const RX_DOUBLE_QUOTE = /\"/g,
         "svg": "http://www.w3.org/2000/svg",
         "mathml": "http://www.w3.org/1998/mathml"
     },
-    MD_PARAM_CLASS = "$apiClassName",
-    NODE_NAMES = {
-        "#tplFunction": "template function",
-        "#tplArgument": "template argument",
-        "#jsStatements": "javascript statements",
-        "#jsBlock": "javascript block",
-        "#fragment": "fragment",
-        "#element": "element",
-        "#component": "component",
-        "#paramNode": "param node",
-        "#decoratorNode": "decorator node",
-        "#textNode": "text node",
-        "#param": "param",
-        "#property": "property",
-        "#decorator": "decorator",
-        "#reference": "reference",
-        "#expression": "expression",
-        "#number": "number",
-        "#boolean": "boolean",
-        "#string": "string",
-        "#eventListener": "event listener",
-        "#label": "label"
-    },
-    CR = "\n";
-
-// Generic validation
-const NO = 0,
-    YES = 1,
-    LATER = 2,
-    SOMETIMES = 3,
-    VALIDATION_NAMES = {
-        "#textNode": "Text nodes",
-        "#element": "Element nodes",
-        "#component": "Component nodes",
-        "#fragment": "Fragment nodes",
-        "#paramNode": "Parameter nodes",
-        "#decoratorNode": "Decorator nodes",
-        "#{element}": "Dynamic element nodes",
-        "#{paramNode}": "Dynamic parameter nodes",
-        "#param": "Parameters",
-        "#property": "Properties",
-        "#label": "Labels",
-        "##label": "Forward labels",
-        "#decorator": "Decorators"
-    }, SUPPORTED_NODE_ATTRIBUTES: {
-        [type: string]: 2 | {
-            "#param": 0 | 1 | 2, "#property": 0 | 1 | 2, "#label": 0 | 1 | 2, "##label": 0 | 1 | 2, "#decorator": 0 | 1 | 2 | 3 | 4, "@onevent": 0 | 1
-        }
-    } = {
-        "#textNode": { "#param": NO, "#property": NO, "#label": YES, "##label": NO, "#decorator": LATER, "@onevent": 0 },
-        "#element": { "#param": YES, "#property": YES, "#label": YES, "##label": NO, "#decorator": SOMETIMES, "@onevent": 1 },
-        "#component": { "#param": YES, "#property": NO, "#label": YES, "##label": LATER, "#decorator": SOMETIMES, "@onevent": 1 },
-        "#fragment": { "#param": NO, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 0 },
-        "#paramNode": { "#param": YES, "#property": NO, "#label": NO, "##label": NO, "#decorator": SOMETIMES, "@onevent": 1 },
-        "#decoratorNode": LATER,
-        "#{element}": LATER,
-        "#{paramNode}": LATER
-    }, SUPPORTED_BUILT_IN_DECORATORS = {
-        "paramValue": { "#textNode": NO, "#element": NO, "#component": NO, "#fragment": NO, "#paramNode": YES, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
-        "xmlns": { "#textNode": NO, "#element": YES, "#component": YES, "#fragment": YES, "#paramNode": NO, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO },
-        "content": { "#textNode": NO, "#element": YES, "#component": NO, "#fragment": YES, "#paramNode": NO, "#decoratorNode": NO, "#{element}": NO, "#{paramNode}": NO }
-        // async
-    };
+    MD_PARAM_CLASS = "$apiClassName";
 
 export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
     options.lineOffset = options.lineOffset || 0;
@@ -110,7 +33,18 @@ export async function compileTemplate(template: string, options: CompilationOpti
         log = true;
         template = template.replace(RX_LOG, "");
     }
-    let root = await parse(template, options.filePath || "", options.lineOffset || 0, options.columnOffset || 0);
+    const pc: XjsParserContext = {
+        line1: options.lineOffset ? options.lineOffset + 1 : 1,
+        col1: options.columnOffset ? options.columnOffset + 1 : 1,
+        fileId: options.filePath || "",
+        templateType: "$template",
+        preProcessors: options ? options.preProcessors : undefined
+    }
+    const root = await parse(template, pc);
+    if (root.kind !== "#tplFunction") {
+        console.log("TODO: $content root")
+        throw "todo"
+    }
     let res = generate(root, template, options);
     if (log) {
         let importMap = res.importMap || options.importMap, imports: string[] = []
@@ -166,7 +100,7 @@ function generate(tf: XjsTplFunction, template: string, options: CompilationOpti
         for (let part of body) {
             if (typeof part === 'string') {
                 parts.push(part);
-            } else if (part.kind === "#expression" || part.kind === "#jsStatements") {
+            } else if (part.kind === "#expression" || part.kind === "#jsStatement") {
                 parts.push(part.code);
             } else if (part.kind === "#jsBlock") {
                 parts.push(part.startCode.replace(RX_START_CR, ""));
@@ -184,16 +118,6 @@ function reduceIndent(indent: string) {
     return indent;
 }
 
-export interface IvError {
-    kind: "#Error";
-    origin: "IVY" | "TS";
-    message: string;
-    line: number;
-    column: number;
-    lineExtract: string;
-    file: string;
-}
-
 export class GenerationCtxt {
     indentIncrement = "    ";
     templateName = "";
@@ -204,6 +128,7 @@ export class GenerationCtxt {
     blockCount = 0;                     // number of js blocks - used to increment block variable suffixes
     templateArgs: string[] = [];        // name of template arguments
     paramCounter = 0;                   // counter used to create param instance variables
+    acceptPreProcessors = false;
 
     constructor(public template: string, public options: CompilationOptions) {
         this.imports = options.importMap || {};
@@ -211,20 +136,12 @@ export class GenerationCtxt {
         this.filePath = options.filePath.replace(RX_DOUBLE_QUOTE, "");
     }
 
-    error(msg, nd: XjsNode) {
+    error(msg: string, nd: XjsNode) {
         let fileInfo = this.options.filePath || "",
             lineOffset = this.options.lineOffset || 0,
-            lines = this.template.split(CR);
+            colOffset = this.options.columnOffset || 0;
 
-        throw {
-            kind: "#Error",
-            origin: "IVY",
-            message: `Invalid ${NODE_NAMES[nd.kind]} - ${msg}`,
-            line: nd.lineNumber + lineOffset,
-            column: nd.colNumber,
-            lineExtract: ("" + lines[nd.lineNumber - 1]).trim(),
-            file: fileInfo
-        } as IvError;
+        validator.throwError(`Invalid ${validator.nodeName(nd.kind)} - ${msg}`, nd.pos, this.template, fileInfo, "IVY", lineOffset, colOffset)
     }
 
     decreaseIndent(indent: string) {
@@ -245,8 +162,10 @@ enum ContainerType {
 
 function encodeText(t: string) {
     // todo replace double \\ with single \
-    return '"' + t.replace(RX_DOUBLE_QUOTE, '\\"') + '"';
+    return '"' + t.replace(RX_DOUBLE_QUOTE, '\\"').replace(RX_CR, "\\n") + '"';
 }
+
+
 
 function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
     let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string, ctlClass = "", injectTpl = false;
@@ -429,7 +348,7 @@ export class ViewInstruction implements RuntimeInstruction {
                 let count = 0, ch: XjsContentNode;
                 for (let i = 0; len > i; i++) {
                     ch = content![i];
-                    if (ch.kind !== "#jsStatements" && ch.kind !== "#paramNode") {
+                    if (ch.kind !== "#jsStatement" && ch.kind !== "#paramNode") {
                         count++;
                         if (count > 1) break;
                     }
@@ -459,94 +378,17 @@ export class ViewInstruction implements RuntimeInstruction {
         }
     }
 
-    checkContentNode(nd: XjsContentNode) {
-        let nk = getNodeKind(), attSupport = SUPPORTED_NODE_ATTRIBUTES[nk], gc = this.gc;
-        if (attSupport) {
-            if (attSupport === LATER) {
-                gc.error(`${VALIDATION_NAMES[nk]} are not supported yet`, nd);
-            } else {
-                let f = nd as XjsFragment;
-                if (f.params) {
-                    checkAttribute(f, "#param", f.params[0]);
-                }
-                if (f.properties) {
-                    checkAttribute(f, "#property", f.properties[0]);
-                }
-                if (f.decorators) {
-                    checkAttribute(f, "#decorator", f.decorators[0]);
-                }
-                if (f.labels) {
-                    let l: XjsLabel | undefined, fl: XjsLabel | undefined;
-                    for (let lbl of f.labels) {
-                        if (lbl.fwdLabel) {
-                            if (!lbl.isOrphan && lbl.value!.kind !== "#string" && lbl.value!.kind !== "#expression") {
-                                gc.error(`Forward labels values must be strings or expressions`, lbl);
-                            }
-                            fl = fl || lbl;
-                        } else {
-                            if (!lbl.isOrphan && lbl.value!.kind !== "#boolean" && lbl.value!.kind !== "#expression") {
-                                gc.error(`Labels values must be expressions or booleans`, lbl);
-                            }
-                            l = l || lbl;
-                        }
-                    }
-                    if (l) {
-                        checkAttribute(f, "#label", l);
-                    }
-                    if (fl) {
-                        checkAttribute(f, "##label", fl);
-                    }
-                }
-                if (f.decorators) {
-                    let codeRef: string;
-                    for (let d of f.decorators) {
-                        codeRef = d.ref.code;
-                        let values = SUPPORTED_BUILT_IN_DECORATORS[d.ref.code];
-                        if (nk === "#paramNode" && codeRef !== PARAM_VALUE && !codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
-                            gc.error(`Only @paramValue and event listener decorators can be used on Parameter nodes`, d);
-                        } else if (values && values[nk] === NO) {
-                            gc.error(`@${d.ref.code} is not supported on ${VALIDATION_NAMES[nk]}`, d);
-                        } else if (codeRef.match(RX_EVT_HANDLER_DECORATOR)) {
-                            if (!SUPPORTED_NODE_ATTRIBUTES[nk]["@onevent"]) {
-                                gc.error(`Event handlers are not supported on ${VALIDATION_NAMES[nk]}`, d);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        function getNodeKind() {
-            let k = nd.kind;
-            if (k === "#element" && (nd as XjsElement).nameExpression) return "#{element}";
-            if (k === "#paramNode" && (nd as XjsParamNode).nameExpression) return "#{paramNode}";
-            return k;
-        }
-
-        function checkAttribute(f: XjsFragment, attKind: string, errNd: XjsNode) {
-            if (errNd) {
-                switch (attSupport![attKind]) {
-                    case NO:
-                        gc.error(`${VALIDATION_NAMES[attKind]} are not supported on ${VALIDATION_NAMES[nk]}`, errNd);
-                    case LATER:
-                        gc.error(`${VALIDATION_NAMES[attKind]} are not yet supported on ${VALIDATION_NAMES[nk]}`, errNd);
-                }
-            }
-        }
-    }
-
     generateInstruction(siblings: XjsContentNode[], siblingIdx: number, parentLevel: number, iFlag: number, prevKind: string, nextKind: string) {
         let nd: XjsContentNode = siblings[siblingIdx], idx = this.nodeCount;
-        if (nd.kind !== "#jsStatements" && nd.kind !== "#paramNode") {
+        if (nd.kind !== "#jsStatement" && nd.kind !== "#paramNode") {
             this.nodeCount++;
             this.hasChildNodes = true;
         }
-        this.checkContentNode(nd);
+        validator.validateXjsNode(nd, this.gc);
 
-        let stParams = "", i1 = -1, i2 = -1, containsParamExpr = false;
+        let stParams = "", i1 = -1, i2 = -1, containsParamExprOrDecorators = false;
         if (nd.kind === "#element" || nd.kind === "#component" || nd.kind === "#paramNode") {
-            [i1, containsParamExpr] = this.registerStatics(nd.params);
-            [i2] = this.registerStatics(nd.properties);
+            [i1, i2, containsParamExprOrDecorators] = this.registerStatics(nd.params);
             if (i1 > -1 && i2 > -1) {
                 stParams = `, ζs${i1}, ζs${i2}`;
             } else if (i1 > -1) {
@@ -560,11 +402,8 @@ export class ViewInstruction implements RuntimeInstruction {
 
         switch (nd.kind) {
             case "#textNode":
-                this.rejectAsyncDecorator(nd as XjsText);
-                this.instructions.push(new TxtInstruction(nd as XjsText, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsText)));
-                const dis = this.generateDecoratorInstructions(nd, idx, iFlag);
-                this.generateDynLabelInstructions(nd as XjsText, idx, iFlag, this);
-                processDecoInstructions(this, dis);
+            case "#cdata":
+                this.instructions.push(new TxtInstruction(nd as XjsText | XjsCData, idx, this, iFlag, parentLevel, "0"));
                 break;
             case "#fragment":
                 if (!this.processAsyncCase(nd as XjsFragment, idx, parentLevel, prevKind, nextKind)) {
@@ -596,10 +435,10 @@ export class ViewInstruction implements RuntimeInstruction {
             case "#component":
                 if (!this.processAsyncCase(nd as XjsElement, idx, parentLevel, prevKind, nextKind)) {
                     // create a container block
-                    let callImmediately = !containsParamExpr && (!nd.content || !nd.content.length) && !nd.decorators;
+                    let callImmediately = !containsParamExprOrDecorators && (!nd.content || !nd.content.length);
                     let ci = new CptInstruction(nd as XjsComponent, idx, this, iFlag, parentLevel, this.generateLabelStatics(nd as XjsComponent), callImmediately, i1)
                     this.instructions.push(ci);
-                    if (containsParamExpr) {
+                    if (containsParamExprOrDecorators) {
                         this.generateParamInstructions(nd as XjsComponent, idx, iFlag, false, this);
                     }
                     const dis = this.generateDecoratorInstructions(nd, idx, iFlag, false, true);
@@ -629,7 +468,6 @@ export class ViewInstruction implements RuntimeInstruction {
             case "#paramNode":
                 // e.g. ζpnode(ζ, 3, 1, 0, "header");
                 // logic close to #component
-                this.rejectAsyncDecorator(nd as XjsParamNode);
 
                 // pickup the closest parent view that is not a js block
                 if (!this.parentView) {
@@ -708,7 +546,7 @@ export class ViewInstruction implements RuntimeInstruction {
                     this.instructions.push(new PndEndInstruction(nd as XjsParamNode, newIdx, v, cptIFlag, this.indent, pi));
                 }
                 break;
-            case "#jsStatements":
+            case "#jsStatement":
                 this.instructions.push(new JsStatementsInstruction(nd, this, iFlag, prevKind));
                 break;
             case "#jsBlock":
@@ -732,6 +570,9 @@ export class ViewInstruction implements RuntimeInstruction {
                 jsb.nextKind = nextKind;
                 this.instructions.push(jsb);
                 jsb.scan();
+                break;
+            case "#tplFunction":
+                this.gc.error("$template statements are not supported yet", nd);
                 break;
         }
 
@@ -761,33 +602,29 @@ export class ViewInstruction implements RuntimeInstruction {
                     if (xmlns) {
                         this.gc.error("xmlns cannot be defined twice", p);
                     } else {
-                        if (!p.value || p.value.kind !== "#string") {
+                        if (p.value === U || typeof p.value !== "string") {
                             this.gc.error("xmlns value must be a string", p);
                         } else {
-                            if (p.isOrphan || !p.value.value) {
+                            if (p.isOrphan || p.value === U) {
                                 this.gc.error("xmlns value cannot be empty", p);
                             }
-                            xmlns = p.value.value;
+                            xmlns = p.value;
                         }
                     }
-                }
-            }
-        }
-        let d = nd.decorators;
-        if (d && d.length) {
-            for (let deco of d) {
-                if (deco.ref.code === XMLNS) {
-                    if (xmlns) {
-                        this.gc.error("xmlns cannot be defined twice", deco);
-                    } else {
-                        if (!deco.defaultPropValue || deco.defaultPropValue.kind !== "#string") {
-                            this.gc.error("@xmlns value must be a string", deco);
+                } else if (p.kind === "#decorator") {
+                    if (p.ref.code === XMLNS) {
+                        if (xmlns) {
+                            this.gc.error("xmlns cannot be defined twice", p);
                         } else {
-                            let v = deco.defaultPropValue.value
-                            if (XMLNS_VALUES[v]) {
-                                xmlns = XMLNS_VALUES[v];
+                            if (p.defaultPropValue === U || typeof p.defaultPropValue !== "string") {
+                                this.gc.error("@xmlns value must be a string", p);
                             } else {
-                                this.gc.error('Invalid @xmlns value: must be "html", "xhtml", "svg" or "mathml"', deco);
+                                let v = p.defaultPropValue;
+                                if (XMLNS_VALUES[v]) {
+                                    xmlns = XMLNS_VALUES[v];
+                                } else {
+                                    this.gc.error('Invalid @xmlns value: must be "html", "xhtml", "svg" or "mathml"', p);
+                                }
                             }
                         }
                     }
@@ -800,120 +637,113 @@ export class ViewInstruction implements RuntimeInstruction {
         return xmlns;
     }
 
-    registerStatics(params: XjsParam[] | XjsProperty[] | undefined): [number, boolean] {
-        // return the index of the static resource or -1 if none
-        // 2nd param is true if dynamic expressions are found
-        if (!params || !params.length) return [-1, false];
-        let v: XjsNumber | XjsBoolean | XjsString | XjsExpression | undefined,
-            sIdx = -1, val: string[] | undefined = undefined,
-            p: XjsParam | XjsProperty,
+    registerStatics(params: XjsNodeParam[] | undefined): [number, number, boolean] {
+        // return the index of the static resources for params and properties or -1 if none
+        // 3rd param is true if dynamic expressions or decorators are found
+        if (!params || !params.length) return [-1, -1, false];
+        let v: number | boolean | string | XjsExpression | undefined,
+            sParamIdx = -1,
+            paramVal: string[] | undefined = U,
+            sPropIdx = -1,
+            propVal: string[] | undefined = U,
+            p: XjsNodeParam,
             sVal = "",
-            containsExpr = false,
-            statics = this.gc.statics;
+            containsExprOrDeco = false,
+            statics = this.gc.statics,
+            nextStaticIdx = statics.length;
         for (let i = 0; params.length > i; i++) {
             p = params[i];
-            v = p.value;
-            sVal = ""
-            if (p.kind === "#param" && p.isOrphan) {
-                sVal = "true";
-            } else if (v && v.kind !== "#expression") {
-                if (v.kind === "#string") {
-                    sVal = encodeText(v.value);
+            sVal = "";
+            if (p.kind === "#param" || p.kind === "#property") {
+                v = p.value;
+                if ((p as XjsParam).isOrphan) {
+                    sVal = "true";
+                } else if (typeof v === "object") {
+                    containsExprOrDeco = true;
+                } else if (typeof v === "string") {
+                    sVal = encodeText(v);
                 } else {
-                    sVal = "" + v.value;
+                    sVal = "" + v;
                 }
-            } else if (v && v.kind === "#expression") {
-                containsExpr = true;
+
+                if (sVal) {
+                    if (p.kind === "#param") {
+                        paramVal = paramVal || [];
+                        sParamIdx = addParam(p.name, sVal, sParamIdx, paramVal);
+                    } else {
+                        // prop
+                        propVal = propVal || [];
+                        sPropIdx = addParam(p.name, sVal, sPropIdx, propVal);
+                    }
+                }
+            } else if (p.kind === "#decorator" || p.kind === "#decoratorNode") {
+                containsExprOrDeco = true;
             }
-            if (sVal) {
-                if (sIdx < 0) {
-                    sIdx = statics.length;
-                    val = [];
-                }
-                val!.push(encodeText(p.name));
-                val!.push(sVal);
+
+        }
+
+        appendStatics(sParamIdx, paramVal);
+        appendStatics(sPropIdx, propVal);
+        return [sParamIdx, sPropIdx, containsExprOrDeco];
+
+        function addParam(name: string, sVal: string, staticIdx: number, staticArray: string[]): number {
+            if (staticIdx < 0) {
+                staticIdx = nextStaticIdx;
+                nextStaticIdx++;
+            }
+            staticArray.push(encodeText(name));
+            staticArray.push(sVal);
+            return staticIdx;
+        }
+
+        function appendStatics(staticIdx: number, staticArray?: string[]) {
+            if (staticArray) {
+                statics[staticIdx] = "ζs" + staticIdx + " = [" + staticArray!.join(", ") + "]";
             }
         }
-        if (val) {
-            statics[sIdx] = "ζs" + sIdx + " = [" + val!.join(", ") + "]";
-        }
-        return [sIdx, containsExpr];
     }
 
     /**
      * Parse the XJS node to look for labels - e.g. #foo or #bar[] or #baz[{expr()}]
      * @param nd 
      */
-    generateLabelStatics(nd: XjsElement | XjsText | XjsComponent | XjsDecorator): string {
-        if (nd.labels && nd.labels.length) {
-            let lbl: XjsLabel, labels = nd.labels, len = labels.length, values: any[] = [];
-            for (let i = 0; labels.length > i; i++) {
-                lbl = labels[i];
-                if (lbl.fwdLabel) {
-                    this.gc.error("Forward labels (e.g. ##" + lbl.name + ") are not supported (yet)", lbl);
-                }
-                if (lbl.isOrphan) {
-                    values.push(encodeText("#" + lbl.name));
-                }
+    generateLabelStatics(nd: XjsElement | XjsComponent | XjsDecorator): string {
+        if (nd.params === U) return "0";
+        const values: any[] = [];
+        for (let lbl of nd.params) if (lbl.kind === "#label") {
+            if (lbl.isOrphan) {
+                values.push(encodeText("#" + lbl.name));
             }
-            if (!values.length) return "0"; // no static labels
-            let statics = this.gc.statics, sIdx = statics.length;
-            statics[sIdx] = "ζs" + sIdx + " = [" + values!.join(", ") + "]";
-            return "ζs" + sIdx;
         }
-        return "0"; // no labels
+        if (!values.length) return "0"; // no static labels
+        const statics = this.gc.statics, sIdx = statics.length;
+        statics[sIdx] = "ζs" + sIdx + " = [" + values!.join(", ") + "]";
+        return "ζs" + sIdx;
     }
 
     generateParamInstructions(nd: XjsFragment | XjsDecorator, idx: number, iFlag: number, isAttribute: boolean, view: ViewInstruction) {
         // dynamic params / attributes
-        if (nd.params && nd.params.length) {
-            let len = nd.params.length, p: XjsParam, isParamNode = nd.kind === "#paramNode";
-            for (let i = 0; len > i; i++) {
-                p = nd.params[i];
-                if (p.isSpread) {
-                    this.gc.error("Spread operator is no supported yet", p);
-                }
-                if (p.value && p.value.kind === "#expression") {
+        const params = nd.params;
+        if (params === U) return;
+        const isParamNode = nd.kind === "#paramNode";
+        for (let p of params) {
+            if (p.kind === "#param" || p.kind === "#property") {
+                if (p.value && (p.value as XjsExpression).kind === "#expression") {
                     this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent, isParamNode));
                 }
-            }
-        }
-
-        if (nd.kind === "#paramNode" && nd.decorators) {
-            // look for @paramValue decorator
-            for (let d of nd.decorators) {
+            } else if (isParamNode && p.kind === "#decorator") {
+                let d = p as XjsDecorator;
                 if (d.ref.code === PARAM_VALUE) {
-                    if (nd.params) {
-                        this.gc.error("@paramValue cannot be mixed with other parameters", d);
-                    }
                     this.instructions.push(new ParamInstruction(d, idx, view, iFlag, false, this.indent, true));
-                }
-            }
-        }
-        // dynamic properties
-        if (nd.kind !== "#decorator" && nd.properties && nd.properties.length) {
-            let len = nd.properties.length, p: XjsProperty;
-            for (let i = 0; len > i; i++) {
-                p = nd.properties[i];
-                if (p.isSpread) {
-                    this.gc.error("Spread operator is no supported yet", p);
-                }
-                if (p.name === "innerHTML") {
-                    this.gc.error("innerHTML is not authorized (security restriction)", p);
-                }
-                if (p.value && p.value.kind === "#expression") {
-                    this.instructions.push(new ParamInstruction(p, idx, view, iFlag, isAttribute, this.indent));
                 }
             }
         }
     }
 
-    generateDynLabelInstructions(nd: XjsFragment | XjsText | XjsComponent | XjsDecorator, idx: number, iFlag: number, view: ViewInstruction) {
+    generateDynLabelInstructions(nd: XjsFragment | XjsComponent | XjsDecorator, idx: number, iFlag: number, view: ViewInstruction) {
         // dynamic labels
-        if (nd.labels && nd.labels.length) {
-            let len = nd.labels.length, lbl: XjsLabel;
-            for (let i = 0; len > i; i++) {
-                lbl = nd.labels[i];
+        if (nd.params !== U) {
+            for (let lbl of nd.params) if (lbl.kind === "#label") {
                 if (!lbl.isOrphan && lbl.value) {
                     if (!lbl.fwdLabel) {
                         this.instructions.push(new LblInstruction(lbl, idx, view, iFlag, this.indent));
@@ -924,7 +754,7 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     processAsyncCase(nd: XjsElement | XjsFragment, idx: number, parentLevel: number, prevKind: string, nextKind: string): boolean {
-        // generate async block if @async decorator is used
+        // // generate async block if @async decorator is used
         let asyncValue: number | XjsExpression = 0;
 
         if (nd === this.node) {
@@ -932,9 +762,8 @@ export class ViewInstruction implements RuntimeInstruction {
         }
 
         // determine if an async decorator is used
-        let decorators = nd.decorators;
-        if (decorators) {
-            for (let d of decorators) {
+        if (nd.params) {
+            for (let d of nd.params) if (d.kind === "#decorator") {
                 if (d.ref.code === ASYNC) {
                     if (!d.hasDefaultPropValue) {
                         if (d.params) {
@@ -945,10 +774,10 @@ export class ViewInstruction implements RuntimeInstruction {
                     } else {
                         let dv = d.defaultPropValue!;
                         // value can be number or expression
-                        if (dv.kind === "#number") {
-                            asyncValue = dv.value;
-                        } else if (d.defaultPropValue!.kind === "#expression") {
+                        if (typeof dv === "object") {
                             asyncValue = dv as XjsExpression;
+                        } else if (typeof dv === "number") {
+                            asyncValue = dv;
                         } else {
                             this.gc.error("@async value must be either empty or a number or an expression", d);
                         }
@@ -976,24 +805,21 @@ export class ViewInstruction implements RuntimeInstruction {
     }
 
     generateDecoratorInstructions(
-        nd: XjsComponent | XjsElement | XjsFragment | XjsText,
+        nd: XjsComponent | XjsElement | XjsFragment,
         idx: number,
         iFlag: number,
         includeBuiltIn = true,
         includeCustomDecorators = true): DecoInstruction[] | undefined {
-        let d = nd.decorators, result: DecoInstruction[] | undefined = undefined;
-        if (d) {
-            let len = d.length, deco: XjsDecorator, kind = nd.kind, decoRef = "";
-            for (let i = 0; len > i; i++) {
-                deco = d[i];
-                decoRef = deco.ref ? deco.ref.code : "";
+        let result: DecoInstruction[] | undefined = undefined;
+        if (nd.params !== U) {
+            let kind = nd.kind, decoRef = "";
+            for (let p of nd.params) if (p.kind === "#decorator") {
+                decoRef = p.ref ? p.ref.code : "";
                 if (decoRef === "content") {
                     if (includeBuiltIn) {
-                        // todo: @content on components, param nodes and decorator nodes
+                        // @content
                         if (kind === "#element" || kind === "#fragment") {
-                            this.instructions.push(new InsInstruction(deco, nd as XjsElement | XjsFragment, idx, this, iFlag));
-                        } else {
-                            this.gc.error("@content can not be used on " + VALIDATION_NAMES[kind], nd);
+                            this.instructions.push(new InsInstruction(p, nd as XjsElement | XjsFragment, idx, this, iFlag));
                         }
                     }
                 } else if (decoRef === "async" || decoRef === "key" || decoRef === PARAM_VALUE || decoRef === "xmlns" || decoRef.match(RX_EVT_HANDLER_DECORATOR)) {
@@ -1001,27 +827,21 @@ export class ViewInstruction implements RuntimeInstruction {
                     continue;
                 } else if (includeCustomDecorators) {
                     // custom decorator
-                    let sIdx = -1, containsParamExpr = false;
-                    [sIdx, containsParamExpr] = this.registerStatics(deco.params);
+                    let sIdx = -1, sIdx2 = -1, containsParamExpr = false;
+                    [sIdx, sIdx2, containsParamExpr] = this.registerStatics(p.params);
                     let decoIdx = this.nodeCount++,
-                        decoInstr = new DecoInstruction(deco, decoIdx, idx, this, iFlag, this.indent, sIdx, this.generateLabelStatics(deco));
+                        decoInstr = new DecoInstruction(p, decoIdx, idx, this, iFlag, this.indent, sIdx, this.generateLabelStatics(p));
                     this.instructions.push(decoInstr);
                     if (containsParamExpr) {
-                        this.generateParamInstructions(deco, decoIdx, iFlag, false, this);
+                        this.generateParamInstructions(p, decoIdx, iFlag, false, this);
                     }
-                    this.generateDynLabelInstructions(deco, decoIdx, iFlag, this);
-                    this.createListeners(deco, decoIdx, iFlag, this);
-                    // if (nd.kind === "#textNode") {
-                    //     if (decoInstr.paramMode === 2) {
-                    //         this.instructions.push(new DecoCallInstruction(decoInstr));
-                    //     }
-                    // } else {
-                        if (!result) {
-                            result = [decoInstr];
-                        } else {
-                            result.push(decoInstr);
-                        }
-                    // }
+                    this.generateDynLabelInstructions(p, decoIdx, iFlag, this);
+                    this.createListeners(p, decoIdx, iFlag, this);
+                    if (!result) {
+                        result = [decoInstr];
+                    } else {
+                        result.push(decoInstr);
+                    }
                 }
             }
         }
@@ -1030,27 +850,16 @@ export class ViewInstruction implements RuntimeInstruction {
 
     // return true if some listeners have been created
     createListeners(nd: XjsElement | XjsComponent | XjsParamNode | XjsDecorator, parentIdx: number, iFlag: number, view: ViewInstruction): boolean {
-        if (!nd.decorators) return false;
+        if (nd.params === U) return false;
         let name: string, result = false;
-        for (let d of nd.decorators) {
-            name = d.ref.code;
+        for (let p of nd.params) if (p.kind === "#decorator") {
+            name = p.ref.code;
             if (name.match(RX_EVT_HANDLER_DECORATOR)) {
-                this.instructions.push(new EvtInstruction(d, RegExp.$1, view.nodeCount++, parentIdx, view, iFlag));
+                this.instructions.push(new EvtInstruction(p, RegExp.$1, view.nodeCount++, parentIdx, view, iFlag));
                 result = true;
             }
         }
         return result;
-    }
-
-    rejectAsyncDecorator(nd: XjsText | XjsParamNode) {
-        let decorators = nd.decorators;
-        if (decorators) {
-            for (let d of decorators) {
-                if (d.ref.code === "async") {
-                    this.gc.error("@async cannot be used in this context", d);
-                }
-            }
-        }
     }
 
     pushCode(body: BodyContent[]) {
@@ -1062,7 +871,7 @@ export class ViewInstruction implements RuntimeInstruction {
         let isJsBlock = this.node.kind === "#jsBlock";
         if (isJsBlock) {
             let p = this.parentView!, nd = this.node as XjsJsBlock;
-            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.gc.decreaseIndent(this.indent) : " ");
+            body.push(this.gc.decreaseIndent(this.indent));
             body.push(nd);
             if (!nd.startCode.match(/\n$/)) {
                 body.push("\n");
@@ -1070,7 +879,8 @@ export class ViewInstruction implements RuntimeInstruction {
         } else if (this.kind === "asyncBlock") {
             // async block
             let p = this.parentView!;
-            body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatements") ? this.gc.decreaseIndent(this.indent) : " ");
+            body.push(this.gc.decreaseIndent(this.indent));
+            // body.push((this.prevKind !== "#jsBlock" && this.prevKind !== "#jsStatement") ? this.gc.decreaseIndent(this.indent) : " ");
             body.push(`${funcStart("async", this.iFlag)}${p.jsVarName}, ${this.iFlag}, ${this.idx}, `);
             if (typeof this.asyncValue === 'number') {
                 body.push('' + this.asyncValue);
@@ -1140,7 +950,7 @@ export class ViewInstruction implements RuntimeInstruction {
             let nd = this.node as XjsJsBlock;
             body.push(this.gc.decreaseIndent(this.indent));
             body.push(nd.endCode);
-            if (!nd.endCode.match(/\n$/) && this.nextKind !== "#jsBlock" && this.nextKind !== "#jsStatements") {
+            if (!nd.endCode.match(/\n$/)) {
                 body.push("\n");
             }
         } else if (this.kind === "asyncBlock") {
@@ -1189,42 +999,54 @@ function getIhSuffix(iFlag) {
 
 class TxtInstruction implements RuntimeInstruction {
     isStatic = true;            // true when the text doesn't contain expressions
+    isTextNode = true;
     staticsExpr: string = '""'; // '" static string "' or "ζs1"
 
-    constructor(public node: XjsText, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string) {
+    constructor(public node: XjsText | XjsCData, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string) {
         this.view.gc.imports['ζtxt' + getIhSuffix(iFlag)] = 1;
 
-        let eLength = node.expressions ? node.expressions.length : 0;
-        if (node.textFragments.length <= 1 && eLength === 0) {
-            // static version
-            this.staticsExpr = encodeText(node.textFragments[0]);
-
+        if (node.kind === "#cdata") {
+            this.staticsExpr = encodeText(node.text);
+            this.isTextNode = false;
         } else {
-            this.isStatic = false;
+            let eLength = node.expressions ? node.expressions.length : 0;
+            if (node.textFragments.length <= 1 && eLength === 0) {
+                // static version
+                this.staticsExpr = encodeText(node.textFragments[0]);
 
-            // create static resource
-            let gc = this.view.gc, staticsIdx = gc.statics.length, pieces: string[] = [], fLength = node.textFragments.length, eCount = 0;
-            for (let i = 0; fLength > i; i++) {
-                // todo eLength
-                pieces.push(encodeText(node.textFragments[i]));
-                if (eCount < eLength) {
-                    pieces.push('""');
-                    eCount++;
+            } else {
+                this.isStatic = false;
+
+                // create static resource
+                let gc = this.view.gc, staticsIdx = gc.statics.length, pieces: string[] = [], fLength = node.textFragments.length, eCount = 0;
+                for (let i = 0; fLength > i; i++) {
+                    // todo eLength
+                    pieces.push(encodeText(node.textFragments[i]));
+                    if (eCount < eLength) {
+                        pieces.push('""');
+                        eCount++;
+                    }
                 }
+                gc.statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
+                this.staticsExpr = 'ζs' + staticsIdx;
             }
-            gc.statics.push("ζs" + staticsIdx + " = [" + pieces.join(", ") + "]");
-            this.staticsExpr = 'ζs' + staticsIdx;
         }
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζtxt(ζ1, ζc1, 0, 2, 1, ζs0, 1, ζe(ζ, 0, 1, name));
-        let v = this.view, eLength = this.node.expressions ? this.node.expressions.length : 0;
+        let v = this.view, eLength = 0, n: XjsText | undefined;
+        if (this.isTextNode) {
+            n = this.node as XjsText;
+            eLength = n!.expressions ? n!.expressions.length : 0;
+        }
 
         body.push(`${v.indent}${funcStart("txt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.iFlag}, ${this.idx}, ${this.parentLevel}, ${this.staticLabels}, ${this.staticsExpr}, ${eLength}`);
-        for (let i = 0; eLength > i; i++) {
-            body.push(', ');
-            generateExpression(body, this.node.expressions![i], this.view, this.iFlag);
+        if (this.isTextNode) {
+            for (let i = 0; eLength > i; i++) {
+                body.push(', ');
+                generateExpression(body, n!.expressions![i], this.view, this.iFlag);
+            }
         }
         body.push(');\n');
     }
@@ -1261,9 +1083,6 @@ class EltInstruction implements RuntimeInstruction {
     pushCode(body: BodyContent[]) {
         // e.g. ζelt(ζ1, ζc1, 0, 2, 1, "div", 0, ζs0, ζs1);
         let v = this.view;
-        if (this.node.nameExpression) {
-            v.gc.error("Name expressions are not yet supported", this.node);
-        }
         let hasChildren = (this.node.content && this.node.content.length) ? 1 : 0,
             lastArgs = (this.staticLabels === "0" && !this.staticArgs) ? "" : ", " + this.staticLabels + this.staticArgs;
         body.push(`${v.indent}${funcStart("elt", this.iFlag)}${v.jsVarName}, ${v.cmVarName}, ${this.idx}, ${this.parentLevel}, "${this.node.name}", ${hasChildren}${lastArgs});\n`);
@@ -1297,7 +1116,7 @@ class ParamInstruction implements RuntimeInstruction {
         // e.g. ζatt(ζ, 0, 1, "title", ζe(ζ, 0, exp()+123));
         let v = this.view, iSuffix = this.iFlag ? "D" : "", name = "0", generateLastExpressionArg = true;
         if (this.node.kind !== "#decorator") {
-            name = '"' + this.node.name + '"';
+            name = '"' + (this.node as XjsParam | XjsProperty).name + '"';
         }
         let val = (this.node as XjsParam).value as XjsExpression;
         if (this.funcName === "par") {
@@ -1319,22 +1138,13 @@ class ParamInstruction implements RuntimeInstruction {
             }
         } else {
             // attribute or property
-            if (val && val.isBinding) {
-                if (this.funcName === "att") {
-                    v.gc.error("Binding expressions cannot be used on element attributes", this.node);
-                } else {
-                    v.gc.error("Binding expressions cannot be used on element properties", this.node);
-                }
-            }
             body.push(`${this.indent}ζ${this.funcName}${iSuffix}(${v.jsVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${name}, `);
         }
         if (generateLastExpressionArg) {
             if (this.node.kind === "#decorator") {
                 // @paramValue decorator - in this case targetParamNode is true
                 let dfp = this.node.defaultPropValue;
-                if (!dfp) {
-                    v.gc.error(`Incorrect value for @${this.node.ref.code}`, this.node);
-                } else {
+                if (dfp) {
                     pushExpressionValue(body, dfp);
                 }
             } else if (this.targetParamNode) {
@@ -1370,15 +1180,20 @@ class DecoInstruction implements RuntimeInstruction {
 
         if (node.defaultPropValue) {
             this.paramMode = 1; // default property value
-        } else if (this.node.params && this.node.params.length) {
-            this.paramMode = 2;
+        } else {
+            if (this.node.params !== U) {
+                for (let p of this.node.params) if (p.kind === "#param") {
+                    this.paramMode = 2;
+                    break;
+                }
+            }
         }
     }
 
     pushCode(body: BodyContent[]) {
         // e.g. ζdeco(ζ, ζc, 0, 1, 0, "foo", foo, 2);
         let v = this.view, iSuffix = this.iFlag ? "D" : "", dfp = this.node.defaultPropValue, hasStaticLabels = (this.staticLabels !== "0"),
-            isDfpBinding = (dfp && dfp.kind === "#expression" && dfp.isBinding);
+            isDfpBinding = (dfp && (dfp as XjsExpression).kind === "#expression" && (dfp as XjsExpression).isBinding);
 
         body.push(`${this.indent}ζdeco${iSuffix}(${v.jsVarName}, ${v.cmVarName}, ${this.iFlag ? 1 : 0}, ${this.idx}, ${this.parentIdx}, `);
         body.push(`${encodeText(this.node.ref.code)}, `); // decorator name as string (error handling)
@@ -1434,14 +1249,14 @@ class DecoCallInstruction implements RuntimeInstruction {
     }
 }
 
-function pushExpressionValue(body: BodyContent[], value: XjsNumber | XjsBoolean | XjsString | XjsExpression) {
-    if (value.kind === "#expression") {
+function pushExpressionValue(body: BodyContent[], value: number | boolean | string | XjsExpression) {
+    if ((value as XjsExpression).kind === "#expression") {
         body.push(value as XjsExpression);
     } else {
-        if (value.kind === "#string") {
-            body.push(encodeText(value.value));
+        if (typeof value === "string") {
+            body.push(encodeText(value));
         } else {
-            body.push("" + value.value);
+            body.push("" + value);
         }
     }
 }
@@ -1461,11 +1276,11 @@ class LblInstruction implements RuntimeInstruction {
 }
 
 class JsStatementsInstruction implements RuntimeInstruction {
-    constructor(public node: XjsJsStatements, public view: ViewInstruction, public iFlag: number, public prevKind: string) { }
+    constructor(public node: XjsJsStatement, public view: ViewInstruction, public iFlag: number, public prevKind: string) { }
 
     pushCode(body: BodyContent[]) {
         let v = this.view;
-        body.push((this.prevKind !== "#jsBlock") ? v.indent : " ");
+        body.push(v.indent);
         body.push(this.node);
         if (!this.node.code.match(/\n$/)) {
             body.push("\n");
@@ -1490,9 +1305,6 @@ class CptInstruction implements RuntimeInstruction {
 
     constructor(public node: XjsComponent, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string, public callImmediately: boolean, public staticParamIdx: number) {
         view.gc.imports['ζcpt' + getIhSuffix(iFlag)] = 1;
-        if (node.properties && node.properties.length) {
-            view.gc.error("Properties cannot be used on components", node);
-        }
     }
 
     pushCode(body: BodyContent[]) {
@@ -1512,12 +1324,6 @@ class PndInstruction implements RuntimeInstruction {
 
     constructor(public node: XjsParamNode, public idx: number, public view: ViewInstruction, public iFlag: number, public parentLevel: number, public staticLabels: string, public staticParamIdx: number, public indent: string, public parentIndex: number, public instanceVarName: string, public hasEndInstruction: boolean) {
         view.gc.imports['ζpnode'] = 1;
-        if (node.properties && node.properties.length) {
-            view.gc.error("Properties cannot be used on param nodes", node);
-        }
-        if (node.nameExpression) {
-            view.gc.error("Param nodes names cannot be defined through expressions (yet)", node);
-        }
     }
 
     pushCode(body: BodyContent[]) {
@@ -1602,28 +1408,32 @@ class EvtInstruction implements RuntimeInstruction {
         let listener: XjsExpression | undefined, options: XjsExpression | undefined;
 
         if (d.defaultPropValue) {
-            if (d.defaultPropValue.kind !== "#expression") {
+            if ((d.defaultPropValue as XjsExpression).kind !== "#expression") {
                 v.gc.error('Event listeners must be function expressions - e.g. @onclick={e=>doSomething(e)}', d);
             } else {
                 listener = d.defaultPropValue! as XjsExpression;
             }
         } else {
             for (let p of d.params!) {
+                if (p.kind !== "#param") {
+                    v.gc.error("Invalid param on event listener", p);
+                    continue;
+                }
                 if (p.name === "listener") {
                     if (!p.value) {
                         v.gc.error("listener value cannot be empty", p);
-                    } else if (p.value.kind !== "#expression") {
+                    } else if ((p.value as XjsExpression).kind !== "#expression") {
                         v.gc.error('listeners must be function expressions - e.g. listener={e=>doSomething(e)}', p);
                     } else {
-                        listener = p.value;
+                        listener = p.value as XjsExpression;
                     }
                 } else if (p.name === "options") {
                     if (!p.value) {
                         v.gc.error("options value cannot be empty", p);
-                    } else if (p.value.kind !== "#expression") {
+                    } else if ((p.value as XjsExpression).kind !== "#expression") {
                         v.gc.error('options value must be an expression - e.g. options={{passive:true, once:true}}', p);
                     } else {
-                        options = p.value;
+                        options = p.value as XjsExpression;
                     }
                 }
             }
@@ -1652,12 +1462,6 @@ class InsInstruction implements RuntimeInstruction {
         // manage @content built-in decorator
         let gc = this.view.gc;
         gc.imports['ζins' + getIhSuffix(iFlag)] = 1;
-        if (parent.kind !== "#element" && parent.kind !== "#fragment") {
-            gc.error("@content can only be used on elements or fragments", node);
-        }
-        if (parent.content && parent.content.length) {
-            gc.error("@content can only be used on empty elements or fragments", node);
-        }
     }
 
     pushCode(body: BodyContent[]) {
@@ -1668,10 +1472,6 @@ class InsInstruction implements RuntimeInstruction {
             if (gc.templateArgs.indexOf("$") < 0 && gc.templateArgs.indexOf("$content") < 0) {
                 gc.error("$ or $content must be defined as template arguments to use @content with no values", d);
             }
-        } else if (this.node.defaultPropValue && this.node.defaultPropValue.kind !== "#expression") {
-            gc.error("@content value cannot be a " + this.node.defaultPropValue.kind, d);
-        } else if (this.node.defaultPropValue && this.node.defaultPropValue.kind === "#expression" && this.node.defaultPropValue.oneTime) {
-            gc.error("@content expression cannot use one-time qualifier", d);
         }
 
         body.push(`${v.indent}${funcStart("ins", this.iFlag)}${v.jsVarName}, ${this.iFlag}, ${this.idx}, `);

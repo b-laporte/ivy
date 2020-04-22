@@ -1,4 +1,4 @@
-import { template, Controller, API } from "../../iv";
+import { $template, Controller, API } from "../../iv";
 import { Data, isMutating } from '../../trax';
 import { IvContent, IvTemplate } from '../../iv/types';
 
@@ -115,19 +115,19 @@ const KEY_SPACE = 32,
     }
 }
 
-export const grid = template(`($:GridCtl) => {
-    let rowList = $.$api.rowList, 
+export const grid = $template`($:GridCtl) => {
+    $let rowList = $.$api.rowList, 
         helpLabelDisplayed = false,
         expandedCount = $.expandedCount,
         defaultFocusedRow = $.defaultFocusedRow;
     <div class="grid" #root>
         
-        for (let idx=0; rowList.length>idx; idx++) {
-            let row = rowList[idx];
+        $for (let idx=0; rowList.length>idx; idx++) {
+            $let row = rowList[idx];
     
             <div class={getRowClass(row)} >  // todo: support @class()
     
-                if (!row.expanded) {
+                $if (!row.expanded) {
                     // collapsed row: display summary
                     <div class="cfc-expanding-row-summary" tabindex={(expandedCount===0 && row===defaultFocusedRow)? '0' : '-1'} 
                         style={row.focused? "color:"+$.focusColor : ""}
@@ -139,18 +139,18 @@ export const grid = template(`($:GridCtl) => {
                     >
                         <! @content={row.summary}/>
                         
-                        <div class="cfc-expanding-row-accessibility-text"> #.# </div>
+                        <div class="cfc-expanding-row-accessibility-text">.</div>
                         <div class="cfc-expanding-row-accessibility-text"
                             i18n="This is the label used to indicate that the user is in a list of expanding rows.">
-                            # Row {idx + 1} in list of expanding rows. #
+                            Row {idx + 1} in list of expanding rows.
                         </div>
-                        if (!helpLabelDisplayed) {
+                        $if (!helpLabelDisplayed) {
                             <div class="cfc-expanding-row-accessibility-text"
                                 i18n="This is the label used for the first row in list of expanding rows.">
-                                # Use arrow keys to navigate. #
+                                Use arrow keys to navigate.
                             </div>
-                            helpLabelDisplayed = true;
-                        }
+                            $exec helpLabelDisplayed = true;
+                        } 
                     </div>
                 } else {
                     // expanded row: caption first
@@ -170,7 +170,7 @@ export const grid = template(`($:GridCtl) => {
             </div>
         }
     </div>
-}`);
+}`;
 
 function getRowClass(row: Row) {
     // this function should be removed when @class() is implemented

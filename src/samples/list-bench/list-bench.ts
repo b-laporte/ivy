@@ -1,5 +1,5 @@
 require('./index.html'); // webpack dependency
-import { template, API } from "../../iv";
+import { $template, API } from "../../iv";
 import { Data, changeComplete } from '../../trax';
 
 @Data class Item {
@@ -10,30 +10,30 @@ import { Data, changeComplete } from '../../trax';
     list: Item[];
 }
 
-const list = template(`(state:ListState) => {
-    let msg = state.msg, list = state.list;
+const list = $template`(state:ListState) => {
+    $let msg = state.msg, list = state.list;
     <div>
-        <p># {msg} #</p>
-        for (let i=0;list.length>i;i++) {
-            let obj = list[i];
+        <p>{msg}</p>
+        $for (let i=0;list.length>i;i++) {
+            $let obj = list[i];
             <div title={msg + i}>
-                <span [className]={msg}> # { obj.text } # </span>
-                <span [className]="baz"> # one # </span>
-                <span [className]="qux"> # two # </span>
+                <span [className]={msg}> { obj.text } </span>
+                <span [className]="baz"> one </span>
+                <span [className]="qux"> two </span>
                 <div>
-                    <span [className]="qux"> # three # </span>
-                    <span [className]="qux"> # four # </span>
-                    <span [className]="baz"> # five # </span>
+                    <span [className]="qux"> three </span>
+                    <span [className]="qux"> four </span>
+                    <span [className]="baz"> five </span>
                     <div>
-                        <span [className]="qux"> # six # </span>
-                        <span [className]="baz"> # seven # </span>
-                        <span [className]={msg}> # eight # </span>
+                        <span [className]="qux"> six </span>
+                        <span [className]="baz"> seven </span>
+                        <span [className]={msg}> eight </span>
                     </>
                 </>
             </>
         }
     </>
-}`);
+}`;
 
 // initialize state
 const state = new ListState();

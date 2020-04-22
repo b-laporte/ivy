@@ -1,6 +1,6 @@
 require('./index.html'); // webpack dependency
 require('./styles.css'); // webpack dependency
-import { template } from "../../iv";
+import { $template } from "../../iv";
 import { Data, changeComplete } from '../../trax';
 import { grid } from './grid';
 
@@ -21,31 +21,31 @@ import { grid } from './grid';
 // Main template
 const mainStyle = "padding: 1;margin: 1;background-color: white;width: 1000px;display: block;";
 
-const main = template(`(data:MainData) => {
-    <h2> #cfc-expanding-row initialization benchmark# </h2>
+const main = $template`(data:MainData) => {
+    <h2> cfc-expanding-row initialization benchmark </h2>
 
     <section>
-        <button id="run" @onclick={e=>runAll(data)}> #Run All# </button>
+        <button id="run" @onclick={e=>runAll(data)}> Run All </button>
     </section>
 
     <benchmark-area class="cfc-ng2-region" style={::mainStyle}>
-        if (data.showExpandingRow) {
+        $if (data.showExpandingRow) {
             <*grid>
-                for (let team of data.teamList) {
+                $for (let team of data.teamList) {
                     <.row id={team.id}>
-                        <.summary> # Team {team.id} # </>
+                        <.summary> Team {team.id} </>
                         <.caption> 
-                            # Team '{team.name}' -- #
+                            Team '{team.name}' --
                             <a href="https://www.google.com" class="cfc-demo-expanding-row-caption-link"> 
-                                # team link {team.id} #
+                                team link {team.id}
                             </a>
                         </.caption>
                         <ul> // ace-list ?
-                            <li> # Division: {team.division} # </li>
+                            <li> Division: {team.division} </li>
                             <li>
-                                <a href="https://www.google.com"> #{team.stadium}# </a>
+                                <a href="https://www.google.com">{team.stadium}</a>
                             </li>
-                            <li> #Projected Record: {team.projection} #</li>
+                            <li> Projected Record: {team.projection} </li>
                         </ul>
                     </.row>
                 }
@@ -53,10 +53,10 @@ const main = template(`(data:MainData) => {
         }
     </benchmark-area>
     <section>
-        <button id="reset" @onclick={e=>reset(data)}> #Reset# </button>
-        <button id="init" @onclick={e=>init(data)}> #Init# </button>
+        <button id="reset" @onclick={e=>reset(data)}> Reset </button>
+        <button id="init" @onclick={e=>init(data)}> Init </button>
     </section>
-}`);
+}`;
 
 let fakeTeams: MlbTeam[] = [], resetCount = 0;
 

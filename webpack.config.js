@@ -42,7 +42,7 @@ module.exports = [{
         "largetable": "./src/samples/largetable/largetable.ts",
         "rows": "./src/samples/rows/rows.ts",
         "dbmon": "./src/samples/dbmon/dbmon.ts",
-        "search": "./src/samples/search/search.ts",
+        // "search": "./src/samples/search/search.ts",
         "list-bench": "./src/samples/list-bench/list-bench.ts",
         "inputs": "./src/samples/inputs/inputs.ts"
     },

@@ -1,7 +1,7 @@
 require('./index.html'); // webpack dependency
 import { bindAction, profile } from '../benchmark_utils';
 import { buildTree, emptyTree, TreeNode } from './util';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 
 let tpl, data: TreeNode;
 
@@ -28,17 +28,17 @@ function detectChanges() {
 
 function getColor(row: number) { return row % 2 ? '' : 'grey'; }
 
-const tree = template(`(data) => {
+const tree = $template`(data) => {
   <tree>
-    <span style={"background-color:"+getColor(data.depth)}> #{data.value}# </span>
-    if (data.left != null) {
+    <span style={"background-color:"+getColor(data.depth)}> {data.value} </span>
+    $if (data.left != null) {
       <*tree data={data.left}/>
     }
-    if (data.right != null) {
+    $if (data.right != null) {
       <*tree data={data.right}/>
     }
   </tree>
-}`);
+}`;
 
 function noop() { }
 bindAction('#destroyDom', destroyDom);

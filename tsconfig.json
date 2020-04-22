@@ -27,6 +27,10 @@
     },
     "include": [
         "src/iv",
-        "src/test"
+        "src/test",
+        "src/samples"
+    ],
+    "exclude": [
+        "src/samples/search"
     ]
 }

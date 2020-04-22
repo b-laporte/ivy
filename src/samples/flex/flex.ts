@@ -1,4 +1,4 @@
-import { template } from "../../iv";
+import { $template } from "../../iv";
 import { IvTemplate } from '../../iv/types';
 
 require('./index.html');    // webpack dependency
@@ -32,23 +32,23 @@ window["renderFlexResults"] = function (elt, data, visible) {
     // mainTemplate.refresh();
 }
 
-const avail = template(`(data, selectedItinerary, selectedFare, visible) => {
-    var availability = data.availability;
-    if (visible) {
+const avail = $template`(data, selectedItinerary, selectedFare, visible) => {
+    $let availability = data.availability;
+    $if (visible) {
         <div class="container availability">
-        let first=true;
-        for (let bound of availability.bounds) {
+        $let first=true;
+        $for (let bound of availability.bounds) {
             <div> // @async={first? 0 : 1}
-                first=false;
-                if (bound.searchData) {
-                    <h2> #{bound.searchData.beginLocation.cityName} to {bound.searchData.endLocation.cityName}# </h2>
+                $exec first=false;
+                $if (bound.searchData) {
+                    <h2> {bound.searchData.beginLocation.cityName} to {bound.searchData.endLocation.cityName} </h2>
                 }
 
                 <div class="fare-families">
                     <*fareFamilyHeaders fareFamilies={availability.fareFamilies}/>
                 </div>
 
-                for (let itinerary of bound.itineraries) {
+                $for (let itinerary of bound.itineraries) {
                     <*itineraryLine showFareDetails = {selectedItinerary===itinerary}
                         itinerary = {itinerary} 
                         selectedFare = {selectedFare}
@@ -61,27 +61,27 @@ const avail = template(`(data, selectedItinerary, selectedFare, visible) => {
         }
         </div>
     }
-}`);
+}`;
 
-const fareFamilyHeaders = template(`(fareFamilies) => {
+const fareFamilyHeaders = $template`(fareFamilies) => {
     <div class="fare-family-names">
-        for (let fareFamily of fareFamilies) {
-            <h4> #{fareFamily.name}# </h4>
+        $for (let fareFamily of fareFamilies) {
+            <h4> {fareFamily.name} </h4>
         }
         </div>
 
         <div class="fare-family-description">
-        for (let fareFamily of fareFamilies) {
-            <div> #{fareFamily.shortDescription}# </div>
+        $for (let fareFamily of fareFamilies) {
+            <div> {fareFamily.shortDescription} </div>
         }
     </div>
-}`);
+}`;
 
-const itineraryLine = template(`(itinerary, selectedFare, showFareDetails: boolean, fareFamiliesList, jqFareFamilies, fareFamiliesCaveats) => {
+const itineraryLine = $template`(itinerary, selectedFare, showFareDetails: boolean, fareFamiliesList, jqFareFamilies, fareFamiliesCaveats) => {
     <div class="itinerary">
         <div class="itinerary-header">
             <div class="itinerary-info right-delimiter">
-                for (let segment of itinerary.segments) {
+                $for (let segment of itinerary.segments) {
                     <*flightSummary 
                         departureAirport = {segment.beginLocation.cityName}
                         departureTime = {segment.beginDate} 
@@ -95,42 +95,46 @@ const itineraryLine = template(`(itinerary, selectedFare, showFareDetails: boole
                 <strong class="total-duration"> #Total duration {itinerary.duration}# </strong>
             </div>
 
-            for (let index=0;fareFamiliesList.length>index;index++) {
-                let fare = fareFamiliesList[index], clsList="fare";
-                if (fare.isMarginal) clsList += " fare-inactive";
-                if (showFareDetails && selectedFare === index) clsList += " fare-selected";
+            $for (let index=0;fareFamiliesList.length>index;index++) {
+                $let fare = fareFamiliesList[index], clsList="fare";
+                $if (fare.isMarginal) {
+                    $exec clsList += " fare-inactive";
+                }
+                $if (showFareDetails && selectedFare === index) {
+                    $exec clsList += " fare-selected";
+                }
 
                 <div class={clsList} [style]={"border-color:" + fare.color} @onclick={e=>toggleFareDetails(index,itinerary)}>
-                    if (hasRecommendation(itinerary,fare)) {
-                        if (itinerary.isJQOnlyFlight && !fare.isMarginal) {
+                    $if (hasRecommendation(itinerary,fare)) {
+                        $if (itinerary.isJQOnlyFlight && !fare.isMarginal) {
                             <span>
                                 <img alt="JetStar" src="https://book.qantas.com.au/go/2017.3-8/ffco/img/assets/jetstar_66px.png" width="66" height="18"/>
                                 <div class="jq-fare-name"> #{jqFareFamilies[fare.code]? jqFareFamilies[fare.code].name : ""}# </div>
                             </span>
                         }
-                        if (!(fare.isBusiness && !itinerary.flight.hasBusinessCabin)) {
+                        $if (!(fare.isBusiness && !itinerary.flight.hasBusinessCabin)) {
                             <span class="fare-amount as-link">
-                                if (fare.isMarginal) {
+                                $if (fare.isMarginal) {
                                     <img src="./award.svg" width="24" height="24"/>
                                 } else {
-                                    #{amountForFare(itinerary,fare)}#
+                                    {amountForFare(itinerary,fare)}
                                 }
                             </span>
                         } else {
-                            <span class="no-seats"> #N/A# </span>
+                            <span class="no-seats"> N/A </span>
                         }
                     } else {
-                        <span class="no-seats"> #No seats# </span>
+                        <span class="no-seats"> No seats </span>
                     }
 
-                    if (lastSeatsAvailable(itinerary, fare)) {
-                        <div class="last-seats"> #5 or fewer seats# </div>
+                    $if (lastSeatsAvailable(itinerary, fare)) {
+                        <div class="last-seats"> 5 or fewer seats </div>
                     }
                 </div>
             }
         </div>
 
-        if (showFareDetails) {
+        $if (showFareDetails) {
             <*fareDetailGroup
                 flight = {itinerary.flight} 
                 selectedFare = {selectedFare} 
@@ -139,90 +143,90 @@ const itineraryLine = template(`(itinerary, selectedFare, showFareDetails: boole
                 fareFamiliesCaveats = {fareFamiliesCaveats} />
         }
     </div>
-}`);
+}`;
 
-const flightSummary = template(`(departureAirport, departureTime, arrivalAirport, arrivalTime, airline, flightNumber, flightDuration, nbrOfStops) => {
+const flightSummary = $template`(departureAirport, departureTime, arrivalAirport, arrivalTime, airline, flightNumber, flightDuration, nbrOfStops) => {
     <div class="flight-summary">
         <header>
             <h3 class="flight-departure">
-                <span>#{departureAirport}#</span> #{departureTime}#
+                <span>{departureAirport}</span> {departureTime}
             </h3>
             <h3 class="flight-departure">
-                <span>#{arrivalAirport}#</span> #{arrivalTime}#
+                <span>{arrivalAirport}</span> {arrivalTime}
             </h3>
         </header>
         <footer>
             <div class="flight-number as-link with-icon" @onclick={e=>flightDetails()}>
                 <img class="icon" src={"https://book.qantas.com.au/go/2017.3-8/airlinesicons/"+airline.code.toLowerCase() + ".png"} 
                     width="14" height="14"/>
-                #{airline.code.toUpperCase()}{flightNumber}#
+                {airline.code.toUpperCase()}{flightNumber}
             </div>
-            <div class="flight-stops as-link"> #{nbrOfStops} stop(s)# </div>
-            <div class="flight-duration"> #{flightDuration}# </div>
+            <div class="flight-stops as-link"> {nbrOfStops} stop(s) </div>
+            <div class="flight-duration"> {flightDuration} </div>
         </footer>
     </div>
-}`);
+}`;
 
-const fareDetailGroup = template(`(flight, selectedFare, fareFamilies, jqFareFamilies, fareFamiliesCaveats) => {
+const fareDetailGroup = $template`(flight, selectedFare, fareFamilies, jqFareFamilies, fareFamiliesCaveats) => {
     <div class="itinerary-details">
         <div class="avail-actions">
             <div class="action-desc">
                 <img class="icon" src="https://book.qantas.com.au/go/2017.3-8/fare-conditions-icons/teaser-earnpoints.svg" /> 
-                # Qantas Points earned #
+                Points earned
             </div>
             <div class="action-desc">
                 <img class="icon" src="https://book.qantas.com.au/go/2017.3-8/fare-conditions-icons/teaser-statuscredits.svg" /> 
-                # Status Credits earned #
+                Status Credits earned
             </div>
 
-            for (let rule of fareFamilies[0].teaserRules) {
+            $for (let rule of fareFamilies[0].teaserRules) {
                 <div class="action-desc">
                     <img class="icon" src={"https://book.qantas.com.au/go/2017.3-8/fare-conditions-icons/teaser-"+rule.ruleId.toLowerCase()+".svg"} />
-                    #{rule.label}#
-                    if (fareFamiliesCaveats[rule.ruleId]) {
-                        <sup> #{fareFamiliesCaveats[rule.ruleId][0]}# </sup>
+                    {rule.label}
+                    $if (fareFamiliesCaveats[rule.ruleId]) {
+                        <sup> {fareFamiliesCaveats[rule.ruleId][0]} </sup>
                     }
                 </div>
             }
         </div>
 
-        for (let i=0;fareFamilies.length>i;i++) {
-            let fare=fareFamilies[i];
+        $for (let i=0;fareFamilies.length>i;i++) {
+            $let fare=fareFamilies[i];
             <*fareDetails fare={fare} recommendation={flight.listRecommendation[fare.code]} isSelected={selectedFare == i} />
         }
     </div>
-}`);
+}`;
 
-const fareDetails = template(`(fare, recommendation, isSelected) => {
-    isSelected = isSelected || false;
-    let clsList="fare-flex fare-details";
-    if (isSelected) clsList += " fare-selected";
-    if (fare.isMarginal) clsList += " fare-marginal";
+const fareDetails = $template`(fare, recommendation, isSelected) => {
+    $exec isSelected = isSelected || false;
+    $let clsList="fare-flex fare-details";
+    $if (isSelected) {$exec clsList += " fare-selected";}
+    $if (fare.isMarginal) {$exec clsList += " fare-marginal";}
 
     <div class={clsList} style={"border-color:"+fare.color}>
-        <div> #{getNoOfPoints(fare, recommendation)}# </div>
-        <div> #{getStatusCredit(fare, recommendation)}# </div>
+        <div> {getNoOfPoints(fare, recommendation)} </div>
+        <div> {getStatusCredit(fare, recommendation)} </div>
 
-        for (let rule of fare.teaserRules) { 
+        $for (let rule of fare.teaserRules) { 
             <div>
-                if (!!rule.formattedValue) {
-                    #{rule.formattedValue}#
+                $if (!!rule.formattedValue) {
+                    {rule.formattedValue}
                 } else {
-                    if (!!rule.booleanValue) {
-                        <div class="rule-yes"> # v # </div> // &#x2714;
+                    $if (!!rule.booleanValue) {
+                        <div class="rule-yes"> v </div> // &#x2714;
                     } else {
-                        if (rule.booleanValue == null) {
-                            # - #
+                        $if (rule.booleanValue == null) {
+                            -
                         } else {
-                            <div class="rule-no"> # x # </div> // &#x2718;
+                            <div class="rule-no"> x </div> // &#x2718;
                         }
                     }
                 }
             </div>
         }
-        <button class="btn-link full-fare"> # Full fare conditions # </button>
+        <button class="btn-link full-fare"> Full fare conditions </button>
     </div>
-}`);
+}`;
 
 function flightDetails() {
     alert("todo: flight details");

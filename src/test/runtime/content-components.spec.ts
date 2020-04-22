@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logViewNodes, Controller, API } from '../../iv';
+import { $template, logViewNodes, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvContent } from '../../iv/types';
 
@@ -11,74 +11,74 @@ describe('Content Components', () => {
         body = reset();
     });
 
-    const panel = template(`(type, $content) => {
+    const panel = $template`(type, $content) => {
         <div class={type}>
-            # Panel #
+            Panel
             <div @content={$content}/>
         </div>
-    }`);
+    }`;
 
-    const header = template(`(text, $content) => {
+    const header = $template`(text, $content) => {
         <!>
             <!>
-                # :::: {text} :::: #
+                :::: {text} ::::
                 <div @content={$content}/>
             </>
         </>
-    }`);
+    }`;
 
-    const section = template(`(text, open, $content) => {
+    const section = $template`(text, open, $content) => {
         <section>
-            # :::: {text} {open? "(open)" : "(closed)"} :::: #
-            if (open) {
+            :::: {text} {open? "(open)" : "(closed)"} ::::
+            $if (open) {
                 <div @content={$content}/>
             }
         </section>
-    }`);
+    }`;
 
-    const panel2 = template(`(type, $content) => {
+    const panel2 = $template`(type, $content) => {
         <div class={type}>
-            # Panel #
+            Panel
             <! @content={$content}/>
         </div>
-    }`);
+    }`;
 
-    const header2 = template(`(text, $content) => {
-        # :::: {text} :::: #
+    const header2 = $template`(text, $content) => {
+        :::: {text} ::::
         <! @content/>
-    }`);
+    }`;
 
-    const section2 = template(`(text, open, $content) => {
+    const section2 = $template`(text, open, $content) => {
         <section>
-            # :::: {text} {open? "(open)" : "(closed)"} :::: #
-            if (open) {
+            :::: {text} {open? "(open)" : "(closed)"} ::::
+            $if (open) {
                 <! @content={$content}/>
             }
         </section>
-    }`);
+    }`;
 
-    const section3 = template(`(text, open, $content) => {
-        if (open) {
+    const section3 = $template`(text, open, $content) => {
+        $if (open) {
             <*section open=true text="Sub-Section">
-                # :::: Inner text {text} :::: #
+                :::: Inner text {text} ::::
                 <div @content/>
             </>
         } else {
-            # \(closed) #
+            (closed)
         }
-    }`);
+    }`;
 
-    const sectionAB = template(`(first, $content) => {
+    const sectionAB = $template`(first, $content) => {
         <div>
-            if (first) {
-                # A #
+            $if (first) {
+                A
                 <div class='a' @content={$content}/>
             } else {
-                # B #
+                B
                 <div class="b" @content={$content}/>
             }
         </div>
-    }`);
+    }`;
 
     @API class SectionC {
         $content?: IvContent;
@@ -86,20 +86,20 @@ describe('Content Components', () => {
     @Controller class SectionCtrl {
         $api: SectionC;
     }
-    const sectionC = template(`($: SectionCtrl) => {
+    const sectionC = $template`($: SectionCtrl) => {
         <div class="sectionC" @content/>
-    }`);
+    }`;
 
     it("can project & update content (cpt host:element / content:element / projection host: element)", function () {
-        let tpl = template(`(message) => {
+        const tpl = $template`(message) => {
             <div class="main">
                 <*panel type='important'>
-                    <div> # Message: {message} # </div>
+                    <div> Message: {message} </div>
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -169,15 +169,15 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:fragment / content:element / projection host: element)", function () {
-        let tpl = template(`(message) => {
+        const tpl = $template`(message) => {
             <!>
                 <*panel type="important">
-                    <div> # Message: {message} # </div>
+                    <div> Message: {message} </div>
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="important">
@@ -224,16 +224,16 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:element / content:fragment / projection host: element)", function () {
-        let tpl = template(`(title, message) => {
+        const tpl = $template`(title, message) => {
             <div class="main">
                 <*header text={title}>
-                    <div> # Line A: {message} # </div>
-                    <div> # Line B: {message} # </div>
+                    <div> Line A: {message} </div>
+                    <div> Line B: {message} </div>
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -271,16 +271,16 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:fragment / content:fragment / projection host: element)", function () {
-        let tpl = template(`(title, message) => {
+        const tpl = $template`(title, message) => {
             <!>
                 <*header text={title}>
-                    <div> # Line A: {message} # </div>
-                    <div> # Line B: {message} # </div>
+                    <div> Line A: {message} </div>
+                    <div> Line B: {message} </div>
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -314,15 +314,15 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:element / content:element / projection host: fragment)", function () {
-        let tpl = template(`(message) => {
+        const tpl = $template`(message) => {
             <div class="main">
                 <*panel2 type="important">
-                    <div> # Message: {message} # </div>
+                    <div> Message: {message} </div>
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -384,13 +384,13 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:fragment / content:element / projection host: fragment)", function () {
-        let tpl = template(`(message, messageType) => {
+        const tpl = $template`(message, messageType) => {
             <*panel2 type={messageType}>
-                <div> # Message: {message} # </div>
+                <div> Message: {message} </div>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!", messageType: "important" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!", messageType: "important" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="important">
@@ -418,16 +418,16 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:element / content:fragment / projection host: fragment)", function () {
-        let tpl = template(`(title, message) => {
+        const tpl = $template`(title, message) => {
             <div class="main">
                 <*header2 text={title}>
-                    <div> # Line A: {message} # </div>
-                    <div> # Line B: {message} # </div>
+                    <div> Line A: {message} </div>
+                    <div> Line B: {message} </div>
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -461,14 +461,14 @@ describe('Content Components', () => {
     });
 
     it("can project & update content (cpt host:fragment / content:fragment / projection host: fragment)", function () {
-        let tpl = template(`(title, message) => {
+        const tpl = $template`(title, message) => {
             <*header2 text={title}>
-                <!> # Line A: {message} # </>
-                <!> # Line B: {message} # </>
+                <!> Line A: {message} </>
+                <!> Line B: {message} </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ title: "Info", message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -490,13 +490,13 @@ describe('Content Components', () => {
     });
 
     it("defer attribute updates", function () {
-        let tpl = template(`(message, type) => {
+        const tpl = $template`(message, type) => {
             <*panel2 type={type}>
-                <div class={type} title='T'> # Message: {message} # </div>
+                <div class={type} title='T'> Message: {message} </div>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!", type: "info" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!", type: "info" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="info">
@@ -550,13 +550,13 @@ describe('Content Components', () => {
     });
 
     it("defer property updates", function () {
-        let tpl = template(`(message, type) => {
+        const tpl = $template`(message, type) => {
             <*panel2 type={type}>
-                <div [className]={type}> # Message: {message} # </div>
+                <div [className]={type}> Message: {message} </div>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!", type: "info" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!", type: "info" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="info">
@@ -597,16 +597,16 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in call stack (projection host: fragment / init false)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
-            if (message) {
+        const tpl = $template`(text, message) => {
+            Start
+            $if (message) {
                 <*header2 text={text}>
-                    # Message: {message} #
+                    Message: {message}
                 </>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
+        const t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -665,16 +665,16 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in call stack (projection host: div / init false)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
-            if (message) {
+        const tpl = $template`(text, message) => {
+            Start
+            $if (message) {
                 <*header text={text}>
-                    # Message: {message} #
+                    Message: {message}
                 </>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
+        const t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -739,16 +739,16 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in call stack (projection host: fragment / init true)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
-            if (message) {
+        const tpl = $template`(text, message) => {
+            Start
+            $if (message) {
                 <*header2 text={text}>
-                    # Message: {message} #
+                    Message: {message}
                 </>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info1", message: "Message1" });
+        const t = getTemplate(tpl, body).render({ text: "Info1", message: "Message1" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -806,16 +806,16 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in call stack (projection host: div / init true)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
-            if (message) {
+        const tpl = $template`(text, message) => {
+            Start
+            $if (message) {
                 <*header text={text}>
-                    # Message: {message} #
+                    Message: {message}
                 </>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info1", message: "Message1" });
+        const t = getTemplate(tpl, body).render({ text: "Info1", message: "Message1" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -881,17 +881,17 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in content (projection host: fragment / init false)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
+        const tpl = $template`(text, message) => {
+            Start
             <*header2 text={text}>
-                # content #
-                if (message) {
-                    # Message: {message} {text} #
+                content
+                $if (message) {
+                    Message: {message} {text}
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
+        const t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -967,17 +967,17 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in content (projection host: div / init false)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
+        const tpl = $template`(text, message) => {
+            Start
             <*header text={text}>
-                # content #
-                if (message) {
-                    # Message: {message} {text} #
+                content
+                $if (message) {
+                    Message: {message} {text}
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", message: "" });
+        const t = getTemplate(tpl, body).render({ text: "Info", message: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1067,17 +1067,17 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in content (projection host: fragment / init true)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
+        const tpl = $template`(text, message) => {
+            Start
             <*header2 text={text}>
-                # content #
-                if (message) {
-                    # Message: {message} {text} #
+                content
+                $if (message) {
+                    Message: {message} {text}
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", message: "Message" });
+        const t = getTemplate(tpl, body).render({ text: "Info", message: "Message" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1154,17 +1154,17 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in content (projection host: div / init true)", function () {
-        let tpl = template(`(text, message) => {
-            # Start #
+        const tpl = $template`(text, message) => {
+            Start
             <*header text={text}>
-                # content #
-                if (message) {
-                    # Message: {message} {text} #
+                content
+                $if (message) {
+                    Message: {message} {text}
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", message: "Message" });
+        const t = getTemplate(tpl, body).render({ text: "Info", message: "Message" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Start #
@@ -1254,14 +1254,14 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in components (projection host: fragment / init false)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section2 open={open} text={text}>
-                # content #
-                # Message: {message} {text} #
+                content
+                Message: {message} {text}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1276,8 +1276,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (1)
-                    #::T5 content #
-                    #::T6 Message: Hello Info #
+                    #::T5 content Message: Hello Info #
                 </section>
                 //::C2 template anchor
             </body>
@@ -1288,8 +1287,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (1)
-                    #::T5 content #
-                    #::T6 Message: Hello2 Info # (1)
+                    #::T5 content Message: Hello2 Info # (1)
                 </section>
                 //::C2 template anchor
             </body>
@@ -1310,8 +1308,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (3)
-                    #::T5 content #
-                    #::T6 Message: Hello2 Info # (1)
+                    #::T5 content Message: Hello2 Info # (1)
                 </section>
                 //::C2 template anchor
             </body>
@@ -1322,8 +1319,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info6 (open) :::: # (4)
-                    #::T5 content #
-                    #::T6 Message: Hello2 Info6 # (2)
+                    #::T5 content Message: Hello2 Info6 # (2)
                 </section>
                 //::C2 template anchor
             </body>
@@ -1331,20 +1327,19 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in components (projection host: fragment / init true)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section2 open={open} text={text}>
-                # content #
-                # Message: {message} {text} #
+                content
+                Message: {message} {text}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: #
-                    #::T5 content #
-                    #::T6 Message: Hello Info #
+                    #::T5 content Message: Hello Info #
                 </section>
                 //::C2 template anchor
             </body>
@@ -1365,8 +1360,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (2)
-                    #::T5 content #
-                    #::T6 Message: Hello2 Info # (1)
+                    #::T5 content Message: Hello2 Info # (1)
                 </section>
                 //::C2 template anchor
             </body>
@@ -1387,8 +1381,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (4)
-                    #::T5 content #
-                    #::T6 Message: Hello2 Info # (1)
+                    #::T5 content Message: Hello2 Info # (1)
                 </section>
                 //::C2 template anchor
             </body>
@@ -1399,8 +1392,7 @@ describe('Content Components', () => {
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info6 (open) :::: # (5)
-                    #::T5 content #
-                    #::T6 Message: Hello2 Info6 # (2)
+                    #::T5 content Message: Hello2 Info6 # (2)
                 </section>
                 //::C2 template anchor
             </body>
@@ -1408,14 +1400,14 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in components (projection host: div / init false)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section open={open} text={text}>
-                # content #
-                # Message: {message} {text} #
+                content
+                Message: {message} {text}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1431,8 +1423,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (1)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello Info #
+                        #::T6 content Message: Hello Info #
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1445,8 +1436,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (1)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello3 Info # (1)
+                        #::T6 content Message: Hello3 Info # (1)
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1469,8 +1459,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (3)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello3 Info # (1)
+                        #::T6 content Message: Hello3 Info # (1)
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1483,8 +1472,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info6 (open) :::: # (4)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello3 Info6 # (2)
+                        #::T6 content Message: Hello3 Info6 # (2)
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1493,21 +1481,20 @@ describe('Content Components', () => {
     });
 
     it("should support conditions in components (projection host: div / init true)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section open={open} text={text}>
-                # content #
-                # Message: {message} {text} #
+                content
+                Message: {message} {text}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
                     #::T4 :::: Info (open) :::: #
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello Info #
+                        #::T6 content Message: Hello Info #
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1530,8 +1517,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (2)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello3 Info # (1)
+                        #::T6 content Message: Hello3 Info # (1)
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1554,8 +1540,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info (open) :::: # (4)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello3 Info # (1)
+                        #::T6 content Message: Hello3 Info # (1)
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1568,8 +1553,7 @@ describe('Content Components', () => {
                 <section::E3>
                     #::T4 :::: Info6 (open) :::: # (5)
                     <div::E5>
-                        #::T6 content #
-                        #::T7 Message: Hello3 Info6 # (2)
+                        #::T6 content Message: Hello3 Info6 # (2)
                     </div>
                 </section>
                 //::C2 template anchor
@@ -1578,16 +1562,16 @@ describe('Content Components', () => {
     });
 
     it("should support one-time expressions in content", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*header2 text={text}>
-                # A: {message} #
-                if (open) {
-                    # B: {::message} #
+                A: {message}
+                $if (open) {
+                    B: {::message}
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 :::: Info :::: #
@@ -1637,13 +1621,13 @@ describe('Content Components', () => {
     });
 
     it("should support deferred content projection (init false)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section3 text={text} open={open}>
-                # Message: {message} #
+                Message: {message}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 (closed) #
@@ -1709,13 +1693,13 @@ describe('Content Components', () => {
     });
 
     it("should support deferred content projection (init true)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section3 text={text} open={open}>
-                # Message: {message} #
+                Message: {message}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1773,18 +1757,18 @@ describe('Content Components', () => {
     });
 
     it("should support deferred component call (init false)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section2 text={text} open={open}>
-                # main content #
+                main content
                 <*panel2 type="abc">
                     <div>
-                        # Message in panel2: {message} #
+                        Message in panel2: {message}
                     </div>
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: false, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1857,18 +1841,18 @@ describe('Content Components', () => {
     });
 
     it("should support deferred component call (init true)", function () {
-        let tpl = template(`(text, open, message) => {
+        const tpl = $template`(text, open, message) => {
             <*section2 text={text} open={open}>
-                # main content #
+                main content
                 <*panel2 type="abc">
                     <div>
-                        # Message in panel2: {message} #
+                        Message in panel2: {message}
                     </div>
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ text: "Info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -1931,19 +1915,19 @@ describe('Content Components', () => {
     });
 
     it("should support param updates in deferred content", function () {
-        let tpl = template(`(type, open, message) => {
+        const tpl = $template`(type, open, message) => {
             <*section text={"panel type: "+type} open={open}>
-                # main content #
+                main content
                 <*panel type={type}>
                     <div>
-                        # 1st Message in panel: {message} #
+                        1st Message in panel: {message}
                     </div>
-                    # 2nd Message in panel: {message} #
+                    2nd Message in panel: {message}
                 </>
             </>
-        }`, panel);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ type: "info", open: true, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ type: "info", open: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <section::E3>
@@ -2053,13 +2037,13 @@ describe('Content Components', () => {
     });
 
     it("should support be able to project content in 2 different placeholders depending on condition", function () {
-        let tpl = template(`(message, showFirst) => {
+        const tpl = $template`(message, showFirst) => {
             <*sectionAB first={showFirst}>
-                # Message in panel: {message} #
+                Message in panel: {message}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ showFirst: true, message: "Hello" });
+        const t = getTemplate(tpl, body).render({ showFirst: true, message: "Hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -2113,15 +2097,15 @@ describe('Content Components', () => {
     });
 
     it("support @content with no arguments on templates with controllers", function () {
-        let tpl = template(`(message) => {
+        const tpl = $template`(message) => {
             <div class="main">
                 <*sectionC>
-                    # Message: {message} #
+                    Message: {message}
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ message: "Hello!" });
+        const t = getTemplate(tpl, body).render({ message: "Hello!" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -2147,7 +2131,5 @@ describe('Content Components', () => {
     });
 
     // TODO: check once param nodes are available
-
     // content projected twice -> error
-
 });

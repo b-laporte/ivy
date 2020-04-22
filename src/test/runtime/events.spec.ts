@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 
 describe('Event handlers', () => {
@@ -18,19 +18,19 @@ describe('Event handlers', () => {
         lastArg = arg;
     }
 
-    const panel = template(`(type, $content) => {
+    const panel = $template`(type, $content) => {
         <div class={type}>
-            # Panel #
+            Panel
             <div @content={$content}/>
         </div>
-    }`);
+    }`;
 
     it("can be called on elements", function () {
-        const tpl = template(`() => {
+        const tpl = $template`() => {
             <div class="main" @onclick={e=>doSomething(e)}>
-                # Click me #
+                Click me
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(testData.lastEventListenerOptions, undefined , "no options registered on event listener");
@@ -48,11 +48,11 @@ describe('Event handlers', () => {
             lastType = type;
         }
 
-        const tpl = template(`() => {
+        const tpl = $template`() => {
             <div class="main" @onclick={e=>doSomething(e)} @onclick={x=>doSomethingElse(x.type)}>
-                # Click me #
+                Click me
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
 
@@ -65,13 +65,13 @@ describe('Event handlers', () => {
 
     it("should support element creation/removal", function () {
 
-        const tpl = template(`(condition, someVar) => {
-            if (condition) {
+        const tpl = $template`(condition, someVar) => {
+            $if (condition) {
                 <div class="main" @onclick={e=>doSomething(e, someVar)}>
-                    # Click me #
+                    Click me
                 </div>
             }
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render({ condition: true, someVar: 1 }), mainDiv = body.childNodes[0];
         assert.equal(index, 0, "index=0 before click");
@@ -90,13 +90,13 @@ describe('Event handlers', () => {
     });
 
     it("can be defined in deferred content", function () {
-        const tpl = template(`() => {
+        const tpl = $template`() => {
             <*panel type="info">
                 <div class="main" @onclick={e=>doSomething(e)}>
-                    # Click me #
+                    Click me
                 </div>
             </*panel>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render(), mainDiv = body.childNodes[0].childNodes[1].childNodes[0];
         assert.equal(index, 0, "index=0 before click");
@@ -112,11 +112,11 @@ describe('Event handlers', () => {
             index++;
         }
 
-        const tpl = template(`() => {
+        const tpl = $template`() => {
             <div class="main" @onclick={=>doStuff()}>
-                # Click me #
+                Click me
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.deepEqual(testData.lastEventListenerOptions!.passive, true , "onclick registered as passive");
@@ -130,11 +130,11 @@ describe('Event handlers', () => {
     it("should accept event listener options", function () {
         function doStuff(e?:any) {}
 
-        const tpl = template(`() => {
+        const tpl = $template`() => {
             <div class="main" @onclick(listener={=>doStuff()} options={{capture:true}})>
-                # Click me #
+                Click me
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.deepEqual(testData.lastEventListenerOptions, {
@@ -142,11 +142,11 @@ describe('Event handlers', () => {
             passive:true
         } , "1");
 
-        const tpl2 = template(`() => {
+        const tpl2 = $template`() => {
             <div class="main" @onclick(listener={=>doStuff()} options={{capture:true, passive:false}})>
-                # Click me #
+                Click me
             </div>
-        }`);
+        }`;
 
         let t2 = getTemplate(tpl2, body).render();
         assert.deepEqual(testData.lastEventListenerOptions, {
@@ -154,16 +154,15 @@ describe('Event handlers', () => {
             passive:false
         } , "2");
 
-        const tpl3 = template(`() => {
+        const tpl3 = $template`() => {
             <div class="main" @onclick(listener={e=>doStuff(e)} options={{once:true}})>
-                # Click me #
+                Click me
             </div>
-        }`);
+        }`;
 
         let t3 = getTemplate(tpl3, body).render();
         assert.deepEqual(testData.lastEventListenerOptions, {
             once:true
         } , "3");
     });
-
 });

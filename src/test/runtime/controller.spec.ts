@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, Controller, API } from '../../iv';
+import { $template, Controller, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { changeComplete, computed } from '../../trax';
 import { IvTemplate } from '../../iv/types';
@@ -33,14 +33,14 @@ describe('Controller', () => {
     it("should be supported on template with no params", async function () {
         let ctl: any = null;
 
-        const tpl = template(`($: TestController) => {
-            ctl = $;
+        const tpl = $template`($: TestController) => {
+            $exec ctl = $;
             <div>
-                # Text = {$.text} #
+                Text = {$.text}
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -67,15 +67,15 @@ describe('Controller', () => {
     it("may expose an api (1)", async function () {
         let ctl: any = null, api: any = null;
 
-        const tpl = template(`($: TestController) => {
-            ctl = $;
-            api = $.$api;
+        const tpl = $template`($: TestController) => {
+            $exec ctl = $;
+            $exec api = $.$api;
             <div>
-                # {$.text}/{api.count} #
+                {$.text}/{api.count}
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -125,18 +125,18 @@ describe('Controller', () => {
     it("may expose an api (2)", async function () {
         let ctl: any = null, api: any = null;
 
-        const widget = template(`($: TestController) => {
-            let api = $.$api;
+        const widget = $template`($: TestController) => {
+            $exec let api = $.$api;
             <div>
-                # {$.text}/{api.msg}/{api.count} #
+                {$.text}/{api.msg}/{api.count}
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(msg="[Message]", count=42) => {
+        const tpl = $template`(msg="[Message]", count=42) => {
             <*widget count={count} msg={msg}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -160,15 +160,15 @@ describe('Controller', () => {
     it("should support @computed properties", async function () {
         let ctl: any = null, api: any = null;
 
-        const widget = template(`($: TestController) => {
-            # {$.description} / {$.$api.description} #
-        }`);
+        const widget = $template`($: TestController) => {
+            {$.description} / {$.$api.description}
+        }`;
 
-        const tpl = template(`(msg="[Message]", count=42) => {
+        const tpl = $template`(msg="[Message]", count=42) => {
             <*widget count={count} msg={msg}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 text = Hello / count = 42 / msg = [Message] / count = 42 #
@@ -194,20 +194,19 @@ describe('Controller', () => {
     });
 
     it("should be able to retrieve $template", async function () {
-        const tpl = template(`($: TestController, $template) => {
-            let api = $.$api;
+        const tpl = $template`($: TestController, $template) => {
+            $let api = $.$api;
             <div>
-                # $template.$api is $api: {api === $template.api} #
-                # count: {api.count} #
+                !$template.$api is !$api: {api === $template.api}
+                count: {api.count}
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ count: 42 });
+        const t =getTemplate(tpl, body).render({ count: 42 });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
-                    #::T4 $template.$api is $api: true #
-                    #::T5 count: 42 #
+                    #::T4 $template.$api is $api: true count: 42 #
                 </div>
                 //::C2 template anchor
             </body>
@@ -215,13 +214,13 @@ describe('Controller', () => {
     });
 
     it("should be able to retrieve api params directly", async function () {
-        const tpl = template(`($: TestController, text) => {
+        const tpl = $template`($: TestController, text) => {
             <div>
-                # $.api.text === text : {$.$api.text === text} {text} #
+                $.api.text === text : {$.$api.text === text} {text}
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ text: "ABCD" });
+        const t =getTemplate(tpl, body).render({ text: "ABCD" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -248,21 +247,21 @@ describe('Controller', () => {
             }
         }
 
-        const cpt = template(`($: TestController2) => {
-            let api = $.$template.api;
+        const cpt = $template`($: TestController2) => {
+            $let api = $.$template.api;
             <div class="cpt">
-                # api count: {api.count} #
-                for (let log of $.logs) {
-                    # > {log} #
+                api count: {api.count}
+                $for (let log of $.logs) {
+                    !> {log}
                 }
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(count=123) => {
+        const tpl = $template`(count=123) => {
             <*cpt count={count}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="cpt">
@@ -322,19 +321,19 @@ describe('Controller', () => {
             }
         }
 
-        const counter = template(`($: CounterCtl) => {
-            let api = $.$api;
+        const counter = $template`($: CounterCtl) => {
+            $let api = $.$api;
             <div class="cpt">
-                # count: {api.count} #
+                count: {api.count}
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(count=123, $template:IvTemplate) => {
+        const tpl = $template`(count=123, $template:IvTemplate) => {
             <button #btn @onclick={e=>$template.query("#cnt")!.increment(10)}/>
             <*counter #cnt count={count}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <button::E3/>

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 describe('Conditional Blocks', () => {
@@ -10,14 +10,14 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work on root (init false)", function () {
-        let tpl = template(`(condition, msg) => {
-            if (condition) {
-                <div> # {msg} # </div>
+        const tpl = $template`(condition, msg) => {
+            $if (condition) {
+                <div> {msg} </div>
             }
-            # end #
-        }`);
+            end
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
+        const t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 end #
@@ -79,14 +79,14 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work on root (init true)", function () {
-        let tpl = template(`(condition, msg) => {
-            if (condition) {
-                <div> # {msg} # </div>
+        const tpl = $template`(condition, msg) => {
+            $if (condition) {
+                <div> {msg} </div>
             }
-            # end #
-        }`);
+            end
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
+        const t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -129,15 +129,15 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work as single root + multiple content (init false)", function () {
-        let tpl = template(`(condition, msg) => {
-            if (condition) {
-                # {msg} #
-                <span title={msg}> # ! # </span>
+        const tpl = $template`(condition, msg) => {
+            $if (condition) {
+                {msg}
+                <span title={msg}> ! </span>
                 <div/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
+        const t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
@@ -208,15 +208,15 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work as single root + multiple content (init true)", function () {
-        let tpl = template(`(condition, msg) => {
-            if (condition) {
-                # {msg} #
-                <span title={msg}> # ! # </span>
+        const tpl = $template`(condition, msg) => {
+            $if (condition) {
+                {msg}
+                <span title={msg}> ! </span>
                 <div/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
+        const t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge #
@@ -280,17 +280,17 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work as last child + multiple content (init false)", function () {
-        let tpl = template(`(condition, msg) => {
+        const tpl = $template`(condition, msg) => {
             <div>
-                # first #
-                if (condition) {
-                    # {msg} #
-                    <span title={msg}> # ! # </span>
+                first
+                $if (condition) {
+                    {msg}
+                    <span title={msg}> ! </span>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
+        const t = getTemplate(tpl, body).render({ condition: false, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -368,17 +368,17 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work as last child + multiple content (init true)", function () {
-        let tpl = template(`(condition, msg) => {
+        const tpl = $template`(condition, msg) => {
             <div>
-                # first #
-                if (condition) {
-                    # {msg} #
-                    <span title={msg}> # ! # </span>
+                first
+                $if (condition) {
+                    {msg}
+                    <span title={msg}> ! </span>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
+        const t = getTemplate(tpl, body).render({ condition: true, msg: "Hello Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -432,24 +432,24 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work for if/else statements (init false)", function () {
-        let tpl = template(`(condition, msg) => {
+        const tpl = $template`(condition, msg) => {
             <div>
                 <div>
-                    if (condition) {
+                    $if (condition) {
                         <div class="c1">
-                            # msg1: {msg} #
+                            msg1: {msg}
                         </div>
                     } else {
                         <span class="c2">
-                            # msg2: {msg} #
+                            msg2: {msg}
                         </span>
                     }
-                # last #
+                last
                 </div>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: false, msg: "Always look on the bright side of life" });
+        const t = getTemplate(tpl, body).render({ condition: false, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -511,24 +511,24 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work for if/else statements (init true)", function () {
-        let tpl = template(`(condition, msg) => {
+        const tpl =$template`(condition, msg) => {
             <div>
                 <div>
-                    if (condition) {
+                    $if (condition) {
                         <div class="c1">
-                            # msg1: {msg} #
+                            msg1: {msg}
                         </div>
                     } else {
                         <span class="c2">
-                            # msg2: {msg} #
+                            msg2: {msg}
                         </span>
                     }
-                # last #
+                last
                 </div>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: true, msg: "Always look on the bright side of life" });
+        const t =getTemplate(tpl, body).render({ condition: true, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -590,13 +590,13 @@ describe('Conditional Blocks', () => {
     });
 
     it("should work for if/else statements + fragments", function () {
-        let tpl = template(`(condition, msg) => {
+        const tpl =$template`(condition, msg) => {
             <div>
-                if (condition) {
+                $if (condition) {
                     <!>
                         <div class="c1">
                             <!>
-                                # msg1: {msg} #
+                                msg1: {msg}
                             </>
                         </div>
                     </>
@@ -604,15 +604,15 @@ describe('Conditional Blocks', () => {
                     <!>
                         <span class="c2">
                             <!>
-                                # msg2: {msg} #
+                                msg2: {msg}
                             </>
                         </span>
                     </>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ condition: false, msg: "Always look on the bright side of life" });
+        const t =getTemplate(tpl, body).render({ condition: false, msg: "Always look on the bright side of life" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -660,4 +660,5 @@ describe('Conditional Blocks', () => {
             </body>
         `, '4');
     });
+
 });

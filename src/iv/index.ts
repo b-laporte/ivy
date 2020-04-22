@@ -1,7 +1,9 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
+import { $content as _content } from "../xjs/xjs"
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
+export const $content = _content; // re-export $content to simplify dependency management
 
 export const logger: IvLogger = {
     log(msg: string, ...optionalParams: any[]) {
@@ -179,7 +181,7 @@ export class Template implements IvTemplate {
     query(selector: string, all: boolean = false): any | any[] | null {
         if (this.rendering) return null; // query cannot be used during template rendering
         const labels = selector.split(';');
-        let result : any[] = [];
+        let result: any[] = [];
         for (const label of labels) {
             if (label && label.charAt(0) !== '#') {
                 error(this.view, "[$template.query()] Invalid label argument: '" + label + "' (labels must start with #)");
@@ -462,7 +464,7 @@ function setParentView(v: IvView, pv: IvView, container: IvContainer | null) {
  * Placeholder function - will replace with ζt(...) at compilation time
  * @param template 
  */
-export function template(template: string, ...dependencies: any[]): () => IvTemplate {
+export function $template(tsa: TemplateStringsArray): () => IvTemplate {
     return function () {
         return new Template("", "", {}, () => { })
     }

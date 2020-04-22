@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, asyncComplete } from '../../iv';
+import { $template, asyncComplete } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 describe('Xmlns', () => {
@@ -10,16 +10,16 @@ describe('Xmlns', () => {
     });
 
     it("should be supported as standard attribute", function () {
-        const foo = template(`(name, condition = false) => {
+        const foo = $template`(name, condition = false) => {
             <div>
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                     <circle r="48"/>
-                    if (condition) {
+                    $if (condition) {
                         <line y1="10" y2="0"/>
                     }
                 </>
             </div>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -48,16 +48,16 @@ describe('Xmlns', () => {
     });
 
     it("should be supported through @xmlns", function () {
-        const foo = template(`(name, condition = false) => {
+        const foo = $template`(name, condition = false) => {
             <div>
                 <svg viewBox="0 0 100 100" @xmlns="svg">
                     <circle r="48"/>
-                    if (condition) {
+                    $if (condition) {
                         <line y1="10" y2="0"/>
                     }
                 </>
             </div>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -86,17 +86,17 @@ describe('Xmlns', () => {
     });
 
     it("should be potentially nested", function () {
-        const foo = template(`(name, condition = false) => {
+        const foo = $template`(name, condition = false) => {
             <div>
                 <svg viewBox="0 0 100 100" @xmlns="svg">
                     <circle r="1"/>
                     <div @xmlns="html">
-                        <div> # Some text # </div>
+                        <div> Some text </div>
                     </div>
                     <circle r="2"/>
                 </>
             </div>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -118,17 +118,17 @@ describe('Xmlns', () => {
     });
 
     it("should be defaulted in sub-templates", function () {
-        const foo = template(`() => {
+        const foo = $template`() => {
             <! @xmlns="svg">
                 <*bar/>
             </!>
-        }`);
+        }`;
 
-        const bar = template(`() => {\
+        const bar = $template`() => {
             <svg viewBox="0 0 100 100">
                 <circle r="48"/>
             </>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -142,19 +142,19 @@ describe('Xmlns', () => {
     });
 
     it("should be supported in template content", function () {
-        const foo = template(`(condition=true, radius=42) => {
+        const foo = $template`(condition=true, radius=42) => {
             <*bar>
-                if (condition) {
+                $if (condition) {
                     <svg viewBox="0 0 100 100" @xmlns="svg">
                         <circle r={radius}/>
                     </>
                 }
             </*bar>
-        }`);
+        }`;
 
-        const bar = template(`($content) => {
+        const bar = $template`($content) => {
             <div class="bar" @content/>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -190,19 +190,19 @@ describe('Xmlns', () => {
     });
 
     it("should be supported in template content with no svg tag + no explicit xmlns", function () {
-        const foo = template(`(condition=true, radius=42) => {
+        const foo = $template`(condition=true, radius=42) => {
             <svg viewBox="0 0 100 100">
                 <*bar>
-                    if (condition) {
+                    $if (condition) {
                         <circle r={radius}/>
                     }
                 </>
             </>
-        }`);
+        }`;
 
-        const bar = template(`($content) => {
+        const bar = $template`($content) => {
             <! @content/>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -234,16 +234,16 @@ describe('Xmlns', () => {
     });
 
     it("should not be automatically set on svg elements if another xmlns is explicitly defined", function () {
-        const foo = template(`(name, condition = false) => {
+        const foo = $template`(name, condition = false) => {
             <div>
                 <svg viewBox="0 0 100 100" @xmlns="html">
                     <circle r="48"/>
-                    if (condition) {
+                    $if (condition) {
                         <line y1="10" y2="0"/>
                     }
                 </>
             </div>
-        }`);
+        }`;
 
         const t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `

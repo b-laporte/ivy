@@ -4,7 +4,7 @@ import { compileTemplate } from './generator';
 import { generate } from '../../trax/compiler/generator';
 import { DataMember } from '../../trax/compiler/types';
 import { validator } from './validator';
-import { IvError } from './types';
+import { IvError, PreProcessorFactories } from './types';
 import { parse, XjsParserContext, toString } from '../../xjs/parser';
 
 const enum CHANGES {
@@ -28,17 +28,18 @@ const SK = ts.SyntaxKind,
 
 export interface ProcessOptions {
     filePath: string;
-    // preProcessors?: XtrPreProcessorDictionary;
+    preProcessors?: PreProcessorFactories;
     logErrors?: boolean;
 }
 
 export async function process(source: string, options: ProcessOptions) {
+    // to log all results, add a comment with ivy:log in the file
     let ivyResult: CompilationResult | undefined, result: string = "", logAll = !!source.match(RX_LOG_ALL);
     const resourcePath = options.filePath;
 
     try {
         // ivy processing
-        ivyResult = await compile(source, { filePath: resourcePath }); // , preProcessors: options.preProcessors
+        ivyResult = await compile(source, { filePath: resourcePath, preProcessors: options.preProcessors });
         result = ivyResult.fileContent;
         log("Ivy: Template Processing");
 
@@ -139,7 +140,7 @@ export interface CompilationResult {
 
 export interface CompilationOptions {
     filePath: string;
-    preProcessors?: { [name: string]: () => XjsPreProcessor };
+    preProcessors?: PreProcessorFactories;
 }
 
 export async function compile(source: string, pathOrOptions: string | CompilationOptions): Promise<CompilationResult> {

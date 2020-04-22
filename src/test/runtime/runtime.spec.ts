@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, ζΔD, ζΔp, API } from '../../iv';
+import { $template, ζΔD, ζΔp, API } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { IvView, IvTemplate } from '../../iv/types';
 import { isMutating, commitChanges, changeComplete } from '../../trax';
@@ -12,11 +12,11 @@ describe('Iv Runtime', () => {
     });
 
     it("should support text and elements", function () {
-        let foo = template(`() => {
+        const foo = $template`() => {
             <div>
-                # Hello World #
+                Hello World
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(foo, body).render();
         assert.equal(stringify(t), `
@@ -28,29 +28,28 @@ describe('Iv Runtime', () => {
             </body>
         `, '1');
 
-        let bar = template(`() => {
+        const bar = $template`() => {
             <div>
-                <span> # abc # </>
-                    # Hello #
-                    # World
-                      (!) #
+                <span> abc </>
+                    Hello
+                    World
+                      (!)
                 <span/>
                 <div/>
             </div>
-        }`);
+        }`;
 
         body = reset();
-        let t2 = getTemplate(bar, body).render();
+        const t2 = getTemplate(bar, body).render();
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3>
                     <span::E4>
                         #::T5 abc #
                     </span>
-                    #::T6 Hello #
-                    #::T7 World                      (!) #
-                    <span::E8/>
-                    <div::E9/>
+                    #::T6 Hello World (!) #
+                    <span::E7/>
+                    <div::E8/>
                 </div>
                 //::C2 template anchor
             </body>
@@ -58,13 +57,13 @@ describe('Iv Runtime', () => {
     });
 
     it("should support simple dynamic text nodes", function () {
-        let foo = template(`(name) => {
+        const foo = $template`(name) => {
             <div>
-                # Hello {name} #
+                Hello {name}
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(foo, body).render({ name: "Homer" });
+        const t = getTemplate(foo, body).render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -96,14 +95,14 @@ describe('Iv Runtime', () => {
     });
 
     it("should support multiple dynamic text nodes and one-time expressions", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div>
-                # 1-time: {::name} #
-                <span> # name:{name}, name+123:{name+123}# </span>
+                1-time: {::name}
+                <span> name:{name}, name+123:{name+123}</span>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Homer" });
+        const t = getTemplate(tpl, body).render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -144,16 +143,16 @@ describe('Iv Runtime', () => {
     });
 
     it("should support content fragments", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div>
                 <!> 
-                    # Hello #
-                    <span> # {name} # </span>
+                    Hello
+                    <span> {name} </span>
                 </!>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Homer" });
+        const t = getTemplate(tpl, body).render({ name: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -194,11 +193,11 @@ describe('Iv Runtime', () => {
     });
 
     it("should support default values for template params", function () {
-        const tpl = template(`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
-            # a:{a} b:{b} c:{c} d:{d} e:{e} #
-        }`);
+        const tpl = $template`(a:string="abc", b=false, c=123.45, d=12, e='hello') => {
+            a:{a} b:{b} c:{c} d:{d} e:{e}
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 a:abc b:false c:123.45 d:12 e:hello #
@@ -216,14 +215,14 @@ describe('Iv Runtime', () => {
     });
 
     it("should generate fragments when template contains multiple root nodes", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div>
-                <span> #{name}# </span>
+                <span>{name}</span>
             </div>
-            # Hello {name} #
-        }`);
+            Hello {name}
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Marge" });
+        const t = getTemplate(tpl, body).render({ name: "Marge" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -251,13 +250,13 @@ describe('Iv Runtime', () => {
     });
 
     it("should support element attributes", function () {
-        let tpl = template(`(msg) => {
+        const tpl = $template`(msg) => {
             <div class="main" title={::msg}>
-                <span class="sub" title={msg}> # ... # </span>
+                <span class="sub" title={msg}> ... </span>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hello" });
+        const t = getTemplate(tpl, body).render({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main" a:title="hello">
@@ -283,13 +282,13 @@ describe('Iv Runtime', () => {
     });
 
     it("should support single quote strings as param value", function () {
-        let tpl = template(`(msg) => {
+        const tpl = $template`(msg) => {
             <div class='main' title={::msg}>
-                <span [className]='sub' title={msg}> # ... # </span>
+                <span [className]='sub' title={msg}> ... </span>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hello" });
+        const t = getTemplate(tpl, body).render({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main" a:title="hello">
@@ -303,13 +302,13 @@ describe('Iv Runtime', () => {
     });
 
     it("should support element properties", function () {
-        const tpl = template(`(msg) => {
+        const tpl = $template`(msg) => {
             <div [className]="main" [title]={::msg}>
-                <span [className]={msg} [title]="sub"> # ... # </span>
+                <span [className]={msg} [title]="sub"> ... </span>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hello" });
+        const t = getTemplate(tpl, body).render({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="main" title="hello">
@@ -335,15 +334,15 @@ describe('Iv Runtime', () => {
     });
 
     it("should support js statements", function () {
-        let tpl = template(`(msg) => {
-            let m2 = msg + "!";
+        const tpl = $template`(msg) => {
+            $let m2 = msg + "!";
             <div>
-                m2 += "!";
-                # Hello {m2} #
+                $exec m2 += "!";
+                Hello {m2}
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "Bart" });
+        const t = getTemplate(tpl, body).render({ msg: "Bart" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -365,16 +364,15 @@ describe('Iv Runtime', () => {
     });
 
     it("should not refresh if params don't change", function () {
-        let tpl = template(`(name1, name2) => {
-            # {name1} # 
-            # {name2} # 
-        }`);
+        const tpl = $template`(name1, name2) => {
+            {name1}
+            {name2}
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name1: "Bart", name2: "Lisa" });
+        const t = getTemplate(tpl, body).render({ name1: "Bart", name2: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T3 Bart #
-                #::T4 Lisa #
+                #::T3 Bart Lisa #
                 //::C2 template anchor
             </body>
         `, '1');
@@ -384,8 +382,7 @@ describe('Iv Runtime', () => {
         t.render({ name1: "Bart", name2: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
-                #::T3 Bart #
-                #::T4 Lisa #
+                #::T3 Bart Lisa #
                 //::C2 template anchor
             </body>
         `, '2');
@@ -399,26 +396,26 @@ describe('Iv Runtime', () => {
         }
 
         let count = 0, lastApi: HelloAPI;
-        const hello = template(`($:HelloAPI, name) => { // /* name = shortcut to $.name */
-            if (!$.changeName) {
+        const hello = $template`($:HelloAPI, name) => { // /* name = shortcut to $.name */
+            $if (!$.changeName) {
                 // initialize the API
-                $.changeName = () => {
+                $exec $.changeName = () => {
                     $.name += ++count;
-                }
+                };
             }
-            lastApi = $;
+            $exec lastApi = $;
             <div>
-                # Hello {name} #
+                Hello {name}
             </div>
-        }`);
+        }`;
 
-        const greetings = template(`(names, suffix="") => {
-            for (let name of names) {
+        const greetings = $template`(names, suffix="") => {
+            $for (let name of names) {
                 <*hello name={name+suffix}/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(greetings, body).render({ names: ["Bart", "Lisa"], suffix: "X" });
+        const t = getTemplate(greetings, body).render({ names: ["Bart", "Lisa"], suffix: "X" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -462,12 +459,12 @@ describe('Iv Runtime', () => {
     });
 
     it("should allow to inject $template", async function () {
-        const greetings = template(`(names, $template:IvTemplate) => {
-            # Nbr of names: {$template.api.names.length} #
-            for (let name of names) {
-                # Hello {name} #
+        const greetings = $template`(names, $template:IvTemplate) => {
+            Nbr of names: {$template.api.names.length}
+            $for (let name of names) {
+                Hello {name}
             }
-        }`);
+        }`;
 
         let t = getTemplate(greetings, body).render({ names: ["Bart", "Lisa"] });
         assert.equal(stringify(t), `

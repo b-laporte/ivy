@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { Data } from '../../trax';
 import { IvContent } from '../../iv/types';
@@ -12,37 +12,37 @@ describe('Simple Components', () => {
         body = reset();
     });
 
-    let helloWorld = template(`() => {
+    const helloWorld = $template`() => {
         <div>
-            # Hello World #
+            Hello World
         </div>
-    }`);
+    }`;
 
-    let hello = template(`(name, className) => {
+    const hello = $template`(name, className) => {
         <div [className]={className}>
-            # Hello {name} #
+            Hello {name}
         </div>
-    }`);
+    }`;
 
-    let contactDetails = template(`(firstName, lastName) => {
-        <div class="fn"> #{firstName}# </>
-        <div class="ln"> #{lastName}# </>
-    }`);
+    const contactDetails = $template`(firstName, lastName) => {
+        <div class="fn">{firstName}</>
+        <div class="ln">{lastName}</>
+    }`;
 
-    let greetings = template(`(name) => {
-        if (name) {
-            # Hello {name} ! #
+    const greetings = $template`(name) => {
+        $if (name) {
+            Hello {name} !
         }
-    }`);
+    }`;
 
     it("can project static nodes", function () {
-        let tpl = template(`(names) => {
+        const tpl = $template`(names) => {
             <div class="main">
                 <*helloWorld/>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -56,13 +56,13 @@ describe('Simple Components', () => {
     });
 
     it("should support static and dynamic params", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div class="main">
                 <*hello name={name} className="message"/>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Lisa" });
+        const t = getTemplate(tpl, body).render({ name: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -100,15 +100,15 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with conditional blocks (lastChild - init false)", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div class="main">
-                if (name) {
+                $if (name) {
                     <*hello name={name} className="message"/>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "" });
+        const t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main"/>
@@ -162,15 +162,15 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with conditional blocks (lastChild - init true)", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div class="main">
-                if (name) {
+                $if (name) {
                     <*hello name={name} className="message"/>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Maggie" });
+        const t = getTemplate(tpl, body).render({ name: "Maggie" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -216,16 +216,16 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with conditional blocks (beforeChild - init false)", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div class="main">
-                if (name) {
+                $if (name) {
                     <*hello name={name} className="message"/>
                 }
-                # last #
+                last
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "" });
+        const t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -286,16 +286,16 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with conditional blocks (beforeChild - init true)", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <div class="main">
-                if (name) {
+                $if (name) {
                     <*hello name={name} className="message"/>
                 }
-                # last #
+                last
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Lisa" });
+        const t = getTemplate(tpl, body).render({ name: "Lisa" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -346,13 +346,13 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with conditional blocks (lastOnRoot - init false)", function () {
-        let tpl = template(`(name) => {
-            if (name) {
+        const tpl = $template`(name) => {
+            $if (name) {
                 <*hello name={name} className="message"/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "" });
+        const t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
@@ -398,13 +398,13 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with conditional blocks (lastOnRoot - init true)", function () {
-        let tpl = template(`(name) => {
-            if (name) {
+        const tpl = $template`(name) => {
+            $if (name) {
                 <*hello name={name} className="message"/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Hal" });
+        const t = getTemplate(tpl, body).render({ name: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 className="message">
@@ -443,15 +443,15 @@ describe('Simple Components', () => {
     });
 
     it("should support multiple root elements", function () {
-        let tpl = template(`(fn, ln) => {
+        const tpl = $template`(fn, ln) => {
             <div>
-                if (fn) {
+                $if (fn) {
                     <*contactDetails firstName={fn} lastName={ln}/>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ fn: " Homer", ln: " Simpson" });
+        const t = getTemplate(tpl, body).render({ fn: " Homer", ln: " Simpson" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -506,11 +506,11 @@ describe('Simple Components', () => {
     });
 
     it("should support conditional blocks in cpt (init false)", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <*greetings name={name}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "" });
+        const t = getTemplate(tpl, body).render({ name: "" });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
@@ -550,11 +550,11 @@ describe('Simple Components', () => {
     });
 
     it("should support conditional blocks in cpt (init true)", function () {
-        let tpl = template(`(name) => {
+        const tpl = $template`(name) => {
             <*greetings name={name}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "Hal" });
+        const t = getTemplate(tpl, body).render({ name: "Hal" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Hal ! #
@@ -579,12 +579,12 @@ describe('Simple Components', () => {
     });
 
     it("should support multiple instances", function () {
-        let tpl = template(`(name1, name2) => {
+        const tpl = $template`(name1, name2) => {
             <*greetings name={name1}/>
             <*greetings name={name2}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name1: "Marge", name2: "Homer" });
+        const t = getTemplate(tpl, body).render({ name1: "Marge", name2: "Homer" });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Marge ! #
@@ -612,14 +612,14 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with loops (init: empty)", function () {
-        let tpl = template(`(names) => {
-            # first #
-            for (let name of names || []) {
+        const tpl = $template`(names) => {
+            first
+            $for (let name of names || []) {
                 <*greetings name={name}/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ names: [] });
+        const t = getTemplate(tpl, body).render({ names: [] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -680,14 +680,14 @@ describe('Simple Components', () => {
     });
 
     it("can be combined with loops (init: not empty)", function () {
-        let tpl = template(`(names) => {
-            # first #
-            for (let name of names || []) {
+        const tpl = $template`(names) => {
+            first
+            $for (let name of names || []) {
                 <*greetings name={name}/>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ names: ["Bart", "Lisa"] });
+        const t = getTemplate(tpl, body).render({ names: ["Bart", "Lisa"] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 first #
@@ -740,21 +740,21 @@ describe('Simple Components', () => {
     });
 
     it("should support dynamic references (no params, no content)", function () {
-        const tpl = template(`(cpt) => {
+        const tpl = $template`(cpt) => {
             <div class="main">
                 <*cpt/>
             </>
-        }`);
+        }`;
 
-        const cptA = template(`() => {
-            <span> # This is cptA # </>
-        }`);
+        const cptA = $template`() => {
+            <span> This is cptA </>
+        }`;
 
-        const cptB = template(`() => {
-            # Begin #
-            <div> # This is cptB # </>
-            # End #
-        }`);
+        const cptB = $template`() => {
+            Begin
+            <div> This is cptB </>
+            End
+        }`;
 
         const t = getTemplate(tpl, body).render({ cpt: cptA });
         assert.equal(stringify(t), `
@@ -796,26 +796,26 @@ describe('Simple Components', () => {
     });
 
     it("should support dynamic references (params and content)", function () {
-        const tpl = template(`(cpt, name, message) => {
+        const tpl = $template`(cpt, name, message) => {
             <div class="main">
                 <*cpt {name} type="abc">
-                    # Some content #
-                    <div> # {message} # </>
+                    Some content
+                    <div> {message} </>
                 </>
             </>
-        }`);
+        }`;
 
-        const cptA = template(`(name, type, $content) => {
-            <span class={type}> # This is cptA: name={name} # </>
+        const cptA = $template`(name, type, $content) => {
+            <span class={type}> This is cptA: name={name} </>
             <! @content/>
-        }`);
+        }`;
 
-        const cptB = template(`(name, $content, type) => {
-            # Begin #
-            <div> # This is cptB: name={name} # </>
+        const cptB = $template`(name, $content, type) => {
+            Begin
+            <div> This is cptB: name={name} </>
             <div class={type} @content/>
-            # End #
-        }`);
+            End
+        }`;
 
         const t = getTemplate(tpl, body).render({ cpt: cptA, name: "Homer", message: "Hello" });
         assert.equal(stringify(t), `
@@ -871,44 +871,44 @@ describe('Simple Components', () => {
     });
 
     it("should support dynamic references (params nodes)", function () {
-        const tpl = template(`(cpt, name, message) => {
+        const tpl = $template`(cpt, name, message) => {
             <div class="main">
                 <*cpt {name} type="abc">
-                    <.header> # {message} # </>
-                    <div> # content {message} # </>
-                    <.option code="a"> # A: {message} # </>
-                    <.option code="b"> # B: {name} # </>
+                    <.header> {message} </>
+                    <div> content {message} </>
+                    <.option code="a"> A: {message} </>
+                    <.option code="b"> B: {name} </>
                 </>
             </>
-        }`);
+        }`;
 
         @Data class Option {
             code: string;
             $content: IvContent;
         }
 
-        const cptA = template(`(name, type, $content, optionList:Option[], header:IvContent) => {
+        const cptA = $template`(name, type, $content, optionList:Option[], header:IvContent) => {
             <div class="headerA" @content={header}/>
-            <span class={type}> # This is cptA: name={name} # </>
+            <span class={type}> This is cptA: name={name} </>
             <! @content/>
             <div class="options">
-                for (let option of optionList) {
+                $for (let option of optionList) {
                     <div title={option.code} @content={option.$content} />
                 }
             </>
-        }`, Option);
+        }`;
 
-        const cptB = template(`(name, $content, optionList:Option[], header:IvContent, type) => {
-            # Begin #
-            <div> # This is cptB: name={name} # </>
+        const cptB = $template`(name, $content, optionList:Option[], header:IvContent, type) => {
+            Begin
+            <div> This is cptB: name={name} </>
             <div class={type} @content/>
             <ul>
-                for (let option of optionList) {
+                $for (let option of optionList) {
                     <li title={option.code} @content={option.$content} />
                 }
             </>
-            # End #
-        }`);
+            End
+        }`;
 
         const t = getTemplate(tpl, body).render({ cpt: cptA, name: "Homer", message: "Hello" });
         assert.equal(stringify(t), `

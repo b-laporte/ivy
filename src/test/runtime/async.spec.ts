@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, asyncComplete } from '../../iv';
+import { $template, asyncComplete } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 describe('Async decorator', () => {
@@ -9,33 +9,33 @@ describe('Async decorator', () => {
         body = reset();
     });
 
-    const section = template(`(title, open, $content) => {
+    const section = $template`(title, open, $content) => {
         <div class="section">
-            # ::: {title} ::: #
-            if (open) {
+            ::: {title} :::
+            $if (open) {
                 <div @async @content/>
             }
         </div>
-    }`);
+    }`;
 
-    const section2 = template(`(title, open, $content) => {
+    const section2 = $template`(title, open, $content) => {
         <div class="section">
-            # ::: {title} ::: #
-            if (open) {
+            ::: {title} :::
+            $if (open) {
                 <div @content/>
             }
         </div>
-    }`);
+    }`;
 
     // it("can be used on elements (@async)", async function () {
-    //     const tpl = template(`(msg) => {
+    //     const tpl = $template`(msg) => {
     //         <div class="main">
     //             <div @async class="child">
-    //                 # Child content - message: {msg} #
+    //                 Child content - message: {msg}
     //             </div>
     //         </div>
-    //         # end #
-    //     }`);
+    //         end
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge" });
     //     assert.equal(stringify(t), `
@@ -88,14 +88,14 @@ describe('Async decorator', () => {
     // });
 
     // it("can work synchronoulsy (@async=0)", async function () {
-    //     const tpl = template(`(msg) => {
+    //     const tpl = $template`(msg) => {
     //         <div class="main">
     //             <div @async=0 class="child">
     //                 # Child content - message: {msg} #
     //             </div>
     //         </div>
     //         # end #
-    //     }`);
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge" });
     //     assert.equal(stringify(t), `
@@ -127,11 +127,11 @@ describe('Async decorator', () => {
     // it("can work with expressions (@async={expr()}) - init 1", async function () {
     //     let asyncMode = true;
 
-    //     const tpl = template(`(msg) => {
+    //     const tpl = $template`(msg) => {
     //         <div @async={asyncMode? 1 : 0} class="msg">
     //             # Child content - message: {msg} #
     //         </div>
-    //     }`);
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge" });
     //     assert.equal(stringify(t), `
@@ -193,14 +193,14 @@ describe('Async decorator', () => {
     // });
 
     // it("can be used on fragments (@async)", async function () {
-    //     const tpl = template(`(msg) => {
+    //     const tpl = $template`(msg) => {
     //         <div class="main">
     //             <! @async>
     //                 # Child content - message: {msg} #
     //             </>
     //         </div>
     //         # end #
-    //     }`);
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge" });
     //     assert.equal(stringify(t), `
@@ -247,13 +247,13 @@ describe('Async decorator', () => {
     // });
 
     // it("can be used on sub-components w/ @content", async function () {
-    //     const tpl = template(`(msg, open) => {
+    //     const tpl = $template`(msg, open) => {
     //         <div class="main">
     //             <*section title="Section" open={open}>
     //                 # Message: {msg} #
     //             </>
     //         </div>
-    //     }`);
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge", open: true });
     //     assert.equal(stringify(t), `
@@ -354,7 +354,7 @@ describe('Async decorator', () => {
     // });
 
     // it("can be used in light-dom content", async function () {
-    //     const tpl = template(`(msg, open) => {
+    //     const tpl = $template`(msg, open) => {
     //         <div class="main">
     //             <*section2 title="Section" open={open}>
     //                 <div @async>
@@ -362,7 +362,7 @@ describe('Async decorator', () => {
     //                 </div>
     //             </>
     //         </div>
-    //     }`);
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge", open: true });
     //     assert.equal(stringify(t), `
@@ -430,7 +430,7 @@ describe('Async decorator', () => {
     // });
 
     // it("can be used on components (@async)", async function () {
-    //     const tpl = template(`(msg, open) => {
+    //     const tpl = $template`(msg, open) => {
     //         <div class="main">
     //             <*section2 @async title="Section" open={open}>
     //                 <div>
@@ -438,7 +438,7 @@ describe('Async decorator', () => {
     //                 </div>
     //             </>
     //         </div>
-    //     }`);
+    //     }`;
 
     //     let t = getTemplate(tpl, body).refresh({ msg: "Hello Marge", open: true });
     //     assert.equal(stringify(t), `

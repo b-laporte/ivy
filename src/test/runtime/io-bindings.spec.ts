@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, API, defaultParam, required, IvElement, decorator, io, Controller } from '../../iv';
+import { $template, API, defaultParam, required, IvElement, decorator, io, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 import { Data, changeComplete } from '../../trax';
 
@@ -80,24 +80,24 @@ describe('Bindings', () => {
             }
         }
     }
-    const editor = template(`($: EditorCtl) => {
+    const editor = $template`($: EditorCtl) => {
         <div class="editor">
-            #>> {$.$api.getText()} <<#
+            !z!>!> {$.$api.getText()} !<!<!z
         </>
-    }`);
+    }`;
 
-    const section = template(`($content:IvContent, visible=true) => {
-        if (visible) {
+    const section = $template`($content:IvContent, visible=true) => {
+        $if (visible) {
             <div class="section" @content/>
         }
-    }`);
+    }`;
 
     it("can be set on decorators with default value", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <div @title={=user.alias}>
-                # Hello {user.alias} #
+                Hello {user.alias}
             </div>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -139,11 +139,11 @@ describe('Bindings', () => {
     });
 
     it("can be set on decorators with default value (long data path)", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <div @title={=user.name.firstName}>
-                # Hello {user.name.firstName} #
+                Hello {user.name.firstName}
             </div>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Al";
@@ -189,11 +189,11 @@ describe('Bindings', () => {
     });
 
     it("can be set on decorators with multiple params", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <div @title(text={=user.alias} prefix=">>")>
-                # Hello {user.alias} #
+                Hello {user.alias}
             </div>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -235,9 +235,9 @@ describe('Bindings', () => {
     });
 
     it("can be set on components", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <*editor #edi text={=user.alias} />
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -281,11 +281,11 @@ describe('Bindings', () => {
     });
 
     it("can be set on components w/ param nodes (@paramValue)", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <*editor #edi>
                 <.text @paramValue={=user.alias}/>
             </>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -329,11 +329,11 @@ describe('Bindings', () => {
     });
 
     it("can be set on components w/ param nodes (param)", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <*editor #edi>
                 <.input inputValue={=user.alias}/>
             </>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -377,13 +377,13 @@ describe('Bindings', () => {
     });
 
     it("can be set on deferred decorators with default value", async function () {
-        const tpl = template(`(user:User, visible=true) => {
+        const tpl = $template`(user:User, visible=true) => {
             <*section {visible}>
                 <div @title={=user.alias}>
-                    # Hello {user.alias} #
+                    Hello {user.alias}
                 </>
             </>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -431,11 +431,11 @@ describe('Bindings', () => {
     });
 
     it("can be set on deferred components", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <*section>
                 <*editor #edi text={=user.alias} />
             </>
-        }`, editor);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -485,13 +485,13 @@ describe('Bindings', () => {
     });
 
     it("can be set on deferred components w/ param nodes (param)", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <*section>
                 <*editor #edi>
                     <.input inputValue={=user.alias}/>
                 </>
             </>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -541,5 +541,4 @@ describe('Bindings', () => {
     });
 
     // error: binding expression on a non @io param
-
 });

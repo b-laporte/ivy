@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { Data, changeComplete } from '../../trax';
 import { IvContent } from '../../iv/types';
@@ -18,22 +18,22 @@ describe('Param Nodes', () => {
     }
 
     it("should set and update normal attributes (static)", function () {
-        const panel = template(`(type:string, $content) => {
-            count++;
+        const panel = $template`(type:string, $content) => {
+            $exec count++;
             <div class={"panel" + (type? " "+type : "")}>
-                # Panel message #
+                Panel message
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(panelType, mainType) => {
+        const tpl = $template`(panelType, mainType) => {
             <div class={"main " + mainType}>
                 <*panel>
                     <.type @paramValue={panelType}/>
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ panelType: "important", mainType: "abc" });
+        const t = getTemplate(tpl, body).render({ panelType: "important", mainType: "abc" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main abc">
@@ -74,23 +74,23 @@ describe('Param Nodes', () => {
     });
 
     it("should set and update normal attributes (dynamic)", function () {
-        const panel = template(`(type:string, $content) => {
-            count++;
-            type = type || "xx";
+        const panel = $template`(type:string, $content) => {
+            $exec count++;
+            $exec type = type || "xx";
             <div class={"panel" + (type? " "+type : "")}>
-                # Panel message #
+                Panel message
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(panelType:string, mainType:string) => {
+        const tpl = $template`(panelType:string, mainType:string) => {
             <div class={"main " + mainType}>
                 <*panel>
-                    if (mainType !== "no") {
+                    $if (mainType !== "no") {
                         <.type @paramValue={panelType}/>
                     }
                 </>
             </div>
-        }`);
+        }`;
 
         // cm: condition === true
         let t1 = getTemplate(tpl, body).render({ panelType: "important", mainType: "abc" });
@@ -175,29 +175,29 @@ describe('Param Nodes', () => {
     });
 
     it("should support content-only params (static)", function () {
-        const section = template(`(type:string, header: IvContent, footer: IvContent, $content: IvContent) => {
-            count++;
+        const section = $template`(type:string, header: IvContent, footer: IvContent, $content: IvContent) => {
+            $exec count++;
             <div class="section">
-                if (header) {
+                $if (header) {
                     <div class="header" @content={header}/>
                 }
                 <! @content/>
-                if (footer) {
+                $if (footer) {
                     <div class="footer" @content={footer}/>
                 }
             </div>
-        }`);
+        }`;
 
-        const tplA = template(`(headerText, mainText) => {
+        const tplA = $template`(headerText, mainText) => {
             <div class="main">
                 <*section>
-                    <.header> # {headerText} # </>
-                    # {mainText} # 
+                    <.header> {headerText} </>
+                    {mainText}
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tplA, body).render({ headerText: "HEADER", mainText: "CONTENT" });
+        const t = getTemplate(tplA, body).render({ headerText: "HEADER", mainText: "CONTENT" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -230,18 +230,18 @@ describe('Param Nodes', () => {
         assert.equal(count, 2, "count:2");
 
         resetVars();
-        let tplB = template(`(headerText, mainText, footerText) => {
+        const tplB = $template`(headerText, mainText, footerText) => {
             <div class="main">
                 <*section>
-                    <.header> # {headerText} # </> // will be ignored
-                    <.header> # Second header: {headerText} # </> // second should win
-                    # content: {mainText} # 
-                    <.footer> # {footerText} # </>
+                    <.header> {headerText} </> // will be ignored
+                    <.header> Second header: {headerText} </> // second should win
+                    content: {mainText}
+                    <.footer> {footerText} </>
                 </>
             </div>
-        }`);
+        }`;
 
-        let t2 = getTemplate(tplB, body).render({ headerText: "HEADER", footerText: "FOOTER", mainText: "CONTENT" });
+        const t2 = getTemplate(tplB, body).render({ headerText: "HEADER", footerText: "FOOTER", mainText: "CONTENT" });
         assert.equal(stringify(t2), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -279,25 +279,25 @@ describe('Param Nodes', () => {
     });
 
     it("should support content-only params (dynamic)", function () {
-        const section = template(`(type:string, $content: IvContent, header?: IvContent) => {
+        const section = $template`(type:string, $content: IvContent, header?: IvContent) => {
             <section class="section">
-                if (header) {
+                $if (header) {
                     <div class="header" @content={header}/>
                 }
                 <! @content/>
             </section>
-        }`);
+        }`;
 
-        const tplA = template(`(headerText, mainText, showHeader) => {
+        const tplA = $template`(headerText, mainText, showHeader) => {
             <div class="main">
                 <*section>
-                    if (showHeader) {
-                        <.header> # {headerText} # </>
+                    $if (showHeader) {
+                        <.header> {headerText} </>
                     }
-                    # {mainText} # 
+                    {mainText}
                 </>
             </div>
-        }`);
+        }`;
 
         // init condition: true
         let t1 = getTemplate(tplA, body).render({ headerText: "HEADER", mainText: "CONTENT", showHeader: true });
@@ -391,25 +391,25 @@ describe('Param Nodes', () => {
             $content: IvContent;
         }
 
-        const section = template(`(header: SectionHeader, $content: IvContent) => {
+        const section = $template`(header: SectionHeader, $content: IvContent) => {
             <div class="section">
-                if (header) {
+                $if (header) {
                     <div class={"header "+header.type} title={"size = "+header.size} @content={header.$content}/>
                 }
                 <! @content/>
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(headerText, mainText, type) => {
+        const tpl = $template`(headerText, mainText, type) => {
             <div class="main">
                 <*section>
-                    <.header type={type} size=3> # Header: {headerText} # </>
-                    # {mainText} # 
+                    <.header type={type} size=3> Header: {headerText} </>
+                    {mainText}
                 </>
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ headerText: "HEADER", mainText: "CONTENT", type: "warning" });
+        const t = getTemplate(tpl, body).render({ headerText: "HEADER", mainText: "CONTENT", type: "warning" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="main">
@@ -450,36 +450,36 @@ describe('Param Nodes', () => {
     }
 
     it("should support a tree of param nodes (static)", function () {
-        const section = template(`($content: IvContent, header: SectionHeader) => {
+        const section = $template`($content: IvContent, header: SectionHeader) => {
             <div class="section">
-                if (header) {
+                $if (header) {
                     <div class={"header "+header.type} title={"size = "+header.size} @content={header.$content}/>
-                    if (header.subHeader) {
-                        let sbh = header.subHeader;
-                        # subHeader - type={sbh.type} size={sbh.size} #
+                    $if (header.subHeader) {
+                        $let sbh = header.subHeader;
+                        subHeader - type={sbh.type} size={sbh.size}
                         <div class="sbh title" @content={sbh.title}/> 
                         <div class="sbh content" @content={sbh.$content}/>
                     }
                 }
                 <! @content/>
             </div>
-        }`);
+        }`;
 
-        const tpl = template(`(idx) => {
+        const tpl = $template`(idx) => {
             <*section>
                 <.header type={"type"+idx}>
-                    <.title> # Header Title {idx} # </>
-                    # Header Content {idx} # 
+                    <.title> Header Title {idx} </>
+                    Header Content {idx}
                     <.subHeader type={"sbh-type-"+idx} size=8>
-                        <.title> # SubHeader Title {idx} # </>
-                        # SubHeader Content {idx} # 
+                        <.title> SubHeader Title {idx} </>
+                        SubHeader Content {idx} 
                     </>
                 </>
-                # Section Content {idx} # 
+                Section Content {idx}
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ idx: 1 });
+        const t = getTemplate(tpl, body).render({ idx: 1 });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="section">
@@ -521,38 +521,38 @@ describe('Param Nodes', () => {
     });
 
     it("should support a tree of param nodes (dynamic)", function () {
-        const section = template(`($content: IvContent, header?: SectionHeader) => {
+        const section = $template`($content: IvContent, header?: SectionHeader) => {
             <section>
-                if (header) {
+                $if (header) {
                     <div class={"header "+header.type} title={"size = "+header.size} @content={header.$content}/>
-                    if (header.subHeader) {
-                        let sbh = header.subHeader;
-                        # subHeader - type={sbh.type} size={sbh.size} size2={sbh.size2} #
+                    $if (header.subHeader) {
+                        $let sbh = header.subHeader;
+                        subHeader - type={sbh.type} size={sbh.size} size2={sbh.size2}
                         <div class="sbh title" @content={sbh.title}/> 
                         <div class="sbh content" @content={sbh.$content}/>
                     }
                 }
                 <! @content/>
             </section>
-        }`);
+        }`;
 
-        const tpl = template(`(idx, condition1, condition2) => {
+        const tpl = $template`(idx, condition1, condition2) => {
             <*section>
-                if (condition1) {
+                $if (condition1) {
                     <.header type={"type"+idx}>
-                        <.title> # Header Title {idx} # </>
-                        # Header Content {idx} # 
-                        if (condition2) {
+                        <.title> Header Title {idx} </>
+                        Header Content {idx}
+                        $if (condition2) {
                             <.subHeader type={"sbh-type-"+idx} size=8 size2={8}>
-                                <.title> # SubHeader Title {idx} # </>
-                                # SubHeader Content {idx} # 
+                                <.title> SubHeader Title {idx} </>
+                                SubHeader Content {idx}
                             </>
                         }
                     </>
                 }
-                # Section Content {idx} # 
+                Section Content {idx}
             </>
-        }`);
+        }`;
 
         // init condition: false
         let t1 = getTemplate(tpl, body).render({ idx: 1, condition1: false, condition2: false });
@@ -695,33 +695,33 @@ describe('Param Nodes', () => {
     });
 
     it("should support optional param nodes with static params only", function () {
-        const section = template(`($content?: IvContent, header?: SectionHeader) => {
+        const section = $template`($content?: IvContent, header?: SectionHeader) => {
             <section>
-                if (header) {
+                $if (header) {
                     <div class={"header "+header.type} title={"size = "+header.size} @content={header.$content}/>
-                    if (header.subHeader) {
-                        let sbh = header.subHeader;
-                        # subHeader - type={sbh.type} size={sbh.size} size2={sbh.size2} #
+                    $if (header.subHeader) {
+                        $let sbh = header.subHeader;
+                        subHeader - type={sbh.type} size={sbh.size} size2={sbh.size2}
                     }
                 }
                 <! @content/>
             </section>
-        }`);
+        }`;
 
-        const tpl = template(`(idx, condition1, condition2) => {
+        const tpl = $template`(idx, condition1, condition2) => {
             <*section>
-                if (condition1) {
+                $if (condition1) {
                     <.header type="abc" size=4>
-                        <.title> # Header Title {idx} # </>
-                        # Header Content {idx} # 
-                        if (condition2) {
+                        <.title> Header Title {idx} </>
+                        Header Content {idx}
+                        $if (condition2) {
                             <.subHeader type="def" size=42 size2=1984/>
                         }
                     </>
                 }
-                # Section Content {idx} # 
+                Section Content {idx} 
             </>
-        }`);
+        }`;
 
         // init condition: false
         let t1 = getTemplate(tpl, body).render({ idx: 1, condition1: false, condition2: false });
@@ -844,23 +844,24 @@ describe('Param Nodes', () => {
         text: string;
     }
 
-    const menu = template(`(optionList: MenuOption[]) => {
+    const menu = $template`(optionList: MenuOption[]) => {
         <menu title={"count:"+optionList.length}>
-            optionList.forEach((item) => {
-                <item data-id={item.id}> # {item.text} # </item>
-            })
+            $for (let i=0;optionList.length>i;i++) {
+                $let item = optionList[i];
+                <item data-id={item.id}> {item.text} </item>
+            }
         </menu>    
-    }`);
+    }`;
 
     it("should support a lists of param nodes on component (static)", function () {
-        const tpl = template(`(idx) => {
+        const tpl = $template`(idx) => {
             <*menu>
                 <.option id={"a"+idx} text={" Option A "+idx} />
                 <.option id={"b"+idx} text={" Option B "+idx} />
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ idx: 1 });
+        const t = getTemplate(tpl, body).render({ idx: 1 });
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -896,17 +897,17 @@ describe('Param Nodes', () => {
             name: string;
             ref: string;
         }
-        const tpl = template(`(actionList:Action[]) => {
+        const tpl = $template`(actionList:Action[]) => {
             <*menu>
                 <.option id="first" text="First Option" />
-                for (let i=0;actionList.length>i;i++) {
+                $for (let i=0;actionList.length>i;i++) {
                     <.option id={actionList[i].ref} text={actionList[i].name} />
                 }
                 <.option id="last" text="Last Option" />
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -1022,16 +1023,16 @@ describe('Param Nodes', () => {
     });
 
     it("should support a lists of param nodes on component (2) (dynamic)", function () {
-        const tpl = template(`(condition=true, idx=1) => {
+        const tpl = $template`(condition=true, idx=1) => {
             <*menu>
-                if (condition) {
+                $if (condition) {
                     <.option id={"a"+idx} text={"Option A"+idx} />
                 }
                 <.option id='last' text='Last Option' />
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <menu::E3 a:title="count:2">
@@ -1095,36 +1096,37 @@ describe('Param Nodes', () => {
         cellList: GridCell[];
     }
 
-    const grid = template(`(rowList: GridRow[]) => {
+    const grid = $template`(rowList: GridRow[]) => {
         <ul>
-            rowList.forEach(row => {
+            $for (let i=0;rowList.length>i;i++) {
+                $let row = rowList[i];
                 <li title={row.title}>
-                    row.cellList.forEach(cell => {
-                        # [{cell.text}] #
-                    })
+                    $for (let j=0;row.cellList.length>j;j++) {
+                        [{row.cellList[j].text}]
+                    }
                 </li>
-            });
+            }
         </ul>
-    }`);
+    }`;
 
     it("should support a list of param nodes on param nodes (dynamic)", function () {
         @Data class Action {
             name: string;
             ref: string;
         }
-        const tpl = template(`(nbrOfRows=0, nbrOfCells=1, prefix="") => {
+        const tpl = $template`(nbrOfRows=0, nbrOfCells=1, prefix="") => {
             <*grid>
-                for (let i=0;nbrOfRows>i;i++) {
+                $for (let i=0;nbrOfRows>i;i++) {
                     <.row title={"ROW#"+i}>
-                        for (let j=0;nbrOfCells>j;j++) {
+                        $for (let j=0;nbrOfCells>j;j++) {
                             <.cell text={prefix+"CELL("+i+":"+j+")"}/>
                         }
                     </>
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ nbrOfRows: 2 });
+        const t = getTemplate(tpl, body).render({ nbrOfRows: 2 });
         assert.equal(stringify(t), `
             <body::E1>
                 <ul::E3>
@@ -1188,27 +1190,27 @@ describe('Param Nodes', () => {
             $content: IvContent;
         }
 
-        const grid = template(`(rowList:Row[]) => {
-            for (let idx=0; rowList.length>idx; idx++) {
-                let row = rowList[idx];
-                # row {row.id} #
+        const grid = $template`(rowList:Row[]) => {
+            $for (let idx=0; rowList.length>idx; idx++) {
+                $let row = rowList[idx];
+                row {row.id}
                 <div title={row.id} @content={row.summary}/> 
             }
-        }`);
+        }`;
 
-        const tpl = template(`(nbrOfRows=0) => {
-            if (nbrOfRows>0) {
+        const tpl = $template`(nbrOfRows=0) => {
+            $if (nbrOfRows>0) {
                 <*grid>
-                    for (let i=0;nbrOfRows>i;i++) {
+                    $for (let i=0;nbrOfRows>i;i++) {
                         <.row id={i}>
-                            <.summary> # Summary {i} # </>
+                            <.summary> Summary {i} </>
                         </>
                     }
                 </>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
+        const t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor
@@ -1249,24 +1251,24 @@ describe('Param Nodes', () => {
             arr.push(team);
         }
 
-        const grid = template(`(rowList:Row[]) => {
-            for (let idx=0; rowList.length>idx; idx++) {
-                let row = rowList[idx];
+        const grid = $template`(rowList:Row[]) => {
+            $for (let idx=0; rowList.length>idx; idx++) {
+                $let row = rowList[idx];
                 <div title={row.id} @content={row.summary}/>
             }
-        }`);
+        }`;
 
         let api: any;
-        const tpl = template(`($, teamList:Team[]) => {
-            api = $;
+        const tpl = $template`($, teamList:Team[]) => {
+            $exec api = $;
             <*grid>
-                for (let team of teamList) {
+                $for (let team of teamList) {
                     <.row id={team.id}>
-                        <.summary> # Team {team.id} # </>
+                        <.summary> Team {team.id} </>
                     </.row>
                 }
             </*grid>
-        }`);
+        }`;
 
         let t1 = getTemplate(tpl, body).render();
         assert.equal(stringify(t1), `
@@ -1291,7 +1293,6 @@ describe('Param Nodes', () => {
                 //::C2 template anchor
             </body>
         `, '2');
-
     });
 
     it("should work with components inside other components", function () {
@@ -1301,36 +1302,36 @@ describe('Param Nodes', () => {
             $content: IvContent;
         }
 
-        const grid = template(`(rowList:Row[]) => {
+        const grid = $template`(rowList:Row[]) => {
             // grid template
-            for (let idx=0; rowList.length>idx; idx++) {
-                let row = rowList[idx];
+            $for (let idx=0; rowList.length>idx; idx++) {
+                $let row = rowList[idx];
                 <div title={row.id}>
                     <summary @content={row.summary}/>
                     <! @content={row.$content}/>
                 </> 
             }
-        }`);
+        }`;
 
-        const tpl = template(`(nbrOfRows=0, nbrOfSubRows=2, txt="X") => {
+        const tpl = $template`(nbrOfRows=0, nbrOfSubRows=2, txt="X") => {
             <*grid>
-                for (let i=0;nbrOfRows>i;i++) {
+                $for (let i=0;nbrOfRows>i;i++) {
                     <.row id={i}>
-                        <.summary> # Summary {i} # </>
+                        <.summary> Summary {i} </>
                         <*grid>
-                            for (let j=0;nbrOfSubRows>j;j++) {
+                            $for (let j=0;nbrOfSubRows>j;j++) {
                                 <.row id={i+"/"+j}>
-                                    <.summary> # Row {i}/{j} {txt} # </>
-                                    # Content {i}/{j} {txt} # 
+                                    <.summary> Row {i}/{j} {txt} </>
+                                    Content {i}/{j} {txt}
                                 </.row>
                             }
                         </*grid>
                     </>
                 }
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
+        const t = getTemplate(tpl, body).render({ nbrOfRows: 0 });
         assert.equal(stringify(t), `
             <body::E1>
                 //::C2 template anchor

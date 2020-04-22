@@ -1,4 +1,4 @@
-import { template, API, Controller, io } from '../../../iv';
+import { $template, API, Controller, io } from '../../../iv';
 import { Data } from '../../../trax';
 import { IvContent } from '../../../iv/types';
 
@@ -36,23 +36,23 @@ import { IvContent } from '../../../iv/types';
 }
 
 // @@extract: template
-export const tabs = template(`($:TabsCtl, $api) => {
-    let api = $.$api;
-    const tabs = api.tabList, selectedId="";
-    let selectedContent=null, isSelected=false;
+export const tabs = $template`($:TabsCtl, $api) => {
+    $let api = $.$api;
+    $let tabs = api.tabList, selectedId="";
+    $let selectedContent=null, isSelected=false;
     <div class="tabs">
         <ul class="header">
-            for (let tab of tabs) {
-                isSelected = api.selection === tab.id;
+            $for (let tab of tabs) {
+                $exec isSelected = api.selection === tab.id;
                 <li class={"tab " + (isSelected? "selected" : "")} 
                     @onclick={=> api.selection = tab.id}
                     @content={tab.title}
                 />
-                if (isSelected) {
-                    selectedContent = tab.$content;
+                $if (isSelected) {
+                    $exec selectedContent = tab.$content;
                 }
             }
         </>
         <div class="content" @content={selectedContent}/>
     </>
-}`);
+}`;

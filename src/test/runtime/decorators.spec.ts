@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, API, defaultParam, IvElement, decorator, required, logger } from '../../iv';
+import { $template, API, defaultParam, IvElement, decorator, required, logger } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { IvEventEmitter, IvEvent } from '../../iv/events';
 
@@ -93,27 +93,27 @@ describe('Decorators', () => {
         }
     });
 
-    const greeting = template(`(name:string) => {
+    const greeting = $template`(name:string) => {
         <div class="greeting" #main>
-            # Hello {name} #
+            Hello {name}
         </div>
-    }`);
+    }`;
 
-    const section = template(`(title:string, $content) => {
+    const section = $template`(title:string, $content) => {
         <div class="section" #main>
-            <div class="header"> # {title} # </>
+            <div class="header"> {title} </>
             <! @content/>
         </>
-    }`);
+    }`;
 
     it("can be set on elements - no values", function () {
-        const tpl = template(`() => {
+        const tpl = $template`() => {
             <div @title>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render();
+        const t =getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:title="[NO TITLE]">
@@ -125,13 +125,13 @@ describe('Decorators', () => {
     });
 
     it("can be set on elements - with default value", function () {
-        const tpl = template(`(msg:string) => {
+        const tpl = $template`(msg:string) => {
             <div @title={msg}>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hi there" });
+        const t =getTemplate(tpl, body).render({ msg: "hi there" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:title="hi there">
@@ -153,13 +153,13 @@ describe('Decorators', () => {
     });
 
     it("can be set on elements - with multiple params (w/o statics)", function () {
-        const tpl = template(`(msg:string, pr:string, sf:string) => {
+        const tpl = $template`(msg:string, pr:string, sf:string) => {
             <div @title(text={msg} prefix={pr} suffix={sf})>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hi there", pr: ">>>", sf: "<<<" });
+        const t =getTemplate(tpl, body).render({ msg: "hi there", pr: ">>>", sf: "<<<" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:title=">>>hi there<<<">
@@ -181,13 +181,13 @@ describe('Decorators', () => {
     });
 
     it("can be set on elements - with multiple params (w/ statics)", function () {
-        const tpl = template(`(msg:string) => {
+        const tpl = $template`(msg:string) => {
             <div @title(text={msg} prefix=">>>" suffix="<<<")>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hi there", pr: ">>>", sf: "<<<" });
+        const t =getTemplate(tpl, body).render({ msg: "hi there", pr: ">>>", sf: "<<<" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:title=">>>hi there<<<">
@@ -209,13 +209,13 @@ describe('Decorators', () => {
     });
 
     it("can be set on elements - with static label", function () {
-        const tpl = template(`(msg:string) => {
+        const tpl = $template`(msg:string) => {
             <div @title(text={msg} #theTitle)>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hi there" });
+        const t =getTemplate(tpl, body).render({ msg: "hi there" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:title="hi there">
@@ -231,13 +231,13 @@ describe('Decorators', () => {
     });
 
     it("can be set on elements - with dynamic label", function () {
-        const tpl = template(`(msg:string) => {
+        const tpl = $template`(msg:string) => {
             <div @title(text={msg} #theTitle={msg==="hello"})>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hello" });
+        const t =getTemplate(tpl, body).render({ msg: "hello" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:title="hello">
@@ -260,13 +260,13 @@ describe('Decorators', () => {
         function processEvent(e: IvEvent) {
             lastEvent = e;
         }
-        const tpl = template(`(msg:string) => {
+        const tpl = $template`(msg:string) => {
             <div @title(text={msg} #theTitle @onclick={processEvent})>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "hello" });
+        const t =getTemplate(tpl, body).render({ msg: "hello" });
         let theTitle = t.query("#theTitle") as Title;
         theTitle.clickEmitter.emit("DATA");
 
@@ -275,11 +275,11 @@ describe('Decorators', () => {
     });
 
     it("can be set on components - no content + $init", function () {
-        const tpl = template(`(name:string) => {
+        const tpl = $template`(name:string) => {
             <*greeting {name} @title={"name is '"+name+"'"}/>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ name: "World" });
+        const t =getTemplate(tpl, body).render({ name: "World" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="greeting" a:title="CPTOK: name is 'World'">
@@ -301,15 +301,15 @@ describe('Decorators', () => {
     });
 
     it("can be set on components - content + $init", function () {
-        const tpl = template(`(msg:string, tip:string) => {
+        const tpl = $template`(msg:string, tip:string) => {
             <div class="root">
                 <*section title={msg} @title={tip}>
-                    # Section content - msg: {msg} #
+                    Section content - msg: {msg}
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "Hello World", tip: "hi" });
+        const t =getTemplate(tpl, body).render({ msg: "Hello World", tip: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="root">
@@ -341,17 +341,17 @@ describe('Decorators', () => {
     });
 
     it("can be used in component content - default param", function () {
-        const tpl = template(`(msg:string, tip:string) => {
+        const tpl = $template`(msg:string, tip:string) => {
             <div class="root">
                 <*section title={msg}>
                     <div @title={tip}>
-                        # Section content - msg: {msg} #
+                        Section content - msg: {msg}
                     </>
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "Hello World", tip: "hi" });
+        const t =getTemplate(tpl, body).render({ msg: "Hello World", tip: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="root">
@@ -387,17 +387,17 @@ describe('Decorators', () => {
     });
 
     it("can be used in component content - multiple params", function () {
-        const tpl = template(`(msg:string, tip:string) => {
+        const tpl = $template`(msg:string, tip:string) => {
             <div class="root">
                 <*section title={msg}>
                     <div @title(text={tip} suffix={"!"})>
-                        # Section content - msg: {msg} #
+                        Section content - msg: {msg}
                     </>
                 </>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "Hello World", tip: "hi" });
+        const t =getTemplate(tpl, body).render({ msg: "Hello World", tip: "hi" });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3 a:class="root">
@@ -433,18 +433,18 @@ describe('Decorators', () => {
     });
 
     it("should be able to throw errors", function () {
-        const tpl = template(`(msg:string) => {
+        const tpl = $template`(msg:string) => {
             <div @title={msg}>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ msg: "ERROR_INIT" });
+        const t =getTemplate(tpl, body).render({ msg: "ERROR_INIT" });
 
         assert.equal(error, `\
             IVY: @title $init hook execution error
             Error in Init
-            >> Template: "tpl" - File: "runtime/decorators.spec.ts"`
+            >> Template: "tpl" - File: ".../runtime/decorators.spec.ts"`
             , "1");
 
         error = "";
@@ -453,7 +453,7 @@ describe('Decorators', () => {
         assert.equal(error, `\
             IVY: @title $render hook execution error
             Error in Render
-            >> Template: "tpl" - File: "runtime/decorators.spec.ts"`
+            >> Template: "tpl" - File: ".../runtime/decorators.spec.ts"`
             , "2");
 
         error = "";
@@ -462,40 +462,40 @@ describe('Decorators', () => {
         assert.equal(error, `\
             IVY: @title $render hook execution error
             Error2 in Render
-            >> Template: "tpl" - File: "runtime/decorators.spec.ts"`
+            >> Template: "tpl" - File: ".../runtime/decorators.spec.ts"`
             , "2");
 
         error = "";
     });
 
     it("will raise errors if @required constraint is not met", function () {
-        const tpl1 = template(`(msg:string) => {
+        const tpl1 = $template`(msg:string) => {
             <div @deco1={msg}>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
         getTemplate(tpl1, body).render({ msg: "x" });
 
         assert.equal(error, `\
             IVY: @deco1 cannot be used on DOM nodes
-            >> Template: "tpl1" - File: "runtime/decorators.spec.ts"`
+            >> Template: "tpl1" - File: ".../runtime/decorators.spec.ts"`
             , "1");
 
         error = "";
 
-        const tpl2 = template(`(msg:string) => {
+        const tpl2 = $template`(msg:string) => {
             <*tpl1 @deco2={msg}/>
-        }`);
+        }`;
 
         getTemplate(tpl2, body).render({ msg: "x" });
 
         assert.equal(error, `\
             IVY: @deco1 cannot be used on DOM nodes
-            >> Template: "tpl1" - File: "runtime/decorators.spec.ts"
-            >> Template: "tpl2" - File: "runtime/decorators.spec.ts"
+            >> Template: "tpl1" - File: ".../runtime/decorators.spec.ts"
+            >> Template: "tpl2" - File: ".../runtime/decorators.spec.ts"
             IVY: @deco2 cannot be used on components that don't define #main elements
-            >> Template: "tpl2" - File: "runtime/decorators.spec.ts"`
+            >> Template: "tpl2" - File: ".../runtime/decorators.spec.ts"`
             , "2");
 
         error = "";

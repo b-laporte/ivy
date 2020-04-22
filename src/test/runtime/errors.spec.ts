@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logger, Controller, API, defaultParam, decorator, required, IvElement } from '../../iv';
+import { $template, logger, Controller, API, defaultParam, decorator, required, IvElement } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { Data } from '../../trax';
 import { IvLogger } from '../../iv/types';
@@ -36,11 +36,11 @@ describe('Errors', () => {
         text: string;
         input: EditorInput;
     }
-    const editor = template(`($: Editor) => {
+    const editor = $template`($: Editor) => {
         <div class="editor">
-            #>> {$.text} <<#
+            !z!>!> {$.text} !<!<!z
         </>
-    }`);
+    }`;
 
     @API class Title {
         @defaultParam text: string = "";
@@ -55,54 +55,54 @@ describe('Errors', () => {
     });
 
     it("should be properly caught in template code", function () {
-        const err1 = template(`(a) => {
+        const err1 = $template`(a) => {
             <div>
-                if (a.b) {
+                $if (a.b) {
                     <span/>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(err1, body).render();
+        const t =getTemplate(err1, body).render();
         assert.equal(error, `\
             IVY: Template execution error
             Cannot read property 'b' of undefined
-            >> Template: "err1" - File: "runtime/errors.spec.ts"`
+            >> Template: "err1" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should display the whole template call stack", function () {
-        const err2 = template(`(a) => {
+        const err2 = $template`(a) => {
             <div>
-                if (a.b) {
+                $if (a.b) {
                     <span/>
                 }
             </div>
-        }`);
+        }`;
 
-        const err1 = template(`(a) => {
+        const err1 = $template`(a) => {
             <*err2/>
-        }`);
+        }`;
 
-        let t = getTemplate(err1, body).render();
+        const t =getTemplate(err1, body).render();
         assert.equal(error, `\
             IVY: Template execution error
             Cannot read property 'b' of undefined
-            >> Template: "err2" - File: "runtime/errors.spec.ts"
-            >> Template: "err1" - File: "runtime/errors.spec.ts"`
+            >> Template: "err2" - File: ".../runtime/errors.spec.ts"
+            >> Template: "err1" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in case of invalid query argument", function () {
-        const err3 = template(`(a) => {
+        const err3 = $template`(a) => {
             <div #foo/>
-        }`);
+        }`;
 
-        let t = getTemplate(err3, body).render();
+        const t =getTemplate(err3, body).render();
         t.query("foo")
         assert.equal(error, `\
             IVY: [$template.query()] Invalid label argument: 'foo' (labels must start with #)
-            >> Template: "err3" - File: "runtime/errors.spec.ts"`
+            >> Template: "err3" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -111,14 +111,14 @@ describe('Errors', () => {
             blah: string;
         }
 
-        const err = template(`($:Foo) => {
+        const err = $template`($:Foo) => {
             <div #foo/>
-        }`);
+        }`;
 
-        let t = getTemplate(err, body).render();
+        const t =getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Type of $ argument must be either a @Controller, an @API or a @Data class
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -132,69 +132,69 @@ describe('Errors', () => {
             }
         }
 
-        const err = template(`($:ErrCtl) => {
+        const err = $template`($:ErrCtl) => {
             <div #foo/>
-        }`);
+        }`;
 
-        let t = getTemplate(err, body).render();
+        const t =getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: controller $afterRender hook execution error
             Cannot read property 'foo' of undefined
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameter nodes are used", function () {
-        const hello = template(`(msg:string) => {
-            # Hello {msg} #
-        }`);
+        const hello = $template`(msg:string) => {
+            Hello {msg}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello>
                 <.txt @paramValue="World"/>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid parameter node: <.txt>
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameter nodes are used (2)", function () {
-        const hello = template(`() => {
-            # Hello #
-        }`);
+        const hello = $template`() => {
+            Hello
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello>
                 <.txt @paramValue="World"/>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid parameter node <.txt/>: no param node can be used in this context
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameter nodes are used (3)", function () {
-        const hello = template(`(msg:string) => {
-            # Hello {msg} #
-        }`);
+        const hello = $template`(msg:string) => {
+            Hello {msg}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello>
                 <.msg text="ABC"/>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid param node parameter: text
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -202,20 +202,20 @@ describe('Errors', () => {
         @Data class Msg {
             value: string;
         }
-        const hello = template(`(msg: Msg) => {
-            # Hello {msg} #
-        }`);
+        const hello = $template`(msg: Msg) => {
+            Hello {msg}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello>
                 <.msg valueZ={"World"}/>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid param node parameter: valueZ
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -223,102 +223,102 @@ describe('Errors', () => {
         @Data class Msg {
             value: string;
         }
-        const hello = template(`(msg: Msg) => {
-            # Hello {msg} #
-        }`);
+        const hello = $template`(msg: Msg) => {
+            Hello {msg}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello>
                 <.msg valueZ="World"/>
             </>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid param node parameter: valueZ
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameters are used", function () {
-        const hello = template(`() => {
-            # Hello #
-        }`);
+        const hello = $template`() => {
+            Hello
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello txt="World"/>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid parameter: txt
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameters are used (2)", function () {
-        const hello = template(`() => {
-            # Hello #
-        }`);
+        const hello = $template`() => {
+            Hello
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello txt={"World"}/>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid parameter 'txt' on <*hello/>
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameters are used (3)", function () {
-        const hello = template(`(name) => {
-            # Hello {name} #
-        }`);
+        const hello = $template`(name) => {
+            Hello {name}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello txt="Homer"/>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid parameter: txt
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in when invalid parameters are used (4)", function () {
-        const hello = template(`(name) => {
-            # Hello {name} #
-        }`);
+        const hello = $template`(name) => {
+            Hello {name}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello txt={"Homer"}/>
-        }`);
+        }`;
 
-        let t = getTemplate(test, body).render();
+        const t =getTemplate(test, body).render();
         assert.equal(error, `\
             IVY: Invalid parameter 'txt' on <*hello/>
-            >> Template: "test" - File: "runtime/errors.spec.ts"`
+            >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised in case of invalid event handler (1)", function () {
         function doSomething() { }
 
-        const cpt = template(`() => {
-            # Hello #
-        }`);
+        const cpt = $template`() => {
+            Hello
+        }`;
 
-        const err = template(`() => {
+        const err = $template`() => {
             <*cpt @onclick={=>doSomething()} />
-        }`);
+        }`;
 
         getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Unsupported event: click
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -328,18 +328,18 @@ describe('Errors', () => {
         @API class CptAPI {
             fooEmitter: IvEventEmitter;
         }
-        const cpt = template(`($:CptAPI) => {
-            # Hello #
-        }`);
+        const cpt = $template`($:CptAPI) => {
+            Hello
+        }`;
 
-        const err = template(`() => {
+        const err = $template`() => {
             <*cpt @onclick={=>doSomething()} />
-        }`);
+        }`;
 
         getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Unsupported event: click
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -351,21 +351,21 @@ describe('Errors', () => {
         @API class CptAPI {
             clickEmitter: Foo;
         }
-        const cpt = template(`($:CptAPI) => {
-            # Hello #
-        }`);
+        const cpt = $template`($:CptAPI) => {
+            Hello
+        }`;
 
-        const err = template(`() => {
+        const err = $template`() => {
             <*cpt @onclick={=>123} />
-        }`);
+        }`;
 
         getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Invalid EventEmitter: clickEmitter
-            >> Template: "cpt" - File: "runtime/errors.spec.ts"
-            >> Template: "err" - File: "runtime/errors.spec.ts"
+            >> Template: "cpt" - File: ".../runtime/errors.spec.ts"
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"
             IVY: Invalid event emitter for: click
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -377,18 +377,18 @@ describe('Errors', () => {
         @API class CptAPI {
             clickEmitter: Foo;
         }
-        const cpt = template(`($:CptAPI) => {
-            # Hello #
-        }`);
+        const cpt = $template`($:CptAPI) => {
+            Hello
+        }`;
 
-        const err = template(`() => {
+        const err = $template`() => {
             <*cpt @onclick={=>123} />
-        }`);
+        }`;
 
         getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Invalid event emitter for: click
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
@@ -410,27 +410,27 @@ describe('Errors', () => {
                 }
             }
         }
-        const hello = template(`($:HelloCtl) => {
-            let api = $.$api
-            # Hello {api.name} #
-        }`);
-        const err = template(`() => {
+        const hello = $template`($:HelloCtl) => {
+            $let api = $.$api;
+            Hello {api.name}
+        }`;
+        const err = $template`() => {
             <*hello #hello name="World">
                 <.header title={"Header"} @onfoobar={=>123} />
             </*hello>
-        }`);
+        }`;
 
         getTemplate(err, body).render();
         assert.equal(error, `\
             IVY: Unsupported event: foobar
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised for I/O binding expressions used on non @io params (component)", function () {
-        const err = template(`(user:User) => {
+        const err = $template`(user:User) => {
             <*editor text={=user.alias} />
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -438,16 +438,16 @@ describe('Errors', () => {
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
             IVY: Invalid I/O binding expression on 'text' (not an @io param)
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised for I/O binding expressions used on non @io params (decorator/default param)", function () {
-        const err = template(`(user:User) => {
+        const err = $template`(user:User) => {
             <div @title={=user.alias}>
-                # Hello {user.alias} #
+                Hello {user.alias}
             </div>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -455,16 +455,16 @@ describe('Errors', () => {
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
             IVY: Invalid I/O binding expression on @title (@defaultParam is not an @io param)
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised for I/O binding expressions used on non @io params (decorator/multiple params)", function () {
-        const err = template(`(user:User) => {
+        const err = $template`(user:User) => {
             <div @title(text={=user.alias})>
-                # Hello {user.alias} #
+                Hello {user.alias}
             </div>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -472,16 +472,16 @@ describe('Errors', () => {
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
             IVY: Invalid I/O binding expression on @title.text (not an @io param)
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised for I/O binding expressions used on non @io params (param node/@paramValue param)", function () {
-        const err = template(`(user:User) => {
+        const err = $template`(user:User) => {
             <*editor>
                 <.text @paramValue={=user.alias}/>
             </>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -489,16 +489,16 @@ describe('Errors', () => {
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
             IVY: Invalid I/O binding expression on .text@paramValue (not an @io param)
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 
     it("should be raised for I/O binding expressions used on non @io params (param node/multiple params)", function () {
-        const err = template(`(user:User) => {
+        const err = $template`(user:User) => {
             <*editor>
                 <.input inputValue={=user.alias}/>
             </>
-        }`);
+        }`;
 
         let usr = new User();
         usr.alias = "Alan";
@@ -506,7 +506,7 @@ describe('Errors', () => {
         getTemplate(err, body).render({ user: usr });
         assert.equal(error, `\
             IVY: Invalid I/O binding expression on .input.inputValue (not an @io param)
-            >> Template: "err" - File: "runtime/errors.spec.ts"`
+            >> Template: "err" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });
 

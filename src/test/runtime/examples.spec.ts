@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 import { Data, changeComplete } from '../../trax';
 import { IvContent } from '../../iv/types';
@@ -21,25 +21,25 @@ describe('Examples', () => {
     it("should work for tabs", function () {
         let log = "";
 
-        const heavyComponent = template(`(id:string) => {
-            log += "+"+id;
+        const heavyComponent = $template`(id:string) => {
+            $exec log += "+"+id;
             <div class="heavy">
-                # heavy component '{id}' #
+                heavy component '{id}'
             </>
-        }`);
+        }`;
 
-        const tpl = template(`(tabSelection:string, $api) => {
+        const tpl = $template`(tabSelection:string, $api) => {
             <*tabs selection={=$api.tabSelection}>
                 <.tab id="tabA">
-                    <.title> # title # <b> # A # </></>
+                    <.title> title <b> A </></>
                     <*heavyComponent id="cptA"/>
                 </>
                 <.tab id="tabB">
-                    <.title> # title # <b> # B # </></>
+                    <.title> title <b> B </></>
                     <*heavyComponent id="cptB"/>
                 </>
             </>
-        }`, tabs, heavyComponent);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `

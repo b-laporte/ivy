@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logViewNodes } from '../../iv';
+import { $template, logViewNodes } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 // Components with content
@@ -10,37 +10,37 @@ describe('Empty content', () => {
         body = reset();
     });
 
-    const panel = template(`(title:string, $content?:IvContent) => {
+    const panel = $template`(title:string, $content?:IvContent) => {
         <div class="panel" title={title}>
-            if ($content && !$content.isEmpty()) {
+            $if ($content && !$content.isEmpty()) {
                 <div class="content" @content/>
             } else {
-                # no content #
+                no content
             }
         </>
-    }`);
+    }`;
 
-    const panel2 = template(`(title:string, footer?:IvContent) => {
+    const panel2 = $template`(title:string, footer?:IvContent) => {
         <div class="panel" title={title}>
-            # This is the panel #
-            if (footer && !footer.isEmpty()) {
+            This is the panel
+            $if (footer && !footer.isEmpty()) {
                 <div class="footer" @content={footer}/>
             } else {
-                # no footer #
+                no footer
             }
         </>
-    }`);
+    }`;
 
-    const panel3 = template(`(title:string, $content:IvContent) => {
-        if ($content && !$content.isEmpty()) {
+    const panel3 = $template`(title:string, $content:IvContent) => {
+        $if ($content && !$content.isEmpty()) {
             <div class="panel3 content" @content/>
         }
-    }`);
+    }`;
 
     it("should be supported with no content", function () {
-        let tpl = template(`(title, message) => {
+        let tpl = $template`(title, message) => {
             <*panel title={title}/>
-        }`);
+        }`;
         let t = getTemplate(tpl, body).render({ title: "Info" });
         assert.equal(stringify(t), `
             <body::E1>
@@ -53,13 +53,13 @@ describe('Empty content', () => {
     });
 
     it("should be supported with $content", function () {
-        let tpl = template(`(title, message) => {
+        let tpl = $template`(title, message) => {
             <*panel title='v2'> 
-                if (message) {
-                    # panel content: {message} #
+                $if (message) {
+                    panel content: {message}
                 }
             </>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render({ title: "Info" });
         assert.equal(stringify(t), `
@@ -86,15 +86,15 @@ describe('Empty content', () => {
     });
 
     it("should be supported with param node content", function () {
-        let tpl = template(`(message) => {
+        let tpl = $template`(message) => {
             <*panel2 title='v2'> 
-                if (message) {
+                $if (message) {
                     <.footer>
-                        # footer content: {message} #
+                        footer content: {message}
                     </>
                 }
             </>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render({ message: "Hello" });
         assert.equal(stringify(t), `
@@ -135,15 +135,15 @@ describe('Empty content', () => {
     });
 
     it("should be supported with param node content (condition in content)", function () {
-        let tpl = template(`(message) => {
+        let tpl = $template`(message) => {
             <*panel2 title='v2'>
                 <.footer>
-                    if (message) {
-                        # footer content: {message} #
+                    $if (message) {
+                        footer content: {message}
                     }
                 </>
             </>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render({ message: "Hello" });
         assert.equal(stringify(t), `
@@ -184,18 +184,18 @@ describe('Empty content', () => {
     });
 
     it("should be supported with param node content (condition + fragment in content)", function () {
-        let tpl = template(`(message) => {
+        let tpl = $template`(message) => {
             <*panel2 title='v2'>
                 <.footer>
-                    if (message) {
+                    $if (message) {
                         <!>
-                            # footer content: {message} #
-                            <div> # !!! # </div>
+                            footer content: {message}
+                            <div> !!!!!! </div>
                         </>
                     }
                 </>
             </>
-        }`);
+        }`;
         let t = getTemplate(tpl, body).render({ message: "" });
         assert.equal(stringify(t), `
             <body::E1>
@@ -252,15 +252,15 @@ describe('Empty content', () => {
     });
 
     it("should be supported with param node content (condition in component in content)", function () {
-        let tpl = template(`(message) => {
+        let tpl = $template`(message) => {
             <*panel title='the-title'>
                 <*panel3>
-                    if (message) {
-                        # Message: {message} #
+                    $if (message) {
+                        Message: {message}
                     }
                 </>
             </>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render({ message: "" });
         assert.equal(stringify(t), `

@@ -1,6 +1,6 @@
 import { unsafeInnerHTML } from './../../iv/innerHTML';
 import * as assert from 'assert';
-import { logger, template } from '../../iv';
+import { logger, $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 
 describe('@unsafeInnerHTML', () => {
@@ -26,9 +26,9 @@ describe('@unsafeInnerHTML', () => {
     });
 
     it("can be set on elements", function () {
-        const tpl = template(`(tip:string) => {
+        const tpl = $template`(tip:string) => {
             <div @unsafeInnerHTML={tip}/>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render({ tip: " hi there " });
         assert.equal(stringify(t), `

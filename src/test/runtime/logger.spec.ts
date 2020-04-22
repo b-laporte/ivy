@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logger, Controller } from '../../iv';
+import { $template, logger, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate } from '../utils';
 import { IvLogger } from '../../iv/types';
 
@@ -40,13 +40,13 @@ describe('Logger', () => {
                 this.$logger.log("ABC", 123, "DEF");
             }
         }
-        const hello = template(`($:HelloCtl) => {
-            # Hello {$.name} #
-        }`);
+        const hello = $template`($:HelloCtl) => {
+            Hello {$.name}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello/>
-        }`);
+        }`;
 
         let t = getTemplate(test, body).render();
         assert.equal(error, "", "empty error");
@@ -62,20 +62,20 @@ describe('Logger', () => {
                 this.$logger.error("Sample error from the $init function");
             }
         }
-        const hello = template(`($:HelloCtl) => {
-            # Hello {$.name} #
-        }`);
+        const hello = $template`($:HelloCtl) => {
+            Hello {$.name}
+        }`;
 
-        const test = template(`() => {
+        const test = $template`() => {
             <*hello/>
-        }`);
+        }`;
 
         let t = getTemplate(test, body).render();
         assert.equal(msg, "", "empty msg");
         assert.equal(error, `\
             IVY: Sample error from the $init function
-            >> Template: "hello" - File: "runtime/logger.spec.ts"
-            >> Template: "test" - File: "runtime/logger.spec.ts"`
+            >> Template: "hello" - File: ".../runtime/logger.spec.ts"
+            >> Template: "test" - File: ".../runtime/logger.spec.ts"`
             , "1");
     });
 });

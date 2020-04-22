@@ -1,8 +1,8 @@
-import { XtrPreProcessorDictionary } from './../../xtr/parser';
+import { PreProcessorFactories } from '../compiler/types';
 import { process } from "../compiler/compiler";
 import { createFilter } from 'rollup-pluginutils';
 
-export default function ivy(opts: { include?: any; exclude?: any; preProcessors?: XtrPreProcessorDictionary } = {}) {
+export default function ivy(opts: { include?: any; exclude?: any; preProcessors?: PreProcessorFactories } = {}) {
     if (!opts.include) {
         opts.include = '**/*.ts'
     }

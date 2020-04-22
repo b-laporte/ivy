@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, API, Controller } from '../../iv';
+import { $template, API, Controller } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify } from '../utils';
 import { changeComplete } from '../../trax';
 import { IvTemplate } from '../../iv/types';
@@ -12,16 +12,16 @@ describe('Labels', () => {
     });
 
     it("should be supported on elements", async function () {
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div #main>
-                # Hello #
-                if (condition) {
-                    <div #child> # World # </div>
+                Hello
+                $if (condition) {
+                    <div #child> World </div>
                     <span #elt/>
                 }
                 <div #elt/>
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(t.query("#foo"), null, "no foo element");
@@ -52,56 +52,19 @@ describe('Labels', () => {
         assert.equal(col[1].uid, "E8", "col[1] (3)");
     });
 
-    it("should be supported on text nodes", async function () {
-        const tpl = template(`(condition=true) => {
-            <div #main>
-                # (#txt #txt1) Hello #
-                if (condition) {
-                    <div #child> # (#txt #txt2) World {42} # </div>
-                }
-            </div>
-        }`);
-
-        let t = getTemplate(tpl, body).render();
-
-        assert.equal(t.query("#txt1").innerText, " Hello ", "#txt1");
-        assert.equal(t.query("#txt2").innerText, " World 42 ", "#txt2");
-
-        let col = t.query("#txt", true)!;
-        assert.equal(col.length, 2, "2 items");
-        assert.equal(col[0].innerText, " Hello ", "col[0]");
-        assert.equal(col[1].innerText, " World 42 ", "col[1]");
-
-        t.render({ condition: false });
-        assert.equal(t.query("#txt1").innerText, " Hello ", "#txt1 (2)");
-        assert.equal(t.query("#txt2"), null, "#txt2 (2)");
-
-        col = t.query("#txt", true)!;
-        assert.equal(col.length, 1, "col.length is 1");
-        assert.equal(col[0].innerText, " Hello ", "col[0] (2)");
-
-        t.render({ condition: true });
-        assert.equal(t.query("#txt1").innerText, " Hello ", "#txt1 (3)");
-        assert.equal(t.query("#txt2").innerText, " World 42 ", "#txt2 (3)");
-        col = t.query("#txt", true) as any[];
-        assert.equal(col.length, 2, "2 items (3)");
-        assert.equal(col[0].innerText, " Hello ", "col[0] (3)");
-        assert.equal(col[1].innerText, " World 42 ", "col[1] (3)");
-    });
-
     it("should be supported on components with no content", async function () {
-        const cpt = template(`(text:string = "") => {
-            # cpt {text} #
-        }`);
+        const cpt = $template`(text:string = "") => {
+            cpt {text}
+        }`;
 
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div>
                 <*cpt #comp1 #comp text={"AAA"}/>
-                if (condition) {
+                $if (condition) {
                     <*cpt #comp2 #comp text="BBB"/>
                 }
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
@@ -169,22 +132,22 @@ describe('Labels', () => {
     });
 
     it("should be supported on components with content", async function () {
-        const cpt = template(`(text:string = "", $content:IvContent) => {\
-            # cpt {text} #
+        const cpt = $template`(text:string = "", $content:IvContent) => {\
+            cpt {text}
             <! @content/>
-        }`);
+        }`;
 
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div>
                 <*cpt #comp1 #comp text={"AAA"}>
-                    if (condition) {
+                    $if (condition) {
                         <*cpt #comp2 #comp text="BBB">
-                            # Hello #
+                            Hello
                         </>
                     }
                 </>
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
@@ -260,23 +223,23 @@ describe('Labels', () => {
             changeText: () => void;
         }
 
-        const cpt = template(`($:CptApi) => {
-            if (!$.changeText) {
-                $.changeText = () => {
+        const cpt = $template`($:CptApi) => {
+            $if (!$.changeText) {
+                $exec $.changeText = () => {
                     $.text = "CCC";
-                }
+                };
             }
-            # cpt {$.text} #
-        }`);
+            cpt {$.text}
+        }`;
 
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div>
                 <*cpt #comp1 #comp text={"AAA"}/>
-                if (condition) {
+                $if (condition) {
                     <*cpt #comp2 #comp text="BBB"/>
                 }
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
@@ -356,18 +319,18 @@ describe('Labels', () => {
             }
         }
 
-        const cpt = template(`($:CptCtl) => {
-            # cpt {$.getText()} #
-        }`);
+        const cpt = $template`($:CptCtl) => {
+            cpt {$.getText()}
+        }`;
 
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div>
                 <*cpt #comp1 #comp text={"AAA"}/>
-                if (condition) {
+                $if (condition) {
                     <*cpt #comp2 #comp text="BBB"/>
                 }
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
@@ -436,12 +399,12 @@ describe('Labels', () => {
 
     it("cannot be queried during render", function () {
         let $tpl: IvTemplate;
-        const tpl = template(`($template:IvTemplate) => {
-            $tpl = $template;
+        const tpl = $template`($template:IvTemplate) => {
+            $exec $tpl = $template;
             <div #div1>
-                # div1 can be queried: {$template.query("#div1") !== null} #
+                div1 can be queried: {$template.query("#div1") !== null}
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         assert.equal(stringify(t), `
@@ -456,60 +419,56 @@ describe('Labels', () => {
     });
 
     it("should be supported with conditional expressions", async function () {
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div #elt={!condition}>
-                # (#txt={condition}) Hello #
-                if (condition) {
-                    <div #elt> # World # </div>
+                $if (condition) {
+                    <div #elt> World </div>
                 }
                 <div #elt={condition}/>
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
-        assert.equal(t.query("#elt").uid, "E5", "E5 first");
-        assert.equal(t.query("#txt").uid, "T4", "T4");
+        assert.equal(t.query("#elt").uid, "E4", "E4 first");
 
         let col = t.query("#elt", true)!;
         assert.equal(col.length, 2, "2 elts");
-        assert.equal(col[0].uid, "E5", "col[0]");
-        assert.equal(col[1].uid, "E7", "col[1]");
+        assert.equal(col[0].uid, "E4", "col[0]");
+        assert.equal(col[1].uid, "E6", "col[1]");
 
         t.render({ condition: false });
         assert.equal(t.query("#elt").uid, "E3", "E3 first");
-        assert.equal(t.query("#txt"), null, "no T4");
 
         col = t.query("#elt", true) as any[];
         assert.equal(col.length, 1, "1 elt (2)");
         assert.equal(col[0].uid, "E3", "col[0] (2)");
 
         t.render({ condition: true });
-        assert.equal(t.query("#elt").uid, "E5", "E5 first (3)");
-        assert.equal(t.query("#txt").uid, "T4", "T4 (3)");
+        assert.equal(t.query("#elt").uid, "E4", "E4 first (3)");
 
         col = t.query("#elt", true) as any[];
         assert.equal(col.length, 2, "2 elts");
-        assert.equal(col[0].uid, "E5", "col[0]");
-        assert.equal(col[1].uid, "E7", "col[1]");
+        assert.equal(col[0].uid, "E4", "col[0]");
+        assert.equal(col[1].uid, "E6", "col[1]");
     });
 
     it("should be supported with conditional expressions and components", async function () {
-        const cpt = template(`(text:string = "", $content:IvContent) => {\
-            # cpt {text} #
+        const cpt = $template`(text:string = "", $content:IvContent) => {\
+            cpt {text}
             <! @content/>
-        }`);
+        }`;
 
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div>
                 <*cpt #comp={condition} text={"AAA"}>
-                    if (condition) {
+                    $if (condition) {
                         <*cpt #comp #comp2={condition} text="BBB">
-                            # Hello #
+                            Hello
                         </>
                     }
                 </>
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render(), col = t.query("#comp", true);
         assert.equal(t.query("#comp2")!.text, "BBB", "BBB from comp2");
@@ -531,12 +490,12 @@ describe('Labels', () => {
     });
 
     it("should be supported by union query", async function () {
-        const tpl = template(`(condition=true) => {
+        const tpl = $template`(condition=true) => {
             <div #main>
                 <div #elt1/>
                 <div #elt2/>
             </div>
-        }`);
+        }`;
 
         let t = getTemplate(tpl, body).render();
         let col = t.query("#elt1;#elt2", true)!;

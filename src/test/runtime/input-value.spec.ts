@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template, logger } from '../../iv';
+import { $template, logger } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, editElt } from '../utils';
 import { Data, changeComplete } from '../../trax';
 import { value } from '../../iv/inputs';
@@ -17,6 +17,7 @@ describe('@value', () => {
     beforeEach(() => {
         logger.error = logError;
         body = reset();
+        error = "";
     });
 
     afterEach(() => {
@@ -41,9 +42,9 @@ describe('@value', () => {
     }
 
     it("should work on text inputs", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <input #field type="text" @value={=user.firstName}/>
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -82,9 +83,9 @@ describe('@value', () => {
     });
 
     it("should work on text inputs with input events", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <input #field type="text" @value={=user.firstName}/>
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -129,9 +130,9 @@ describe('@value', () => {
         function data2input(d: any) {
             return "::" + d;
         }
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <input #field type="text" @value(data={=user.firstName} {input2data} {data2input})/>
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -170,9 +171,9 @@ describe('@value', () => {
     });
 
     it("should work on textareas", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <textarea #ta @value={=user.firstName}/>
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -214,14 +215,14 @@ describe('@value', () => {
         @Data class FormData {
             color: string;
         }
-        const tpl = template(`(data:FormData) => {
+        const tpl = $template`(data:FormData) => {
             <select #sel @value={=data.color}>
-                <option value="R"> # Red # </>
-                <option value="G"> # Green # </>
-                <option value="B"> # Blue # </>
-                <option value="W"> # White # </>
+                <option value="R"> Red </>
+                <option value="G"> Green </>
+                <option value="B"> Blue </>
+                <option value="W"> White </>
             </>
-        }`, value, FormData);
+        }`;
 
         const d = new FormData();
         d.color = "B";
@@ -298,9 +299,9 @@ describe('@value', () => {
     });
 
     it("should work on checkboxes", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <input #cb type="checkbox" @value={=user.checked}/>
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -340,9 +341,9 @@ describe('@value', () => {
     });
 
     it("should work on numbers", async function () {
-        const tpl = template(`(user:User) => {
+        const tpl = $template`(user:User) => {
             <input #field type="number" @value={=user.age}/>
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -382,11 +383,11 @@ describe('@value', () => {
     });
 
     it("should work on radio buttons", async function () {
-        const tpl = template(`(user:User) => {
-            for (let g of ["M", "F", "N"]) {
+        const tpl = $template`(user:User) => {
+            $for (let g of ["M", "F", "N"]) {
                 <input #rb type="radio" name="gender" value={g} @value={=user.gender}/>
             }
-        }`, value);
+        }`;
 
         const usr = new User();
         usr.firstName = "Homer";
@@ -435,18 +436,18 @@ describe('@value', () => {
         const usr = new User();
         usr.firstName = "Homer";
 
-        const tpl1 = template(`(user:User) => {
+        const tpl1 = $template`(user:User) => {
             <div @value={=user.firstName}>
-                # Hello #
+                Hello
             </div>
-        }`);
+        }`;
 
         getTemplate(tpl1, body).render({ user: usr });
 
         assert.equal(error, `\
             IVY: @value $init hook execution error
             @value can only be used on input, textarea and select elements
-            >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
+            >> Template: "tpl1" - File: ".../runtime/input-value.spec.ts"`
             , "1");
 
         error = "";
@@ -456,16 +457,16 @@ describe('@value', () => {
         const usr = new User();
         usr.firstName = "Homer";
 
-        const tpl1 = template(`(user:User) => {
-            <input type="button" @value={=user.firstName}/>
-        }`);
+        const tpl1 = $template`(user:User) => {
+        <input type="button" @value={=user.firstName}/>
+    }`;
 
         getTemplate(tpl1, body).render({ user: usr });
 
         assert.equal(error, `\
             IVY: @value $init hook execution error
             Invalid input type 'button': @value can only be used on types 'text', 'radio', 'checkbox', 'number', 'range'
-            >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
+            >> Template: "tpl1" - File: ".../runtime/input-value.spec.ts"`
             , "1");
 
         error = "";
@@ -475,17 +476,17 @@ describe('@value', () => {
         const usr = new User();
         usr.firstName = "Homer";
 
-        const tpl1 = template(`(user:User) => {
-            <input type="button" @value(data={=user.foobar})/>
-        }`);
+        const tpl1 = $template`(user:User) => {
+        <input type="button" @value(data={=user.foobar})/>
+    }`;
 
         getTemplate(tpl1, body).render({ user: usr });
 
         assert.equal(error, `\
             IVY: Invalid property: 'foobar'
-            >> Template: "tpl1" - File: "runtime/input-value.spec.ts"
+            >> Template: "tpl1" - File: ".../runtime/input-value.spec.ts"
             IVY: data property is required for @value
-            >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
+            >> Template: "tpl1" - File: ".../runtime/input-value.spec.ts"`
             , "1");
 
         error = "";
@@ -497,12 +498,12 @@ describe('@value', () => {
         range.max = 100;
         range.value = 42;
 
-        const tpl = template(`(range: Range) => {
+        const tpl = $template`(range: Range) => {
             <input #field type="range"
                 min={range.min}
                 max={range.max}
                 @value={=range.value}/>
-        }`, value);
+        }`;
 
         await changeComplete(range);
         const t = getTemplate(tpl, body).render({ range });
@@ -553,20 +554,19 @@ describe('@value', () => {
         const data = {
             value: 'a'
         };
-        const tpl1 = template(`() => {
+        const tpl1 = $template`() => {
             <input type="range" @value={=data.value}/>
-        }`, data);
+        }`;
 
         getTemplate(tpl1, body).render({});
 
         assert.equal(error, `\
             IVY: @value $render hook execution error
             Invalid input value 'a': value of input type range shall be an integer
-            >> Template: "tpl1" - File: "runtime/input-value.spec.ts"`
+            >> Template: "tpl1" - File: ".../runtime/input-value.spec.ts"`
             , "1");
 
         error = "";
     });
-
 
 });

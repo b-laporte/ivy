@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 import { IvEventEmitter, IvEvent, IvCancelableEventEmitter } from '../../iv/events';
-import { template, API, Controller } from '../../iv';
+import { API, Controller, $template } from '../../iv';
 import { hasProperty, Data } from '../../trax';
 
 describe('Event emitters', () => {
@@ -178,10 +178,10 @@ describe('Event emitters', () => {
             helloEmitter: IvEventEmitter;
             hiEmitter: IvCancelableEventEmitter;
         }
-        const hello = template(`($:Hello) => {
-            # Hello {$.name} #
-        }`);
-        const test = template(`() => {
+        const hello = $template`($:Hello) => {
+            Hello {$.name}
+        }`;
+        const test = $template`() => {
             <div @onclick={=>"click"}/>
             <*hello #hello 
                 name="World" 
@@ -191,7 +191,7 @@ describe('Event emitters', () => {
             <*hello #hello2 
                 name="World2" 
                 @onhello={e=>trackEvent(e)} />
-        }`, trackEvent);
+        }`;
 
         let t = getTemplate(test, body).render();
 
@@ -236,18 +236,18 @@ describe('Event emitters', () => {
         @Controller class HelloCtl {
             $api: Hello;
         }
-        const hello = template(`($:HelloCtl) => {
-            let api = $.$api
-            # Hello {api.name} #
-        }`);
-        const test = template(`() => {
+        const hello = $template`($:HelloCtl) => {
+            $let api = $.$api;
+            Hello {api.name}
+        }`;
+        const test = $template`() => {
             <div @onclick={=>"click"}/>
             <*hello #hello 
                 name="World"
                 @onhi={e=>trackEvent(e, true)}
                 @onhello={e=>trackEvent(e)}
                 @onhi={e=>trackEvent(e)} />
-        }`);
+        }`;
 
         let t = getTemplate(test, body).render();
 
@@ -291,15 +291,15 @@ describe('Event emitters', () => {
                 }
             }
         }
-        const hello = template(`($:HelloCtl) => {
-            let api = $.$api
-            # Hello {api.name} #
-        }`);
-        const test = template(`() => {
+        const hello = $template`($:HelloCtl) => {
+            $let api = $.$api;
+            Hello {api.name}
+        }`;
+        const test = $template`() => {
             <*hello #hello name="World">
                 <.header title={"Header"} @onclick={e=>trackEvent(e, true)} />
             </*hello>
-        }`);
+        }`;
 
         let t = getTemplate(test, body).render();
 

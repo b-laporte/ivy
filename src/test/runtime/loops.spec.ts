@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { template } from '../../iv';
+import { $template } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes } from '../utils';
 
 describe('Loops', () => {
@@ -10,15 +10,15 @@ describe('Loops', () => {
     });
 
     it("should work for simple elements / no keys", function () {
-        let tpl = template(`(names) => {
+        const tpl = $template`(names) => {
             <div>
-                for (let name of names) {
-                    <div> # Hello {name} # </div>
+                $for (let name of names) {
+                    <div> Hello {name} </div>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ names: ["Marge", "Homer"] });
+        const t = getTemplate(tpl, body).render({ names: ["Marge", "Homer"] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -118,16 +118,16 @@ describe('Loops', () => {
     });
 
     it("should work for simple elements / no keys (empty first)", function () {
-        let tpl = template(`(names) => {
+        const tpl = $template`(names) => {
             <div>
-                for (let name of names || []) {
-                    <div> # Hello {name} # </div>
+                $for (let name of names || []) {
+                    <div> Hello {name} </div>
                 }
-                # last #
+                last
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ names: undefined });
+        const t = getTemplate(tpl, body).render({ names: undefined });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -210,14 +210,14 @@ describe('Loops', () => {
     });
 
     it("should work on root with multiple content", function () {
-        let tpl = template(`(names) => {
-            for (let name of names || []) {
-                # Hello {name.first} #
-                <div> # Last Name: {name.last} # </div>
+        const tpl = $template`(names) => {
+            $for (let name of names || []) {
+                Hello {name.first}
+                <div> Last Name: {name.last} </div>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        const t = getTemplate(tpl, body).render({ names: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 #::T3 Hello Homer #
@@ -271,17 +271,17 @@ describe('Loops', () => {
     });
 
     it("should work with conditional child blocks", function () {
-        let tpl = template(`(visible, list) => {
-            for (let item of list) {
+        const tpl = $template`(visible, list) => {
+            $for (let item of list) {
                 <div>
-                    if (item.first) {
-                        # First name: {item.first} #
+                    $if (item.first) {
+                        First name: {item.first}
                     }
                 </div>
             }
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        const t = getTemplate(tpl, body).render({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -296,24 +296,24 @@ describe('Loops', () => {
     });
 
     it("should work with conditional parent blocks (init false)", function () {
-        const tpl = template(`(visible, list) => {
+        const tpl = $template`(visible, list) => {
             <div>
-                if (visible) {
+                $if (visible) {
                     <div>
                         <div>
-                            # First #
+                            First
                         </div>
-                        for (let item of list) {
+                        $for (let item of list) {
                             <div>
-                                # {item.first} #
+                                {item.first}
                             </div>
                         }
                     </div>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ visible: false, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        const t = getTemplate(tpl, body).render({ visible: false, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3/>
@@ -368,24 +368,24 @@ describe('Loops', () => {
     });
 
     it("should work with conditional parent blocks (init true)", function () {
-        const tpl = template(`(visible, list) => {
+        const tpl = $template`(visible, list) => {
             <div>
-                if (visible) {
+                $if (visible) {
                     <div>
                         <div>
-                            # First #
+                            First
                         </div>
-                        for (let item of list) {
+                        $for (let item of list) {
                             <div>
-                                # {item.first} #
+                                {item.first}
                             </div>
                         }
                     </div>
                 }
             </div>
-        }`);
+        }`;
 
-        let t = getTemplate(tpl, body).render({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
+        const t = getTemplate(tpl, body).render({ visible: true, list: [{ first: "Homer", last: "Simpson" }, { first: "Mickey", last: "Mouse" }] });
         assert.equal(stringify(t), `
             <body::E1>
                 <div::E3>
@@ -432,17 +432,17 @@ describe('Loops', () => {
     });
 
     it("should work with if/else child blocks", function () {
-        const tpl = template(`(list, count=0) => {
+        const tpl = $template`(list, count=0) => {
             <div class="main">
-                for (let item of list) {
-                    if (item.special) {
-                        <div class="special"> # {item.name} # </>
+                $for (let item of list) {
+                    $if (item.special) {
+                        <div class="special"> {item.name} </>
                     } else {
-                        <span> # {item.name} # </>
+                        <span> {item.name} </>
                     }
                 }
             </>
-        }`);
+        }`;
 
         let list: { name: string, special?: boolean }[] = [{ name: "Homer" }, { name: "Marge" }, { name: "Bart" }];
         const t = getTemplate(tpl, body).render({ list });
@@ -545,19 +545,19 @@ describe('Loops', () => {
     });
 
     it("should work with if/if/else child blocks", function () {
-        const tpl = template(`(list, escapeName="", count=0) => {
+        const tpl = $template`(list, escapeName="", count=0) => {
             <div class="main">
-                for (let item of list) {
-                    if (item.name!==escapeName) {
-                        if (item.special) {
-                            <div class="special"> # {item.name} # </>
+                $for (let item of list) {
+                    $if (item.name!==escapeName) {
+                        $if (item.special) {
+                            <div class="special"> {item.name} </>
                         } else {
-                            <span> # {item.name} # </>
+                            <span> {item.name} </>
                         }
                     }
                 }
             </>
-        }`);
+        }`;
 
         let list: { name: string, special?: boolean }[] = [{ name: "Homer" }, { name: "Marge" }, { name: "Bart" }, { name: "Lisa" }];
         const t = getTemplate(tpl, body).render({ list });
@@ -643,17 +643,17 @@ describe('Loops', () => {
     });
 
     it("should work with *cpt child blocks", function () {
-        const item = template(`(name) => {
-            <div> # {name} # </>
-        }`);
+        const item = $template`(name) => {
+            <div> {name} </>
+        }`;
 
-        const tpl = template(`(list) => {
+        const tpl = $template`(list) => {
             <div class="main">
-                for (let name of list) {
+                $for (let name of list) {
                     <*item {name}/>
                 }
             </>
-        }`);
+        }`;
 
         const t = getTemplate(tpl, body).render({ list: ["Homer", "Marge", "Bart"] });
 

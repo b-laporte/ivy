@@ -21,8 +21,10 @@ export interface CompilationOptions {
     importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
     lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
     columnOffset?: number;              // shift error column number on the first template line
-    preProcessors?: { [name: string]: () => XjsPreProcessor };
+    preProcessors?: PreProcessorFactories;
 }
+
+export type PreProcessorFactories = { [name: string]: () => XjsPreProcessor };
 
 export interface CompilationResult {
     body?: string;                      // template function body

@@ -12,14 +12,14 @@
         "cp-tests": "yarn build && yarn mocha -r ts-node/register src/test/*.spec.ts --reporter dot",
         "wp-tests": "webpack --config-name mocha && yarn mocha dist/mocha.specs.js --reporter dot",
         "samples": "webpack --config-name samples",
-        "plugin": "rollup --config rollup.config.js",
+        "plugins": "rollup --config rollup.config.js",
         "doc": "rm -rf public/*.js && rollup --config src/doc/rollup.config.js",
         "doc-watch": "rollup --config src/doc/rollup.config.js -w",
         "doc-dev": "rm -rf public/*.js && npm-run-all --parallel serve-public doc-watch",
         "serve-public": "serve public",
         "doc-samples": "rollup --config src/doc/examples/rollup.config.js",
         "clean": "rm -rf bin/ && rm -rf dist/ && rm -rf public/",
-        "build-all": "yarn clean && yarn plugin && yarn test && yarn doc && yarn doc-samples"
+        "build-all": "yarn clean && yarn plugins && yarn test && yarn doc && yarn doc-samples"
     },
     "license": "Apache-2.0",
     "bugs": {},
@@ -36,6 +36,7 @@
         "rollup-plugin-terser": "^5.1.2",
         "rollup-plugin-typescript2": "^0.25.2",
         "rollup-pluginutils": "^2.8.2",
+        "rollup-plugin-json": "^4.0.0",
         "serve": "^11.3.0",
         "ts-loader": "^6.2.0",
         "ts-node": "^8.4.1",
@@ -43,10 +44,10 @@
         "typescript": "^3.5.2",
         "vscode-textmate": "^4.2.2",
         "webpack": "^4.41.5",
-        "webpack-cli": "^3.3.9"
+        "webpack-cli": "^3.3.9",
+        "marked": "^0.8.2"
     },
     "dependencies": {
-        "cypress": "^3.8.3",
         "tslib": "^1.10.0",
         "typescript": "^3.5.2"
     }

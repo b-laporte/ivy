@@ -1,9 +1,10 @@
-import { xtr } from '../../xtr/xtr';
+import { $template } from '../../iv';
+import w from '../widgets';
 
-const hello = xtr`
+const hello = $template`() => {
     <div class="text">
         <h1> Hello World </>
-        <*notions>
+        <*w.notions>
             <.notion name="XJS template functions"> XJS basics: template, elements and text nodes </>
             <.notion name="template arguments"> create template parameters </>
             <.notion name="template instantiation"> create and render a template instance </>
@@ -13,25 +14,25 @@ const hello = xtr`
             ...
         </>
     </>
-    <*code @@extract="hello/hello.ts#all" indicators="top;bottom"/>
+    <*w.code @@extract="hello/hello.ts#all" indicators="top;bottom"/>
     <div class="text">
         <p>
             ....
         </>
     </>
-    <*code @@extract="hello/pseudocode.ts#mental-model"/>
+    <*w.code @@extract="hello/pseudocode.ts#mental-model"/>
     <div class="text">
         <p>
             ....
         </>
     </>
-    <*code @@extract="hello/generated.ts#all"/>
-`;
+    <*w.code @@extract="hello/generated.ts#all"/>
+}`;
 
-const expressions = xtr`
+const expressions = $template`() => {
     <div class="text">
         <h1> Expressions & properties </>
-        <*notions>
+        <*w.notions>
             <.notion name="binding expressions"> bind JS values to DOM elements and text nodes </>
             <.notion name="attributes vs. properties"> target DOM attributes or properties </>
             <.notion name="setting or removing attributes"> e.g. to enable or disable an input or button </>
@@ -42,31 +43,31 @@ const expressions = xtr`
             ....
         </>
     </div>
-    <*code @@extract="expressions/expressions.ts#template"/>
+    <*w.code @@extract="expressions/expressions.ts#template"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="expressions/expressions.ts#process-function"/>
+    <*w.code @@extract="expressions/expressions.ts#process-function"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="expressions/expressions.ts#instantiation"/>
+    <*w.code @@extract="expressions/expressions.ts#instantiation"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="expressions/expressions.ts#update"/>
-`;
+    <*w.code @@extract="expressions/expressions.ts#update"/>
+}`;
 
-const subTemplates = xtr`
+const subTemplates = $template`() => {
     <div class="text">
         <h1> Sub-templates </>
-        <*notions>
+        <*w.notions>
             <.notion name="sub-templates"> calling a template from another template </>
             <.notion name="arguments default values"> to specify the default value of a template parameter</>
         </>
@@ -74,31 +75,31 @@ const subTemplates = xtr`
             ...
         </>
     </div>
-    <*code @@extract="subtemplates/subtemplates.ts#main"/>
+    <*w.code @@extract="subtemplates/subtemplates.ts#main"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="subtemplates/subtemplates.ts#greet"/>
+    <*w.code @@extract="subtemplates/subtemplates.ts#greet"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="subtemplates/subtemplates.ts#text"/>
+    <*w.code @@extract="subtemplates/subtemplates.ts#text"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="subtemplates/subtemplates.ts#instantiation"/>
-`;
+    <*w.code @@extract="subtemplates/subtemplates.ts#instantiation"/>
+}`;
 
-const loops = xtr`
+const loops = $template`() => {
     <div class="text">
         <h1> Variables, loops and conditions </>
-        <*notions>
+        <*w.notions>
             <.notion name="JS statements"> using js statements to control template rendering output </>
             <.notion name="array arguments naming convention"> e.g. xxxList </> 
             <.notion name="debugging"> with console.log(...) or debugger statements </> 
@@ -107,25 +108,25 @@ const loops = xtr`
             Presentation...
         </>
     </div>
-    <*code @@extract="loops/loops.ts#loop"/>
+    <*w.code @@extract="loops/loops.ts#loop"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="loops/loops.ts#condition"/>
+    <*w.code @@extract="loops/loops.ts#condition"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="loops/loops.ts#instantiation"/>
-`;
+    <*w.code @@extract="loops/loops.ts#instantiation"/>
+}`;
 
-const events = xtr`
+const events = $template`() => {
     <div class="text">
         <h1> Event handlers </>
-        <*notions>
+        <*w.notions>
             <.notion name="XJS decorators"> to implement specific logic on an XJS element </>
             <.notion name="event handlers"> to trigger actions on DOM events </>
             <.notion name="function expressions"> to pass a function as an expression value </>
@@ -136,50 +137,50 @@ const events = xtr`
             Presentation...
         </>
     </div>
-    <*code @@extract="events/events.ts#counter"/>
+    <*w.code @@extract="events/events.ts#counter"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="events/events.ts#handleKey"/>
+    <*w.code @@extract="events/events.ts#handleKey"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="events/events.ts#resetCounter"/>
+    <*w.code @@extract="events/events.ts#resetCounter"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="events/events.ts#instantiation"/>
-`;
+    <*w.code @@extract="events/events.ts#instantiation"/>
+}`;
 
-const pages = xtr`
+const pages = $template`() => {
     <div class="text">
         <h1> Dynamic template references </>
-        <*notions>
+        <*w.notions>
             <.notion name="Using dynamic component references"> to implement some kind of visual navigation </>
         </>
         <p>
             Presentation...
         </>
     </div>
-    <*code @@extract="pages/pages.ts#main"/>
+    <*w.code @@extract="pages/pages.ts#main"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="pages/pages.ts#pages"/>
-`;
+    <*w.code @@extract="pages/pages.ts#pages"/>
+}`;
 
-const section = xtr`
+const section = $template`() => {
     <div class="text">
         <h1> Templates with content elements </>
-        <*notions>
+        <*w.notions>
             <.notion name="container templates"> i.e. template that accept content as argument </>
             <.notion name="@content decorator"> to re-inject some content passed as argument </>
             <.notion name="XJS fragment nodes"> to group XJS nodes without creating any DOM container elements </>
@@ -190,66 +191,66 @@ const section = xtr`
             Presentation... 
         </>
     </div>
-    <*code @@extract="section/section.ts#groups"/>
+    <*w.code @@extract="section/section.ts#groups"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="section/section.ts#group"/>
+    <*w.code @@extract="section/section.ts#group"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="section/section.ts#sections"/>
+    <*w.code @@extract="section/section.ts#sections"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="section/section.ts#section"/>
+    <*w.code @@extract="section/section.ts#section"/>
     <div class="text">
         <p>
             ...
         </>
     </div>
-    <*code @@extract="section/section.ts#instantiation"/>
-`;
+    <*w.code @@extract="section/section.ts#instantiation"/>
+}`;
 
-const clock = xtr`
+const clock = $template`() => {
     <div class="text">
         <h1> SVG clock </>
-        <*notions>
+        <*w.notions>
             <.notion name="SVG"> as any other HTML elements </>
             <.notion name="$dispose"> life cycle hook </>
         </>
     </div>
-    <*code @@extract="clock/clock.ts#controller"/>
+    <*w.code @@extract="clock/clock.ts#controller"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="clock/clock.ts#clock-template"/>
+    <*w.code @@extract="clock/clock.ts#clock-template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="clock/clock.ts#hand-template"/>
+    <*w.code @@extract="clock/clock.ts#hand-template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="clock/clock.ts#instantiation"/>
-`;
+    <*w.code @@extract="clock/clock.ts#instantiation"/>
+}`;
 
-const trax1 = xtr`
+const trax1 = $template`() => {
     <div class="text">
         <h1> Trax Data Objects </>
-        <*notions>
+        <*w.notions>
             <.notion name="trax objects"> to define data objects that can be tracked/watched </>
             <.notion name="watch / unwatch"> to be asynchronously called when an object has changed </>
             <.notion name="object version"> to follow a trax object life cycle </>
@@ -258,43 +259,43 @@ const trax1 = xtr`
             Presentation...
         </>
     </>
-    <*code @@extract="trax1/trax1.ts#definition"/>
+    <*w.code @@extract="trax1/trax1.ts#definition"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax1/trax1.ts#import"/>
+    <*w.code @@extract="trax1/trax1.ts#import"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax1/trax1.ts#init"/>
+    <*w.code @@extract="trax1/trax1.ts#init"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax1/trax1.ts#update"/>
+    <*w.code @@extract="trax1/trax1.ts#update"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax1/trax1.ts#watch-buttons"/>
+    <*w.code @@extract="trax1/trax1.ts#watch-buttons"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax1/trax1.ts#display-functions"/>
-`;
+    <*w.code @@extract="trax1/trax1.ts#display-functions"/>
+}`;
 
-const trax2 = xtr`
+const trax2 = $template`() => {
     <div class="text">
         <h1> Trax Directed Acyclic Graphs </>
-        <*notions>
+        <*w.notions>
             <.notion name="connected trax objects"> to defined a DAG of data objects </>
             <.notion name="change propagation"> to track changes in the child hierarchy </>
         </>
@@ -302,38 +303,38 @@ const trax2 = xtr`
             Presentation...
         </>
     </>
-    <*code @@extract="trax2/trax2.ts#definition"/>
+    <*w.code @@extract="trax2/trax2.ts#definition"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax2/trax2.ts#init"/>
+    <*w.code @@extract="trax2/trax2.ts#init"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax2/trax2.ts#watch"/>
-    <*code @@extract="trax2/trax2.ts#unwatch" indicators=""/>
+    <*w.code @@extract="trax2/trax2.ts#watch"/>
+    <*w.code @@extract="trax2/trax2.ts#unwatch" indicators=""/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax2/trax2.ts#update-functions"/>
+    <*w.code @@extract="trax2/trax2.ts#update-functions"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="trax2/trax2.ts#display-functions"/>
-`;
+    <*w.code @@extract="trax2/trax2.ts#display-functions"/>
+}`;
 
-const menu1 = xtr`
+const menu1 = $template`() => {
     <div class="text">
         <h1> Multi-content templates </>
-        <*notions>
+        <*w.notions>
             <.notion name="explicit API type"> to define the template api as a trax object </>
             <.notion name="@API decorator"> to specify API (trax) classes </>
             <.notion name="param nodes"> to specify rich hierarchy of content parameters </>
@@ -342,429 +343,429 @@ const menu1 = xtr`
             [...]
         </>
     </>
-    <*code @@extract="menu1/menu1.ts#main"/>
+    <*w.code @@extract="menu1/menu1.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="menu1/menu1.ts#data-definition"/>
+    <*w.code @@extract="menu1/menu1.ts#data-definition"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="menu1/menu1.ts#menu"/>
-`;
+    <*w.code @@extract="menu1/menu1.ts#menu"/>
+}`;
 
-const menu2 = xtr`
+const menu2 = $template`() => {
     <div class="text">
         <h1> Custom events </>
-        <*notions>
+        <*w.notions>
             <.notion name="IvEventEmitter"> to define custom events that can be caught through standard @onXXX decorators </>
         </>
         <p>
             ...
         </>
     </>
-    <*code @@extract="menu2/menu2.ts#main"/>
+    <*w.code @@extract="menu2/menu2.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="menu2/menu2.ts#menu"/>
-`;
+    <*w.code @@extract="menu2/menu2.ts#menu"/>
+}`;
 
-const controller1 = xtr`
+const controller1 = $template`() => {
     <div class="text">
         <h1> Template controllers & APIs </>
-        <*notions>
+        <*w.notions>
             <.notion name="@Controller"> to define private state and methods associated to a template </>
             <.notion name="$api property"> to define the public api associated to a controller </>
         </>
         ...
     </>
-    <*code @@extract="controller1/controller1.ts#main"/>
+    <*w.code @@extract="controller1/controller1.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="controller1/keypad.ts#data-definition"/>
+    <*w.code @@extract="controller1/keypad.ts#data-definition"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="controller1/keypad.ts#controller"/>
+    <*w.code @@extract="controller1/keypad.ts#controller"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="controller1/keypad.ts#template"/>
+    <*w.code @@extract="controller1/keypad.ts#template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const controller2 = xtr`
+const controller2 = $template`() => {
     <div class="text">
         <h1> I/O params </>
-        <*notions>
+        <*w.notions>
             <.notion name="@io params"> to define params that are both input and output </>
-            <.notion name="2-way biding expressions"> e.g. {=x.y} </>
+            <.notion name="2-way biding expressions"> e.g. !{=x.y!} </>
             <.notion name="setting or removing attributes"> e.g. to enable or disable an input or button </>
         </>
         ...
     </>
-    <*code @@extract="controller2/controller2.ts#main"/>
+    <*w.code @@extract="controller2/controller2.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="controller2/keypad.ts#controller"/>
+    <*w.code @@extract="controller2/keypad.ts#controller"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="controller2/keypad.ts#template"/>
+    <*w.code @@extract="controller2/keypad.ts#template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const photos = xtr`
+const photos = $template`() => {
     <div class="text">
         <h1> Life-cycle hooks </>
-        <*notions>
+        <*w.notions>
             <.notion name="life-cycle hooks"> to define specific hooks on the template controller </>
             <.notion name="$init hook"> to perform some initialization when all parameters are defined </>
         </>
     </>
-    <*code @@extract="photos/photos.ts#main"/>
+    <*w.code @@extract="photos/photos.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="photos/photos.ts#controller"/>
+    <*w.code @@extract="photos/photos.ts#controller"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="photos/photos.ts#template"/>
+    <*w.code @@extract="photos/photos.ts#template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const tabs = xtr`
+const tabs = $template`() => {
     <div class="text">
         <h1> Parameter nodes lazy loading </>
-        <*notions>
+        <*w.notions>
             <.notion name="content lazy loading"> to avoid heavy processing in unused $content and parameter nodes </>
             <.notion name="$beforeRender & $afterRender hooks"> to perform some processing before / after render </>
         </>
     </>
-    <*code @@extract="tabs/tabs.ts#main"/>
+    <*w.code @@extract="tabs/tabs.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="tabs/tabs.ts#heavyComponent"/>
+    <*w.code @@extract="tabs/tabs.ts#heavyComponent"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="tabs/tabset.ts#controller"/>
+    <*w.code @@extract="tabs/tabset.ts#controller"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="tabs/tabset.ts#template"/>
-`;
+    <*w.code @@extract="tabs/tabset.ts#template"/>
+}`;
 
-const labels1 = xtr`
+const labels1 = $template`() => {
     <div class="text">
         <h1> Labels </>
-        <*notions>
+        <*w.notions>
             <.notion name="#labels"> as a mean to get a reference to dom elements </>
             <.notion name="query() method"> to retrieve template elements that have been rendered </>
         </>
     </>
-    <*code @@extract="labels1/labels1.ts#main"/>
+    <*w.code @@extract="labels1/labels1.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels1/labels1.ts#focusTitle"/>
+    <*w.code @@extract="labels1/labels1.ts#focusTitle"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels1/labels1.ts#focus3rd"/>
+    <*w.code @@extract="labels1/labels1.ts#focus3rd"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels1/labels1.ts#focusNext"/>
-`;
+    <*w.code @@extract="labels1/labels1.ts#focusNext"/>
+}`;
 
-const labels2 = xtr`
+const labels2 = $template`() => {
     <div class="text">
-        <h1> $template injection </>
-        <*notions>
+        <h1> !$template injection </>
+        <*w.notions>
             <.notion name="$template injection"> to access the IvTemplate API in the rendering function or in the template controller </>
             <.notion name="query() from controller methods"/>
         </>
     </>
-    <*code @@extract="labels2/labels2.ts#main"/>
+    <*w.code @@extract="labels2/labels2.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels2/labels2.ts#template"/>
+    <*w.code @@extract="labels2/labels2.ts#template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels2/labels2.ts#controller"/>
-`;
+    <*w.code @@extract="labels2/labels2.ts#controller"/>
+}`;
 
-const labels3 = xtr`
+const labels3 = $template`() => {
     <div class="text">
         <h1> Component API methods </>
-        <*notions>
+        <*w.notions>
             <.notion name="API methods"> to expose public methods to component callers </>
             <.notion name="#labels on components"> to retrieve a component's api </>
         </>
     </>
-    <*code @@extract="labels3/labels3.ts#main"/>
+    <*w.code @@extract="labels3/labels3.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels3/labels3.ts#actions"/>
+    <*w.code @@extract="labels3/labels3.ts#actions"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="labels3/labels3.ts#item-component"/>
-`;
+    <*w.code @@extract="labels3/labels3.ts#item-component"/>
+}`;
 
-const forms1 = xtr`
+const forms1 = $template`() => {
     <div class="text">
         <h1> Input bindings </>
-        <*notions>
+        <*w.notions>
             <.notion name="@value decorator"> to bind input and textareas to data models </>
             <.notion name="template uid"> to create unique ids/labels </>
         </>
     </>
-    <*code @@extract="forms1/forms1.ts#data-model"/>
+    <*w.code @@extract="forms1/forms1.ts#data-model"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms1/forms1.ts#form"/>
+    <*w.code @@extract="forms1/forms1.ts#form"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms1/forms1.ts#value-import"/>
+    <*w.code @@extract="forms1/forms1.ts#value-import"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms1/forms1.ts#main"/>
+    <*w.code @@extract="forms1/forms1.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const forms2 = xtr`
+const forms2 = $template`() => {
     <div class="text">
         <h1> Input binding options </>
-        <*notions>
+        <*w.notions>
             <.notion name="@value debounce parameter"> to delay change events and prevent bursting </>
             <.notion name="@value events"> to specify which events should be used (on top of "change") </>
         </>
     </>
-    <*code @@extract="forms2/forms2.ts#form"/>
+    <*w.code @@extract="forms2/forms2.ts#form"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms2/forms2.ts#options"/>
+    <*w.code @@extract="forms2/forms2.ts#options"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms2/forms2.ts#options-editor"/>
+    <*w.code @@extract="forms2/forms2.ts#options-editor"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const forms3 = xtr`
+const forms3 = $template`() => {
     <div class="text">
         <h1> Input bindings data conversion </>
-        <*notions>
+        <*w.notions>
             <.notion name="@value input2data & data2input"> to convert data between input and data model </>
         </>
     </>
-    <*code @@extract="forms3/forms3.ts#data-model"/>
+    <*w.code @@extract="forms3/forms3.ts#data-model"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms3/forms3.ts#template"/>
+    <*w.code @@extract="forms3/forms3.ts#template"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="forms3/forms3.ts#conversions"/>
+    <*w.code @@extract="forms3/forms3.ts#conversions"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const select = xtr`
+const select = $template`() => {
     <div class="text">
         <h1> Textarea and Select </>
-        <*notions>
+        <*w.notions>
             <.notion name="@value for textarea and select elements"/>
         </>
     </>
-    <*code @@extract="select/select.ts#main"/>
-`;
+    <*w.code @@extract="select/select.ts#main"/>
+}`;
 
-const innerHTML = xtr`
+const innerHTML = $template`() => {
     <div class="text">
         <h1> Unsafe InnerHTML </>
-        <*notions>
+        <*w.notions>
             <.notion name="@unsafeInnerHTML"> to (unsafely) inject an html string into an element </>
         </>
     </>
-    <*code @@extract="innerHTML/innerHTML.ts#main"/>
+    <*w.code @@extract="innerHTML/innerHTML.ts#main"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-    <*code @@extract="innerHTML/innerHTML.ts#innerHTML-import"/>
+    <*w.code @@extract="innerHTML/innerHTML.ts#innerHTML-import"/>
     <div class="text">
         <p>
             Some comment
         </>
     </div>
-`;
+}`;
 
-const xtr1 = xtr`
-    <div class="text">
-        <h1> XTR strings </>
-        <*notions>
-            <.notion name="XTR strings"> to define safe HTML fragments that can be dynamically downloaded & rendered </>
-            <.notion name="@xtrContent"> to safely inject XTR content in an element </>
-            <.notion name="@xtrContent resolver"> to specify which references are accessible to XTR fragments </>
-        </>
-    </>
-    <*code @@extract="xtr1/xtr1.ts#main"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-    <*code @@extract="xtr1/xtr1.ts#xtr-import"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-    <*code @@extract="xtr1/xtr1.ts#resolver"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-    <*code @@extract="xtr1/xtr1.ts#template"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-`;
+// const xtr1 = $template`() => {
+//     <div class="text">
+//         <h1> XTR strings </>
+//         <*w.notions>
+//             <.notion name="XTR strings"> to define safe HTML fragments that can be dynamically downloaded & rendered </>
+//             <.notion name="@xtrContent"> to safely inject XTR content in an element </>
+//             <.notion name="@xtrContent resolver"> to specify which references are accessible to XTR fragments </>
+//         </>
+//     </>
+//     <*w.code @@extract="xtr1/xtr1.ts#main"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+//     <*w.code @@extract="xtr1/xtr1.ts#xtr-import"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+//     <*w.code @@extract="xtr1/xtr1.ts#resolver"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+//     <*w.code @@extract="xtr1/xtr1.ts#template"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+// }`;
 
-const xtr2 = xtr`
-    <div class="text">
-        <h1> Static XTR strings </>
-        <*notions>
-            <.notion name="static XTR strings"> that are validated and pre-processed at compile time </>
-            <.notion name="XTR special characters" />
-            <.notion name="XTR cdata sections"/>
-        </>
-    </>
-    <*code @@extract="xtr2/xtr2.ts#content"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-    <*code @@extract="xtr2/xtr2.ts#xtr-import"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-    <*code @@extract="xtr2/xtr2.ts#main"/>
-    <div class="text">
-        <p>
-            Some comment
-        </>
-    </div>
-`;
+// const xtr2 = $template`() => {
+//     <div class="text">
+//         <h1> Static XTR strings </>
+//         <*w.notions>
+//             <.notion name="static XTR strings"> that are validated and pre-processed at compile time </>
+//             <.notion name="XTR special characters" />
+//             <.notion name="XTR cdata sections"/>
+//         </>
+//     </>
+//     <*w.code @@extract="xtr2/xtr2.ts#content"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+//     <*w.code @@extract="xtr2/xtr2.ts#xtr-import"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+//     <*w.code @@extract="xtr2/xtr2.ts#main"/>
+//     <div class="text">
+//         <p>
+//             Some comment
+//         </>
+//     </div>
+// }`;
 
-const todo = xtr`
+const todo = $template`() => {
     <div class="text">
         <h1> Under Construction </>
         <p>
             [...]
         </>
     </>
-`;
+}`;
 
 export default {
     categories: [{
@@ -829,15 +830,17 @@ export default {
         }, {
             title: "textarea & select", code: "select", content: select
         }]
-    }, {
-        title: "dynamic content",
-        code: "content",
-        items: [{
-            title: "innerHTML", code: "innerHTML", content: innerHTML
-        }, {
-            title: "xtr strings", code: "xtr1", content: xtr1
-        }, {
-            title: "static xtr strings", code: "xtr2", content: xtr2
-        }]
-    }]
+    }
+    // , {
+    //     title: "dynamic content",
+    //     code: "content",
+    //     items: [{
+    //         title: "innerHTML", code: "innerHTML", content: innerHTML
+    //     }, {
+    //         title: "xtr strings", code: "xtr1", content: xtr1
+    //     }, {
+    //         title: "static xtr strings", code: "xtr2", content: xtr2
+    //     }]
+    // }
+    ]
 }

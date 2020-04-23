@@ -256,11 +256,6 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
         addSlice("", source.substring(importStart, importEnd)); // "" will be replaced after the template processing
         pos = importEnd;
 
-        let paths = filePath.split(/\/|\\/);
-        if (paths.length > 2) {
-            filePath = ".../" + paths[paths.length - 2] + "/" + paths[paths.length - 1];
-        }
-
         // manage templates
         let len = changes.length, chg: any, lastSlice: string, colOffset: number, tplName = "";
 

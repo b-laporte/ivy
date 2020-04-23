@@ -7,6 +7,7 @@ type BodyContent = string | XjsExpression | XjsJsStatement | XjsJsBlock;
 
 const U = undefined,
     RX_DOUBLE_QUOTE = /\"/g,
+    RX_BACKSLASH = /\\/g,
     RX_START_CR = /^\n*/,
     RX_CR = /\n/g,
     RX_LOG = /\/\/\s*log\s*/,
@@ -122,6 +123,7 @@ export class GenerationCtxt {
     indentIncrement = "    ";
     templateName = "";
     filePath = "";
+    errorPath = "";
     imports: { [key: string]: 1 };      // map of required imports
     statics: string[] = [];             // list of static resources
     localVars = {};                     // map of creation mode vars
@@ -135,6 +137,7 @@ export class GenerationCtxt {
         this.imports = options.importMap || {};
         this.templateName = options.templateName.replace(RX_DOUBLE_QUOTE, "");
         this.filePath = options.filePath.replace(RX_DOUBLE_QUOTE, "");
+        this.errorPath = validator.getShortPath(this.filePath);
     }
 
     error(msg: string, nd: XjsNode) {
@@ -162,8 +165,7 @@ enum ContainerType {
 }
 
 function encodeText(t: string) {
-    // todo replace double \\ with single \
-    return '"' + t.replace(RX_DOUBLE_QUOTE, '\\"').replace(RX_CR, "\\n") + '"';
+    return '"' + t.replace(RX_BACKSLASH, "\\\\").replace(RX_DOUBLE_QUOTE, '\\"').replace(RX_CR, "\\n") + '"';
 }
 
 
@@ -246,7 +248,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
             argNames += ", $template";
         }
     }
-    lines.push(`${indent}return ζt("${gc.templateName}", "${gc.filePath}", ζs0, function (ζ${argNames}) {`);
+    lines.push(`${indent}return ζt("${gc.templateName}", "${gc.errorPath}", ζs0, function (ζ${argNames}) {`);
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }

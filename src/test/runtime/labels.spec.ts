@@ -132,7 +132,7 @@ describe('Labels', () => {
     });
 
     it("should be supported on components with content", async function () {
-        const cpt = $template`(text:string = "", $content:IvContent) => {\
+        const cpt = $template`(text:string = "", $content:IvContent) => {
             cpt {text}
             <! @content/>
         }`;

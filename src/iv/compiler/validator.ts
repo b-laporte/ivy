@@ -171,7 +171,17 @@ export const validator = {
 
     },
 
+    getShortPath(filePath: string) {
+        let paths = filePath.split(/\/|\\/);
+        if (paths.length > 2) {
+            filePath = ".../" + paths[paths.length - 2] + "/" + paths[paths.length - 1];
+        }
+        return filePath;
+    },
+
     throwError(msg: string, pos: number, source: string, filePath: string, origin = "IVY", lineOffset = 0, colOffset = 0) {
+        filePath = this.getShortPath(filePath);
+
         const info = this.getLineInfo(source, pos),
             e = {
                 kind: "#Error",
@@ -217,7 +227,7 @@ export const validator = {
         }
     },
 
-    nodeName(kind:string) {
+    nodeName(kind: string) {
         return NODE_NAMES[kind] || kind;
     }
 }

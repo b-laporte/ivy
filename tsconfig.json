@@ -30,7 +30,8 @@
     "include": [
         "src/iv",
         "src/test",
-        "src/samples"
+        "src/samples",
+        "src/doc"
     ],
     "exclude": [
         "src/samples/search"

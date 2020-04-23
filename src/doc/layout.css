@@ -340,7 +340,7 @@ div.home {
         width: 670px;
     }
 
-    .extract.ts {
+    .extract.ts_code {
         width: 870px;
     }
 }
@@ -362,7 +362,7 @@ div.home {
     fill: #1670C5;
 }
 
-.extract.ts {
+.extract.ts_code {
     font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
     font-weight: 400;
     line-height: 1.3rem;
@@ -370,63 +370,63 @@ div.home {
     overflow-y: scroll;
 }
 
-.extract.ts .hc {
+.extract.ts_code .hc {
     /* comments */
     color: rgb(125, 159, 191);
 }
 
-.extract.ts .hr {
+.extract.ts_code .hr {
     /* storage: const, let, => */
     color: rgb(243, 162, 250);
 }
 
-.extract.ts .hs {
+.extract.ts_code .hs {
     /* strings */
     color: rgb(245, 189, 120);
 }
 
-.extract.ts .hf {
+.extract.ts_code .hf {
     /* function */
     color: rgb(255, 236, 129);
 }
 
-.extract.ts .hk {
+.extract.ts_code .hk {
     /* keywords */
     color: rgb(250, 165, 85);
 }
 
-.extract.ts .hn {
+.extract.ts_code .hn {
     /* constants */
     color: rgb(255, 236, 129);
 }
 
-.extract.ts .hv {
+.extract.ts_code .hv {
     /* variable */
     color: rgb(150, 255, 129);
 }
 
-.extract.ts .ht {
+.extract.ts_code .ht {
     /* types */
     color: rgb(199, 225, 254);
 }
 
-.extract.ts .hy {
+.extract.ts_code .hy {
     /* types */
     color: rgb(199, 225, 254);
 }
 
-.extract.ts .hg {
+.extract.ts_code .hg {
     /* tags */
     color: rgb(243, 162, 250);
     font-weight: bold;
 }
 
-.extract.ts .ho {
+.extract.ts_code .ho {
     /* entity.other - eg. tag attributes */
     color: rgb(199, 225, 254);
 }
 
-.extract.ts .hp {
+.extract.ts_code .hp {
     /* punctuation */
     color: rgb(125, 159, 191);
 }

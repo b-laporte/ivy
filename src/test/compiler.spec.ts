@@ -209,7 +209,7 @@ describe('Template compiler', () => {
         }
         assert.equal(formatError(err, 2), `
             XJS: Invalid element: Unexpected characters '};' instead of '</'
-            File: .../b/c.ts - Line 5 / Col 17
+            File: a/b/c.ts - Line 5 / Col 17
             Extract: >> }; <<
         `, '1');
 

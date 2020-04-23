@@ -2154,5 +2154,16 @@ describe('Code generator', () => {
         `, '4');
     });
 
+    it("should properly support \\ in text nodes", async function () {
+        assert.equal(await body.$template`(name) => {
+            <div> Hello \\ World </>
+        }`, `
+            let ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "div", 1);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " Hello \\\\ World ", 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });

@@ -1,6 +1,6 @@
-import { xtr } from '../../xtr/xtr';
+import { $template } from "../../iv";
 
-export default xtr`
+export default $template`() => {
     <div class="tutorial layout layout2">
         <div class="blockA2">
             <div class="menu"> 
@@ -14,11 +14,4 @@ export default xtr`
 
         </>
     </div>
-`;
-
-//<! @@json={{
-//    $target:"examples[].", 
-//    title:"svg clock"
-//}}>
-//    <! @@extract="./file1/foo.ts#sectionA"/>
-//</>
+}`;

@@ -2,9 +2,9 @@ import content from './content';
 import { NavigationState } from '../nav';
 import { Router, Route } from '../../iv/router';
 import { Data } from '../../trax';
-import { template } from '../../iv';
-import { xtrContent } from '../../iv/xtr-renderer';
-import { code } from '../common';
+import { $template } from '../../iv';
+// import { xtrContent } from '../../iv/xtr-renderer';
+import w from '../widgets';
 import { IvContent } from '../../iv/types';
 
 
@@ -37,51 +37,30 @@ function handleMenuClick(e: Event) {
     }
 }
 
-const menu = template(`(content, state:PageState) => {
+const menu = $template`(content, state:PageState) => {
     <div class="main_menu" @onclick={handleMenuClick}>
-        for (let cat of content.categories) {
-            let catSelected = cat.code===state.categoryCode? " selected" : "";
+        $for (let cat of content.categories) {
+            $let catSelected = cat.code===state.categoryCode? " selected" : "";
             <div class={"menu cat container" + catSelected}> 
-                <div class="title"> # {cat.title} # </div>
+                <div class="title"> {cat.title} </div>
                 <ul class="content">
-                    for (let itm of cat.items) {
+                    $for (let itm of cat.items) {
                         <li data-page={itm.code} class={(itm.code === state.itemCode)?"selected":""}>
-                            #{itm.title}#
+                            {itm.title}
                         </>
                     }
                 </>
             </div>
         }
     </>
-}`, handleMenuClick);
+}`;
 
-@Data class Notion {
-    name: string;
-    $content: IvContent;
-}
-const notions = template(`(notionList:Notion[]) => {
-    const len = notionList.length;
-    <div class="notions">
-        <div class="title"> # Notion{len!==1? "s": ""} covered in this example # </>
-        <ul>
-            for (let notion of notionList) {
-                <li class="notion"> 
-                    <span class="name"> #{notion.name}# </>
-                    if (notion.$content) {
-                        #: # <! @content={notion.$content}/>
-                    }
-                </>
-            }
-        </>
-    </>
-}`);
-
-async function resolver(ref: string): Promise<any> {
-    if (ref === "code") return code;
-    if (ref === "notions") return notions;
-    console.error("UNRESOLVED XTR REFERENCE (examples): " + ref);
-    return null;
-}
+// async function resolver(ref: string): Promise<any> {
+//     if (ref === "code") return code;
+//     if (ref === "notions") return notions;
+//     console.error("UNRESOLVED XTR REFERENCE (examples): " + ref);
+//     return null;
+// }
 
 function retrieveMenuItem(itemCode: string, setOnPageState = true) {
     let defaultCategory = "", defaultItem: any, defaultItemCode = "";
@@ -113,22 +92,27 @@ function retrieveMenuItem(itemCode: string, setOnPageState = true) {
     }
 }
 
-const mainLayout = template(`(state:PageState) => {
-    let item = retrieveMenuItem(state.itemCode);
+// <*mainLayout> : main example layout
+const mainLayout = $template`(state:PageState) => {
+    $let item = retrieveMenuItem(state.itemCode);
     <div class="examples layout layout2">
         <div class="blockA2">
             <div class="menu">
                 <*menu {content} {state}/>
             </>
-            <div class="mainpanel" @xtrContent(xtr={item.content} {resolver})/>
+            <div class="mainpanel"> // @xtrContent(xtr={item.content} {resolver})
+                $if (item.content) {
+                    <*item.content/>
+                }
+            </>
         </>
         <div class="blockB2">
-            if (item.code) {
+            $if (item.code) {
                 <div class="demo">
                     <h1> 
                         <a href={"./examples/" + item.code + "/"} target="_blank"
                             title="Open demo in a separate window"
-                        > # live demo # </> 
+                        > live demo </> 
                     </>
                     <iframe class="clock" src={"./examples/" + item.code + "/"}/>
                 </>
@@ -136,8 +120,8 @@ const mainLayout = template(`(state:PageState) => {
             
         </>
     </div>
-}`, pageState, content, menu, xtrContent, resolver, retrieveMenuItem);
+}`;
 
-const pageLayout = template(`(state:PageState) => {
+const pageLayout = $template`(state:PageState) => {
     <*mainLayout state={pageState}/>
-}`, mainLayout);
+}`;

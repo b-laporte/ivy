@@ -1,9 +1,8 @@
-import { template } from '../iv';
+import { $template } from '../iv';
 import { Data } from '../trax';
 import homeContent from './home';
 import { newRouter, Route, link, activeLink } from '../iv/router';
-import { ivyLogo } from './common';
-
+import w from "./widgets"
 
 @Data export class NavigationState {
     homePage = false;
@@ -29,18 +28,18 @@ router.add({
 });
 router.init(navState, window, "#");
 
-export const navBar = template(`(navState:NavigationState) => {
+export const navBar = $template`(navState:NavigationState) => {
     <nav class="mainMenu">
         <div class="container">
             <span class="mainLogo" @link="/">
-                <*ivyLogo className={navState.homePage? "ivyLogoDark" : "ivyLogoLight"}/>
+                <*w.ivyLogo className={navState.homePage? "ivyLogoDark" : "ivyLogoLight"}/>
             </>
             <div class="menu">
                 <ul class="primary">
                     // <li @activeLink="/tutorial"> # tutorial # </li>
-                    <li @activeLink="/examples"> # examples # </li>
-                    <li> # getting-started # </li>
-                    <li> # api # </li>
+                    <li @activeLink="/examples"> examples </li>
+                    <li> getting-started </li>
+                    <li> api </li>
                     <li>
                         // github logo
                         <svg class="ghLogo" width="20px" height="20px" viewBox="0 0 23 23">
@@ -53,7 +52,7 @@ export const navBar = template(`(navState:NavigationState) => {
             </>
         </>
     </>
-}`, ivyLogo, activeLink, link);
+}`;
 
 /*
 Main pages

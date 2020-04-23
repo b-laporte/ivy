@@ -1,5 +1,5 @@
 // @@extract: all
-import { template } from "../../../iv";
+import { $template } from "../../../iv";
 import { value } from "../../../iv/inputs";
 import { Data } from '../../../trax';
 
@@ -18,25 +18,25 @@ const colorCodes = ["WH", "BK", "RD", "BL"],
         "BL": "blue"
     };
 
-const main = template(`(d:FormData) => {
-    <div> #Multi-line text (textarea): # </>
+const main = $template`(d:FormData) => {
+    <div> Multi-line text (textarea): </>
     <textarea class="comment" @value={=d.comment}/>
 
-    <div> #Color (select): # </>
+    <div> Color (select): </>
     <select class="color" @value={=d.color}>
-        for (let c of colorCodes) {
-            <option value={c}> #{i18nColors[c]}# </>
+        $for (let c of colorCodes) {
+            <option value={c}> {i18nColors[c]} </>
         }
     </>
     
-    <div class="output"> # Data model values: # </>
+    <div class="output"> Data model values: </>
     <div>
-        <div class="lbl"> # comment: # </> #{d.comment.replace(/\n/g,"\\n")}#
+        <div class="lbl"> comment: </> {d.comment.replace(/\n/g,"\\n")}
     </>
     <div>
-        <div class="lbl"> # color: # </> #{d.color}#
+        <div class="lbl"> color: </> {d.color}
     </>
-}`);
+}`;
 
 let d = new FormData();
 d.comment = "line1\nline2";

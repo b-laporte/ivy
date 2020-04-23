@@ -1,5 +1,4 @@
-import 'range.css';
-import { template, API, Controller } from '../../../iv';
+import { $template, API, Controller } from '../../../iv';
 import { IvEventEmitter } from '../../../iv/events';
 import { value } from "../../../iv/inputs";
 
@@ -26,7 +25,7 @@ import { value } from "../../../iv/inputs";
 }
 
 // @@extract: template
-export const range = template(`($:RangeCtl) => {
+export const range = $template`($:RangeCtl) => {
     <div class="range">
         <input type="range"
             min={$.min}
@@ -35,16 +34,16 @@ export const range = template(`($:RangeCtl) => {
             @onmouseup={=>$.select()}
             @ontouchend={=>$.select()}/>
         <div class="current" style="color: gray">
-            #Current value: {$.value}#
+            Current value: {$.value}
         </div>
     </>
-}`, RangeCtl);
+}`;
 
-const main = template(`(message='', $) => {
+const main = $template`(message='', $) => {
     <*range placeholder=30 min=0 max=100
         @onselect={e=>$.message='Selected value: ' + e.data}
     />
-    <div class="selected"> #{message}# </>
-}`, range);
+    <div class="selected"> {message} </>
+}`;
 
 main().attach(document.body).render();

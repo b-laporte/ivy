@@ -1,12 +1,12 @@
 
-import { template, API, Controller, io } from '../../../iv';
+import { $template, API, Controller, io } from '../../../iv';
 import { IvEventEmitter } from '../../../iv/events';
 
 
 // example adapted from https://svelte.dev/examples#component-bindings
 // @@extract: controller
 @API class Keypad {
-    @io value:string;               // e.g. <*keypad value={=foo.bar}/>
+    @io value: string;               // e.g. <*keypad value={=foo.bar}/>
     submitEmitter: IvEventEmitter;  // e.g. <*keypad @onsubmit={evt=>foo(evt.data)}
 }
 
@@ -28,17 +28,17 @@ import { IvEventEmitter } from '../../../iv/events';
 }
 
 // @@extract: template
-export const keypad = template(`($:KeypadCtl, $api) => {
+export const keypad = $template`($:KeypadCtl, $api) => {
     <div class="keypad">
-        for (let i=1;10>i;i++) {
-            <button @onclick={=>$.select(i)}> #{i}# </>
+        $for (let i=1;10>i;i++) {
+            <button @onclick={=>$.select(i)}> {i} </>
         }
         <button disabled={$api.value? undefined : true} 
             @onclick={=>$.clear()}
-        > #clear# </>
-        <button @onclick={=>$.select(0)}> #0# </>
+        > clear </>
+        <button @onclick={=>$.select(0)}> 0 </>
         <button disabled={$api.value? undefined : true} 
             @onclick={=>$.submit()}
-        > #submit# </>
+        > submit </>
     </>
-}`, KeypadCtl);
+}`;

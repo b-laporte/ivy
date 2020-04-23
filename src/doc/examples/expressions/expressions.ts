@@ -1,4 +1,4 @@
-import { template } from "../../../iv";
+import { $template } from "../../../iv";
 
 // @@extract: process-function
 function processText(t: string) {
@@ -6,17 +6,17 @@ function processText(t: string) {
 }
 
 // @@extract: template
-const samples = template(`(data, text = "[no text]") => {
-    <div title={data.title}> # This text has a dynamic tooltip # </div>
-    <div [className]={data.className}> # This text should be blue # </div>
-    <div class={data.cls}> # This text should be green # </div>
-    <div> #{data.txt + "!"}# </div>
+const samples = $template`(data, text = "[no text]") => {
+    <div title={data.title}> This text has a dynamic tooltip </div>
+    <div [className]={data.className}> This text should be blue </div>
+    <div class={data.cls}> This text should be green </div>
+    <div> {data.txt + "!"} </div>
     <div class="dynamic" title=123> 
-        # This is also dynamic: {processText(text)} # 
+        This is also dynamic: {processText(text)}
     </div>
-    <div> # This will be set only once: {::processText(text)} # </div>
-    <div class="info blue"> # >>> Click to refresh # </div>
-}`);
+    <div> This will be set only once: {::processText(text)} </div>
+    <div class="info blue"> !>!>!> Click to refresh </div>
+}`;
 
 // @@extract: instantiation
 let data = {

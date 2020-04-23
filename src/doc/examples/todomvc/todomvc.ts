@@ -1,21 +1,21 @@
-import { template } from '../../../iv';
+import { $template } from '../../../iv';
 import { value } from '../../../iv/inputs';
-import { changeComplete, Data, computed } from '../../../trax';
+import { changeComplete, Data, computed, ref } from '../../../trax';
 import './base.css';
 import './index.css';
 import { IvTemplate } from '../../../iv/types';
 
 // Data model
 @Data export class Todo {
-    description = "";
-    editDescription = "";
-    completed = false;
-    editing = false;
+    description = "";        // todo description
+    editDescription = "";    // description in edit mode (prior to validation)
+    completed = false;       // true if todo is completed
+    editing = false;         // true when the todo is being edited
 }
 
 @Data export class TodoApp {
     newEntry = "";
-    filter = "ALL"; // todo: support enum and/or "ALL" | "ACTIVE" | "COMPLETED" 
+    @ref filter: "ALL" | "ACTIVE" | "COMPLETED" = "ALL";
     list: Todo[];
 
     @computed get listView(): Todo[] {
@@ -36,32 +36,32 @@ import { IvTemplate } from '../../../iv/types';
     }
 }
 
-const todoApp = template(`(app:TodoApp, $template) => {
-    let todos = app.list;
+const todoApp = $template`(app:TodoApp, $template) => {
+    $let todos = app.list;
     
     <section class="todoapp">
         <header class="header">
-            <h1> # todos # </h1>
+            <h1> todos </h1>
             <input #mainEdit type="text" class="new-todo" placeholder="What needs to be done?" autofocus
                 autocomplete="off" @value={=app.newEntry} @onkeyup={e=>addTodoOnEnter(e.keyCode, app)} />
         </header>
 
-        if (todos.length) {
+        $if (todos.length) {
             <section class="main">
                 <input id="toggle-all" class="toggle-all" type="checkbox" [checked]={app.itemsLeft===0}/>
-                <label for="toggle-all" @onclick={=>toggleAllCompleted(app)}> # Mark all as complete # </label>
+                <label for="toggle-all" @onclick={=>toggleAllCompleted(app)}> Mark all as complete </label>
                 <ul class="todo-list">
-                    for (let i=0;app.listView!.length>i;i++) {
-                        let todo=app.listView[i];
+                    $for (let i=0;app.listView!.length>i;i++) {
+                        $let todo=app.listView[i];
                         <li class={"todo " + (todo.editing? 'editing ':'') + (todo.completed?'completed':'')}>
                             <div class="view">
                                 <input class="toggle" type="checkbox" [checked]={todo.completed} 
                                     @onclick={=>todo.completed = !todo.completed} 
                                 />
-                                <label @ondblclick={=>startEditing(app, todo, $template)}> #{todo.description}# </label>
+                                <label @ondblclick={=>startEditing(app, todo, $template)}> {todo.description} </label>
                                 <button class="destroy" @onclick={=>deleteTodo(app, todo, $template)}></button>
                             </div>
-                            if (todo.editing) {
+                            $if (todo.editing) {
                                 <input #editField type="text" class="edit" @value={=todo.editDescription} 
                                     @onkeyup={e=>editTodo(e.keyCode, app, todo, $template)} 
                                     @onblur={=>stopEditing(todo, true, $template)}/>
@@ -73,40 +73,40 @@ const todoApp = template(`(app:TodoApp, $template) => {
             <footer class="footer">
                 <span class="todo-count">
                     // note: (really) bad i18n practice...
-                    <strong># {app.itemsLeft} #</strong> #item{app.itemsLeft > 1?'s':''} left # 
+                    <strong> {app.itemsLeft} </strong> item{app.itemsLeft > 1?'s':''} left
                 </span>
                 <ul class="filters">
-                    <*filter {app} filterCode="ALL"> # All # </>
-                    <*filter {app} filterCode="ACTIVE"> # Active # </>
-                    <*filter {app} filterCode="COMPLETED"> # Completed # </>
+                    <*filter {app} filterCode="ALL"> All </>
+                    <*filter {app} filterCode="ACTIVE"> Active </>
+                    <*filter {app} filterCode="COMPLETED"> Completed </>
                 </ul>
     
-                if (todos.length > app.itemsLeft) {
-                    <button class="clear-completed" @onclick={=>clearCompleted(app)}> # Clear completed # </button>
+                $if (todos.length > app.itemsLeft) {
+                    <button class="clear-completed" @onclick={=>clearCompleted(app)}> Clear completed </button>
                 }
           </footer>
         }
     </section>
 
     <*infoFooter/>
-}`);
+}`;
 
-const filter = template(`(app, filterCode:string, $content: IvContent) => {
+const filter = $template`(app, filterCode:string, $content: IvContent) => {
     <li>
         <a class={app.filter===filterCode? 'selected':''} 
             href={"#/"+filterCode.toLowerCase()}
             @onclick={=>app.filter = filterCode} @content/>
     </li>
-}`);
+}`;
 
-const infoFooter = template(`() => {
+const infoFooter = $template`() => {
     <footer class="info">
-        <p> # Double-click to edit a todo # </p>
-        <p> # Template by # <a href="http://sindresorhus.com"> # Sindre Sorhus # </a></p>
-        <p> # Created with # <a href="https://github.com/b-laporte/ivy"> # ivy # </a></p>
-        <p> # Part of # <a href="http://todomvc.com"> # TodoMVC # </a></p>
+        <p> Double-click to edit a todo </p>
+        <p> Template by <a href="http://sindresorhus.com"> Sindre Sorhus </a></p>
+        <p> Created with <a href="https://github.com/b-laporte/ivy"> ivy </a></p>
+        <p> Part of <a href="http://todomvc.com"> TodoMVC </a></p>
   </footer>
-}`);
+}`;
 
 
 const ENTER_KEY = 13, ESCAPE_KEY = 27;

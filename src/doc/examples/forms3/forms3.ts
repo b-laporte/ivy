@@ -1,5 +1,5 @@
 // @@extract: imports
-import { template } from '../../../iv';
+import { $template } from '../../../iv';
 import { IvTemplate } from '../../../iv/types';
 import { Data } from '../../../trax';
 
@@ -13,12 +13,12 @@ import { value } from "../../../iv/inputs";
 }
 
 // @@extract: template
-const main = template(`(data: FormDataModel) => {
+const main = $template`(data: FormDataModel) => {
     <div class="main">
-        <div class="title"> # Form: # </>
+        <div class="title"> Form: </>
         <div>
             <div class="lbl"> 
-                # Month: # 
+                Month:
                 <input type="number" min=1 max=12
                     @value(data={=data.month} input2data={nbr2month} data2input={month2nbr})
                 />
@@ -27,18 +27,18 @@ const main = template(`(data: FormDataModel) => {
                 <input type="checkbox" 
                     @value(data={=data.urgent} input2data={bool2str} data2input={str2bool})
                 /> 
-                # urgent # 
+                urgent
             </>
         </>
-        <div class="title"> # Data model: # </>
+        <div class="title"> Data model: </>
         <div>
-            <div class="lbl"> # Month: # </> # "{data.month}" #
+            <div class="lbl"> Month: </> "{data.month}"
         </>
         <div>
-            <div class="lbl"> # Urgent: # </> # "{data.urgent}" #
+            <div class="lbl"> Urgent: </> "{data.urgent}"
         </>
     </>
-}`);
+}`;
 
 // @@extract: conversions
 function bool2str(v: any) {

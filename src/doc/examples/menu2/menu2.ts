@@ -1,5 +1,5 @@
 // @@extract: all
-import { template, API } from '../../../iv';
+import { $template, API } from '../../../iv';
 import { Data } from '../../../trax';
 import { IvContent } from '../../../iv/types';
 import { IvEventEmitter } from './../../../iv/events';
@@ -10,15 +10,15 @@ import { IvEventEmitter } from './../../../iv/events';
     $content: IvContent;
 }
 
-const menu = template(`(optionList: MenuOption[], clickEmitter:IvEventEmitter, $) => {
+const menu = $template`(optionList: MenuOption[], clickEmitter:IvEventEmitter, $) => {
     <div class="menu" @onclick={e=>raiseEvent($, e.target)}>
         <ul class="main list">
-            for (let option of optionList) {
+            $for (let option of optionList) {
                 <li class="option" data-code={option.id} @content={option.$content}/>
             }
         </>
     </>
-}`, MenuOption, IvEventEmitter, raiseEvent);
+}`;
 
 function raiseEvent(api, target) {
     if (target && target.dataset) {
@@ -31,21 +31,21 @@ function raiseEvent(api, target) {
     extraLength = 3;
     message = "";
 }
-const main = template(`($:Main) => {
+const main = $template`($:Main) => {
     <div class="commands">
-        # Number of extras: #
-        <button @onclick={=>$.extraLength++}> # + # </>
-        <button @onclick={=>$.extraLength--}> # - # </>
+        Number of extras:
+        <button @onclick={=>$.extraLength++}> + </>
+        <button @onclick={=>$.extraLength--}> - </>
     </div>
     <*menu @onclick={e => $.message="You clicked on item "+e.data}>
-        <.option id="A"> # Value A # </>
-        <.option id="B"> # Value B # </>
-        <.option id="C"> # Value C # </>
-        for (let i=0;$.extraLength>i;i++) {
-            <.option id={"X"+i}> # Extra \#{i} # </>
+        <.option id="A"> Value A </>
+        <.option id="B"> Value B </>
+        <.option id="C"> Value C </>
+        $for (let i=0;$.extraLength>i;i++) {
+            <.option id={"X"+i}> Extra #{i} </>
         }
     </>
-    <div class="logs"> #{$.message}# </>
-}`, menu);
+    <div class="logs"> {$.message} </>
+}`;
 
 main().attach(document.getElementById("output")).render();

@@ -1,4 +1,4 @@
-import { template, API, Controller } from '../../../iv';
+import { $template, API, Controller } from '../../../iv';
 
 async function delay(time: number = 100) {
     return new Promise((r) => {
@@ -30,27 +30,27 @@ document.getElementById("reload")!.addEventListener("click", () => {
 }
 
 // @@extract: template
-const photos = template(`($:PhotosCtl) => {
-    const photos = $.photos;
+const photos = $template`($:PhotosCtl) => {
+    $let photos = $.photos;
     <div class="photos">
-        if (photos === undefined) {
-            <div class="loading"> # loading... # </>
+        $if (photos === undefined) {
+            <div class="loading"> loading... (can be long) </>
         } else if (photos.length === 0) {
-            <div class="no_results"> # no photos # </>
+            <div class="no_results"> no photos </>
         } else {
-            for (let photo of photos) {
+            $for (let photo of photos) {
                 <figure>
                     <img src={photo.thumbnailUrl} alt={photo.title}/>
-                    <figcaption> #{photo.title}# </>
+                    <figcaption> {photo.title} </>
                 </>
             }
         }
     </>
-}`);
+}`;
 
 // @@extract: main
-const main = template(`() => {
+const main = $template`() => {
     <*photos url="https://jsonplaceholder.typicode.com/photos?_limit=4"/>
-}`);
+}`;
 
 main().attach(document.body).render();

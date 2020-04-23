@@ -29,12 +29,12 @@ const production = !process.env.ROLLUP_WATCH,
         'forms2',
         'forms3',
         'innerHTML',
-        'xtr1',
-        'xtr2',
+        // 'xtr1',
+        // 'xtr2',
         'select',
         'pages',
         'todomvc',
-        'range',
+        'range'
     ];
 
 for (let name of names) {

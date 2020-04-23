@@ -1,4 +1,4 @@
-import { template, Controller, API } from '../../../iv';
+import { $template, Controller, API } from '../../../iv';
 import { tabs } from './tabset';
 
 // @@extract: heavyComponent
@@ -19,12 +19,12 @@ import { tabs } from './tabset';
     }
 }
 
-const heavyComponent = template(`($:HeavyCptCtrl) => {
-    log("render: heavyComponent " + $.$api.id);
+const heavyComponent = $template`($:HeavyCptCtrl) => {
+    $log("render: heavyComponent " + $.$api.id);
     <div class="heavy">
-        # heavy component '{$.$api.id}'#
+        heavy component '{$.$api.id}'
     </>
-}`);
+}`;
 
 // simple logger
 let logs = "<div> Logs: </div>";
@@ -34,24 +34,24 @@ function log(msg: string) {
 }
 
 // @@extract: main
-const main = template(`(tabSelection:string, $) => {
+const main = $template`(tabSelection:string, $) => {
     <div class="info">
-        # Tab Selection: {tabSelection} #
+        Tab Selection: {tabSelection}
     </>
     <*tabs selection={=$.tabSelection}>
         <.tab id="tabA">
-            <.title> # tab title # <b> # A # </></>
+            <.title> tab title <b> A </></>
             <*heavyComponent id="cptA"/>
         </>
         <.tab id="tabB">
-            <.title> # tab title # <b> # B # </></>
+            <.title> tab title <b> B </></>
             <*heavyComponent id="cptB"/>
         </>
         <.tab id="tabC">
-            <.title> # tab title # <b> # C # </></>
+            <.title> tab title <b> C </></>
             <*heavyComponent id="cptC"/>
         </>
     </>
-}`, tabs);
+}`;
 
 main().attach(document.getElementById("output")).render();

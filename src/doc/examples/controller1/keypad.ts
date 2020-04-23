@@ -1,5 +1,5 @@
 
-import { template, API, Controller } from '../../../iv';
+import { $template, API, Controller } from '../../../iv';
 import { IvEventEmitter } from '../../../iv/events';
 
 // example adapted from https://svelte.dev/examples#component-bindings
@@ -34,22 +34,22 @@ import { IvEventEmitter } from '../../../iv/events';
 }
 
 // @@extract: template
-export const keypad = template(`($:KeypadCtl) => {
+export const keypad = $template`($:KeypadCtl) => {
     <div class="keypad">
         <div class="pin" style={"color:" + ($.value ? '#333' : '#ccc')}> 
-            #{$.viewValue()}# 
+            {$.viewValue()}
         </div>
         <div class="pad">
-            for (let i=1;10>i;i++) {
-                <button @onclick={=>$.select(i)}> #{i}# </>
+            $for (let i=1;10>i;i++) {
+                <button @onclick={=>$.select(i)}> {i} </>
             }
             <button disabled={$.value? undefined : true} 
                 @onclick={=>$.clear()}
-            > #clear# </>
-            <button @onclick={=>$.select(0)}> #0# </>
+            > clear </>
+            <button @onclick={=>$.select(0)}> 0 </>
             <button disabled={$.value? undefined : true} 
                 @onclick={=>$.submit()}
-            > #submit# </>
+            > submit </>
         </>
     </>
-}`, KeypadCtl);
+}`;

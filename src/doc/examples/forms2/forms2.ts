@@ -1,5 +1,5 @@
 // @@extract: imports
-import { template } from '../../../iv';
+import { $template } from '../../../iv';
 import { IvTemplate } from '../../../iv/types';
 import { Data } from '../../../trax';
 
@@ -28,56 +28,60 @@ const colorCodes = ["WH", "BK", "RD", "BL"],
 }
 
 // @@extract: options-editor
-const optionEditor = template(`(o:ValueOptions, 
+const optionEditor = $template`(o:ValueOptions, 
         evtInput:boolean = true, 
         evtFocus:boolean, 
         evtBlur:boolean, 
         $) => {
     // sync o.events with the individual params
-    let events:string[] = [];
-    if (evtInput) events.push("input");
-    if (evtFocus) events.push("focus");
-    if (evtBlur) events.push("blur");
-    o.events = events.join(";");
+    $exec o.events = getEventsArg(evtInput, evtFocus, evtBlur);
 
     <div class="option editor">
         <div>
-            <div class="lbl"> # Debounce (ms): # </>
+            <div class="lbl"> Debounce (ms): </>
             <input type="number" @value={=o.debounce} />
         </>
         <div>
-            <div class="lbl"> # Extra events: # </>
-            <label> <input type="checkbox" @value={=$.evtInput}/> # input # </>
-            <label> <input type="checkbox" @value={=$.evtFocus}/> # focus # </>
-            <label> <input type="checkbox" @value={=$.evtBlur}/> # blur # </>
+            <div class="lbl"> Extra events: </>
+            <label> <input type="checkbox" @value={=$.evtInput}/> input </>
+            <label> <input type="checkbox" @value={=$.evtFocus}/> focus </>
+            <label> <input type="checkbox" @value={=$.evtBlur}/> blur </>
         </>
         <div>
-            <div class="lbl"> # Events value: # </>
-            # "{o.events}" #
+            <div class="lbl"> Events value: </>
+            "{o.events}"
         </>
     </>
-}`);
+}`;
+
+function getEventsArg(evtInput, evtFocus, evtBlur) {
+    const events: string[] = [];
+    if (evtInput) events.push("input");
+    if (evtFocus) events.push("focus");
+    if (evtBlur) events.push("blur");
+    return events.join(";");
+}
 
 // @@extract: form
-const carEditor = template(`(data:CarDescription, 
+const carEditor = $template`(data:CarDescription, 
         o:ValueOptions, 
         $template:IvTemplate) => {
     <div class="car editor">
         <div>
-            <div class="lbl"> # Name: # </>
+            <div class="lbl"> Name: </>
             <input type="text" 
                 @value(data={=data.name} debounce={o.debounce} events={o.events})
             />
         </>
         <div>
-            <div class="lbl"> # Model Year: # </>
+            <div class="lbl"> Model Year: </>
             <input type="number" 
                 @value(data={=data.modelYear} debounce={o.debounce} events={o.events})
             />
         </>
         <div>
-            <div class="color"> # Color: # </>
-            for (let color of colorCodes) {
+            <div class="color"> Color: </>
+            $for (let color of colorCodes) {
                 // group of radio buttons
                 <label> 
                     <input type="radio" 
@@ -85,7 +89,7 @@ const carEditor = template(`(data:CarDescription,
                         value={color} // this is the code associated to this radio button
                         @value(data={=data.color} debounce={o.debounce} events={o.events})
                     /> 
-                    # {::i18nColors[color]} # 
+                    {::i18nColors[color]}
                 </>
             }
         </>
@@ -93,24 +97,24 @@ const carEditor = template(`(data:CarDescription,
             <label>
                 <input type="checkbox" 
                     @value(data={=data.electric} debounce={o.debounce} events={o.events})
-                /> # electric # 
+                /> electric 
             </label>
         </>
     </>
-}`, colorCodes, i18nColors);
+}`;
 
-const main = template(`(data:CarDescription, o:ValueOptions) => {
+const main = $template`(data:CarDescription, o:ValueOptions) => {
     <div class="summary">
-        <div class="title"> # Summary # </>
-        <div> # Car name: {data.name} # </>
-        <div> # Model year: {data.modelYear} # </>
-        <div> # Color code: {data.color} # </>
-        <div> # Electric: {data.electric} # </>
+        <div class="title"> Summary </>
+        <div> Car name: {data.name} </>
+        <div> Model year: {data.modelYear} </>
+        <div> Color code: {data.color} </>
+        <div> Electric: {data.electric} </>
     </>
     <*optionEditor {o}/>
     <*carEditor {data} {o}/> // equivalent to data={data}
     <*carEditor {data} {o}/> // 2nd instance to demonstrate data-binding
-}`);
+}`;
 
 const cd = new CarDescription();
 cd.name = "Ford Model T";

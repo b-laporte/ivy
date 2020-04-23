@@ -1,5 +1,5 @@
 // @@extract: import
-import { template } from "../../../iv";
+import { $template } from "../../../iv";
 
 // @@extract: resetCounter
 function resetCounter(this: any) {
@@ -15,15 +15,15 @@ function handleKey(e: KeyboardEvent, api) {
 }
 
 // @@extract: counter
-const counter = template(`(count=42, $) => {
+const counter = $template`(count=42, $) => {
     <div class="counter"  @onkeydown={e => handleKey(e,$)} >
-        <span class="btn" @onclick={() => {$.count--}}> # - # </>
-        <span class="val" @ondblclick={resetCounter.bind($)} tabIndex=0 > #{count}# </>
+        <span class="btn" @onclick={() => {$.count--}}> - </>
+        <span class="val" @ondblclick={resetCounter.bind($)} tabIndex=0 > {count} </>
         <span class="btn" 
             @onclick(listener={=>$.count++} options={{capture:true}}) 
-        > # + # </>
+        > + </>
     </>
-}`);
+}`;
 
 // @@extract: instantiation
 counter().attach(document.body).render();

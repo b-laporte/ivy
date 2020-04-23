@@ -1,5 +1,5 @@
 // @@extract: imports
-import { template } from '../../../iv';
+import { $template } from '../../../iv';
 import { IvTemplate } from '../../../iv/types';
 import { Data } from '../../../trax';
 
@@ -23,19 +23,19 @@ const colorCodes = ["WH", "BK", "RD", "BL"],
     };
 
 // @@extract: form
-const carEditor = template(`(data:CarDescription, $template:IvTemplate) => {
+const carEditor = $template`(data:CarDescription, $template:IvTemplate) => {
     <div class="car editor">
         <div>
-            <div class="lbl"> # Name: # </>
+            <div class="lbl"> Name: </>
             <input type="text" @value={=data.name}/>
         </>
         <div>
-            <div class="lbl"> # Model Year: # </>
+            <div class="lbl"> Model Year: </>
             <input type="number" @value={=data.modelYear}/>
         </>
         <div>
-            <div class="color"> # Color: # </>
-            for (let color of colorCodes) {
+            <div class="color"> Color: </>
+            $for (let color of colorCodes) {
                 // group of radio buttons
                 <label> 
                     <input type="radio" 
@@ -43,30 +43,30 @@ const carEditor = template(`(data:CarDescription, $template:IvTemplate) => {
                         value={color} // this is the code associated to this radio button
                         @value={=data.color} // binding to the data model
                     /> 
-                    # {::i18nColors[color]} # 
+                    {::i18nColors[color]}
                 </>
             }
         </>
         <div>
             <label>
-                <input type="checkbox" @value={=data.electric}/> # electric # 
+                <input type="checkbox" @value={=data.electric}/> electric
             </label>
         </>
     </>
-}`, colorCodes, i18nColors);
+}`;
 
 // @@extract: main
-const main = template(`(data:CarDescription) => {
+const main = $template`(data:CarDescription) => {
     <div class="summary">
-        <div class="title"> # Summary # </>
-        <div> # Car name: {data.name} # </>
-        <div> # Model year: {data.modelYear} # </>
-        <div> # Color code: {data.color} # </>
-        <div> # Electric: {data.electric} # </>
+        <div class="title"> Summary </>
+        <div> Car name: {data.name} </>
+        <div> Model year: {data.modelYear} </>
+        <div> Color code: {data.color} </>
+        <div> Electric: {data.electric} </>
     </>
     <*carEditor {data}/> // equivalent to data={data}
     <*carEditor {data}/> // 2nd instance to demonstrate data-binding
-}`);
+}`;
 
 const cd = new CarDescription();
 cd.name = "Ford Model T";

@@ -1098,14 +1098,13 @@ describe('Param Nodes', () => {
 
     const grid = $template`(rowList: GridRow[]) => {
         <ul>
-            $for (let i=0;rowList.length>i;i++) {
-                $let row = rowList[i];
+            $each(rowList, (row) => {
                 <li title={row.title}>
                     $for (let j=0;row.cellList.length>j;j++) {
                         [{row.cellList[j].text}]
                     }
                 </li>
-            }
+            });
         </ul>
     }`;
 
@@ -1191,11 +1190,10 @@ describe('Param Nodes', () => {
         }
 
         const grid = $template`(rowList:Row[]) => {
-            $for (let idx=0; rowList.length>idx; idx++) {
-                $let row = rowList[idx];
+            $each(rowList, (row) => {
                 row {row.id}
                 <div title={row.id} @content={row.summary}/> 
-            }
+            });
         }`;
 
         const tpl = $template`(nbrOfRows=0) => {

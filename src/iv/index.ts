@@ -208,8 +208,11 @@ export class Template implements IvTemplate {
         }
     }
 
-    render(data?: any) {
+    render(data?: any, forceRefresh = false) {
         if (this.processing) return this;
+        if (forceRefresh) {
+            this.forceRefresh = true;
+        }
         this.processing = true;
         // console.log('refresh', this.uid)
         let api = this.api, ctl = this.controller, view = this.view;

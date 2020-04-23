@@ -704,4 +704,81 @@ describe('Loops', () => {
             </body>
         `, '3');
     });
+
+    it("should work with $each blocks", function () {
+        const tpl = $template`(rows) => {
+            <div class="main">
+                $each(rows, (row, rowIdx, lastRow) => {
+                    <div class={"row"+rowIdx+(lastRow? ":last" : "")}>
+                        $each(row, (cell, cellIdx, lastCell) => {
+                            <span class={"cell"+cellIdx+(lastCell? ":last" : "")}>
+                                Cell {cell} {rowIdx}.{cellIdx}
+                            </span>
+                        });
+                    </>
+                });
+            </>
+        }`;
+
+        const rows = [
+            ["a", "b"],
+            ["c"],
+            ["d"]
+        ]
+        const t = getTemplate(tpl, body).render({ rows });
+
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="row0">
+                        <span::E5 a:class="cell0">
+                            #::T6 Cell a 0.0 #
+                        </span>
+                        <span::E7 a:class="cell1:last">
+                            #::T8 Cell b 0.1 #
+                        </span>
+                    </div>
+                    <div::E9 a:class="row1">
+                        <span::E10 a:class="cell0:last">
+                            #::T11 Cell c 1.0 #
+                        </span>
+                    </div>
+                    <div::E12 a:class="row2:last">
+                        <span::E13 a:class="cell0:last">
+                            #::T14 Cell d 2.0 #
+                        </span>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '1');
+
+        rows.splice(1, 1);
+        rows[0].push("b2");
+        t.render({ rows }, true); // force refresh is true as rows reference didn't change
+        assert.equal(stringify(t), `
+            <body::E1>
+                <div::E3 a:class="main">
+                    <div::E4 a:class="row0">
+                        <span::E5 a:class="cell0">
+                            #::T6 Cell a 0.0 #
+                        </span>
+                        <span::E7 a:class="cell1"(1)>
+                            #::T8 Cell b 0.1 #
+                        </span>
+                        <span::E15 a:class="cell2:last">
+                            #::T16 Cell b2 0.2 #
+                        </span>
+                    </div>
+                    <div::E9 a:class="row1:last"(1)>
+                        <span::E10 a:class="cell0:last">
+                            #::T11 Cell d 1.0 # (1)
+                        </span>
+                    </div>
+                </div>
+                //::C2 template anchor
+            </body>
+        `, '2');
+
+    });
 });

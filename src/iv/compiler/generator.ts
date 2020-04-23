@@ -126,6 +126,7 @@ export class GenerationCtxt {
     statics: string[] = [];             // list of static resources
     localVars = {};                     // map of creation mode vars
     blockCount = 0;                     // number of js blocks - used to increment block variable suffixes
+    eachCount = 0;                      // number of $each blocks
     templateArgs: string[] = [];        // name of template arguments
     paramCounter = 0;                   // counter used to create param instance variables
     acceptPreProcessors = false;
@@ -870,7 +871,36 @@ export class ViewInstruction implements RuntimeInstruction {
 
         let isJsBlock = this.node.kind === "#jsBlock";
         if (isJsBlock) {
-            let p = this.parentView!, nd = this.node as XjsJsBlock;
+            let nd = this.node as XjsJsBlock;
+            if (nd.name === "$each") {
+                const args = nd.args!;
+
+                // start - e.g.
+                // let ζec1=items,ζl1=ζec1.length; // ec = each collection
+                // for (let ζx1=0;ζl1>ζx1;ζx1++) {
+                //     let item=ζec1[ζx1];
+                let name: string;
+                if (Array.isArray(args[0])) {
+                    name = args[0].join(".");
+                } else {
+                    name = args[0];
+                }
+                const idx = ++this.gc.eachCount,
+                    p1 = `let ζec${idx}=${name}, ζl${idx}=ζec${idx}? ζec${idx}.length:0;`,
+                    p2 = `for (let ζx${idx}=0;ζl${idx}>ζx${idx};ζx${idx}++) {`,
+                    p3 = `let ${args[1]}=ζec${idx}[ζx${idx}]`;    // item name
+                let p4 = '', p5 = '';
+                if (args.length > 2) {
+                    p4 = `, ${args[2]}=ζx${idx}`; // index
+                }
+                if (args.length > 3) {
+                    p5 = `, ${args[3]}=ζx${idx}===ζl${idx}-1`; // isLast
+                }
+                nd.startCode = p1 + p2 + p3 + p4 + p5 + ";";
+
+                // end
+                nd.endCode = "}";
+            }
             body.push(this.gc.decreaseIndent(this.indent));
             body.push(nd);
             if (!nd.startCode.match(/\n$/)) {
@@ -1279,10 +1309,13 @@ class JsStatementsInstruction implements RuntimeInstruction {
     constructor(public node: XjsJsStatement, public view: ViewInstruction, public iFlag: number, public prevKind: string) { }
 
     pushCode(body: BodyContent[]) {
-        let v = this.view;
+        let v = this.view, nd = this.node;
+        if (nd.name === "$log") {
+            nd.code = "console." + nd.code;
+        }
         body.push(v.indent);
-        body.push(this.node);
-        if (!this.node.code.match(/\n$/)) {
+        body.push(nd);
+        if (!nd.code.match(/\n$/)) {
             body.push("\n");
         }
     }

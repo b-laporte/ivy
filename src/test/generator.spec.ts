@@ -2049,5 +2049,110 @@ describe('Code generator', () => {
         `, '2');
     });
 
+    it("should properly generate $log", async function () {
+        assert.equal(await body.$template`(name) => {
+            <some-elt>
+                Hello
+                $log("name", name);
+                World
+            </>
+        }`, `
+            let ζc = ζinit(ζ, ζs0, 3);
+            ζelt(ζ, ζc, 0, 0, "some-elt", 1);
+            ζtxt(ζ, ζc, 0, 1, 1, 0, " Hello ", 0);
+            console.log("name", name);
+            ζtxt(ζ, ζc, 0, 2, 1, 0, " World ", 0);
+            ζend(ζ, ζc);
+        `, '1');
+    });
+
+    it("should properly generate $each", async function () {
+        assert.equal(await body.$template`(name) => {
+            <some-elt>
+                $each(getItems(), (item) => {
+                    <li>{item.name}</>
+                });
+            </>
+        }`, `
+            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "some-elt", 1);
+            ζcnt(ζ, ζc, 1, 1, 1);
+            let ζec1=getItems(), ζl1=ζec1? ζec1.length:0;for (let ζx1=0;ζl1>ζx1;ζx1++) {let item=ζec1[ζx1];
+                ζ1 = ζview(ζ, 0, 1, 2, ++ζi1);
+                ζc1 = ζ1.cm;
+                ζelt(ζ1, ζc1, 0, 0, "li", 1);
+                ζtxt(ζ1, ζc1, 0, 1, 1, 0, ζs1, 1, ζe(ζ1, 0, item.name));
+                ζend(ζ1, ζc1);
+            }
+            ζend(ζ, ζc, ζs2);
+        `, '1');
+
+        assert.equal(await body.$template`(name) => {
+            <some-elt>
+                $each(getItems(), (itm, idx) => {
+                    {itm.name}
+                });
+            </>
+        }`, `
+            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "some-elt", 1);
+            ζcnt(ζ, ζc, 1, 1, 1);
+            let ζec1=getItems(), ζl1=ζec1? ζec1.length:0;for (let ζx1=0;ζl1>ζx1;ζx1++) {let itm=ζec1[ζx1], idx=ζx1;
+                ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
+                ζc1 = ζ1.cm;
+                ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, itm.name));
+                ζend(ζ1, ζc1);
+            }
+            ζend(ζ, ζc, ζs2);
+        `, '2');
+
+        assert.equal(await body.$template`(name) => {
+            <some-elt>
+                $each(getItems(), (itm, idx, isLast) => {
+                    {itm.name}
+                });
+            </>
+        }`, `
+            let ζi1 = 0, ζ1, ζc1, ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "some-elt", 1);
+            ζcnt(ζ, ζc, 1, 1, 1);
+            let ζec1=getItems(), ζl1=ζec1? ζec1.length:0;for (let ζx1=0;ζl1>ζx1;ζx1++) {let itm=ζec1[ζx1], idx=ζx1, isLast=ζx1===ζl1-1;
+                ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
+                ζc1 = ζ1.cm;
+                ζtxt(ζ1, ζc1, 0, 0, 0, 0, ζs1, 1, ζe(ζ1, 0, itm.name));
+                ζend(ζ1, ζc1);
+            }
+            ζend(ζ, ζc, ζs2);
+        `, '3');
+
+        assert.equal(await body.$template`(name) => {
+            <some-elt>
+                $each(rows, (row, idx, isLast) => {
+                    $each(row.cells, (cell, cellIdx, lastCell) => {
+                        {cell.txt}
+                    });
+                });
+            </>
+        }`, `
+            let ζi1 = 0, ζ1, ζc1, ζi2 = 0, ζ2, ζc2, ζc = ζinit(ζ, ζs0, 2);
+            ζelt(ζ, ζc, 0, 0, "some-elt", 1);
+            ζcnt(ζ, ζc, 1, 1, 1);
+            let ζec1=rows, ζl1=ζec1? ζec1.length:0;for (let ζx1=0;ζl1>ζx1;ζx1++) {let row=ζec1[ζx1], idx=ζx1, isLast=ζx1===ζl1-1;
+                ζi2 = 0;
+                ζ1 = ζview(ζ, 0, 1, 1, ++ζi1);
+                ζc1 = ζ1.cm;
+                ζcnt(ζ1, ζc1, 0, 0, 1);
+                let ζec2=row.cells, ζl2=ζec2? ζec2.length:0;for (let ζx2=0;ζl2>ζx2;ζx2++) {let cell=ζec2[ζx2], cellIdx=ζx2, lastCell=ζx2===ζl2-1;
+                    ζ2 = ζview(ζ1, 0, 0, 1, ++ζi2);
+                    ζc2 = ζ2.cm;
+                    ζtxt(ζ2, ζc2, 0, 0, 0, 0, ζs1, 1, ζe(ζ2, 0, cell.txt));
+                    ζend(ζ2, ζc2);
+                }
+                ζend(ζ1, ζc1, ζs3);
+            }
+            ζend(ζ, ζc, ζs2);
+        `, '4');
+    });
+
     // todo param nodes as root nodes + ζt flag indicating that function generates root param nodes
 });

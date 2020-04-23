@@ -17,7 +17,7 @@ export interface IvTemplate {
     controller: any | undefined;
     uid: number;
     attach(element: any): IvTemplate;
-    render(data?: any): IvTemplate;
+    render(data?: any, forceRefresh?: boolean): IvTemplate;
 
     query(label: string): any | null;
     query(label: string, all: true): any[] | null; // -> can query all nodes (default = false)

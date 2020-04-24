@@ -1,6 +1,6 @@
-import { template, API } from '../../iv';
-import { Data } from '../../trax';
-import { IvContent } from '../../iv/types';
+import { $template, API } from '../../../iv';
+import { Data } from '../../../trax';
+import { IvContent } from '../../../iv/types';
 import { box } from './boxes';
 
 @Data class HeaderImg {
@@ -41,13 +41,13 @@ import { box } from './boxes';
     factList: PanelFact[];
     thumbnailsList: PanelThumbnails[];
 }
-export const panel = template(`($:Panel)=>{
+export const panel = $template`($:Panel)=>{
     <div class="panel">
-        let h=$.header;
-        if (h) {
-            let titleWidth = 380-parseInt(h.img.width,10),
+        $let h=$.header;
+        $if (h) {
+            $let titleWidth = 380-parseInt(h.img.width,10),
                 titlePaddingTop = parseInt(h.img.height,10) / 2 - 50;
-            if (titlePaddingTop<10) titlePaddingTop = 10;
+            $if (titlePaddingTop<10) {$exec titlePaddingTop = 10;}
             <div class="header">
                 <*box class="sidePanelTitle">
                     <.cell>
@@ -64,8 +64,8 @@ export const panel = template(`($:Panel)=>{
                             </svg>
                         </>
                     </>
-                    if (h.img) {
-                        let img=h.img;
+                    $if (h.img) {
+                        $let img=h.img;
                         <.cell>
                             <a href={img.href} alt={img.alt}>
                                 <img src={img.src} height={img.height} width={img.width}/>
@@ -75,41 +75,41 @@ export const panel = template(`($:Panel)=>{
                 </>
             </>
         }
-        if ($.description) {
+        $if ($.description) {
             <div class="description" @content={$.description}/>
         }
-        if ($.factList && $.factList.length) {
-            for (let fact of $.factList) {
+        $if ($.factList && $.factList.length) {
+            $for (let fact of $.factList) {
                 <div class="fact">
-                    <div class="title"> #{fact.title}:# </>
+                    <div class="title"> {fact.title}: </>
                     <div class="content" @content={fact.$content} /> 
                 </>
             }
         }
-        if ($.thumbnailsList && $.thumbnailsList.length) {
-            for (let tn of $.thumbnailsList) {
+        $if ($.thumbnailsList && $.thumbnailsList.length) {
+            $for (let tn of $.thumbnailsList) {
                 <*thumbnails data={tn}/>
             }
         }
     </>
-}`);
+}`;
 
-const thumbnails = template(`(data:PanelThumbnails) => {
-    let moreFullURL = data.moreURL+"&ved="+data.moreVed;
+const thumbnails = $template`(data:PanelThumbnails) => {
+    $let moreFullURL = data.moreURL+"&ved="+data.moreVed;
     <div class="thumbnails">
         <div class="title">
             <a href={moreFullURL} >
-                #{data.title}#
+                {data.title}
             </>
         </>
         <div class="more">
             <a href={moreFullURL} >
-                <span> #{data.moreTitle}# </span>
+                <span> {data.moreTitle} </span>
             </>
         </>
         <div class="list">
             <*box>
-                for (let img of data.imgList) {
+                $for (let img of data.imgList) {
                     <.cell class="tn">
                         <div class="img">
                             <img src={img.src} 
@@ -124,5 +124,5 @@ const thumbnails = template(`(data:PanelThumbnails) => {
             </>
         </>
     </>
-}`);
+}`;
 

@@ -1,8 +1,8 @@
 
-import { IvContent } from './../../iv/types';
-import { template, API } from "../../iv";
+import { IvContent } from '../../../iv/types';
+import { $template, API } from "../../../iv";
 
-export const privacy = template(`($content:IvContent, remindCaption="Remind me later", reviewCaption="Review") => {
+export const privacy = $template`($content:IvContent, remindCaption="Remind me later", reviewCaption="Review") => {
     <div class="privacy row">
         <div class="cell">
             <div class="privacy_icon"/>
@@ -10,13 +10,13 @@ export const privacy = template(`($content:IvContent, remindCaption="Remind me l
         <div class="cell">
             <div class="msg" aria-level="3" role="heading" @content/>
             <div class="buttons">
-                <button class="flat" @onclick={=>handleResponse(1)}> #{remindCaption}# </>
-                #\ \ #
-                <button class="raised" @onclick={=>handleResponse(2)}> #{reviewCaption}# </>
+                <button class="flat" @onclick={=>handleResponse(1)}> {remindCaption} </>
+                !s!s
+                <button class="raised" @onclick={=>handleResponse(2)}> {reviewCaption} </>
             </>
         </>
     </>
-}`);
+}`;
 
 function handleResponse(value: 1 | 2) {
     alert("TODO - Privacy message: manage response " + value);

@@ -1,6 +1,6 @@
-import { Data } from '../../trax';
-import { API, template } from '../../iv';
-import { IvContent } from '../../iv/types';
+import { Data } from '../../../trax';
+import { API, $template } from '../../../iv';
+import { IvContent } from '../../../iv/types';
 
 @Data class Cell {
     class: string = "";
@@ -12,10 +12,10 @@ import { IvContent } from '../../iv/types';
     vAlign: string = "top";
    cellList: Cell[];
 }
-export const box = template(`($:Box)=>{
+export const box = $template`($:Box)=>{
     <div class={"boxes "+$.class} style={"vertical-align:"+$.vAlign} >
-        for (let c of $.cellList) {
+        $for (let c of $.cellList) {
             <div class={"box "+c.class} style={"vertical-align:"+c.vAlign} @content={c.$content}/>
         }
     </>
-}`);
+}`;

@@ -1,10 +1,8 @@
-require('./index.html'); // webpack dependency
-require('./styles.css'); // webpack dependency
-require('./ENV.data');   // webpack dependency
+import './styles.css'; // rollup dependency
+import { $template } from "../../../iv";
+import ENV from "./ENV";
 
-import { $template } from "../../iv";
-
-let perfMonitor = window["perfMonitor"] as any, ENV = window["ENV"] as any;
+let perfMonitor = window["perfMonitor"] as any;
 
 perfMonitor.startFPSMonitor()
 perfMonitor.startMemMonitor()

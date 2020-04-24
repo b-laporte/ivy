@@ -33,8 +33,5 @@
         "src/samples",
         "src/doc"
     ],
-    "exclude": [
-        "src/samples/search"
-    ],
     "compileOnSave": false
 }

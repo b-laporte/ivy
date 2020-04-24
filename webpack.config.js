@@ -36,13 +36,10 @@ module.exports = [{
     mode: 'production',
     target: 'web',
     entry: {
-        "triangles": "./src/samples/triangles/triangles.ts",
         "flex": "./src/samples/flex/flex.ts",
         "tree": "./src/samples/tree/tree.ts",
         "largetable": "./src/samples/largetable/largetable.ts",
         "rows": "./src/samples/rows/rows.ts",
-        "dbmon": "./src/samples/dbmon/dbmon.ts",
-        // "search": "./src/samples/search/search.ts",
         "list-bench": "./src/samples/list-bench/list-bench.ts",
         "inputs": "./src/samples/inputs/inputs.ts"
     },

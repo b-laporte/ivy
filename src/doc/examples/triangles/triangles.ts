@@ -1,5 +1,4 @@
-require('./index.html'); // webpack dependency
-import { $template } from "../../iv";
+import { $template } from "../../../iv";
 
 const triangle = $template`(x: number, y: number, size: number, seconds: number) => {
     $if (size<=25) {

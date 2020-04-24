@@ -34,7 +34,10 @@ const production = !process.env.ROLLUP_WATCH,
         'select',
         'pages',
         'todomvc',
-        'range'
+        'range',
+        'gsearch',
+        'triangles',
+        'dbmon'
     ];
 
 for (let name of names) {

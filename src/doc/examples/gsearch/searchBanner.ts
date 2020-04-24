@@ -1,5 +1,5 @@
-import { template, API } from '../../iv';
-import { IvContent } from '../../iv/types';
+import { $template, API } from '../../../iv';
+import { IvContent } from '../../../iv/types';
 
 
 @API class SearchBanner {
@@ -9,25 +9,25 @@ import { IvContent } from '../../iv/types';
     logo: IvContent;
     account: IvContent;
 }
-export const searchBanner = template(`($:SearchBanner) => {
+export const searchBanner = $template`($:SearchBanner) => {
     <div class="searchBanner">
         <div class="general">
             // applications and account info
-            <div class="account"> # # </> // TODO
+            <div class="account"> !s </> // TODO
         </>
         <form class="search">
             <div>
                 <div class="logo" @content={$.logo}/>
                 <div class="container">
                     <div class="field">
-                        <div class="paddingA"> #\ # </>
+                        <div class="paddingA"> </>
                         <input type="text" maxlength="2048" name="q" aria-autocomplete="both" 
                             aria-haspopup="false" autocapitalize="off" spellcheck="false"
                             autocomplete="off" autocorrect="off" role="combobox" 
                             title={$.title} aria-label={$.ariaLabel}
                             value={$.searchTerms}
                         />
-                        <div class="paddingB"> #\ # </>
+                        <div class="paddingB"> </>
                     </>
                     <button type="submit">
                         <span class="searchBtn">
@@ -40,4 +40,4 @@ export const searchBanner = template(`($:SearchBanner) => {
             </>
         </>
     </>
-}`);
+}`;

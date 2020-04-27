@@ -1,9 +1,9 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
 import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
-import { $content as _content } from "../xjs/xjs"
+import { $fragment as _fragment } from "../xjs/xjs"
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
-export const $content = _content; // re-export $content to simplify dependency management
+export const $fragment = _fragment; // re-export $content to simplify dependency management
 
 export const logger: IvLogger = {
     log(msg: string, ...optionalParams: any[]) {

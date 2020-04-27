@@ -9,7 +9,7 @@ import { parse, XjsParserContext, toString } from '../../xjs/parser';
 
 const enum CHANGES {
     TEMPLATE = 1,
-    CONTENT = 2
+    FRAGMENT = 2
 }
 
 const SK = ts.SyntaxKind,
@@ -23,7 +23,7 @@ const SK = ts.SyntaxKind,
     IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"],
     CR = "\n",
     TEMPLATE_TAG = "$template",
-    CONTENT_TAG = "$content",
+    FRAGMENT_TAG = "$fragment",
     SEPARATOR = "----------------------------------------------------------------------------------------------------";
 
 export interface ProcessOptions {
@@ -220,7 +220,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                     src: tt.template.getText().slice(1, -1),
                     type: CHANGES.TEMPLATE
                 });
-            } else if (name === CONTENT_TAG) {
+            } else if (name === FRAGMENT_TAG) {
                 let nbrOfArgs = 0;
                 if (tt.template.getChildCount() > 1) {
                     nbrOfArgs = tt.template.getChildAt(1).getChildCount();
@@ -232,7 +232,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                         start: getNodePos(node),
                         end: node.end,
                         src: tt.template.getText().slice(1, -1),
-                        type: CHANGES.CONTENT
+                        type: CHANGES.FRAGMENT
                     });
                 }
             }
@@ -287,9 +287,9 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                 });
                 addSlice(r.function!, chg.src);
             } else {
-                // $content template
+                // $fragment template
                 const li = validator.getLineInfo(source, chg.start);
-                addSlice(await processContentString(chg.src, filePath, li.lineNbr, li.columnNbr, preProcessors), chg.src);
+                addSlice(await processFragmentString(chg.src, filePath, li.lineNbr, li.columnNbr, preProcessors), chg.src);
             }
             pos = chg.end;
         }
@@ -346,13 +346,13 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
         return newLineNbr;
     }
 
-    async function processContentString(src: string, filePath: string, lineNbr: number, colNbr: number, preProcessors?: { [name: string]: () => XjsPreProcessor }): Promise<string> {
+    async function processFragmentString(src: string, filePath: string, lineNbr: number, colNbr: number, preProcessors?: { [name: string]: () => XjsPreProcessor }): Promise<string> {
         const ctxt: XjsParserContext = {
             fileId: filePath,
             preProcessors: preProcessors,
             line1: lineNbr,
             col1: colNbr,
-            templateType: "$content"
+            templateType: "$fragment"
         };
 
         const root = await parse(src, ctxt) as XjsFragment;

@@ -3,7 +3,7 @@ import * as assert from 'assert';
 import { ElementNode, reset, getTemplate, stringify, doc } from '../utils';
 // import { renderXtr, xtrContent } from '../../iv/xtr-renderer';
 // import { parse } from '../../xtr/parser';
-import { $template, API, required, defaultParam, decorator, IvElement, $content } from '../../iv';
+import { $template, API, required, defaultParam, decorator, IvElement, $fragment } from '../../iv';
 import { Data } from '../../trax';
 
 describe('Renderer', () => {

@@ -1,5 +1,5 @@
 import { logViewNodes } from './../iv/index';
-import { compileTemplate } from '../iv/compiler/generator';
+import { compileTemplate } from '../iv/compiler/processor';
 import { IvTemplate, IvView } from '../iv/types';
 import { process } from '../iv/compiler/compiler';
 import { IvError, CompilationResult } from '../iv/compiler/types';

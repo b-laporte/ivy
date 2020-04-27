@@ -1,6 +1,6 @@
 import { XjsFragment, XjsPreProcessor } from './../../xjs/types';
 import * as ts from "typescript";
-import { compileTemplate } from './generator';
+import { compileTemplate } from './processor';
 import { generate } from '../../trax/compiler/generator';
 import { DataMember } from '../../trax/compiler/types';
 import { validator } from './validator';

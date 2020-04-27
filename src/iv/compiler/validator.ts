@@ -1,6 +1,6 @@
 import { XjsDecorator, XjsContentHost, XjsExpression, XjsParam } from './../../xjs/types';
 import { XjsContentNode, XjsFragment, XjsNode, XjsParamHost, XjsLabel } from '../../xjs/types';
-import { GenerationCtxt } from './generator';
+import { GenerationCtxt } from './types';
 import { IvError } from './types';
 
 // Generic validation

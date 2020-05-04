@@ -1,9 +1,7 @@
-import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFragment, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
-import { ΔD, Δp, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch } from '../trax';
-import { $fragment as _fragment } from "../xjs/xjs"
+import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFrgNode, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
+import { ΔD, Δp, Δdf, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch, createDictionary } from '../trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
-export const $fragment = _fragment; // re-export $content to simplify dependency management
 
 export const logger: IvLogger = {
     log(msg: string, ...optionalParams: any[]) {
@@ -58,6 +56,7 @@ interface TemplateController {
  * Template object created at runtime
  */
 export class Template implements IvTemplate {
+    kind: "$template" = "$template";
     _uid = ++TPL_COUNT;
     view: IvView;
     tplApi: any = undefined;
@@ -71,8 +70,9 @@ export class Template implements IvTemplate {
     initialized = false;
     labels: { [label: string]: any[] } | undefined = undefined;
     hasCtlClass = false;
+    $contextInitialized = false;
 
-    constructor(public templateName: string, public filePath: string, public staticCache: Object, public renderFn: (ζ: IvView, $: any, $api: any, $template: IvTemplate) => void | undefined, public $Class?: () => void) {
+    constructor(public templateName: string, public filePath: string, public staticCache: Object, public renderFn: (ζ: IvView, $: any, $api: any, $template: IvTemplate) => void | undefined, public $Class?: () => void, public $contextIdentifiers?: string[]) {
         // document is undefined in a node environment
         this.view = createView(null, null, 1, this);
         let self = this;
@@ -89,12 +89,18 @@ export class Template implements IvTemplate {
         }
     }
 
-    dispose(disconnectFromDom = false) {
+    dispose(disconnectFromDom = true) {
         const v = this.view;
         this.disconnectObserver();
         callLcHook(v, this.tplCtl, "$dispose", this.templateName);
         if (disconnectFromDom && v && v.nodes && v.nodes.length) {
             removeFromDom(v, v.nodes[0]);
+            if (v.anchorNode) {
+                // this is the root template
+                v.rootDomNode.removeChild(v.anchorNode);
+                v.anchorNode = null;
+            }
+            // todo: view dispose
         }
     }
 
@@ -120,6 +126,10 @@ export class Template implements IvTemplate {
             } else if (this.$Class) {
                 this.tplApi = new this.$Class();
                 initApi(this.view, this.tplApi, this.staticCache);
+            } else if (this.$contextIdentifiers) {
+                this.tplApi = createDictionary();
+            } else {
+                this.tplApi = {};
             }
         }
         return this.tplApi;
@@ -214,23 +224,51 @@ export class Template implements IvTemplate {
             this.forceRefresh = true;
         }
         this.processing = true;
-        // console.log('refresh', this.uid)
-        let api = this.api, ctl = this.controller, view = this.view;
+        // console.log('render', this.uid)
+        const api = this.api, ctl = this.controller, view = this.view, ctxtIds = this.$contextIdentifiers;
 
         if (ctl && !isDataObject(ctl)) {
             error(view, "Template controller must be a @Controller Object - please check: " + this.$Class!.name);
             this.tplCtl = this.$Class = undefined;
         }
 
+        let refreshContext = false;
         if (api && data) {
-            if (!isMutating(api)) {
-                createNewRefreshContext();
+            if (ctxtIds !== U) {
+                // $fragment mode
+                let context = data["context"];
+                if (context !== U && typeof context === "object") {
+                    refreshContext = true;
+
+                }
+            } else {
+                if (!isMutating(api)) {
+                    createNewRefreshContext();
+                }
+                this.disconnectObserver();
+                // inject data into params
+                for (let k in data) if (data.hasOwnProperty(k)) {
+                    api[k] = data[k];
+                }
             }
-            this.disconnectObserver();
-            // inject data into params
-            for (let k in data) if (data.hasOwnProperty(k)) {
-                api[k] = data[k];
+        }
+        if (this.$contextInitialized) {
+            refreshContext = true;
+        }
+        if (refreshContext) {
+            let nm = "", context = (data ? data["context"] : null) || api["$context"];
+            // copy context values into api
+            if (context) {
+                for (let i = 0; ctxtIds!.length > i; i++) {
+                    nm = ctxtIds![i];
+                    api[nm] = context[nm];
+                }
+                api["$context"] = context; // if context is a trax dictionary, the template will be automatically refreshed
+                this.$contextInitialized = true;
             }
+        }
+        if (ctxtIds !== U && !this.$contextInitialized) {
+            error(view, "Missing $fragment context");
         }
         let bypassRender = !this.forceRefresh, nodes = view.nodes;
         if (!nodes || !nodes[0] || !(nodes[0] as IvNode).attached) {
@@ -319,8 +357,14 @@ function initApi(view: IvView, api: Object, staticCache: Object) {
 function callLcHook(view: IvView, hookHolder: any, hook: "$init" | "$render" | "$beforeRender" | "$afterRender" | "$dispose", context: string) {
     // life cycle hook
     if (hookHolder && typeof hookHolder[hook] === "function") {
+        let res: any;
         try {
-            hookHolder[hook]!();
+            res = hookHolder[hook]!();
+            if (res !== undefined && typeof res.catch === "function") {
+                (res as Promise<any>).catch((err) => {
+                    error(view, context + " " + hook + " hook execution error\n" + (err.message || err));
+                });
+            }
         } catch (ex) {
             error(view, context + " " + hook + " hook execution error\n" + (ex.message || ex));
         }
@@ -473,14 +517,15 @@ export function $template(tsa: TemplateStringsArray): () => IvTemplate {
     }
 };
 
+
 /**
  * Template runtime factory
  * cf. sample code generation in generator.spec
  * @param renderFn 
  */
-export function ζt(tplName: string, tplFile: string, staticCache: Object, renderFn: (ζ: any, $: any, $api: any, $template: IvTemplate) => void, argumentClass?: any): () => IvTemplate {
+export function ζt(tplName: string, tplFile: string, staticCache: Object, renderFn: (ζ: any, $: any, $api: any, $template: IvTemplate) => void, argumentClass?: any, contextIdentifiers?: string[]): () => IvTemplate {
     return function () {
-        return new Template(tplName, tplFile, staticCache, renderFn, argumentClass);
+        return new Template(tplName, tplFile, staticCache, renderFn, argumentClass, contextIdentifiers);
     }
 }
 
@@ -657,7 +702,7 @@ function runInstructions(v: IvView) {
     }
 }
 
-function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFragment) {
+function getViewInsertFunction(pv: IvView, cnt: IvContainer | IvFrgNode) {
     // determine the append mode
     let { position, nextDomNd, parentDomNd } = findNextSiblingDomNd(pv, cnt);
     // console.log(`:: findNextSiblingDomNd of ${cnt.uid} position=${position} nextDomNd=${nextDomNd ? nextDomNd.uid : "XX"} parentDomNd=${parentDomNd ? parentDomNd.uid : "XX"}`)
@@ -726,7 +771,7 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
     insertFn(nd, true);
     nd.attached = true;
     if (nd.kind === "#fragment") {
-        let f = nd as IvFragment, ch = f.firstChild;
+        let f = nd as IvFrgNode, ch = f.firstChild;
         while (ch) {
             insertInDom(ch, insertFn, 4);
             ch = ch.nextSibling;
@@ -752,7 +797,7 @@ function insertInDom(nd: IvNode, insertFn: (n: IvNode, domOnly: boolean) => void
         }
     }
     if (nd.kind === "#fragment" || nd.kind === "#element") {
-        let cv = (nd as IvFragment | IvEltNode).contentView;
+        let cv = (nd as IvFrgNode | IvEltNode).contentView;
         if (cv) {
             insertInDom(cv.nodes![0], insertFn, 7);
             cv.attached = true;
@@ -1044,7 +1089,7 @@ export function ζo(v: IvView, idx: number, value: any, iFlag?: number): any {
 // e.g. 
 export function ζfra(v: IvView, cm: boolean, idx: number, parentLevel: number) {
     if (!cm) return;
-    let nd: IvFragment = {
+    let nd: IvFrgNode = {
         kind: "#fragment",
         uid: "fra" + (++uidCount),
         idx: idx,
@@ -1923,7 +1968,7 @@ export function ζevtD(v: IvView, cm: boolean, idx: number, eltIdx: number, even
 // Insert / Content projection instruction
 // e.g. ζins(ζ, 1, ζe(ζ, 0, $content));
 export function ζins(v: IvView, iFlag: number, idx: number, contentExprOr$: any, is$Param?: 1) {
-    let projectionNode = v.nodes![idx] as (IvEltNode | IvFragment); // node with @content decorator: either a fragment or an element
+    let projectionNode = v.nodes![idx] as (IvEltNode | IvFrgNode); // node with @content decorator: either a fragment or an element
     // contentView is the view that needs to be projected - e.g. $content
 
     let contentView: IvView | undefined;
@@ -2005,7 +2050,7 @@ export function ζins(v: IvView, iFlag: number, idx: number, contentExprOr$: any
                 }
             } else {
                 // fragment
-                insertFn = getViewInsertFunction(v, projectionNode as IvFragment);
+                insertFn = getViewInsertFunction(v, projectionNode as IvFrgNode);
             }
             insertInDom(contentView.nodes![0], insertFn, 3);
         }
@@ -2118,9 +2163,9 @@ function findNextSiblingDomNd(v: IvView, nd: IvNode): SiblingDomPosition {
                 }
                 ch = ch.nextSibling!;
             }
-            if ((nd as IvFragment).contentView) {
+            if ((nd as IvFrgNode).contentView) {
                 // Search in projected view
-                let cv = (nd as IvFragment).contentView!;
+                let cv = (nd as IvFrgNode).contentView!;
                 if (cv.nodes) return findFirstDomNd(cv, cv.nodes[0], parentDomNd);
             }
             // not found
@@ -2209,7 +2254,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
         }
         // note: we have to keep container attached (except if they are root)
     } else if (nd.kind === "#fragment") {
-        let f = nd as IvFragment;
+        let f = nd as IvFrgNode;
         f.attached = false;
         if (f.contentView) {
             removeFromDom(f.contentView, f.contentView.nodes![0]);
@@ -2236,6 +2281,7 @@ function removeFromDom(v: IvView, nd: IvNode) {
 export const ζΔD = ΔD;
 export const ζΔp = Δp;
 export const ζΔf = Δf;
+export const ζΔdf = Δdf;
 export const ζΔfStr = ΔfStr;
 export const ζΔfBool = ΔfBool;
 export const ζΔfNbr = ΔfNbr;
@@ -2432,7 +2478,7 @@ function scanDomNodes(v: IvView | null | undefined, scanViewPools: boolean, proc
             if (!processor(n)) {
                 return false;
             }
-            return scanDomNodes((n as IvFragment).contentView, scanViewPools, processor);
+            return scanDomNodes((n as IvFrgNode).contentView, scanViewPools, processor);
         } else if (k === "#container") {
             if (!processor(n)) {
                 return false;
@@ -2563,13 +2609,13 @@ export function logViewNodes(v: IvView, indent: string = "") {
             if (nd.domNode && nd.kind === "#text") {
                 lastArg = " text=#" + nd.domNode["_textContent"] + "#";
             } else if (nd.kind === "#fragment" || nd.kind === "#element") {
-                let children: string[] = [], ch = (nd as IvFragment).firstChild;
+                let children: string[] = [], ch = (nd as IvFrgNode).firstChild;
                 while (ch) {
                     children.push(ch.uid);
                     ch = ch.nextSibling;
                 }
                 lastArg = " children:[" + children.join(", ") + "]";
-                let cnView = (nd as IvFragment | IvEltNode).contentView;
+                let cnView = (nd as IvFrgNode | IvEltNode).contentView;
                 if (cnView) {
                     lastArg += " >>> content view: " + cnView.uid;
                 }
@@ -2582,3 +2628,49 @@ export function logViewNodes(v: IvView, indent: string = "") {
         return idx < 0 ? "X" : idx;
     }
 }
+
+export const runtime = {
+    "ζt": ζt,
+    "ζu": ζu,
+    "ζinit": ζinit,
+    "ζview": ζview,
+    "ζviewD": ζviewD,
+    "ζend": ζend,
+    "ζendD": ζendD,
+    "ζelt": ζelt,
+    "ζeltD": ζeltD,
+    "ζxmlns": ζxmlns,
+    "ζxmlnsD": ζxmlnsD,
+    "ζtxt": ζtxt,
+    "ζtxtD": ζtxtD,
+    "ζe": ζe,
+    "ζo": ζo,
+    "ζfra": ζfra,
+    "ζfraD": ζfraD,
+    "ζcnt": ζcnt,
+    "ζcntD": ζcntD,
+    "ζcpt": ζcpt,
+    "ζcptD": ζcptD,
+    "ζcall": ζcall,
+    "ζcallD": ζcallD,
+    "ζpnode": ζpnode,
+    "ζpnEnd": ζpnEnd,
+    "ζatt": ζatt,
+    "ζattD": ζattD,
+    "ζpro": ζpro,
+    "ζproD": ζproD,
+    "ζpar": ζpar,
+    "ζparD": ζparD,
+    "ζbind": ζbind,
+    "ζbindD": ζbindD,
+    "ζlbl": ζlbl,
+    "ζlblD": ζlblD,
+    "ζdeco": ζdeco,
+    "ζdecoD": ζdecoD,
+    "ζdecoCall": ζdecoCall,
+    "ζdecoCallD": ζdecoCallD,
+    "ζevt": ζevt,
+    "ζevtD": ζevtD,
+    "ζins": ζins,
+    "ζinsD": ζinsD
+};

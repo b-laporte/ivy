@@ -13,14 +13,22 @@ export interface IvContent {
 }
 
 export interface IvTemplate {
+    kind: "$template";
     api: any | undefined;
     controller: any | undefined;
     uid: number;
     attach(element: any): IvTemplate;
     render(data?: any, forceRefresh?: boolean): IvTemplate;
+    dispose(): void; // make async?
 
     query(label: string): any | null;
     query(label: string, all: true): any[] | null; // -> can query all nodes (default = false)
+}
+
+export interface IvFragment {
+    kind: "$fragment";
+    template: string;                   // the template as string
+    createInstance?: () => IvTemplate;  // the template instance factory
 }
 
 export interface IvLogger {
@@ -45,14 +53,14 @@ export interface IvParentNode extends IvNode {
     // contentRoot: IvNode | undefined;  // defined if the current node is a host for a content node, in which case firstChild / lastChild refers to the light-dom
 }
 
-export interface IvFragment extends IvParentNode {
+export interface IvFrgNode extends IvParentNode {
     kind: "#fragment";
     contentView: IvView | null;                                     // set when the fragment is used to project a content view
 }
 
 export interface IvProjectionHost {
     view: IvView;
-    hostNode: IvEltNode | IvFragment;
+    hostNode: IvEltNode | IvFrgNode;
 }
 
 export interface IvView {
@@ -68,7 +76,7 @@ export interface IvView {
     cm: boolean;                                                           // creation mode
     cmAppends: null | ((n: IvNode, domOnly: boolean) => void)[];           // array of append functions used at creation time
     lastRefresh: number;                                                   // refresh count at last refresh
-    container: IvContainer | IvEltNode | IvFragment | null;                // null if root view, container host otherwise (i.e. where the view is projected)
+    container: IvContainer | IvEltNode | IvFrgNode | null;                // null if root view, container host otherwise (i.e. where the view is projected)
     projectionHost: IvProjectionHost | null;                               // defined when view corresponds to a projected light-dom 
     template: IvTemplate | undefined;                                      // set if the VIEW is associated to a template root (will be undefined for sub js blocks)
     rootDomNode: any;                                                      // domNode the view is attached to - only used by the root view

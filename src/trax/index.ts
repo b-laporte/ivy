@@ -30,7 +30,7 @@ export interface TraxMetaData {
 
 export interface Constructor<T> {
     ΔFactory?: Factory<T>;
-    new(): T;
+    new(...args: any[]): T;
 }
 
 export interface Factory<T> {
@@ -1433,4 +1433,15 @@ function $df<T>(itemFactory?: Factory<T>): Factory<{ [k: string]: T }> {
     }
     return dictFactory as Factory<{ [k: string]: T }>;
 };
-export let Δdf = $df as <T>(itemFactory?: Factory<T>) => Factory<{ [k: string]: T }>;
+export const Δdf = $df as <T>(itemFactory?: Factory<T>) => Factory<{ [k: string]: T | any }>;
+export function createDictionary<T>(c?: Constructor<T>): { [k: string]: T } {
+    if (c !== undefined) {
+        itmFactory[MP_IS_FACTORY] = true;
+        return $df(itmFactory as any)() as any;
+    }
+    return $df()() as { [k: string]: any };
+
+    function itmFactory() {
+        return new c!();
+    }
+}

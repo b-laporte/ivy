@@ -14,23 +14,25 @@ export interface IvError {
 export interface CompilationOptions {
     templateName: string;
     filePath: string;                   // file name - used for error reporting
-    body?: boolean;                     // if true, will output the template function body in the result
-    statics?: boolean;                  // if true, the statics array will be in the result
-    function?: boolean;                 // if true the js function will be in the result
-    imports?: boolean;                  // if true the imports will be added as comment to the js function
-    importMap?: { [key: string]: 1 };   // imports as a map to re-use the map from a previous compilation
+    body?: boolean;                     // [only for $template strings] if true, will output the template function body in the result
+    statics?: boolean;                  // [only for $template strings] iif true, the statics array will be in the result
+    function?: boolean;                 // [only for $template strings] iif true the js function will be in the result
+    imports?: boolean;                  // [only for $template strings] iif true the imports will be added as comment to the js function
+    importMap?: { [key: string]: 1 };   // [only for $template strings] imports as a map to re-use the map from a previous compilation
     lineOffset?: number;                // shift error line count to report the line number of the file instead of the template
     columnOffset?: number;              // shift error column number on the first template line
     preProcessors?: PreProcessorFactories;
+    templateType?: "$template" | "$fragment";
 }
 
 export type PreProcessorFactories = { [name: string]: () => XjsPreProcessor };
 
 export interface CompilationResult {
-    body?: string;                      // template function body
-    statics?: any[];                    // statics outside function body
-    function?: string;                  // full result function as a string
-    importMap?: { [key: string]: 1 },   // imports as a map
+    body?: string;                            // template function body
+    statics?: any[];                          // statics outside function body
+    function?: string;                        // full result function as a string
+    importMap?: { [key: string]: 1 };         // imports as a map
+    contextIdentifiers?: string[];            // dictionary of all identifiers used in expressions (only for $fragment templates)
 }
 
 // Instructions
@@ -43,28 +45,9 @@ export enum ContainerType {
 
 export type ViewKind = "template" | "cptContent" | "paramContent" | "jsBlock" | "asyncBlock";
 
-export interface ViewInstruction {
-    gc: GenerationCtxt;
-    instructions: any[];
-    indent: string;
-    nodeCount: number;
-    jsVarName: string;         // block variable name - e.g. ζ or ζ1
-    cmVarName: string;         // creation mode var name - e.g. ζc or ζc1
-    exprCount: number;         // binding expressions count
-    expr1Count: number;        // one-time expressions count
-    dExpressions: number[];    // list of counters for deferred expressions (cf. ζexp)
-    bindingsCount: number;     // counter used by ParamInstruction to count the number of bindings on a component / decorator
-    hasChildNodes: boolean;
-    childBlockIndexes: number[];
-    childViewIndexes: number[];
-    paramInstanceVars?: { [paramName: string]: string };    // map of the param node instance variables
-    asyncValue: number | XjsExpression;  // async priority;
-    update?(indent: string, nodeCount: number, hasChildNodes: boolean, asyncValue: number | XjsExpression, exprCount: number, expr1Count: number, bindingsCount: number, paramInstanceVars?: { [paramName: string]: string });
-}
-
 export interface GenerationCtxt {
-    init(template:string, options: CompilationOptions): void;
-    process(tf: XjsTplFunction): any;
+    init(template: string, options: CompilationOptions): void;
+    process(root: XjsTplFunction | XjsFragment): any;
     template: string;
     options: CompilationOptions;
     indentIncrement: string;
@@ -79,7 +62,7 @@ export interface GenerationCtxt {
     templateArgs: string[];             // name of template arguments
     paramCounter: number;               // counter used to create param instance variables
     acceptPreProcessors: boolean;
-    error(msg: string, nd: XjsNode): void;
+    error(msg: string, nd?: XjsNode): void;
     decreaseIndent(indent: string): string;
 
     addTxtInstruction(node: XjsText | XjsCData, idx: number, view: ViewInstruction, iFlag: number, parentLevel: number, staticLabels: string): void;
@@ -113,4 +96,23 @@ export interface PndInstruction {
 
 export interface DecoInstruction {
     addEndInstruction(): void;
+}
+
+export interface ViewInstruction {
+    gc: GenerationCtxt;
+    instructions: any[];
+    indent: string;
+    nodeCount: number;
+    jsVarName: string;         // block variable name - e.g. ζ or ζ1
+    cmVarName: string;         // creation mode var name - e.g. ζc or ζc1
+    exprCount: number;         // binding expressions count
+    expr1Count: number;        // one-time expressions count
+    dExpressions: number[];    // list of counters for deferred expressions (cf. ζexp)
+    bindingsCount: number;     // counter used by ParamInstruction to count the number of bindings on a component / decorator
+    hasChildNodes: boolean;
+    childBlockIndexes: number[];
+    childViewIndexes: number[];
+    paramInstanceVars?: { [paramName: string]: string };    // map of the param node instance variables
+    asyncValue: number | XjsExpression;  // async priority;
+    update?(indent: string, nodeCount: number, hasChildNodes: boolean, asyncValue: number | XjsExpression, exprCount: number, expr1Count: number, bindingsCount: number, paramInstanceVars?: { [paramName: string]: string });
 }

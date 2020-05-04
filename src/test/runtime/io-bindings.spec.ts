@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { $template, API, defaultParam, required, IvElement, decorator, io, Controller } from '../../iv';
+import { $template, API, defaultParam, required, IvElement, decorator, io, Controller, logger } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, logNodes, testData } from '../utils';
 import { Data, changeComplete } from '../../trax';
 

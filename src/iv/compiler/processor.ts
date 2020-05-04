@@ -1,4 +1,3 @@
-import { CodeGenerator } from './generator';
 import { XjsTplFunction, XjsContentNode, XjsNodeParam, XjsExpression, XjsElement, XjsParam, XjsCData, XjsProperty, XjsFragment, XjsJsStatement, XjsJsBlock, XjsComponent, XjsParamNode, XjsNode, XjsTplArgument, XjsText, XjsDecorator, XjsLabel } from '../../xjs/types';
 import { parse, XjsParserContext } from '../../xjs/parser';
 import { validator } from './validator';
@@ -21,9 +20,12 @@ const U = undefined,
         "mathml": "http://www.w3.org/1998/mathml"
     };
 
-export async function compileTemplate(template: string, options: CompilationOptions): Promise<CompilationResult> {
+export async function compileTemplate(template: string, gc: GenerationCtxt, options: CompilationOptions): Promise<CompilationResult> {
     options.lineOffset = options.lineOffset || 0;
     let log = false;
+    if (template === U) {
+        gc.error("Invalid template string")
+    }
     if (template.match(RX_LOG)) {
         log = true;
         template = template.replace(RX_LOG, "");
@@ -32,15 +34,10 @@ export async function compileTemplate(template: string, options: CompilationOpti
         line1: options.lineOffset ? options.lineOffset + 1 : 1,
         col1: options.columnOffset ? options.columnOffset + 1 : 1,
         fileId: options.filePath || "",
-        templateType: "$template",
-        preProcessors: options ? options.preProcessors : undefined
+        templateType: options.templateType || "$template",
+        preProcessors: options ? options.preProcessors : undefined,
     }
     const root = await parse(template, pc);
-    if (root.kind !== "#tplFunction") {
-        console.log("TODO: $fragment root")
-        throw "todo"
-    }
-    let gc = new CodeGenerator();
     gc.init(template, options);
     let res = gc.process(root);
 
@@ -180,8 +177,11 @@ export class ViewBlock {
         let xmlns = "";
 
         switch (nd.kind) {
-            case "#textNode":
             case "#cdata":
+                if (nd.params !== U && nd.params.length) {
+                    this.gc.error("Params, properties, decorators or labels are not supported on cdata sections", nd.params[0]);
+                }
+            case "#textNode":
                 this.gc.addTxtInstruction(nd as XjsText | XjsCData, idx, this, iFlag, parentLevel, "0");
                 break;
             case "#fragment":

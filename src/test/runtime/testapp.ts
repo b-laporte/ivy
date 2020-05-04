@@ -15,7 +15,7 @@ import "./logger.spec";
 import "./event-emitters.spec";
 import "./decorators.spec";
 import "./innerHTML.spec";
-// import "./xtr-renderer.spec";
+import "./fragment-templates.spec";
 import "./io-bindings.spec";
 import "./empty-content.spec";
 import "./input-value.spec";

@@ -2,6 +2,7 @@ import { ViewInstruction, ContainerType, DecoInstruction, ViewKind, GenerationCt
 import { XjsExpression, XjsJsStatement, XjsJsBlock, XjsCData, XjsText, XjsElement, XjsFragment, XjsParam, XjsProperty, XjsDecorator, XjsNode, XjsLabel, XjsComponent, XjsParamNode, XjsTplFunction, XjsTplArgument } from '../../xjs/types';
 import { validator } from './validator';
 import { ViewBlock } from './processor';
+import { createGetAccessor } from 'typescript';
 
 
 type BodyContent = string | XjsExpression | XjsJsStatement | XjsJsBlock;
@@ -23,14 +24,16 @@ export class CodeGenerator implements GenerationCtxt {
     templateName = "";
     filePath = "";
     errorPath = "";
-    imports: { [key: string]: 1 };      // map of required imports
-    statics: string[] = [];             // list of static resources
-    localVars = {};                     // map of creation mode vars
-    blockCount = 0;                     // number of js blocks - used to increment block variable suffixes
-    eachCount = 0;                      // number of $each blocks
-    templateArgs: string[] = [];        // name of template arguments
-    paramCounter = 0;                   // counter used to create param instance variables
+    imports: { [key: string]: 1 };          // map of required imports
+    statics: string[] = [];                 // list of static resources
+    localVars = {};                         // map of creation mode vars
+    blockCount = 0;                         // number of js blocks - used to increment block variable suffixes
+    eachCount = 0;                          // number of $each blocks
+    templateArgs: string[] = [];            // name of template arguments
+    paramCounter = 0;                       // counter used to create param instance variables
     acceptPreProcessors = false;
+    fragmentMode = false;                   // true if generator is used for fragments
+    expressionRoots: { [key: string]: 1 };  // root identifiers used in expressions (only in fragmentMode)
 
     init(template: string, options: CompilationOptions) {
         this.template = template;
@@ -58,16 +61,32 @@ export class CodeGenerator implements GenerationCtxt {
         }
     }
 
-    process(tf: XjsTplFunction) {
-        let gc = this, 
-            options = this.options, 
+    process(root: XjsTplFunction | XjsFragment) {
+        const fm = this.fragmentMode = root.kind !== "#tplFunction";
+        let expressionRoots: { [key: string]: 1 };
+
+        let tf: XjsTplFunction;
+        if (this.fragmentMode) {
+            tf = {
+                kind: "#tplFunction",
+                indent: "",
+                content: (root as XjsFragment).content,
+                name: "[$fragment template string]",
+                pos: 0
+            }
+            expressionRoots = this.expressionRoots = {};
+        } else {
+            tf = root as XjsTplFunction;
+        }
+
+        let gc = this,
+            options = this.options,
             body: BodyContent[] = []; // parts composing the function body (generated strings + included expressions/statements)
 
         return generateAll();
 
         function generateAll() {
             let args = tf.arguments;
-
             if (args) {
                 for (let i = 0; args.length > i; i++) {
                     gc.templateArgs.push(args[i].name);
@@ -78,18 +97,25 @@ export class CodeGenerator implements GenerationCtxt {
             root.scan();
             gc.processRoot(body);
 
-            let res: CompilationResult = {};
+            const res: CompilationResult = {};
             if (options.function || options.body) {
                 res.body = generateBody();
             }
             if (options.statics) {
                 res.statics = gc.statics;
             }
+            let contextIdentifiers: string[] = [];
+            for (let k in expressionRoots) if (expressionRoots.hasOwnProperty(k)) {
+                contextIdentifiers.push(k);
+            }
             if (options.function) {
-                res.function = templateStart(tf.indent, tf, gc) + res.body + templateEnd(tf);
+                res.function = templateStart(tf.indent, tf, fm, gc, contextIdentifiers) + res.body + templateEnd(tf, fm, contextIdentifiers);
             }
             if (options.imports) {
                 res.importMap = gc.imports;
+            }
+            if (fm && contextIdentifiers.length > 0) {
+                res.contextIdentifiers = contextIdentifiers;
             }
             return res;
         }
@@ -99,13 +125,17 @@ export class CodeGenerator implements GenerationCtxt {
             for (let part of body) {
                 if (typeof part === 'string') {
                     parts.push(part);
-                } else if (part.kind === "#expression" || part.kind === "#jsStatement") {
+                } else if (part.kind === "#expression") {
+                    if (fm) {
+                        expressionRoots[getExpressionRoot(part.code)] = 1;
+                    }
+                    parts.push(part.code);
+                } else if (part.kind === "#jsStatement") {
                     parts.push(part.code);
                 } else if (part.kind === "#jsBlock") {
                     parts.push(part.startCode.replace(RX_START_CR, ""));
                 }
             }
-
             return "\n" + parts.join("") + reduceIndent(tf.indent);
         }
 
@@ -603,6 +633,8 @@ export class CodeGenerator implements GenerationCtxt {
             gc.localVars[vi.cmVarName] = 1;
         }
 
+        const cg = this;
+
         function process(body: BodyContent[]) {
             // e.g. 
             // let ζc = ζinit(ζ, ζs0, 3);
@@ -611,19 +643,24 @@ export class CodeGenerator implements GenerationCtxt {
 
             let isJsBlock = node.kind === "#jsBlock";
             if (isJsBlock) {
-                let nd = node as XjsJsBlock;
-                if (nd.name === "$each") {
-                    const args = nd.args!;
-
+                let jsb = node as XjsJsBlock;
+                const args = jsb.args!, name = jsb.name;
+                if (name === "$each") {
                     // start - e.g.
                     // let ζec1=items,ζl1=ζec1.length; // ec = each collection
                     // for (let ζx1=0;ζl1>ζx1;ζx1++) {
                     //     let item=ζec1[ζx1];
                     let name: string;
                     if (Array.isArray(args[0])) {
+                        if (cg.fragmentMode) {
+                            cg.expressionRoots[args[0][0]] = 1;
+                        }
                         name = args[0].join(".");
                     } else {
                         name = args[0];
+                        if (cg.fragmentMode) {
+                            cg.expressionRoots[name] = 1;
+                        }
                     }
                     const idx = ++gc.eachCount,
                         p1 = `let ζec${idx}=${name}, ζl${idx}=ζec${idx}? ζec${idx}.length:0;`,
@@ -636,14 +673,21 @@ export class CodeGenerator implements GenerationCtxt {
                     if (args.length > 3) {
                         p5 = `, ${args[3]}=ζx${idx}===ζl${idx}-1`; // isLast
                     }
-                    nd.startCode = p1 + p2 + p3 + p4 + p5 + ";";
 
+                    jsb.startCode = p1 + p2 + p3 + p4 + p5 + ";";
                     // end
-                    nd.endCode = "}";
+                    jsb.endCode = "}";
+                } else if (cg.fragmentMode && (name === "$if" || name === "$elseif")) {
+                    if (name === "$if") {
+                        jsb.startCode = `if (${jsb.args![0].join(".")}) {`
+                    } else if (name === "$elseif") {
+                        jsb.startCode = `else if (${jsb.args![0].join(".")}) {`
+                    }
+                    cg.expressionRoots[args[0][0]] = 1;
                 }
                 body.push(gc.decreaseIndent(vi.indent));
-                body.push(nd);
-                if (!nd.startCode.match(/\n$/)) {
+                body.push(jsb);
+                if (!jsb.startCode.match(/\n$/)) {
                     body.push("\n");
                 }
             } else if (kind === "asyncBlock") {
@@ -804,9 +848,12 @@ function pushExpressionValue(body: BodyContent[], value: number | boolean | stri
     }
 }
 
-function generateBinding(body: BodyContent[], expressionCode: string, node: XjsNode, v: ViewInstruction, indent: string, iFlag: number, idx: number, bindingIdx: number, name: string | 0) {
+function generateBinding(body: BodyContent[], expressionCode: string, node: XjsNode, v: ViewInstruction, indent: string, iFlag: number, idx: number, bindingIdx: number, name: string | 0, expressionRoots?: { [key: string]: 1 }) {
     let iSuffix = iFlag ? "D" : "";
     let { hostExp, propExp, errorMsg } = parseBinding(expressionCode);
+    if (expressionRoots !== undefined) {
+        expressionRoots[getExpressionRoot(hostExp)] = 1;
+    }
     if (errorMsg) {
         v.gc.error(errorMsg, node);
     } else {
@@ -848,7 +895,7 @@ function processCptOptionalArgs(view: ViewInstruction, dynamicPNodeNames: string
     return ['', ''];
 }
 
-function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
+function templateStart(indent: string, tf: XjsTplFunction, fragmentMode: boolean, gc: GenerationCtxt, contextIdentifiers: string[]) {
     let lines: string[] = [], argNames = "", classDef = "", args = tf.arguments, argClassName = "", argInit: string[] = [], argType: string, ctlClass = "", injectTpl = false;
     indent = reduceIndent(indent);
 
@@ -856,7 +903,7 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         gc.imports[symbol] = 1;
     }
 
-    if (args && args.length) {
+    if (!fragmentMode && args && args.length) {
         let classProps: string[] = [], arg: XjsTplArgument, defaultValue = "";
 
         argNames = ", $, $api";
@@ -912,33 +959,62 @@ function templateStart(indent: string, tf: XjsTplFunction, gc: GenerationCtxt) {
         }
     }
 
+    gc.imports["ζt"] = 1;
     tf[MD_PARAM_CLASS] = argClassName;
-    lines.push('(function () {');
+    if (fragmentMode) {
+        argNames = ", $, $context";
+        const imports = gc.imports, buf: string[] = [];
+        for (let k in imports) if (imports.hasOwnProperty(k)) {
+            buf.push(k + '=ζr.' + k);
+        }
+        lines.push('const ' + buf.join(",") + ";");
+    } else {
+        lines.push('(function () {');
+    }
+
     if (gc.statics.length) {
         lines.push(`${indent}const ${gc.statics.join(", ")};`);
     }
     if (classDef) {
         lines.push(classDef);
     }
-    gc.imports["ζt"] = 1;
     if (ctlClass || injectTpl) {
         if (injectTpl) {
             argNames += ", $template";
         }
     }
     lines.push(`${indent}return ζt("${gc.templateName}", "${gc.errorPath}", ζs0, function (ζ${argNames}) {`);
+    if (contextIdentifiers.length > 0) {
+        const buf: string[] = [];
+        let nm: string;
+        for (let i = 0; contextIdentifiers.length > i; i++) {
+            nm = contextIdentifiers[i];
+            buf.push(nm + '=$context["' + nm + '"]');
+        }
+        lines.push(`let ${buf.join(", ")};`);
+    }
     if (argInit.length) {
         lines.push(`${indent + gc.indentIncrement}let ${argInit.join(", ")};`);
     }
     return lines.join("\n");
 }
 
-function templateEnd(tf: XjsTplFunction) {
-    let argClassName = tf[MD_PARAM_CLASS];
-    if (argClassName) {
-        return `}, ${argClassName});\n${reduceIndent(tf.indent)}})()`;
+function templateEnd(tf: XjsTplFunction, fragmentMode: boolean, contextIdentifiers: string[]) {
+    if (fragmentMode) {
+        let lastArgs = '';
+        if (contextIdentifiers.length > 0) {
+            lastArgs = ', undefined, ["' + contextIdentifiers.join('","') + '"]';
+        }
+
+        return '}' + lastArgs + ');\n' + reduceIndent(tf.indent);
+    } else {
+        let argClassName = tf[MD_PARAM_CLASS];
+        if (argClassName) {
+            return `}, ${argClassName});\n${reduceIndent(tf.indent)}})()`;
+        }
+        return '});\n' + reduceIndent(tf.indent) + '})()';
     }
-    return '});\n' + reduceIndent(tf.indent) + '})()';
+
 }
 
 function reduceIndent(indent: string) {
@@ -946,4 +1022,9 @@ function reduceIndent(indent: string) {
         return indent.slice(0, -4);
     }
     return indent;
+}
+
+function getExpressionRoot(code: string) {
+    let idx = code.indexOf(".");
+    return (idx > -1) ? code.slice(0, idx) : code;
 }

@@ -1,3 +1,4 @@
+import { CodeGenerator } from './../iv/compiler/generator';
 import { logViewNodes } from './../iv/index';
 import { compileTemplate } from '../iv/compiler/processor';
 import { IvTemplate, IvView } from '../iv/types';
@@ -6,7 +7,7 @@ import { IvError, CompilationResult } from '../iv/compiler/types';
 
 export let body = {
     async $template(tsa: TemplateStringsArray) {
-        let r = await compileTemplate(tsa[0], { templateName: "testTpl", filePath: "test.ts", body: true });
+        let r = await compileTemplate(tsa[0], new CodeGenerator(), { templateName: "testTpl", filePath: "test.ts", body: true });
         // console.log(`body: '${r.body}'`);
         return r.body;
     }
@@ -14,7 +15,7 @@ export let body = {
 
 export let statics = {
     async $template(tsa: TemplateStringsArray) {
-        let r = await compileTemplate(tsa[0], { templateName: "testTpl", filePath: "test.ts", statics: true });
+        let r = await compileTemplate(tsa[0], new CodeGenerator(), { templateName: "testTpl", filePath: "test.ts", statics: true });
         // console.log(`statics: '${r.statics}'`);
         return r.statics;
     }
@@ -23,7 +24,7 @@ export let statics = {
 export let test = {
     importMap: undefined, // { [key: string]: 1 }
     async $template(tsa: TemplateStringsArray): Promise<CompilationResult> {
-        let r = await compileTemplate(tsa[0], { templateName: "testTpl", filePath: "test.ts", body: true, statics: true, function: true, imports: true, importMap: this.importMap });
+        let r = await compileTemplate(tsa[0], new CodeGenerator(), { templateName: "testTpl", filePath: "test.ts", body: true, statics: true, function: true, imports: true, importMap: this.importMap });
         return r;
     }
 }

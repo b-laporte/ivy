@@ -175,7 +175,7 @@ describe('Errors', () => {
 
         const t =getTemplate(test, body).render();
         assert.equal(error, `\
-            IVY: Invalid parameter node <.txt/>: no param node can be used in this context
+            IVY: Invalid parameter node: <.txt>
             >> Template: "test" - File: ".../runtime/errors.spec.ts"`
             , "1");
     });

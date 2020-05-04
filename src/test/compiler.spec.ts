@@ -236,7 +236,7 @@ describe('Template compiler', () => {
 
     it("should compile a simple $fragment string", async function () {
         const src1 = `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const x = $fragment\`
                 <div>
@@ -248,16 +248,16 @@ describe('Template compiler', () => {
         const r = await compile(src1, "a/b/c.ts");
 
         assert.equal(r.fileContent, `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
-            const x = \`<!><div> Message: <*hello name='world'/></></>\`;
+            const x = $fragment\`<!><div> Message: <*hello name='world'/></></>\`;
 
             // end`, "1");
     });
 
     it("should ignore dynamic $fragment strings", async function () {
         const src1 = `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const x = $fragment \`
                 <div> Message: \${123} </>
@@ -268,7 +268,7 @@ describe('Template compiler', () => {
         let r = await compile(src1, "a/b/c.ts")
 
         assert.equal(r.fileContent, `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const x = $fragment \`
                 <div> Message: \${123} </>
@@ -277,7 +277,7 @@ describe('Template compiler', () => {
             // end`, "1");
 
         const src2 = `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const x = $fragment\`
                 <div> Message: \${123} </>
@@ -294,20 +294,21 @@ describe('Template compiler', () => {
         r = await compile(src2, "a/b/c.ts")
 
         assert.equal(r.fileContent, `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const x = $fragment\`
                 <div> Message: \${123} </>
             \`;
-            const y = \`<!><div> Message: <*hi @deco( foo={bar})/></></>\`
-            const z = \`<!><div> {blah} <*hi @deco( foo={bar})/></></>\`;
+            const y = $fragment\`<!><div> Message: <*hi @deco( foo={bar})/></></>\`
+            const z = $fragment\`<!><div> {blah} <*hi @deco( foo={bar})/></></>\`;
 
             // end`, "2");
     });
 
     it("should compile multiple $fragment strings with xjs $templates", async function () {
         const src1 = `\// start
-            import { $template, $fragment } from "../iv";
+            import { $template } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const a=$fragment\`
                 ABC <def
@@ -326,9 +327,10 @@ describe('Template compiler', () => {
         const r = await compile(src1, "a/b/c.ts")
 
         assert.equal(r.fileContent, `\// start
-            import { $template, $fragment, ζinit, ζend, ζtxt, ζt } from "../iv";
+            import { $template, ζinit, ζend, ζtxt, ζt } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
-            const a=\`<!> ABC <def g={xxx}/></>\`;
+            const a=$fragment\`<!> ABC <def g={xxx}/></>\`;
             const x = (function () {
             const ζs0 = {};
             return ζt("x", ".../b/c.ts", ζs0, function (ζ) {
@@ -337,7 +339,7 @@ describe('Template compiler', () => {
                 ζend(ζ, ζc);
             });
             })();
-            const b = \`<!><*hello name={name}/></>\`;//here
+            const b = $fragment\`<!><*hello name={name}/></>\`;//here
 
             // end`, "1");
     });
@@ -355,7 +357,7 @@ describe('Template compiler', () => {
 
     it("should support $fragment pre-processors", async function () {
         const src1 = `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
             const x = $fragment\`
                 <div @@newParam="a"> <*hello @@newParam={abc}/> </div>
@@ -366,9 +368,9 @@ describe('Template compiler', () => {
         const r = await compile(src1, { filePath: "a/b/c.ts", preProcessors: { "@@newParam": newParam } });
 
         assert.equal(r.fileContent, `\// start
-            import { $fragment } from "../iv";
+            import { $fragment } from "../iv/fragment";
 
-            const x = \`<!><div the_param='a'><*hello the_param={abc}/></></>\`;
+            const x = $fragment\`<!><div the_param='a'><*hello the_param={abc}/></></>\`;
 
             // end`, "1");
     });
@@ -405,11 +407,33 @@ describe('Template compiler', () => {
             // end`, "1");
     });
 
+    it("should ignore undefined $fragment pre-processors", async function () {
+        const src1 = `\// start
+            import { $fragment } from "../iv/fragment";
+
+            const x = $fragment\`
+                <div @@newParam="a" @@foo> <*hello/> \\\` </div>
+            \`;
+
+            // end`;
+
+        const r = await compile(src1, { filePath: "a/b/c.ts", preProcessors: { "@@newParam": newParam } });
+
+        assert.equal(r.fileContent, `\// start
+            import { $fragment } from "../iv/fragment";
+
+            const x = $fragment\`
+                <div @@newParam="a" @@foo> <*hello/> \\\` </div>
+            \`;
+
+            // end`, "1");
+    });
+
     it("should raise errors with file name and line numbers", async function () {
         let err: any;
         try {
             await compile(`
-                import{ $fragment } from "../iv";
+                import{ $fragment } from "../iv/fragment";
 
                 const x = $fragment\`
                     <*cpt-x> Message: <*hello> </>
@@ -427,7 +451,7 @@ describe('Template compiler', () => {
 
         try {
             await compile(`
-                import{ $fragment } from "../iv";
+                import{ $fragment } from "../iv/fragment";
 
                 const x = $fragment\`
                     <*cpt> Message: <*hello/> </>

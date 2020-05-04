@@ -1,5 +1,5 @@
 import { TraxImport, DataObject, DataProperty, DataType, TraxError } from './types';
-import * as ts from "typescript";
+import ts from "typescript";
 
 const RX_LOG = /\/\/\s*log[\s$]/,
     RX_IGNORE_COMMENT = /\/\/\s*trax:\s*ignore/i,

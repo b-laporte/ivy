@@ -1,3 +1,4 @@
+import { CodeGenerator } from './generator';
 import { XjsFragment, XjsPreProcessor } from './../../xjs/types';
 import * as ts from "typescript";
 import { compileTemplate } from './processor';
@@ -276,7 +277,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                 } else {
                     tplName = "";
                 }
-                let r = await compileTemplate(chg.src, {
+                let r = await compileTemplate(chg.src, new CodeGenerator(), {
                     templateName: tplName,
                     function: true,
                     importMap: importIds,
@@ -352,10 +353,15 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
             preProcessors: preProcessors,
             line1: lineNbr,
             col1: colNbr,
-            templateType: "$fragment"
+            templateType: "$fragment",
+            fragmentValidationMode: true
         };
 
         const root = await parse(src, ctxt) as XjsFragment;
-        return "`" + toString(root, "").replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`";
+        if (ctxt.undefinedPreProcessorsFound) {
+            return "$fragment`" + src + "`";
+        } else {
+            return "$fragment`" + toString(root, "").replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`";
+        }
     }
 }

@@ -66,11 +66,13 @@ const U = undefined,
 
 export interface XjsParserContext {
     //preProcessors?: XtrPreProcessorDictionary;
-    fileId?: string;                // e.g. /Users/blaporte/Dev/iv/src/doc/samples.ts
-    line1?: number;                 // line number of the first template line - used to calculate offset for error messages - default: 1
-    col1?: number;                  // column number of the first template character - used to calculate offset for error messages - default: 1
+    fileId?: string;                           // e.g. /Users/blaporte/Dev/iv/src/doc/samples.ts
+    line1?: number;                            // line number of the first template line - used to calculate offset for error messages - default: 1
+    col1?: number;                             // column number of the first template character - used to calculate offset for error messages - default: 1
     templateType?: "$template" | "$fragment";
     preProcessors?: { [name: string]: () => XjsPreProcessor };
+    fragmentValidationMode?: boolean;    // if true, undefined pre-processors will be ignored and no error will be raised (default: false)
+    undefinedPreProcessorsFound?: boolean;     // will be set to true if undefined pre-processors have been found
 }
 
 /**
@@ -88,6 +90,7 @@ export async function parse(xjs: string, context?: XjsParserContext): Promise<Xj
         ppFactories = context ? context.preProcessors || {} : {},
         preProcessorNodes: XjsPreProcessorNode[] | undefined, // list of pre-processor instance
         ppContext: XjsPreProcessorCtxt | undefined,
+        fragmentValidationMode = (context && context.fragmentValidationMode === true),
         currentPpName = "",  // used for error handing
         currentPpPos = 0;    // used for error handling
 
@@ -461,20 +464,27 @@ export async function parse(xjs: string, context?: XjsParserContext): Promise<Xj
                     cc = eat(CHAR_BANG); // !
                     const escValue = ESCAPED_CHARS["" + cc];
                     if (escValue !== U) {
-                        if (cc === CHAR_z) {
-                            // !z case: we remove all previous and next spaces
-                            if (lastIsSpace && charCodes.length > 0) {
-                                charCodes.pop(); // remove last element
-                            }
-                            lastIsSpace = true;
-                            pcc = newPcc;
-                            moveNext();
-                        } else {
+                        if (fragmentValidationMode) {
+                            charCodes.push(CHAR_BANG); // keep the !
+                            charCodes.push(cc);
                             lastIsSpace = false;
                             moveNext();
-                            charCodes.push(escValue);
-                            pcc = escValue;
-                            specialCharFound = true;
+                        } else {
+                            if (cc === CHAR_z) {
+                                // !z case: we remove all previous and next spaces
+                                if (lastIsSpace && charCodes.length > 0) {
+                                    charCodes.pop(); // remove last element
+                                }
+                                lastIsSpace = true;
+                                pcc = newPcc;
+                                moveNext();
+                            } else {
+                                lastIsSpace = false;
+                                moveNext();
+                                charCodes.push(escValue);
+                                pcc = escValue;
+                                specialCharFound = true;
+                            }
                         }
                     } else {
                         charCodes.push(CHAR_BANG);
@@ -919,6 +929,9 @@ export async function parse(xjs: string, context?: XjsParserContext): Promise<Xj
                     moveNext();
                     if (CDATA_END === nextChars(CDATA_END_LENGTH)) {
                         // we escape end of cdata
+                        if (fragmentValidationMode) {
+                            charCodes.push(CHAR_BANG); // keep the !
+                        }
                         charCodes.push(cc);
                         moveNext();
                     } else {
@@ -998,7 +1011,7 @@ export async function parse(xjs: string, context?: XjsParserContext): Promise<Xj
         if (isContentMode) {
             let rp = getRefPath(e.code);
             if (rp === U) {
-                error("Invalid $fragment reference '" + e.code + "'", e.pos);
+                error("Invalid reference path '" + e.code + "'", e.pos);
             } else {
                 e.refPath = rp;
             }
@@ -1318,8 +1331,14 @@ export async function parse(xjs: string, context?: XjsParserContext): Promise<Xj
                 const nm = ppn.ref.code;
                 // create the pp instance
                 if (ppFactories === U || ppFactories[nm] === U) {
-                    error("Undefined pre-processor '" + nm + "'", ppn.pos);
-                    return;
+                    if (!fragmentValidationMode) {
+                        error("Undefined pre-processor '" + nm + "'", ppn.pos);
+                        return;
+                    } else if (context !== U) {
+                        ppList.splice(i, 1);
+                        context.undefinedPreProcessorsFound = true;
+                        continue;
+                    }
                 }
                 pp = ppn.instance = ppFactories[nm]() as any;
             } else {

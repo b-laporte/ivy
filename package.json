@@ -17,9 +17,10 @@
         "doc-watch": "rollup --config src/doc/rollup.config.js -w",
         "doc-dev": "rm -rf public/*.js && npm-run-all --parallel serve-public doc-watch",
         "serve-public": "serve public",
-        "doc-samples": "rollup --config src/doc/examples/rollup.config.js",
+        "doc-samples1": "rollup --config src/doc/examples/rollup1.config.js",
+        "doc-samples2": "rollup --config src/doc/examples/rollup2.config.js",
         "clean": "rm -rf bin/ && rm -rf dist/ && rm -rf public/",
-        "build-all": "yarn clean && yarn plugins && yarn test && yarn doc && yarn doc-samples"
+        "build-all": "yarn clean && yarn plugins && yarn test && yarn doc && yarn doc-samples1 && yarn doc-samples2"
     },
     "license": "Apache-2.0",
     "bugs": {},

@@ -1,65 +1,7 @@
 import { $template } from '../../iv';
 import w from '../widgets';
-import { hello, expressions } from './base-concepts';
+import { hello, expressions, subTemplates, loops } from './base-concepts';
 
-const subTemplates = $template`() => {
-    <div class="text">
-        <h1> Sub-templates </>
-        <*w.notions>
-            <.notion name="sub-templates"> calling a template from another template </>
-            <.notion name="arguments default values"> to specify the default value of a template parameter</>
-        </>
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="subtemplates/subtemplates.ts#main"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="subtemplates/subtemplates.ts#greet"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="subtemplates/subtemplates.ts#text"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="subtemplates/subtemplates.ts#instantiation"/>
-}`;
-
-const loops = $template`() => {
-    <div class="text">
-        <h1> Variables, loops and conditions </>
-        <*w.notions>
-            <.notion name="JS statements"> using js statements to control template rendering output </>
-            <.notion name="array arguments naming convention"> e.g. xxxList </> 
-            <.notion name="debugging"> with console.log(...) or debugger statements </> 
-        </>
-        <p>
-            Presentation...
-        </>
-    </div>
-    <*w.code @@extract="loops/loops.ts#loop"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="loops/loops.ts#condition"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="loops/loops.ts#instantiation"/>
-}`;
 
 const events = $template`() => {
     <div class="text">

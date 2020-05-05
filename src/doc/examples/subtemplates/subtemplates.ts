@@ -1,15 +1,12 @@
+// @@extract: start
 import { $template } from "../../../iv";
-
-// @@extract: text
-const text = $template`(value:string) => {
-    {value}
-}`;
+import * as lib from "./lib";
 
 // @@extract: greet
 const greet = $template`(name:string, suffix="!", className="") => {
     <div class={"greeting " + className}>
         Hello {name}
-        <*text value={suffix} />
+        <*lib.text value={suffix} />
     </div>
 }`;
 

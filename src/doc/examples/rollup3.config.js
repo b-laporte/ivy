@@ -7,11 +7,10 @@ import postcss from 'rollup-plugin-postcss';
 const production = !process.env.ROLLUP_WATCH,
     config = [],
     names = [
-        'hello',
-        // 'clock',
+        // 'hello',
         // 'expressions',
         // 'subtemplates',
-        // 'loops',
+        'loops',
         // 'events',
         // 'section',
         // 'trax1',
@@ -31,7 +30,8 @@ const production = !process.env.ROLLUP_WATCH,
         // 'innerHTML',
         // 'select',
         // 'pages',
-        // 'todomvc'
+        // 'todomvc',
+        // 'clock'
     ];
 
 for (let name of names) {

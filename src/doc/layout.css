@@ -8,16 +8,10 @@ dark grey: #393939;
 /* Fira-Mono ?*/
 
 body.main {
-    font-size: 16px;
+    font-size: 17px;
     color: #333;
     font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
     font-weight: 300;
-}
-
-@media(min-width:1024px) {
-    body.main {
-        font-size: 15px;
-    }
 }
 
 /* ------------------------------------------------------------------------------------------------------------ */
@@ -47,22 +41,23 @@ nav.mainMenu .container {
 nav.mainMenu {
     position: fixed;
     width: 100vw;
+    height: 4.5rem;
     font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
     display: flex;
     justify-content: center;
-    padding-top: 5px;
-    margin: 0 0 .5rem 0;
+    margin: 0;
     background-color: #00000010;
     z-index: 1000;
 }
 
 nav.mainMenu ul {
-    padding: 0 0 4px 10px;
+    padding: 2px 0 8px 10px;
     display: block;
-    font-size: 1.05rem;
-    margin-top: 20px;
+    font-size: 1.1rem;
+    margin-top: 22px;
     margin-right: 25px;
-    background-color: #efefef;
+    background-color: #0b4f90;
+    color: #ffffff;
     font-weight: 400;
 }
 
@@ -70,7 +65,7 @@ nav.mainMenu li {
     display: inline !important;
     margin: 0 15px 0 0;
     cursor: pointer;
-    padding: 2px 2px 2px 6px;
+    padding: 2px 10px 2px 10px;
 }
 
 nav.mainMenu li:hover {
@@ -82,12 +77,10 @@ nav.mainMenu .mainLogo {
     cursor: pointer;
 }
 
-svg.ivyLogoDark {
-    stroke: #008BFC;
-}
-
-svg.ivyLogoLight {
-    stroke: #FFFFFF;
+svg.ivyLogo {
+    position: relative;
+    top: 10px;
+    stroke: #333333;
 }
 
 svg.ghLogo {
@@ -96,7 +89,7 @@ svg.ghLogo {
 }
 
 svg.ghLogo .logo {
-    fill: #333;
+    fill: #ffffff;
 }
 
 nav.mainMenu li:hover svg.ghLogo .logo {
@@ -332,17 +325,7 @@ div.home {
     position: relative;
     color: white;
     overflow: scroll;
-    padding: 2.2rem 0 2rem 2rem;
-}
-
-@media(max-width:1500px) {
-    .code {
-        width: 670px;
-    }
-
-    .extract.ts_code {
-        width: 870px;
-    }
+    padding: 2.2rem 2rem 2rem 4rem;
 }
 
 .code svg.top {
@@ -434,17 +417,28 @@ div.home {
 /* Main menu --------------------------------------------------------------------- */
 
 .main_menu {
-    margin-top: 5rem;
+    font-size: 1.05rem;
+    background-color: #989898;
+    margin-top: 4.5rem;
+    color: #333;
 }
 
 .menu.cat.container {
-    border-left: 10px solid #3C3C3C;
-    padding: .4rem 0 .4rem 1.7rem;
+    border-left: 10px solid #989898;
+    padding: .7rem 0 .6rem 1.7rem;
 }
 
 .menu.cat.container.selected {
-    border-left: 10px solid #1670C5;
-    background-color: #3C3C3C;
+    border-left: 10px solid #333333;
+    background-color: #888;
+}
+
+.menu.cat.container.first {
+    padding-top: 2.35rem;
+}
+
+.menu.cat.container.last {
+    padding-bottom: 2.35rem;
 }
 
 .menu.cat .title {
@@ -457,7 +451,7 @@ div.home {
 }
 
 .menu.cat li {
-    padding: .1rem 0 .1rem 0;
+    padding: .2rem 0 .1rem 0;
     cursor: pointer;
 }
 
@@ -468,7 +462,7 @@ div.home {
 
 .menu.cat li.selected {
     font-weight: bold;
-    color: #008BFC;
+    color: #ffffff;
 }
 
 /* Tutorial & Example pages ------------------------------------------------------ */
@@ -481,21 +475,21 @@ div.layout2 {
 }
 
 .layout2 .blockA2 {
-    background-color: #313131;
+    background-color: #e8e8e8;
     display: flex;
     flex-wrap: nowrap;
     justify-content: flex-start;
 }
 
 .layout2 .blockA2 .menu {
-    width: 270px;
+    width: 370px;
     flex-grow: 0;
-    color: #FFFFFF;
 }
 
 .layout2 .blockA2 .mainpanel {
-    padding-top: 4rem;
+    padding-top: 4.5rem;
     flex-grow: 1;
+    color: #ffffff;
     background-color: #0c5499;
 }
 
@@ -503,14 +497,22 @@ div.layout2 {
     padding-top: 70px;
 }
 
-.examples .demo h1 {
-    width: 100%;
-    margin: 3rem .3rem .3rem 1rem;
+.examples .demo {
+    background-color: #ffffff;
+}
+
+.examples h1 {
+    /* main title */
+    font-size: 1.5rem;
+    padding: .5rem 0 .5rem 0;
+}
+
+.examples p {
+    padding: .3rem 0 .3rem 0;
 }
 
 .examples .demo iframe {
     width: 100%;
-    min-height: 730px;
 }
 
 .examples .demo a {
@@ -518,23 +520,56 @@ div.layout2 {
     text-decoration: none;
 }
 
-div.text {
+div.text, .mainpanel .md {
     color: #FFFFFF;
     background-color: #1670C5;
-    padding: 2rem 0 2rem 2rem;
+    padding: 2rem 2rem 2rem 4rem;
 }
 
-.layout2 h1 {
+.demo h1 {
     font-size: 1.5rem;
-    padding-bottom: 1rem;
+    padding: 1.5rem 0 0.5rem 4rem;
+}
+
+.mainpanel ul {
+    padding-top: 5px;
+}
+
+.mainpanel li {
+    padding-bottom: 4px;
+    line-height: 1.3rem;
+}
+
+.mainpanel li:before {
+    content: "_";
+    padding-right: 5px;
+}
+
+.md strong {
+    font-weight: bold;
+}
+
+.md em {
+    font-style: italic;
+}
+
+.md p {
+    margin-top: .8rem;
+    line-height: 1.3rem;
 }
 
 /* ------------------------------------------------------------------------------ */
 
 .notions {
+    background-color: #1670C5;
+    padding: 0 4rem 2rem 4rem;
+    /* padding: .2rem 0 .2rem 1rem; */
+}
+
+.notions .block {
     border-left: 5px solid #FF7019;
-    padding: .2rem 0 .2rem 1rem;
-    margin-bottom: 1rem;
+    padding-left: 1rem;
+    padding-bottom: .3rem;
 }
 
 .notions .title {

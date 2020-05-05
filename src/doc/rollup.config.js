@@ -4,6 +4,7 @@ import ivy from '../../bin/rollup-plugin-ivy';
 import { terser } from 'rollup-plugin-terser';
 import postcss from 'rollup-plugin-postcss';
 import { extract } from '../../bin/rollup-plugin-ivy-extract';
+import { md } from '../../bin/rollup-plugin-ivy-md';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -21,7 +22,7 @@ export default {
             minimize: production
         }),
         ivy({
-            preProcessors: { "@@extract": extract }
+            preProcessors: { "@@extract": extract, "@@md": md }
         }),
         typescript({
             clean: production,

@@ -1,68 +1,6 @@
 import { $template } from '../../iv';
 import w from '../widgets';
-
-const hello = $template`() => {
-    <div class="text">
-        <h1> Hello World </>
-        <*w.notions>
-            <.notion name="XJS template functions"> XJS basics: template, elements and text nodes </>
-            <.notion name="template arguments"> create template parameters </>
-            <.notion name="template instantiation"> create and render a template instance </>
-            <.notion name="mental model & code generation"> understand how ivy works and how to debug </>
-        </>
-        <p>
-            ...
-        </>
-    </>
-    <*w.code @@extract="hello/hello.ts#all" indicators="top;bottom"/>
-    <div class="text">
-        <p>
-            ....
-        </>
-    </>
-    <*w.code @@extract="hello/pseudocode.ts#mental-model"/>
-    <div class="text">
-        <p>
-            ....
-        </>
-    </>
-    <*w.code @@extract="hello/generated.ts#all"/>
-}`;
-
-const expressions = $template`() => {
-    <div class="text">
-        <h1> Expressions & properties </>
-        <*w.notions>
-            <.notion name="binding expressions"> bind JS values to DOM elements and text nodes </>
-            <.notion name="attributes vs. properties"> target DOM attributes or properties </>
-            <.notion name="setting or removing attributes"> e.g. to enable or disable an input or button </>
-            <.notion name="one-time bindings"> avoid recalculating expressions that don't change (e.g. translation values) </>
-            <.notion name="manual re-rendering"> to synchronously (re-)render a template instance </>
-        </>
-        <p>
-            ....
-        </>
-    </div>
-    <*w.code @@extract="expressions/expressions.ts#template"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="expressions/expressions.ts#process-function"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="expressions/expressions.ts#instantiation"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="expressions/expressions.ts#update"/>
-}`;
+import { hello, expressions } from './base-concepts';
 
 const subTemplates = $template`() => {
     <div class="text">
@@ -831,16 +769,16 @@ export default {
             title: "textarea & select", code: "select", content: select
         }]
     }
-    // , {
-    //     title: "dynamic content",
-    //     code: "content",
-    //     items: [{
-    //         title: "innerHTML", code: "innerHTML", content: innerHTML
-    //     }, {
-    //         title: "xtr strings", code: "xtr1", content: xtr1
-    //     }, {
-    //         title: "static xtr strings", code: "xtr2", content: xtr2
-    //     }]
-    // }
+        // , {
+        //     title: "dynamic content",
+        //     code: "content",
+        //     items: [{
+        //         title: "innerHTML", code: "innerHTML", content: innerHTML
+        //     }, {
+        //         title: "xtr strings", code: "xtr1", content: xtr1
+        //     }, {
+        //         title: "static xtr strings", code: "xtr2", content: xtr2
+        //     }]
+        // }
     ]
 }

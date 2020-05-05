@@ -19,6 +19,7 @@
         "serve-public": "serve public",
         "doc-samples1": "rollup --config src/doc/examples/rollup1.config.js",
         "doc-samples2": "rollup --config src/doc/examples/rollup2.config.js",
+        "doc-samples-dev": "rollup --config src/doc/examples/rollup3.config.js",
         "clean": "rm -rf bin/ && rm -rf dist/ && rm -rf public/",
         "build-all": "yarn clean && yarn plugins && yarn test && yarn doc && yarn doc-samples1 && yarn doc-samples2"
     },

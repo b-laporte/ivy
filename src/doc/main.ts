@@ -19,9 +19,7 @@ const main = $template`(navState:NavigationState) => {
     <*navBar {navState}/>
     <div class="root">
         $if (typeof navState.pageContent === "string") {
-            <div class="main"> // @xtrContent(xtr={navState.pageContent} {resolver})
-                MAIN
-            </>
+            <div class="main"/> // @xtrContent(xtr={navState.pageContent} {resolver})
         } else if (navState.pageContent) {
             <div class="main">
                 <*navState.pageContent/>

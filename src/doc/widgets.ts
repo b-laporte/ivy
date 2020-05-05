@@ -72,17 +72,31 @@ const infoBlock = $template`(title="[title]", className="variantA", proportions=
 const notions = $template`(notionList:Notion[]) => {
     $let len = notionList.length;
     <div class="notions">
-        <div class="title"> Notion{len!==1? "s": ""} covered in this example </>
-        <ul>
-            $for (let notion of notionList) {
-                <li class="notion"> 
-                    <span class="name"> {notion.name} </>
-                    $if (notion.$content) {
-                        : <! @content={notion.$content}/>
-                    }
-                </>
-            }
+        <div class="block">
+            <div class="title"> Notion{len!==1? "s": ""} covered in this example </div>
+            <ul>
+                $for (let notion of notionList) {
+                    <li class="notion"> 
+                        <span class="name"> {notion.name} </>
+                        $if (notion.$content) {
+                            : <! @content={notion.$content}/>
+                        }
+                    </>
+                }
+            </>
         </>
+    </>
+}`;
+
+// <*demo> : display an iframe with the demo page
+const demo = $template`(src:string, height:number=120) => {
+    <div class="demo">
+        <h1> 
+            <a href={"./examples/" + src + "/"} target="_blank"
+                title="Open demo in a separate window"
+            > live demo </> 
+        </>
+        <iframe style={"height:"+height+"px"} src={"./examples/" + src + "/"}/>
     </>
 }`;
 
@@ -91,5 +105,6 @@ export default {
     ivyLogo,
     code,
     infoBlock,
-    notions
+    notions,
+    demo
 }

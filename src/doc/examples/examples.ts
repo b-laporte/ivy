@@ -39,9 +39,11 @@ function handleMenuClick(e: Event) {
 
 const menu = $template`(content, state:PageState) => {
     <div class="main_menu" @onclick={handleMenuClick}>
-        $for (let cat of content.categories) {
+        $each (content.categories, (cat, idx, isLast) => {
             $let catSelected = cat.code===state.categoryCode? " selected" : "";
-            <div class={"menu cat container" + catSelected}> 
+            $let first = (idx===0)? " first" : "";
+            $let last = isLast? " last" : "";
+            <div class={"menu cat container" + catSelected + first + last}> 
                 <div class="title"> {cat.title} </div>
                 <ul class="content">
                     $for (let itm of cat.items) {
@@ -51,7 +53,7 @@ const menu = $template`(content, state:PageState) => {
                     }
                 </>
             </div>
-        }
+        });
     </>
 }`;
 
@@ -106,19 +108,19 @@ const mainLayout = $template`(state:PageState) => {
                 }
             </>
         </>
-        <div class="blockB2">
-            $if (item.code) {
-                <div class="demo">
-                    <h1> 
-                        <a href={"./examples/" + item.code + "/"} target="_blank"
-                            title="Open demo in a separate window"
-                        > live demo </> 
-                    </>
-                    <iframe class="clock" src={"./examples/" + item.code + "/"}/>
-                </>
-            }
+        // <div class="blockB2">
+        //     $if (item.code) {
+        //         <div class="demo">
+        //             <h1> 
+        //                 <a href={"./examples/" + item.code + "/"} target="_blank"
+        //                     title="Open demo in a separate window"
+        //                 > live demo </> 
+        //             </>
+        //             <iframe class="clock" src={"./examples/" + item.code + "/"}/>
+        //         </>
+        //     }
             
-        </>
+        // </>
     </div>
 }`;
 

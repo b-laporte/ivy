@@ -32,7 +32,7 @@ export const navBar = $template`(navState:NavigationState) => {
     <nav class="mainMenu">
         <div class="container">
             <span class="mainLogo" @link="/">
-                <*w.ivyLogo className={navState.homePage? "ivyLogoDark" : "ivyLogoLight"}/>
+                <*w.ivyLogo className="ivyLogo"/>
             </>
             <div class="menu">
                 <ul class="primary">

@@ -41,33 +41,34 @@ displayData();
 
 // @@extract: update-functions
 let count = 0;
-document.getElementById("update1")!.addEventListener("click", () => {
-    // user1 button
+// user1 button: change user1
+document.getElementById("update1-btn")!.addEventListener("click", () => {
     user1.firstName += "+" + ++count;
 });
-document.getElementById("update2")!.addEventListener("click", () => {
-    // user2 button
+// user2 button: change user2
+document.getElementById("update2-btn")!.addEventListener("click", () => {
     user2.firstName += "+" + ++count;
     user2.lastName += "+" + count;
 });
-document.getElementById("update3")!.addEventListener("click", () => {
-    // data button
+// data button: change the data object stored in the group
+document.getElementById("update3-btn")!.addEventListener("click", () => {
     // update group data (will not trigger a watch callback call)
     g.data.value1 += "+" + ++count;
 });
-document.getElementById("add")!.addEventListener("click", () => {
-    // add button
+// add button: add a user in the group members
+document.getElementById("add-btn")!.addEventListener("click", () => {
     let u = new User();
     u.firstName = "Bart" + ++count;
     u.lastName = "Simpson";
     u.id = count;
     g.members.push(u);
 });
-document.getElementById("remove")!.addEventListener("click", () => {
-    // remove button
+// remove button: remove the first member of the group
+document.getElementById("remove-btn")!.addEventListener("click", () => {
     g.members.splice(0, 1); // remove the first element
 });
-document.getElementById("new_data")!.addEventListener("click", () => {
+// replace data button: replace the data object with a new object
+document.getElementById("new-data-btn")!.addEventListener("click", () => {
     // replace data button
     // replace the group data with a new object -> will trigger a refresh
     g.data = {
@@ -75,15 +76,11 @@ document.getElementById("new_data")!.addEventListener("click", () => {
         value2: "VAL2-" + count
     }
 });
-document.getElementById("reload")!.addEventListener("click", () => {
-    // reload button
-    location.reload();
-});
 
 // @@extract: watch
 let wf: any = null; // watch callback
-
-document.getElementById("watch")!.addEventListener("click", () => {
+// watch button
+document.getElementById("watch-btn")!.addEventListener("click", () => {
     if (numberOfWatchers(g) === 0) {
         wf = watch(g, () => {
             log(`group changed - versions: 
@@ -99,33 +96,35 @@ document.getElementById("watch")!.addEventListener("click", () => {
 });
 
 // @@extract: unwatch
-document.getElementById("unwatch")!.addEventListener("click", () => {
+// unwatch button
+document.getElementById("unwatch-btn")!.addEventListener("click", () => {
     unwatch(g, wf);
     log("group watch <b>deactivated</b>");
 });
 
 // @@extract: display-functions
+// utility functions
 let logs: string[];
 function log(msg: string) {
     logs = logs || [];
-    logs.push(msg);
+    let len = logs.length + 1;
+    logs.push("<b>" + len + ". </b>" + msg);
 
     document.getElementById("logs")!.innerHTML = [
-        '<b>logs:</b> <br/>', logs.join('<br/>')
+        '<b>logs:</b> <br/>', logs.join(', ')
     ].join('');
 }
 function displayData() {
     document.getElementById("data")!.innerHTML = [
         '<div class="group">',
-        '<div><b>name:</b> ', g.name, '</div>',
-        '<div><b>leader:</b> ', g.leader.firstName, ' / ', g.leader.lastName, '</div>',
-        '<div><b>number of members:</b> ', g.members.length, '</div>',
-        '<div><b>members:</b></div>',
+        '<b>name:</b> ', g.name, ', ',
+        '<b>leader:</b> ', g.leader.firstName, ' / ', g.leader.lastName, ', ',
+        '<b>number of members:</b> ', g.members.length, ', ',
+        '<div><b>members:</b>',
         g.members.map((m, idx) => `
-            <div class="member"> 
-            ${idx + 1}. ${m.firstName} / ${m.lastName}
-            </div>`).join(''),
-        '<div><b>data:</b> ', JSON.stringify(g.data), '</div>',
+            <b>${idx + 1}.</b> ${m.firstName} / ${m.lastName}
+        `).join(''),
+        '</div><b>data:</b> ', JSON.stringify(g.data), '</>',
         '</div>'
     ].join('');
 }

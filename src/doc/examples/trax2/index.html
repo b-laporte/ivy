@@ -12,7 +12,8 @@
             color: #333;
             font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
             font-weight: 400;
-            margin: 1rem;
+            margin: .2rem 4rem;
+            padding: 0;
         }
 
         button {
@@ -57,19 +58,20 @@
 <body>
 
     <div class="buttons">
-        <div class="lbl"> general: </div> 
-        <button id="watch"> watch </button>
-        <button id="unwatch"> unwatch </button>
-        <button id="reload"> reload </button>
-    </div>
-    <div class="buttons">
-        <div class="lbl"> updates: </div> 
-        <button id="update1"> user1 </button>
-        <button id="update2"> user2 </button>
-        <button id="update3"> data </button>
-        <button id="add"> add member </button>
-        <button id="remove"> remove member </button>
-        <button id="new_data"> replace data </button>
+        <div>
+            <span class="lbl"> general: </span>
+            <button id="watch-btn"> watch </button>
+            <button id="unwatch-btn"> unwatch </button>
+        </div>
+        <div>
+            <span class="lbl"> updates: </span>
+            <button id="update1-btn"> user1 </button>
+            <button id="update2-btn"> user2 </button>
+            <button id="update3-btn"> data </button>
+            <button id="add-btn"> add member </button>
+            <button id="remove-btn"> remove member </button>
+            <button id="new-data-btn"> replace data </button>
+        </div>
     </div>
     <div class="panel">
         <div class="lbl"> panel updated on watch callback: </div>

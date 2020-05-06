@@ -12,7 +12,8 @@ const U = undefined,
     RX_BACKSLASH = /\\/g,
     RX_CR = /\n/g,
     RX_START_CR = /^\n*/,
-    API_ARG = "$",
+    CTL_ARG = "$",
+    API_ARG = "$api",
     FULL_API_ARG = "$api",
     TPL_ARG = "$template",
     MD_PARAM_CLASS = "$apiClassName";
@@ -910,12 +911,16 @@ function templateStart(indent: string, tf: XjsTplFunction, fragmentMode: boolean
         for (let i = 0; args.length > i; i++) {
             defaultValue = "";
             arg = args[i];
-            if (i === 0 && arg.name === API_ARG) {
+            if (i === 0 && (arg.name === CTL_ARG || arg.name === API_ARG)) {
                 argClassName = arg.typeRef || "";
             }
-            if (arg.name === API_ARG) {
+            if (arg.name === CTL_ARG) {
                 if (i > 0 && arg.typeRef) {
-                    gc.error("Template param class must be defined as first argument", arg);
+                    gc.error("Template Controller class must be defined as first argument", arg);
+                }
+            } else if (arg.name === API_ARG) {
+                if (i > 0 && arg.typeRef) {
+                    gc.error("Template Api class must be defined as first argument", arg);
                 }
             } else if (arg.name === TPL_ARG) {
                 injectTpl = true;

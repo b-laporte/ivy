@@ -31,21 +31,21 @@ function raiseEvent(api, target) {
     extraLength = 3;
     message = "";
 }
-const main = $template`($:Main) => {
+const main = $template`($api:Main) => {
     <div class="commands">
         Number of extras:
-        <button @onclick={=>$.extraLength++}> + </>
-        <button @onclick={=>$.extraLength--}> - </>
+        <button @onclick={=>$api.extraLength++}> + </>
+        <button @onclick={=>$api.extraLength--}> - </>
     </div>
-    <*menu @onclick={e => $.message="You clicked on item "+e.data}>
+    <*menu @onclick={e => $api.message="You clicked on item "+e.data}>
         <.option id="A"> Value A </>
         <.option id="B"> Value B </>
         <.option id="C"> Value C </>
-        $for (let i=0;$.extraLength>i;i++) {
+        $for (let i=0;$api.extraLength>i;i++) {
             <.option id={"X"+i}> Extra #{i} </>
         }
     </>
-    <div class="logs"> {$.message} </>
+    <div class="logs"> {$api.message} </>
 }`;
 
 main().attach(document.getElementById("output")).render();

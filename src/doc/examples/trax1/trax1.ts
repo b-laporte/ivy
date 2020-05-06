@@ -14,22 +14,21 @@ user.firstName = "Marge";
 user.lastName = "Simpson";
 user.id = 1;
 
-log("init complete (watch not activated)");
-displayData();
+log("init complete (watch not activated)"); // log information in the log panel (bottom)
+displayData(); // update the user data in the gray panel
 
 // @@extract: update
 let count = 0;
-document.getElementById("update")!.addEventListener("click", () => {
-    // update user properties
+// update button
+document.getElementById("update-btn")!.addEventListener("click", () => {
     user.firstName += "+" + (++count);
     user.id++;
 });
 
-// @@extract: watch-buttons
+// @@extract: watch
 let wf: any = null; // watch callback
-
-document.getElementById("watch")!.addEventListener("click", () => {
-    // watch button
+// watch button
+document.getElementById("watch-btn")!.addEventListener("click", () => {
     if (numberOfWatchers(user) === 0) {
         wf = watch(user, () => {
             log("user changed - version: " + version(user));
@@ -40,30 +39,30 @@ document.getElementById("watch")!.addEventListener("click", () => {
         log("watch <b>already activated</b>");
     }
 });
-document.getElementById("unwatch")!.addEventListener("click", () => {
-    // unwatch button
+
+// @@extract: unwatch
+// unwatch button
+document.getElementById("unwatch-btn")!.addEventListener("click", () => {
     unwatch(user, wf);
     log("watch <b>deactivated</b>");
 });
-document.getElementById("reload")!.addEventListener("click", () => {
-    // reload button
-    location.reload();
-});
 
 // @@extract: display-functions
+// utility functions
 let logs: string[];
 function log(msg: string) {
     logs = logs || [];
-    logs.push(msg);
+    let len = logs.length + 1;
+    logs.push("<b>" + len + ". </b>" + msg);
 
     document.getElementById("logs")!.innerHTML = [
-        '<b>logs:</b> <br/>', logs.join('<br/>')
+        '<b>logs:</b> <br/>', logs.join(', ')
     ].join('');
 }
 function displayData() {
     document.getElementById("data")!.innerHTML = [
-        '<div class="user"> <b>user:</b> ', 
-        user.firstName, ' / ', user.lastName, ' / ', user.id, 
+        '<div class="user"> <b>user:</b> ',
+        user.firstName, ' / ', user.lastName, ' / ', user.id,
         '</div>'
     ].join('');
 }

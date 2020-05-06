@@ -51,7 +51,7 @@ function handleEvent(target) {
 // @@extract: main
 @API class MainApi {
     // @API is a specialized version of @Data
-    extraLength = 3;
+    extraLength = 2;
 }
 const main = $template`($:MainApi) => {
     <div class="commands">
@@ -62,11 +62,9 @@ const main = $template`($:MainApi) => {
     <*menu>
         <.header title="Preferred options:">
             <.option id="A"> Value A </>
-            <.option id="C"> Value C </>
         </>
         <.option id="A"> Value A </>
         <.option id="B"> Value B </>
-        <.option id="C"> Value C </>
         $for (let i=0; $.extraLength>i; i++) {
             <.option id={"X"+i}> Extra #{i} </>
         }

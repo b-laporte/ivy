@@ -507,6 +507,11 @@ div.layout2 {
     padding: .5rem 0 .5rem 0;
 }
 
+.examples h2 {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
 .examples p {
     padding: .3rem 0 .3rem 0;
 }

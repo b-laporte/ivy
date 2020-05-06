@@ -149,19 +149,19 @@ div.home {
 }
 
 .home .blockA {
-    background-color: #ECECEC;
+    background-color: #e8e8e8;
     display: flex;
     flex-direction: column;
 }
 
 .home .blockA .row1 {
-    height: 65px;
+    height: 4.3em;
     border-left: 10px solid #B5B5B5;
     flex-grow: 0;
 }
 
 .home .blockA .row2 {
-    background-color: #313131;
+    background-color: #1670C5;
     height: 360px;
     flex-grow: 0;
     display: flex;
@@ -183,6 +183,13 @@ div.home {
     align-items: center;
     font-size: 1.2rem;
     font-weight: 100;
+}
+
+.home .blockA .section1 {
+    background-color: #888;
+    color: #333333;
+    padding: 2rem 4rem;
+    min-height: 25rem;
 }
 
 .home .ivyLogoMain {
@@ -211,15 +218,21 @@ div.home {
     color: #FFFFFF;
 }
 
+.home .blockB {
+    background-color: #0c5499;
+    padding: 0;
+    margin: 0;
+}
+
 .home .blockB .row1 {
-    height: 65px;
+    height: 4.3em;
     flex-grow: 0;
 }
 
 .home .blockB .row2 {
     height: 360px;
     flex-grow: 0;
-    background-color: #1A85E9;
+    background-color: #ffffff;
     display: flex;
     justify-content: flex-start;
     align-items: center;
@@ -227,16 +240,19 @@ div.home {
 
 .home .blockB .row3 {
     flex-grow: 1;
+    color: #ffffff;
 }
 
 .home .headline {
-    color: #FFFFFF;
+    color: #333333;
     max-width: 360px;
     padding: 0 1rem 0 4rem;
 }
 
 .home .headline .highlight {
     background-color: #313131;
+    /* #989898 */
+    color: #ffffff;
     font-size: 1.4rem;
     line-height: 2.1rem;
     padding: 0 2px 0 2px;

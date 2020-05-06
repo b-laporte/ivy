@@ -24,25 +24,28 @@ export default $template`() => {
                 </>
             </>
             <div class="row3">
-                <*w.infoBlock title="easy" className="variantA" proportions="2;1;9;0.5">
-                    Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
+                <div class="section1">
+                    [under construction]...
                 </>
+                // <*w.infoBlock title="easy" className="variantA" proportions="2;1;9;0.5">
+                //     Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
+                // </div>
 
-                <*w.infoBlock title="typescript-based" className="variantB" proportions="1;4;7;2">
-                    Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
-                </>
+                // <*w.infoBlock title="typescript-based" className="variantB" proportions="1;4;7;2">
+                //     Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
+                // </>
 
-                <*w.infoBlock title="template functions" className="variantC" proportions="1.4;2.5;8;0.2">
-                    Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
-                </>
+                // <*w.infoBlock title="template functions" className="variantC" proportions="1.4;2.5;8;0.2">
+                //     Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
+                // </>
 
-                <*w.infoBlock title="advanced components" className="variantD" proportions="1.8;2.5;6;1">
-                    Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
-                </>
+                // <*w.infoBlock title="advanced components" className="variantD" proportions="1.8;2.5;6;1">
+                //     Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
+                // </>
 
-                <*w.infoBlock title="fully reactive" className="variantB" proportions="1;2;7;.7">
-                    Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
-                </>
+                // <*w.infoBlock title="fully reactive" className="variantB" proportions="1;2;7;.7">
+                //     Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries
+                // </>
             </>
         </>
         <div class="blockB">
@@ -54,8 +57,8 @@ export default $template`() => {
                         <span class="highlight"> advanced web interfaces </>
                     </>
                     <p class="details">
-                        based on 3 pillars: a <b> JS template engine,</> a <b> state management </> solution (aka. trax)
-                        and a flexible <b> template syntax </> (aka. XJS).
+                        based on 3 pillars: a <b> JS template engine,</> a <b> state management </> solution (trax)
+                        and a flexible <b> template syntax </> (XJS).
                     </>
                 </>
             </>

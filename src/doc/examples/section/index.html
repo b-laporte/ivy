@@ -12,7 +12,18 @@
             color: #333;
             font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
             font-weight: 400;
+            margin: 0rem 3rem;
+            padding: 0;
+        }
+
+        .main {
+            display: flex;
+        }
+
+        .col {
+            flex-grow: 1;
             margin: 1rem;
+            max-width: 25rem;
         }
 
         div.group {
@@ -51,6 +62,10 @@
 </head>
 
 <body>
+    <div class="main">
+        <div class="col" id="col1"></div>
+        <div class="col" id="col2"></div>
+    </div>
     <script type="text/javascript" src="section.js"></script>
 </body>
 

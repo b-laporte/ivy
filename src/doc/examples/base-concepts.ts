@@ -1,5 +1,4 @@
 import { NavControllerLoadFunction } from './../../iv/router';
-import { before } from 'mocha';
 import { $template } from "../../iv";
 import w from '../widgets';
 
@@ -225,4 +224,175 @@ export const loops = $template`() => {
     Full sample:
     </!cdata>
     <*w.code @@extract="loops/loops.ts#all>>instantiation"/>
+}`;
+
+export const section = $template`() => {
+    <!cdata @@md>
+    # Templates with content elements
+    </!cdata>
+    <*w.notions>
+        <.notion name="container templates"> i.e. template that accept content as argument </>
+        <.notion name="@content decorator"> to re-inject some content passed as argument </>
+        <.notion name="XJS fragment nodes"> to group XJS nodes without creating any DOM container elements </>
+        <.notion name="$content parameter"> i.e. the default template content </>
+        <.notion name="simple param nodes"> to accept multiple content values </>
+    </>
+    <*w.demo src="section" height=460/>
+    <!cdata @@md>
+    This example demonstrates how templates can be used as *containers* and accept *content nodes*
+    as input
+    - on the left side, the example shows a simple group template that re-project its content inside
+    a frame with a title
+    - on the right side, the example shows an evolution of the group template that can accept two
+    different pieces of content (the default content that is displayed in the frame, and content 
+    for the title area)
+
+    Before jumping into the implementation details, here is how a simple container template can 
+    be used:
+    </!cdata>
+    <*w.code @@extract="section/section.ts#groups"/>
+    <!cdata @@md>
+    As you can see, usage is very similar to any HTML element.
+
+    Now let's have a look at the implementation. From the *group* template perspective, the
+    HTML *default* content is simply considered as a template parameter that is named **$content**
+    (this is an ivy reserved keyword). If you wish to have it typed, you must use the IvContent
+    type provided by ivy.
+
+    Then you must tell ivy where the content should be projected, and for this you need to use
+    the **@content** built-in decorator. Decorators are explained in more details in other
+    examples, but for the time being, you can simply consider them as special parameters with an **@ prefix**
+
+    Syntactically, there are 2 ways to use *@content*:
+    - either with a value - e.g. *@content={someContent}* (you will see below how to have named contents)
+    - or with no values - e.g. *@content* - in which case it is equivalent to *@content={$content}*
+
+    Finally, *@content* needs to sit on a node that will contain the projected content. Here again
+    we have 2 options:
+    - either use an HTML element - e.g. *\<div @content\\/>*
+    - or use an **ivy fragment** - e.g. *\<! @content\/\>* - Ivy fragments are virtual containers
+    that group nodes without rendering any container element in the HTML output. They have no name
+    but are identified with the ! prefix:
+
+    </!cdata>
+    <*w.code @@extract="section/section.ts#group"/>
+    <!cdata @@md>
+    Next example shows how a template can have multiple content nodes. Of course, as there can only
+    be one unnamed (default) content, other content groups have to be named.
+
+    This where ivy introduces a specific kind of nodes called **param nodes**. As their name tells,
+    param nodes are XML elements that hold param values. They can be differentiated from other
+    elements thanks to their **.** prefix.
+
+    Note: if you are familiar with HTML *\<slot/>* elements, you may wonder why ivy doesn't use them?
+    The reason is actually that param nodes are much more powerful than slots as they can hold
+    both params and content and also sub- param nodes (as shown in examples in the components section)
+    </!cdata>
+    <*w.code @@extract="section/section.ts#sections"/>
+    <!cdata @@md>
+    As you can see, using the *section* template is very similar to using the *group* template,
+    the only difference being the \<.header\> and \<.footer\> param nodes.
+
+    On the implementation side, *section* is also very similar to *group*. As you can see, *header*
+    and *footer* are simply defined as new *IvContent* template arguments that can be projected
+    with the *@content* decorator:
+    </!cdata>
+    <*w.code @@extract="section/section.ts#section"/>
+}`;
+
+export const events = $template`() => {
+    <!cdata @@md>
+    # Event handlers
+    </!cdata>
+    <*w.notions>
+        <.notion name="event handlers decorators"> to trigger actions on DOM events </>
+        <.notion name="function expressions"> to pass a function as an expression value </>
+        <.notion name="event handlers options"> to pass to the DOM addEventListener() method </>
+        <.notion name="$api parameter"> to retrieve the object that holds all template parameters </>
+    </>
+    <*w.demo src="events" height=130/>
+    <!cdata @@md>
+    Until now, all examples were static. Thanks to event handlers we will now have the possibility
+    to make things more dynamic. 
+    
+    This example demonstrates several ways of handling events:
+    - if you click on one of the "-" or "+" button, the template counter will be updated
+    - if you double click on the number, the counter will be reset
+    - if you focus the number and press a number key, the counter will take the key value
+
+    Let's first have a look at the "-" button code:
+    </!cdata>
+    <*w.code @@extract="events/events.ts#handler2"/>
+    <!cdata @@md>
+    As you can see, like for *@content*, event handlers are defined with built-in decorators
+    that are prefixed with "on" (like in HTML). The default value that should be passed
+    to this decorator is a function expression that will be executed when the event occurs
+    (like in JSX). This function will be called with the HTML event argument (not used in this
+    case).
+
+    Having said that, you may wonder what is this **$api** identifier is for? Actually, like *$content*,
+    **$api** is a special parameter that can be used to retrieve the API object used by the ivy
+    template to hold all template parameters.
+
+    Behind the scene ivy is able to observe all changes performed on this API object, this is why 
+    updating it will automatically trigger an (asynchronous) template re-rendering (aka. refresh): 
+    </!cdata>
+    <*w.code @@extract="events/events.ts#counter>>handler2"/>
+    <!cdata @@md>
+    At the top of the previous extract, the example shows how to call an event handler function and
+    pass the HTML event as argument. As $api is a JavaScript object, it can also be passed as argument 
+    to the handler function (if need be):
+    </!cdata>
+    <*w.code @@extract="events/events.ts#handleKey"/>
+    <!cdata @@md>
+    As the event handler value can be any function (like in React), you can also use Function.bind
+    to pass some arguments as *this*:
+    </!cdata>
+    <*w.code @@extract="events/events.ts#handler3"/>
+    <!cdata @@md>
+    ...that will call:
+    </!cdata>
+    <*w.code @@extract="events/events.ts#resetCounter"/>
+    <!cdata @@md>
+    Having said that, ivy also supports a more advanced syntax to use all [addEventListener()][el] 
+    options. In this case, you will have to use the multi-argument decorator
+    syntax, which groups all decorator params into rounded brackets:
+
+    [el]: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+    </!cdata>
+    <*w.code @@extract="events/events.ts#handler4"/>
+    <!cdata @@md>
+    Event handlers decorators support the following arguments:
+    - **listener** the listener function (default param)
+    - **options** the addEventListener [options][el]
+
+    [el]: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+    Full example:
+    </!cdata>
+    <*w.code @@extract="events/events.ts#import>>instantiation"/>
+}`;
+
+export const pages = $template`() => {
+    <!cdata @@md>
+    # Page navigation
+    </!cdata>
+    <*w.notions>
+        <.notion name="Using dynamic component references"> to implement navigation </>
+    </>
+    <*w.demo src="pages" height=220/>
+    <!cdata @@md>
+    This example shows how a template can be dynamically changed by another template: if you
+    click on the *page A* button, the bottom part will display the *pageA* template, whereas
+    clicking on *page B* will display the *pageB* template. On top of that, if you click on
+    the + button, you will increment an internal counter that is displayed in both pages:
+    </!cdata>
+    <*w.code @@extract="pages/pages.ts#pages"/>
+    <!cdata @@md>
+    As these 2 templates have the same API, they can be dynamically exchanged.
+
+    To do so, you have to remember that the template name used in a template call is a local
+    reference. As such, it can be passed as any other template argument, and can also be 
+    changed dynamically:
+    </!cdata>
+    <*w.code @@extract="pages/pages.ts#main"/>
 }`;

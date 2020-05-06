@@ -25,7 +25,6 @@ const groups = $template`() => {
             Hello World
         </>
     </>
-    <hr/>
 }`;
 
 // @@extract: section
@@ -63,5 +62,5 @@ const sections = $template`() => {
 }`;
 
 // @@extract: instantiation
-groups().attach(document.body).render();
-sections().attach(document.body).render();
+groups().attach(document.getElementById("col1")).render();
+sections().attach(document.getElementById("col2")).render();

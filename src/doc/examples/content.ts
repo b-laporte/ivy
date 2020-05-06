@@ -1,102 +1,6 @@
 import { $template } from '../../iv';
 import w from '../widgets';
-import { hello, expressions, subTemplates, loops } from './base-concepts';
-
-
-const events = $template`() => {
-    <div class="text">
-        <h1> Event handlers </>
-        <*w.notions>
-            <.notion name="XJS decorators"> to implement specific logic on an XJS element </>
-            <.notion name="event handlers"> to trigger actions on DOM events </>
-            <.notion name="function expressions"> to pass a function as an expression value </>
-            <.notion name="event handlers options"> to pass to the DOM addEventListener() method </>
-            <.notion name="$ parameter"> to retrieve the object that holds all template parameters </>
-        </>
-        <p>
-            Presentation...
-        </>
-    </div>
-    <*w.code @@extract="events/events.ts#counter"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="events/events.ts#handleKey"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="events/events.ts#resetCounter"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="events/events.ts#instantiation"/>
-}`;
-
-const pages = $template`() => {
-    <div class="text">
-        <h1> Dynamic template references </>
-        <*w.notions>
-            <.notion name="Using dynamic component references"> to implement some kind of visual navigation </>
-        </>
-        <p>
-            Presentation...
-        </>
-    </div>
-    <*w.code @@extract="pages/pages.ts#main"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="pages/pages.ts#pages"/>
-}`;
-
-const section = $template`() => {
-    <div class="text">
-        <h1> Templates with content elements </>
-        <*w.notions>
-            <.notion name="container templates"> i.e. template that accept content as argument </>
-            <.notion name="@content decorator"> to re-inject some content passed as argument </>
-            <.notion name="XJS fragment nodes"> to group XJS nodes without creating any DOM container elements </>
-            <.notion name="$content parameter"> i.e. the default template content </>
-            <.notion name="simple param nodes"> to accept multiple content values </>
-        </>
-        <p>
-            Presentation... 
-        </>
-    </div>
-    <*w.code @@extract="section/section.ts#groups"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="section/section.ts#group"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="section/section.ts#sections"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="section/section.ts#section"/>
-    <div class="text">
-        <p>
-            ...
-        </>
-    </div>
-    <*w.code @@extract="section/section.ts#instantiation"/>
-}`;
+import { hello, expressions, subTemplates, loops, section, events, pages } from './base-concepts';
 
 const clock = $template`() => {
     <div class="text">
@@ -656,7 +560,7 @@ export default {
         }, {
             title: "binding expressions", code: "expressions", content: expressions
         }, {
-            title: "sub-templates", code: "subtemplates", content: subTemplates
+            title: "sub-templates & libraries", code: "subtemplates", content: subTemplates
         }, {
             title: "loops & conditions", code: "loops", content: loops
         }, {
@@ -664,7 +568,7 @@ export default {
         }, {
             title: "event handlers", code: "events", content: events
         }, {
-            title: "dynamic references", code: "pages", content: pages
+            title: "page navigation", code: "pages", content: pages
         }]
     }, {
         title: "reactivity",

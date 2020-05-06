@@ -523,7 +523,7 @@ div.layout2 {
 div.text, .mainpanel .md {
     color: #FFFFFF;
     background-color: #1670C5;
-    padding: 2rem 2rem 2rem 4rem;
+    padding: 2rem 2rem 2.2rem 4rem;
 }
 
 .demo h1 {
@@ -556,6 +556,17 @@ div.text, .mainpanel .md {
 .md p {
     margin-top: .8rem;
     line-height: 1.3rem;
+}
+
+.md a {
+    color: rgb(253, 163, 106);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.md a:hover {
+    color: rgb(255, 143, 73);
+    text-decoration: underline;
 }
 
 /* ------------------------------------------------------------------------------ */

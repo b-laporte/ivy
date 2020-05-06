@@ -16,16 +16,13 @@ const pageB = $template`(count:number, $content:IvContent) => {
 }`;
 
 // @@extract: main
-const main = $template`(page, counter=1, $) => {
-    $if (!page) {
-        $exec page = $.page = pageA;
-    }
-    <button @onclick={=>$.page = pageA}> page A </>
-    <button @onclick={=>$.page = pageB}> page B </>
-    <button @onclick={=>$.counter++}> + </>
+const main = $template`(page = pageA, counter=1, $api) => {
+    <button @onclick={=>$api.page = pageA}> page A </>
+    <button @onclick={=>$api.page = pageB}> page B </>
+    <button @onclick={=>$api.counter++}> + </>
 
     <div class="page container">
-        <*page count={counter+1}>
+        <*page count={counter}>
             <b> Page content </> (main counter={counter})
         </>
     </>

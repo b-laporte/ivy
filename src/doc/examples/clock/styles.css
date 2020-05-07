@@ -1,3 +1,8 @@
+body {
+    padding:0;
+    margin: 0.5rem 4rem;
+}
+
 .clock {
     width: 200px;
     height: 200px;
@@ -28,7 +33,7 @@
 
 .second,
 .second-cw {
-    stroke: #b40000
+    stroke: #ff701a;
 }
 
 .second-cw {

@@ -9,28 +9,28 @@ import { tabs } from './tabset';
 @Controller class HeavyCptCtrl {
     $api: HeavyComponent;
     $init() {
-        log("<div class='init'>init: heavyComponent " + this.$api.id + "</div>");
+        log("<span class='init'>init: " + this.$api.id + "</span>");
     }
     $beforeRender() {
-        log("beforeRender: heavyComponent " + this.$api.id);
+        log("beforeRender: " + this.$api.id);
     }
     $afterRender() {
-        log("afterRender: heavyComponent " + this.$api.id);
+        log("afterRender: " + this.$api.id);
     }
 }
 
 const heavyComponent = $template`($:HeavyCptCtrl) => {
-    $log("render: heavyComponent " + $.$api.id);
+    $exec log("render: " + $.$api.id);
     <div class="heavy">
         heavy component '{$.$api.id}'
     </>
 }`;
 
 // simple logger
-let logs = "<div> Logs: </div>";
+let logs: string[] = [];
 function log(msg: string) {
-    logs += '<div>' + msg + '</div>';
-    document.getElementById("logs")!.innerHTML = logs;
+    logs.push("<b>" + (logs.length + 1) + ". </b>" + msg);
+    document.getElementById("logs")!.innerHTML = "<div> Logs: <br/>" + logs.join(", ") + "</div>";
 }
 
 // @@extract: main

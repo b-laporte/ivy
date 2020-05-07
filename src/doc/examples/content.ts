@@ -140,11 +140,11 @@ export default {
         }, {
             title: "life-cycle hooks", code: "photos", content: photos
         }, {
-            title: "param nodes", code: "tabs", content: tabs
+            title: "content lazy loading", code: "tabs", content: tabs
         }, {
-            title: "labels", code: "labels1", content: labels1
+            title: "querying with labels", code: "labels1", content: labels1
         }, {
-            title: "$template injection", code: "labels2", content: labels2
+            title: "labels in components", code: "labels2", content: labels2
         }, {
             title: "public api methods", code: "labels3", content: labels3
         }, {

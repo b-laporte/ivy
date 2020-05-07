@@ -45,13 +45,13 @@ const main = $template`(title:string, nameList:string[], $template:IvTemplate) =
 }`;
 
 // first instance
-main().attach(document.body)
+main().attach(document.getElementById("col1"))
     .render({
         title: "The Simpsons",
         nameList: ["Homer", "Marge", "Bart", "Lisa", "Maggie"]
     });
 // second instance
-main().attach(document.body)
+main().attach(document.getElementById("col2"))
     .render({
         title: "The Looney Tunes",
         nameList: ["Bugs Bunny", "Daffy Duck", "Porky Pig", "Elmer Fudd", "Taz"]

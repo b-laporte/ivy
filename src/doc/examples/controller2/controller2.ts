@@ -3,14 +3,15 @@ import { keypad } from './keypad';
 
 // @@extract: main
 // example adapted from https://svelte.dev/examples#component-bindings
-const main = $template`(pin="", message="", $) => {
-    <*keypad value={=$.pin}
-        @onsubmit={e=>$.message="Last submission: "+e.data}
+const main = $template`(pin="1234", message="", $api) => {
+    <*keypad value={=$api.pin}
+        @onsubmit={e=>$api.message="Last submission: "+e.data}
     />
     <div class="pin"> 
-        Keypad value: {pin? pin : "[empty]"}
+        <span class="value"> Keypad value: {pin? pin : "[empty]"} </>
+        <span class="reset" @onclick={=>$api.pin="123"} title="reset to '123'"> change </>
     </div>
     <div class="logs"> {message} </>
 }`;
 
-main().attach(document.body).render({pin:"1234"});
+main().attach(document.body).render();

@@ -12,7 +12,7 @@
             color: #333;
             font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
             font-weight: 400;
-            margin: 1rem;
+            margin: .2rem 4rem;
         }
 
         button {
@@ -27,8 +27,8 @@
 
         .car.editor,
         .summary {
+            margin-top: .5rem;
             padding: .5rem;
-            margin: .5rem 0;
             border: 1px solid #333;
             border-radius: 6px;
         }
@@ -51,6 +51,21 @@
         .color {
             display: inline-block;
             padding-right: 1rem;
+        }
+
+        .columns {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .col1 {
+            flex-grow: 1;
+            margin-right: .2rem;
+        }
+
+        .col2 {
+            flex-grow: 1;
+            margin-left: .2rem;
         }
     </style>
 </head>

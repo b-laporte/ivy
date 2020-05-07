@@ -6,24 +6,18 @@ async function delay(time: number = 100) {
     });
 }
 
-document.getElementById("reload")!.addEventListener("click", () => {
-    // reload button
-    location.reload();
-});
-
 // @@extract: controller
 // example adapted from https://svelte.dev/examples#onmount
 @API class Photos {
     url: string; // e.g. <*photos url="https://foo.com/photos?_limit=20"/>
 }
-
 @Controller class PhotosCtl {
     $api: Photos;
     photos?: any[]; // interface types not supported yet
 
     async $init() {
         // $api is initialized before $init is called
-        await delay(500); // slow-down the process to see the loading indicator
+        await delay(250); // to slow down the process and see the processing indicator
         const res = await fetch(this.$api.url);
         this.photos = await res.json();
     }
@@ -48,9 +42,5 @@ const photos = $template`($:PhotosCtl) => {
     </>
 }`;
 
-// @@extract: main
-const main = $template`() => {
-    <*photos url="https://jsonplaceholder.typicode.com/photos?_limit=4"/>
-}`;
-
-main().attach(document.body).render();
+// @@extract: instantiation
+photos().attach(document.body).render({ url: "https://jsonplaceholder.typicode.com/photos?_limit=5" });

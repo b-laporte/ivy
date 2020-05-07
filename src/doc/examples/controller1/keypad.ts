@@ -34,6 +34,7 @@ import { IvEventEmitter } from '../../../iv/events';
 }
 
 // @@extract: template
+// example adapted from https://svelte.dev/examples#component-bindings
 export const keypad = $template`($:KeypadCtl) => {
     <div class="keypad">
         <div class="pin" style={"color:" + ($.value ? '#333' : '#ccc')}> 
@@ -41,15 +42,12 @@ export const keypad = $template`($:KeypadCtl) => {
         </div>
         <div class="pad">
             $for (let i=1;10>i;i++) {
+                // pad buttons
                 <button @onclick={=>$.select(i)}> {i} </>
             }
-            <button disabled={$.value? undefined : true} 
-                @onclick={=>$.clear()}
-            > clear </>
+            <button disabled={$.value? undefined : true} @onclick={=>$.clear()}> clear </>
             <button @onclick={=>$.select(0)}> 0 </>
-            <button disabled={$.value? undefined : true} 
-                @onclick={=>$.submit()}
-            > submit </>
+            <button [disabled]={$.value===""} @onclick={=>$.submit()}> submit </>
         </>
     </>
 }`;

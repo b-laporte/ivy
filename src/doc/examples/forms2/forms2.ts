@@ -32,11 +32,12 @@ const optionEditor = $template`(o:ValueOptions,
         evtInput:boolean = true, 
         evtFocus:boolean, 
         evtBlur:boolean, 
+        className: string = ""
         $) => {
     // sync o.events with the individual params
     $exec o.events = getEventsArg(evtInput, evtFocus, evtBlur);
 
-    <div class="option editor">
+    <div class={"option editor " + className}>
         <div>
             <div class="lbl"> Debounce (ms): </>
             <input type="number" @value={=o.debounce} />
@@ -65,8 +66,9 @@ function getEventsArg(evtInput, evtFocus, evtBlur) {
 // @@extract: form
 const carEditor = $template`(data:CarDescription, 
         o:ValueOptions, 
+        className: string = "",
         $template:IvTemplate) => {
-    <div class="car editor">
+    <div class={"car editor " + className}>
         <div>
             <div class="lbl"> Name: </>
             <input type="text" 
@@ -104,16 +106,20 @@ const carEditor = $template`(data:CarDescription,
 }`;
 
 const main = $template`(data:CarDescription, o:ValueOptions) => {
-    <div class="summary">
-        <div class="title"> Summary </>
-        <div> Car name: {data.name} </>
-        <div> Model year: {data.modelYear} </>
-        <div> Color code: {data.color} </>
-        <div> Electric: {data.electric} </>
+    <div class="columns">
+        <div class="summary col1">
+            <div class="title"> Summary </>
+            <div> Car name: {data.name} </>
+            <div> Model year: {data.modelYear} </>
+            <div> Color code: {data.color} </>
+            <div> Electric: {data.electric} </>
+        </>
+        <*optionEditor className="col2" {o}/>
     </>
-    <*optionEditor {o}/>
-    <*carEditor {data} {o}/> // equivalent to data={data}
-    <*carEditor {data} {o}/> // 2nd instance to demonstrate data-binding
+    <div class="columns">
+        <*carEditor className="col1" {data} {o}/> // equivalent to data={data}
+        <*carEditor className="col2" {data} {o}/> // 2nd instance to demonstrate data-binding
+    </>
 }`;
 
 const cd = new CarDescription();

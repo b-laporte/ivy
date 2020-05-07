@@ -1,3 +1,4 @@
+// @@extract: imports
 import { $template, API, Controller, io } from '../../../iv';
 import { Data } from '../../../trax';
 import { IvContent } from '../../../iv/types';
@@ -8,12 +9,10 @@ import { IvContent } from '../../../iv/types';
     title: IvContent;
     $content: IvContent;
 }
-
 @API class Tabs {
     @io selection: string;    // id of the selected tab
     tabList: Tab[];
 }
-
 @Controller class TabsCtl {
     $api: Tabs;
 

@@ -23,8 +23,8 @@ const colorCodes = ["WH", "BK", "RD", "BL"],
     };
 
 // @@extract: form
-const carEditor = $template`(data:CarDescription, $template:IvTemplate) => {
-    <div class="car editor">
+const carEditor = $template`(data:CarDescription, className:string="", $template:IvTemplate) => {
+    <div class={"car editor "+className}>
         <div>
             <div class="lbl"> Name: </>
             <input type="text" @value={=data.name}/>
@@ -64,8 +64,10 @@ const main = $template`(data:CarDescription) => {
         <div> Color code: {data.color} </>
         <div> Electric: {data.electric} </>
     </>
-    <*carEditor {data}/> // equivalent to data={data}
-    <*carEditor {data}/> // 2nd instance to demonstrate data-binding
+    <div class="columns">
+        <*carEditor className="col1" {data}/> // equivalent to data={data}
+        <*carEditor className="col2" {data}/> // 2nd instance to demonstrate data-binding
+    </>
 }`;
 
 const cd = new CarDescription();

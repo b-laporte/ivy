@@ -12,7 +12,8 @@
             color: #333;
             font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
             font-weight: 400;
-            margin: 1rem;
+            margin: .2rem 4rem;
+            padding: 0;
         }
 
         button {
@@ -26,12 +27,12 @@
         }
 
         .logs {
-            padding-top: .5rem;
-            font-style: italic;
+            padding-top: .2rem;
+            color: #008BFC;
         }
 
         .pin {
-            padding-top: 1.5rem;
+            padding-top: 1rem;
         }
 
         .keypad {
@@ -46,7 +47,19 @@
         }
 
         .keypad button[disabled] {
-            color:#8BADCD;
+            color: #8BADCD;
+        }
+
+        .pin .value {
+            display: inline-block;
+            min-width: 11.5rem;
+        }
+
+        .reset {
+            margin-left: .5rem;
+            font-weight: bold;
+            color: #1670C5;
+            cursor: pointer;
         }
     </style>
 </head>

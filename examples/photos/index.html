@@ -12,7 +12,7 @@
             color: #333;
             font-family: 'Open Sans', Verdana, Arial, Helvetica, sans-serif;
             font-weight: 400;
-            margin: 1rem;
+            margin: .2rem 4rem;
         }
 
         button {
@@ -27,12 +27,12 @@
 
         .photos {
             display: grid;
-            grid-template-columns: 145px 145px;
+            grid-template-columns: 145px 145px 145px 145px 145px;
             grid-gap: 8px;
         }
 
         .photos .loading, .photos .no_results {
-            width: 310px;
+            width: 50rem;
             margin-top: 2em;
             text-align: center;
         }
@@ -56,9 +56,6 @@
 </head>
 
 <body>
-    <div class="buttons">
-        <button id="reload"> reload </button>
-    </div>
     <script type="text/javascript" src="./photos.js"></script>
 </body>
 

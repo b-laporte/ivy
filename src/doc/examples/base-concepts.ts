@@ -306,7 +306,8 @@ export const events = $template`() => {
     </!cdata>
     <*w.notions>
         <.notion name="event handlers decorators"> to trigger actions on DOM events </>
-        <.notion name="function expressions"> to pass a function as an expression value </>
+        <.notion name="function expressions"> to pass a function as an expression value - e.g *!{e=!>func(e,x,y)!}* </>
+        <.notion name="function expressions shortcut"> to pass a 0 arguments function as an expression - e.g *!{=!>func(x,y)!}*  </>
         <.notion name="event handlers options"> to pass to the DOM addEventListener() method </>
         <.notion name="$api parameter"> to retrieve the object that holds all template parameters </>
     </>
@@ -365,6 +366,10 @@ export const events = $template`() => {
     Event handlers decorators support the following arguments:
     - **listener** the listener function (default param)
     - **options** the addEventListener [options][el]
+
+    Note: the listener parm in this last sample uses a **syntax shortcut for function expressions**.
+    I you don't need any event parameter, the function expression can be written as *{=>func()}*
+    instead of *{()=>func()}*
 
     [el]: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
     Full example:

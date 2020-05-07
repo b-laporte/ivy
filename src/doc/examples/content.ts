@@ -126,9 +126,9 @@ export default {
         }, {
             title: "trax data graphs", code: "trax2", content: trax2
         }, {
-            title: "multi-content templates", code: "menu1", content: menu1
+            title: "param nodes hierarchy", code: "menu1", content: menu1
         }, {
-            title: "custom events", code: "menu2", content: menu2
+            title: "custom events (event emitters)", code: "menu2", content: menu2
         }]
     }, {
         title: "components",
@@ -140,7 +140,7 @@ export default {
         }, {
             title: "life-cycle hooks", code: "photos", content: photos
         }, {
-            title: "parameter nodes", code: "tabs", content: tabs
+            title: "param nodes", code: "tabs", content: tabs
         }, {
             title: "labels", code: "labels1", content: labels1
         }, {

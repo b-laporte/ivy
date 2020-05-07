@@ -120,42 +120,112 @@ export const trax2 = $template`() => {
 
 export const menu1 = $template`() => {
     <!cdata @@md>
-    # Multi-content templates
+    # Multi-content templates & param nodes hierarchy
     </!cdata>
     <*w.notions>
-        <.notion name="explicit API type"> to define the template api as a trax object </>
+        <.notion name="@Data param nodes"> to specify rich hierarchy of content parameters </>
+        <.notion name="explicit $api type"> to define the template api as a trax object </>
         <.notion name="@API decorator"> to specify API (trax) classes </>
-        <.notion name="param nodes"> to specify rich hierarchy of content parameters </>
     </>
     <*w.demo src="menu1" height=280/>
     <!cdata @@md>
-        ...
+    This example shows how trax objects can be used as param nodes to support advanced param
+    structures.
+
+    As you can see, this example features a menu that can display items (described as *\<.option\>*
+    nodes) in 2 different sections:
+    - a *header* section, supporting a *title* param (and materialized as a *\<.header\>* node)
+    - the default content body
+    Besides, each item can clicked and selected.
+
+    Here is how the menu usage looks like:
     </!cdata>
-    <*w.code @@extract="menu1/menu1.ts#main"/>
+    <*w.code @@extract="menu1/menu1.ts#menu-usage"/>
     <!cdata @@md>
-        ...
+    Looking at this, you immediately notice that *\<.header\>* and *\<.option\>* both hold
+    attributes and content. Besides *\<.header\>* can also contain a list of *\<.option\>*.
+
+    This can be easily expressed through types. This is why ivy used trax objects to model
+    those types of param nodes:
     </!cdata>
     <*w.code @@extract="menu1/menu1.ts#data-definition"/>
     <!cdata @@md>
-        ...
+    You will note that all Arrays are suffixed with the **List** keyword. This is actually
+    a mandatory convention as the current version of the ivy compiler doesn't deeply analyse
+    the type information - and the compiler needs to make the distinction between single
+    param nodes and list of param nodes, thus the convention (that said, this limitation 
+    could be easily lifted in the future).
+
+    With these new param nodes, the *menu* implementation becomes straightforward:
     </!cdata>
     <*w.code @@extract="menu1/menu1.ts#menu"/>
+    <!cdata @@md>
+    Of course, all menus support some kind of item selection. This is why we have the
+    *@onclick* event handler on the root div element.
+
+    In this particular example we simply log the event information through a direct hack 
+    to the DOM (cf. *getElementById("event-log")*), but in a full menu implementation
+    we should raise a custom event instead - which is what is explained in the next example.
+    </!cdata>
+    <*w.code @@extract="menu1/menu1.ts#event-handler"/>
+    <!cdata @@md>
+    Note: in this sample the item code is retrieved through the standard DOM [dataset][] API).
+    This way of handling data associated to list items is very convenient as it avoids 
+    creating a event listeners for each and every item in the list.
+
+    [dataset]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLOrForeignElement/dataset
+
+    Last but not least, this example also shows how the template arguments can be typed as a 
+    trax object. For this you simply need to type the *$api* param with a trax class.
+    This class has to be decorated with the **@API** decorator instead of @Data as
+    API classes require extra validations (@API is a specialized version of 
+    @Data):
+    </!cdata>
+    <*w.code @@extract="menu1/menu1.ts#main>>menu-usage-end"/>
+    <!cdata @@md>
+    Note: when used with type information, the $api argument has to be first in the list.
+
+    Full example:
+    </!cdata>
+    <*w.code @@extract="menu1/menu1.ts#import>>instantiation"/>
 }`;
 
 export const menu2 = $template`() => {
     <!cdata @@md>
-    # Custom events
+    # Custom events (event emitters)
     </!cdata>
     <*w.notions>
         <.notion name="IvEventEmitter"> to define custom events that can be caught through standard @onXXX decorators </>
     </>
     <*w.demo src="menu2" height=260/>
     <!cdata @@md>
-        ...
+    This example shows how **custom events** can be supported in ivy. 
+    
+    Custom events allow to use standard event listeners (e.g *@onevent* that calls [addEventListener()][el] 
+    behind the scene) for new events created by a template (or a component, 
+    cf. next example section):
+
+    [el]: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
     </!cdata>
-    <*w.code @@extract="menu2/menu2.ts#main"/>
+    <*w.code @@extract="menu2/menu2.ts#menu-usage>>menu-content"/>
     <!cdata @@md>
-        ...
+    Declaring a new event is actually very simple as you just need to create a property
+    named [eventName]Emitter with type *IvEventEmitter* (e.g. *clickEmitter:IvEventEmitter;*):
+    </!cdata>
+    <*w.code @@extract="menu2/menu2.ts#menu-data"/>
+    <!cdata @@md>
+    Then ivy will automatically create an IvEventEmitter instance that supports the **emit()** method.
+
+    *emit()* accepts only one optional argument which is the event data. The event data can be anything (e.g. a JSON 
+    object, a string, a number, etc.).
     </!cdata>
     <*w.code @@extract="menu2/menu2.ts#menu"/>
+    <!cdata @@md>
+    The event data can be retrieved by the event listener through the event *data* property:
+    </!cdata>
+    <*w.code @@extract="menu2/menu2.ts#menu-usage"/>
+    <!cdata @@md>
+    Full example:
+    </!cdata>
+    <*w.code @@extract="menu2/menu2.ts#import>>instantiation"/>
 }`;

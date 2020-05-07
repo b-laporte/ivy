@@ -1,4 +1,4 @@
-// @@extract: all
+// @@extract: import
 import { $template, API } from '../../../iv';
 import { Data } from '../../../trax';
 import { IvContent } from '../../../iv/types';
@@ -23,9 +23,7 @@ const menu = $template`(header:MenuHeader, optionList: MenuOption[]) => {
                 // header list
                 <ul class="header list">
                     $for (let option of header.optionList) {
-                        <li class="option" 
-                            data-code={option.id} 
-                            @content={option.$content}
+                        <li class="option" data-code={option.id} @content={option.$content}
                         />
                     }
                 </>
@@ -40,10 +38,11 @@ const menu = $template`(header:MenuHeader, optionList: MenuOption[]) => {
     </>
 }`;
 
+// @@extract: event-handler
 function handleEvent(target) {
     // we should raise an event here (cf. next example)
     if (target && target.dataset) {
-        document.getElementById("logs")!.innerHTML =
+        document.getElementById("event-log")!.innerHTML =
             `You clicked on menu item ${target.dataset.code}`;
     }
 }
@@ -53,22 +52,26 @@ function handleEvent(target) {
     // @API is a specialized version of @Data
     extraLength = 2;
 }
-const main = $template`($:MainApi) => {
+const main = $template`($api:MainApi) => {
     <div class="commands">
         Number of extras:
-        <button @onclick={=>$.extraLength++}> + </>
-        <button @onclick={=>$.extraLength--}> - </>
+        <button @onclick={=>$api.extraLength++}> + </>
+        <button @onclick={=>$api.extraLength--}> - </>
+        <span id="event-log" /> // event feedback will be displayed here
     </div>
+    // @@extract: menu-usage
     <*menu>
         <.header title="Preferred options:">
             <.option id="A"> Value A </>
         </>
         <.option id="A"> Value A </>
         <.option id="B"> Value B </>
-        $for (let i=0; $.extraLength>i; i++) {
+        $for (let i=0; $api.extraLength>i; i++) {
             <.option id={"X"+i}> Extra #{i} </>
         }
     </>
+    // @@extract: menu-usage-end
 }`;
 
+// @@extract: instantiation
 main().attach(document.getElementById("output")).render();

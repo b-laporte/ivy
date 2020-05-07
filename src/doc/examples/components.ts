@@ -136,10 +136,6 @@ export const photos = $template`() => {
     <!cdata @@md>
     ...
     </!cdata>
-    <*w.code @@extract="photos/photos.ts#main"/>
-    <!cdata @@md>
-    ...
-    </!cdata>
     <*w.code @@extract="photos/photos.ts#controller"/>
     <!cdata @@md>
     ...

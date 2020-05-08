@@ -72,7 +72,8 @@ export const controller2 = $template`() => {
     <!cdata @@md="top-desc">
     This example shows how to define API parameters that can be both input and output parameters.
     In the HTML world, a good example of such parameter is the \<input\> *value* param that can 
-    - change the input value if changed through the input API (in this case *value* is an *input*)
+    - change the input value if changed through the input API (e.g. through the HTML attribute or
+    through the JavaScript value property) - in this case *value* is an *input*
     - will be changed by the input when a user interacts with it (in this case *value* is used as 
     an *output*)
     </!cdata>
@@ -132,18 +133,38 @@ export const photos = $template`() => {
         <.notion name="$init hook"> to perform some initialization when all parameters are defined </>
         <.notion name="asynchronous component load"> to load heavy components without blocking the UI thread</>
     </>
+    <!cdata @@md="top-desc">
+    This example shows how life-cycle hooks can be defined in a component Controller class. 
+    
+    Ivy components support 4 possible hooks:
+    - **$init()** called when the component has been instantiated and its $api initialized (one-time call)
+    - **$beforeRender()** called before every component template refresh. Changing the component state 
+    in this function will not trigger any new refresh.
+    - **$afterRender()** called after every component template refresh. Changing the component state
+    in this function will trigger a new asynchronous refresh. As such state should not be changed in 
+    this hook.
+    - **$dispose()** called when the component is about to be deleted (one time call)
+
+    All life-cycle hook functions are called synchronously. However they may be implemented
+    as async function and return a Promise.
+    In this case ivy will ensure that errors are properly caught through *Promise.catch()*.
+    </!cdata>
     <*w.demo src="photos" height=280/>
     <!cdata @@md>
-    ...
+    This example showcases a simple photo viewer component that asynchronously retrieves 
+    photos from a photo service during its *$init* phase:
     </!cdata>
     <*w.code @@extract="photos/photos.ts#controller"/>
     <!cdata @@md>
-    ...
+    As you can see, *$init()* is implemented as an asynchronous function. When the *fetch()* async
+    result is received, the controller internal state is going to be changed (cf. the *photos* property)
+    which will automatically result in a new template render:
     </!cdata>
     <*w.code @@extract="photos/photos.ts#template"/>
     <!cdata @@md>
-    ...
+    Full example:
     </!cdata>
+    <*w.code @@extract="photos/photos.ts#imports>>instantiation"/>
 }`;
 
 export const tabs = $template`() => {
@@ -154,23 +175,28 @@ export const tabs = $template`() => {
         <.notion name="content lazy loading"> to avoid heavy processing in unused $content and parameter nodes </>
         <.notion name="$beforeRender & $afterRender hooks"> to perform some processing before / after render </>
     </>
+    <!cdata @@md="top-desc">
+    This example showcases an interesting feature of ivy: content elements are only loaded when
+    projected. This comes in very handy in components like tab bars that can contain heavy 
+    components that should not be loaded if not displayed.
+    </!cdata>
     <*w.demo src="tabs" height=310/>
     <!cdata @@md>
-    ...
+    As you can see, this example contains 3 different instances of *heavy* component, in 3 different 
+    tabs:
     </!cdata>
     <*w.code @@extract="tabs/tabs.ts#main"/>
     <!cdata @@md>
-    ...
+    To prove that content elements are not loaded when not projected, the *heavy component*
+    controller logs each calls to the *$init()*, *$beforeRender()* and *$afterRender()* life 
+    cycle hooks:
     </!cdata>
     <*w.code @@extract="tabs/tabs.ts#heavyComponent"/>
     <!cdata @@md>
-    ...
+    As you can also see, content lazy loading is built-in and no special operation is required
+    on the tab bar component (named *tabs* in this example):
     </!cdata>
-    <*w.code @@extract="tabs/tabset.ts#controller"/>
-    <!cdata @@md>
-    ...
-    </!cdata>
-    <*w.code @@extract="tabs/tabset.ts#template"/>
+    <*w.code @@extract="tabs/tabset.ts#controller>>template"/>
 }`;
 
 export const labels1 = $template`() => {

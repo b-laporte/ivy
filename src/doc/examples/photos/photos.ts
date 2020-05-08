@@ -1,3 +1,4 @@
+// @@extract: imports
 import { $template, API, Controller } from '../../../iv';
 
 async function delay(time: number = 100) {

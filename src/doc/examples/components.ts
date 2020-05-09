@@ -207,21 +207,36 @@ export const labels1 = $template`() => {
         <.notion name="#labels"> as a mean to get a reference to dom elements </>
         <.notion name="query() method"> to retrieve template elements that have been rendered </>
     </>
+    <!cdata @@md="top-desc">
+    This example explains how to use labels to retrieve references to DOM elements that have been rendered with ivy. 
+    </!cdata>
     <*w.demo src="labels1" height=270/>
     <!cdata @@md>
-    ...
+    As you can see, the example demonstrates how to dynamically focus elements. This is done thanks to ivy labels that
+    are special attributes starting with the *#* prefix.
+
+    In their simplest form, labels don't take any values and can be used on elements or components - cf. *#title* and *#item*
+    labels below - but labels may also be assigned a value. In this case they will be considered as **conditional labels**:
+    if the value evaluates to true, the label will be set, otherwise it will be ignored (cf. *#third* label):
     </!cdata>
     <*w.code @@extract="labels1/labels1.ts#main"/>
     <!cdata @@md>
-    ...
+    When ivy renders a template, it automatically stores all labelled elements / components in an internal collection
+    that can be queried afterwards thanks to the *query()* method exposed on all template instances (as a reminder the
+    template instance is the object returned when calling the template factory function).
+
+    The query method accepts 2 arguments:
+    - first the name of the label (e.g. "#elt1") to query, or a list of labels separated by a semi-colon (e.g. "#elt1;#elt2")
+    - second, an indicator telling if the full collection should be returned (by default it is false, so only the first
+    matching element/component is returned).
+
+    Here is the queries done when clicking on the *title* and *3rd item* buttons (as you can see query() returns a single item
+    when the collection indicator is false):
     </!cdata>
-    <*w.code @@extract="labels1/labels1.ts#focusTitle"/>
+    <*w.code @@extract="labels1/labels1.ts#focusTitle>>focus3rd"/>
     <!cdata @@md>
-    ...
-    </!cdata>
-    <*w.code @@extract="labels1/labels1.ts#focus3rd"/>
-    <!cdata @@md>
-    ...
+    Finally when the collection indicator is set to true, query() returns an Array. This is this form that is used to 
+    query all items when clicking on the *next item* button:
     </!cdata>
     <*w.code @@extract="labels1/labels1.ts#focusNext"/>
 }`;
@@ -236,17 +251,20 @@ export const labels2 = $template`() => {
     </>
     <*w.demo src="labels2" height=270/>
     <!cdata @@md>
-    ...
+    The previous example showed how to use labels on root templates but didn't explain how to use them in components 
+    as label queries can only be done through the template instance API. 
+    
+    This is why ivy allows to inject the component template instance in component controllers 
+    thanks to the **$template** property:
+    </!cdata>
+    <*w.code @@extract="labels2/labels2.ts#controller>>template"/>
+    <!cdata @@md>
+    Note: when the template is not associated to a controller, the *$template* keyword can be used as template argument 
+    (like *$api* or *$content* for instance). 
+    
+    This is what is used in this example to query the *#title* \<h1> element from the main template:
     </!cdata>
     <*w.code @@extract="labels2/labels2.ts#main"/>
-    <!cdata @@md>
-    ...
-    </!cdata>
-    <*w.code @@extract="labels2/labels2.ts#template"/>
-    <!cdata @@md>
-    ...
-    </!cdata>
-    <*w.code @@extract="labels2/labels2.ts#controller"/>
 }`;
 
 export const labels3 = $template`() => {

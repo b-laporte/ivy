@@ -39,11 +39,9 @@ const list = $template`($:ListCtl) => {
         <button @onclick={=>$.focusNext()}> focus next </>
     </>
     <ul>
-        $let count=0;
-        $for (let name of $.$api.itemsList) {
-            $exec count++;
-            <li #item #third={count===3} tabindex=0> {name} </>
-        }
+        $each ($.$api.itemsList, (name, idx)=> {
+            <li #item #third={idx===2} tabindex=0> {name} </>
+        });
     </>
 }`;
 

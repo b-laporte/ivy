@@ -51,7 +51,7 @@ function focusNext() {
     // true parameter: query all items
     const lis = mainTemplate.query("#item", true);
     if (lis) {
-        if (nextIdx >= lis.length) {
+        if (nextIdx < 0 || nextIdx >= lis.length) {
             nextIdx = 0;
         }
         lis[nextIdx].focus();

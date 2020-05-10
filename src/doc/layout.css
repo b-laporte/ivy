@@ -517,6 +517,42 @@ div.layout2 {
     background-color: #ffffff;
 }
 
+.examples .demo .text {
+    color: #333333;
+    margin-right: .6rem;
+    cursor: default;
+}
+
+.svgDemoBtn {
+    margin: 0 .3rem;
+}
+
+.svgDemoBtn, .svgDemoBtn path {
+    stroke: #0D5598;
+    cursor: pointer;
+}
+
+.svgDemoBtn polygon {
+    stroke: #0D5598;
+    fill: #0D5598;
+    cursor: pointer;
+}
+
+.svgDemoBtn:hover, .svgDemoBtn:hover path {
+    stroke: #FF7019;
+    cursor: pointer;
+}
+
+.svgDemoBtn:hover polygon {
+    stroke: #FF7019;
+    fill: #FF7019;
+    cursor: pointer;
+}
+
+.svgDemoBtn:focus, .svgDemoBtn:focus path {
+    outline: none;
+}
+
 .examples h1 {
     /* main title */
     font-size: 1.5rem;

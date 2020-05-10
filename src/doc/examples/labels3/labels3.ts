@@ -2,12 +2,12 @@
 import { $template, Controller, API } from '../../../iv';
 import { IvTemplate, IvContent } from '../../../iv/types';
 
-// @@extract: item-component
+// @@extract: item-api
 @API class ItemApi {
     $content: IvContent;
     focus: () => void;
 }
-
+// @@extract: item-controller
 @Controller class ItemCtl {
     $api: ItemApi;
     $template: IvTemplate;
@@ -21,7 +21,7 @@ import { IvTemplate, IvContent } from '../../../iv/types';
         }
     }
 }
-
+// @@extract: item-template
 const item = $template`($:ItemCtl) => {
     <li #root tabindex=0 @content={$.$api.$content}/>
 }`;

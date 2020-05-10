@@ -146,9 +146,9 @@ export default {
         }, {
             title: "labels in components", code: "labels2", content: labels2
         }, {
-            title: "public api methods", code: "labels3", content: labels3
+            title: "public component methods", code: "labels3", content: labels3
         }, {
-            title: "svg clock", code: "clock", content: clock
+            title: "svg components (clock)", code: "clock", content: clock
         }]
     }, {
         title: "forms",

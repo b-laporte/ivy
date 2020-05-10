@@ -272,22 +272,40 @@ export const labels3 = $template`() => {
     # Component API methods
     </!cdata>
     <*w.notions>
-        <.notion name="API methods"> to expose public methods to component callers </>
+        <.notion name="component API methods"> to expose public methods to component callers </>
         <.notion name="#labels on components"> to retrieve a component's api </>
     </>
+    <!cdata @@md="top-desc">
+    The previous examples explained how to use labels on standard elements but didn't show any example with 
+    components. This example covers this topic.
+    </!cdata>
     <*w.demo src="labels3" height=290/>
     <!cdata @@md>
-    ...
+    This demo showcases 2 instances of the same component that exposes a *focus()* method. 
+
+    From the main template perspective, this example looks similar to the previous ones, with the only difference
+    that now each list item is an *item* component instance (cf. \<*item\>):
     </!cdata>
     <*w.code @@extract="labels3/labels3.ts#main"/>
     <!cdata @@md>
-    ...
+    When the *3rd item* or *next item* buttons are clicked, the button event handlers perform the 
+    exact same operations as if \<*item\> was a normal <\li\> element (cf. *focus3rd()* and *focusNext()*):
     </!cdata>
     <*w.code @@extract="labels3/labels3.ts#actions"/>
     <!cdata @@md>
-    ...
+    This is because the *query()* method 
+    returns the component's $api when set on a component (and because the *item* component implements a *focus()* 
+    method on its public *$api$*):
     </!cdata>
-    <*w.code @@extract="labels3/labels3.ts#item-component"/>
+    <*w.code @@extract="labels3/labels3.ts#item-api"/>
+    <!cdata @@md>
+    As you can see, the API class can declare the focus but cannot provide its implementation. This is because
+    the *focus()* code needs to access the private part of the controller's state, which is of course not 
+    available on the API instance (that only exposes public information).
+
+    This is why the focus() implementation must be provided by the controller in its *$init()* life-cycle hook:
+    </!cdata>
+    <*w.code @@extract="labels3/labels3.ts#item-controller>>item-template"/>
 }`;
 
 export const clock = $template`() => {
@@ -295,24 +313,36 @@ export const clock = $template`() => {
     # SVG clock
     </!cdata>
     <*w.notions>
-        <.notion name="SVG"> as any other HTML elements </>
-        <.notion name="$dispose"> life cycle hook </>
+        <.notion name="SVG components"> to handle and share SVG pieces as any other HTML part </>
+        <.notion name="$dispose"> life cycle hook - to properly clean-up a component before deletion </>
     </>
+    <!cdata @@md="top-desc">
+    This example demonstrates how to use svg elements in ivy templates.
+    </!cdata>
     <*w.demo src="clock" height=230/>
     <!cdata @@md>
-    ...
+    From the data perspective, a clock widget simply requires time data (i.e. hour, minutes, seconds, etc.) that should
+    be updated every seconds (or like in this example every 10th of seconds).
+
+    This is basically what is done in the controller below: a timer is created on *$init()* in order to call the *tick()* method
+    every 100ms. The *tick()* method then updates the internal time data that will automatically trigger a template
+    refresh on every change:
     </!cdata>
     <*w.code @@extract="clock/clock.ts#controller"/>
     <!cdata @@md>
-    ...
+    Of course, the timer should be cancelled when the widget is deleted - thus the *clearInterval()* call in the *$dispose()* hook.
+
+    On the template side, ivy handles svg as any normal HTML elements. You don't even need to specify the svg XML namespace as it
+    will automatically be added by the framework:
     </!cdata>
     <*w.code @@extract="clock/clock.ts#clock-template"/>
     <!cdata @@md>
-    ...
+    Last but not least, ivy allows to create sub-svg templates (or components), like for any HTML elements. This comes in
+    quite handy as SVG internal component system is rather limited compared to ivy's capabilities:
     </!cdata>
     <*w.code @@extract="clock/clock.ts#hand-template"/>
     <!cdata @@md>
-    ...
+    Of course, the component instantiation doesn't differ from any other type of template:
     </!cdata>
     <*w.code @@extract="clock/clock.ts#instantiation"/>
 }`;

@@ -133,7 +133,7 @@ const demo = $template`(src:string, height:number=120, $template) => {
         <h1> 
             <span class="text"> live demo </>
             <span @onclick={=>$template.query("#frame").contentDocument.location.reload()} title="Reload demo">
-                <*reloadBtn title="Reload demo"/>
+                <*reloadBtn/>
             </>
             <a href={"./examples/" + src + "/"} target="_blank" title="Open demo in a separate window" [tabIndex]=-1> 
                 <*openOutsideBtn/>

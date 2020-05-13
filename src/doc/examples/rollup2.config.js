@@ -3,6 +3,7 @@ import copy from 'rollup-plugin-copy'
 import ivy from '../../../bin/rollup-plugin-ivy';
 import { terser } from 'rollup-plugin-terser';
 import postcss from 'rollup-plugin-postcss';
+import { md } from '../../../bin/rollup-plugin-ivy-md';
 
 const production = !process.env.ROLLUP_WATCH,
     config = [],
@@ -13,10 +14,12 @@ const production = !process.env.ROLLUP_WATCH,
         'dbmon',
         'innerHTML',
         'fragment1',
-        'fragment2'
+        'fragment2',
+        'preprocessors'
     ];
 
 for (let name of names) {
+    // @@extract: config
     config.push({
         input: `src/doc/examples/${name}/${name}.ts`,
         output: {
@@ -30,7 +33,9 @@ for (let name of names) {
                 extract: `public/examples/${name}/styles.css`,
                 minimize: production
             }),
-            ivy(),
+            ivy({
+                preProcessors: { "@@md": md }
+            }),
             typescript({
                 clean: production,
                 objectHashIgnoreUnknownHack: true,
@@ -38,11 +43,16 @@ for (let name of names) {
                 tsconfig: "src/doc/examples/tsconfig.json"
             }),
             copy({
-                targets: [{ src: [`src/doc/examples/${name}/index.html`], dest: `public/examples/${name}` }] // warning: those files are not watched!
+                targets: [{
+                    // warning: those files are not watched!
+                    src: [`src/doc/examples/${name}/index.html`],
+                    dest: `public/examples/${name}`
+                }]
             }),
             production && terser() // minify, but only in production
         ]
     });
+    // @@extract: config-end
 }
 
 export default config;

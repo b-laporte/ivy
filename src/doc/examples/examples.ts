@@ -26,8 +26,10 @@ export function loadRoutes(r: Router): void {
     });
 }
 
-function handleMenuClick(e:IvEvent) {
+function handleMenuClick(e: IvEvent) {
     router!.navigate("/examples/" + e.data);
+    console.log("here",document.body.scrollTop);
+    document.body.scrollIntoView();
 }
 
 const pageLayout = $template`() => {

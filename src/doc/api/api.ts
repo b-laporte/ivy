@@ -20,7 +20,7 @@ export function loadRoutes(r: Router): void {
 
 const todo = $template`() => {
     <!cdata @@md>
-    # Under construction...
+    # under construction...
     </!cdata>
 }`;
 

@@ -81,8 +81,8 @@ nav.mainMenu .active:hover {
 }
 
 svg.ghLogo {
-    width:22px;
-    height:22px;
+    width: 22px;
+    height: 22px;
 }
 
 nav.mainMenu li:hover svg.ghLogo .logo {
@@ -349,7 +349,6 @@ div.home {
 .code {
     position: relative;
     color: white;
-    overflow: scroll;
     padding: 2.2rem 2rem 2rem 4rem;
 }
 
@@ -375,7 +374,6 @@ div.home {
     font-weight: 400;
     line-height: 1.3rem;
     font-size: 1rem;
-    overflow-y: scroll;
 }
 
 .extract.ts_code .hc {
@@ -446,6 +444,7 @@ div.home {
     background-color: #989898;
     margin-top: 4.5rem;
     color: #333;
+    cursor: default;
 }
 
 .menu.cat.container {
@@ -524,6 +523,10 @@ div.layout2 {
 
 .examples .demo {
     background-color: #ffffff;
+}
+
+.examples .demo iframe {
+    margin-top: .5rem;
 }
 
 .examples .demo .text {

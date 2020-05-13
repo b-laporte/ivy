@@ -3,6 +3,7 @@ import copy from 'rollup-plugin-copy'
 import ivy from '../../../bin/rollup-plugin-ivy';
 import { terser } from 'rollup-plugin-terser';
 import postcss from 'rollup-plugin-postcss';
+import { md } from '../../../bin/rollup-plugin-ivy-md';
 
 const production = !process.env.ROLLUP_WATCH,
     config = [],
@@ -29,11 +30,14 @@ const production = !process.env.ROLLUP_WATCH,
         // 'forms2',
         // 'forms3',
         // 'select',
+        // 'dbmon',
         // 'todomvc',
+        'triangles',
         // 'clock',
-        'innerHTML',
-        'fragment1',
-        'fragment2'
+        // 'innerHTML',
+        // 'fragment1',
+        // 'fragment2',
+        // 'preprocessors'
     ];
 
 for (let name of names) {
@@ -50,7 +54,9 @@ for (let name of names) {
                 extract: `public/examples/${name}/styles.css`,
                 minimize: production
             }),
-            ivy(),
+            ivy({
+                preProcessors: { "@@md": md }
+            }),
             typescript({
                 clean: production,
                 objectHashIgnoreUnknownHack: true,

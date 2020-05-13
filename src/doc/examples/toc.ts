@@ -4,7 +4,8 @@ import { hello, expressions, subTemplates, loops, section, events, pages } from 
 import { trax1, trax2, menu1, menu2 } from './reactivity';
 import { controller1, controller2, labels1, labels2, labels3, tabs, photos, clock } from './components';
 import { forms1, forms2, forms3, select } from './forms';
-import { innerHTML, fragment1, fragment2} from './dynamic-content';
+import { innerHTML, fragment1, fragment2 } from './dynamic-content';
+import { todoMVC, triangles, dbMonitor, preprocessors } from './misc';
 
 
 export default {
@@ -80,6 +81,17 @@ export default {
         }, {
             title: "dynamic @fragment", code: "fragment2", content: fragment2
         }]
-    }
-    ]
+    }, {
+        title: "miscellaneous",
+        code: "misc",
+        items: [{
+            title: "pre-processors", code: "preprocessors", content: preprocessors
+        },{
+            title: "todo mvc", code: "todoMVC", content: todoMVC
+        }, {
+            title: "Sierpinski triangles", code: "triangles", content: triangles
+        }, {
+            title: "repaint challenge", code: "dbmon", content: dbMonitor
+        }]
+    }]
 }

@@ -72,6 +72,23 @@ nav.mainMenu li:hover {
     color: #008BFC;
 }
 
+nav.mainMenu .active {
+    color: #FF7019;
+}
+
+nav.mainMenu .active:hover {
+    color: #FF7019;
+}
+
+svg.ghLogo {
+    width:22px;
+    height:22px;
+}
+
+nav.mainMenu li:hover svg.ghLogo .logo {
+    fill: #008BFC;
+}
+
 nav.mainMenu .mainLogo {
     padding: 10px 0 3px 40px;
     cursor: pointer;
@@ -90,14 +107,6 @@ svg.ghLogo {
 
 svg.ghLogo .logo {
     fill: #ffffff;
-}
-
-nav.mainMenu li:hover svg.ghLogo .logo {
-    fill: #FF7019;
-}
-
-nav.mainMenu .active {
-    color: #FF7019;
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -524,6 +533,8 @@ div.layout2 {
 }
 
 .svgDemoBtn {
+    width: 18px;
+    height: 18px;
     margin: 0 .3rem;
 }
 

@@ -671,6 +671,9 @@ export const Δu = {};
  * Generate a factory function for a given Data class reference
  */
 export function Δf<T>(dataObjectClassRef: Constructor<T>): Factory<T> {
+    if (!dataObjectClassRef) {
+        return $fNull as any;
+    }
     let f = dataObjectClassRef.ΔFactory;
     if (f) return f;
 

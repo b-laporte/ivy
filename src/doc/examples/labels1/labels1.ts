@@ -5,7 +5,7 @@ import { IvTemplate } from '../../../iv/types';
 // @@extract: main
 const main = $template`(title:string, nameList:string[]) => {
     <div class="commands">
-        <div class = "lbl"> Click on a button to focus one of elements below </>
+        <div class = "lbl"> Click on a button to focus one of the elements below </>
         <button @onclick={focusTitle}> title </>
         <button @onclick={focus3rd}> 3rd item </>
         <button @onclick={focusNext}> next item </>

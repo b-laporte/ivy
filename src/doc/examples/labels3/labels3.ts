@@ -29,7 +29,7 @@ const item = $template`($:ItemCtl) => {
 // @@extract: main
 const main = $template`(title:string, nameList:string[], $template:IvTemplate) => {
     <div class="commands">
-        <div class = "lbl"> Click on a button to focus one of elements below </>
+        <div class = "lbl"> Click on a button to focus one of the elements below </>
         <button @onclick={=>focusTitle($template)}> title </>
         <button @onclick={=>focus3rd($template)}> 3rd item </>
         <button @onclick={=>focusNext($template)}> next item </>

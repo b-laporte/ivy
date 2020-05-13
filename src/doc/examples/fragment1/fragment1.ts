@@ -4,7 +4,7 @@ import { $template } from "../../../iv";
 // @@extract: fragment-import
 import { fragment, $fragment } from '../../../iv/fragment';
 
-// @@extract: template
+// @@extract: alert
 const alert = $template`(type="", $content:IvContent, title:IvContent) => {
     <div class={"alert " + type}>
         <span class="title"> 
@@ -25,21 +25,24 @@ const context = {
 }
 
 // @@extract: main
-const main = $template`(frg, $api) => {
-    <div> Enter some text: </>
-    <textarea @value={=frg.template}/>
-    
-    <div class="output"> Output: </>
-    <div @fragment(value={frg} {context}) />
+const main = $template`(content, $api) => {
+    <div class="col">
+        <div> Input: </div>
+        <textarea @value={=content.template}/>
+    </>
+    <div class="col">
+        <div class="output"> Output: </>
+        <div @fragment(value={content} {context}) />
+    </>
 }`;
 
-main().attach(document.body).render({
-    frg: $fragment`\
-        <div class={helloClass}> 
-            Hello <b> World </b> 
-        </>
-        <*alert type="warning">
-            <.title> <b> Achtung !!! </b>: </>
-            Some important message...
-        </>
-`});
+let content = $fragment`\
+    <div class={helloClass}> 
+        Hello <b> World </b> 
+    </>
+    <*alert type="warning">
+        <.title> <b> Warning !!! </b>: </>
+        Some important message...
+    </>
+`;
+main().attach(document.getElementById("main")).render({ content });

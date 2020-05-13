@@ -1,4 +1,4 @@
-import content from './content';
+import content from './toc';
 import { NavigationState } from '../nav';
 import { Router, Route } from '../../iv/router';
 import { Data } from '../../trax';

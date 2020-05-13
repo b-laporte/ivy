@@ -28,7 +28,6 @@ const production = !process.env.ROLLUP_WATCH,
         'forms1',
         'forms2',
         'forms3',
-        'innerHTML',
         'select',
         'pages',
         'todomvc'

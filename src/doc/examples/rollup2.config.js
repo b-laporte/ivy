@@ -11,6 +11,7 @@ const production = !process.env.ROLLUP_WATCH,
         'gsearch',
         'triangles',
         'dbmon',
+        'innerHTML',
         'fragment1',
         'fragment2'
     ];

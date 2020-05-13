@@ -11,8 +11,8 @@
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             font-size: 15px;
             line-height: 1.7;
-            margin: 0;
-            padding: 30px;
+            margin: 0 4rem;
+            padding: 0;
         }
 
         a {
@@ -43,14 +43,31 @@
             visibility: hidden
         }
 
+        ul {
+            list-style-type: none;
+            padding: .1rem 0;
+            margin-top: .3rem;
+        }
+
+        li {
+            margin-left: .2rem;
+        }
+
+        li:before {
+            content: "_";
+            padding-right: 5px;
+        }
+
         .v {
             visibility: inherit
         }
     </style>
 </head>
+
 <body>
-    <h1>Sierpinski triangles</h1>
+    <!-- <h1>Sierpinski triangles</h1> -->
     <div id="main"></div>
     <script type="text/javascript" src="triangles.js"></script>
 </body>
+
 </html>

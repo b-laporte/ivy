@@ -487,6 +487,50 @@ describe('Router', () => {
         }, "2.2");
     });
 
+    it("should perform simple navigation and check guards (hash route in sub folder)", async function () {
+        router.add({
+            "/*": ctrlAFactory,
+            "/:x/+": ctrlBFactory,
+            "/a/*": (r: Route, ns: TestNavState) => {
+                ns.logs.push("[Inline Load] " + r.path);
+            }
+        });
+
+        assert.equal(router.currentRoute.routeId, "", "0");
+        await router.init(navState, getUrlAccessor("https://foo.bar.com:8080/x/yyy/#foo/bar"), "#"); // baseURL = "#" for hash urls
+
+        assert.deepEqual(navState.logs, [
+            "[navCtrlB 0] canNavigateTo: /foo/bar(/:x/+)",
+            "[navCtrlB 0] load: /foo/bar(/:x/+)"
+        ], "1.1");
+        assertContent(router.currentRoute, {
+            path: "/foo/bar",
+            pathList: ["foo", "bar"],
+            hashParam: null,
+            params: null,
+            pathParams: { x: "foo", "+": "bar" },
+            pattern: "/:x/+",
+            routeId: "/ /+"
+        }, "1.2");
+
+        navState.logs = [];
+        await router.navigate("/a");
+        assert.deepEqual(navState.logs, [
+            "[navCtrlB 0] canNavigateFrom: /a(/a/*)<-/foo/bar",
+            "[navCtrlB 0] unload: /a(/a/*)<-/foo/bar",
+            "[Inline Load] /a"
+        ], "2.1");
+        assertContent(router.currentRoute, {
+            path: "/a",
+            pathList: ["a"],
+            hashParam: null,
+            params: null,
+            pathParams: { "*": "" },
+            pattern: "/a/*",
+            routeId: "/a/*"
+        }, "2.2");
+    });
+
     it("should perform simple navigation and check guards (html5 route)", async function () {
         router.add({
             "/*": ctrlAFactory,

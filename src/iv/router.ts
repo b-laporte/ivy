@@ -97,7 +97,7 @@ const U = undefined,
     DATASET_ROUTER_LINK_URL = "routerLinkUrl",
     RX_PATH_VAR = /^\:([a-zA-Z_\$]\w*)$/i,    // e.g. :index in /records/:index
     RX_PATH_ELT = /^([^\/\*\+\s]+)$/i,        // e.g.foo in /foo/bar
-    RX_HASH_START = /^\/?\#?/,                // e.g. /# or #
+    RX_HASH_START = /^[^\#]*\#?/,             // e.g. /# or # or /foo/bar/#
     RX_PARAM_SEPARATOR = /\;|\&/,             // i.e. ; or &
     RX_PARAM_KV = /^([^\=]*)\=(.*)$/i,        // e.g. foo=123
     RX_URL_ARGS = /(\?|\#).+$/gi,             // e.g. #foo or ?a=b#bar
@@ -313,9 +313,12 @@ class RouterImpl implements Router {
 
         // get route url
         let url = win.location.href.replace(RX_HREF_START, "");
-
         if (baseUrl === "#") {
-            url = url.replace(RX_HASH_START, "");
+            if (url.indexOf("#") > -1) {
+                url = url.replace(RX_HASH_START, "");
+            } else {
+                url = "";
+            }
             checkUrlStart();
         } else {
             let bl = baseUrl.length;
@@ -331,7 +334,6 @@ class RouterImpl implements Router {
         if (this.parent === null) {
             this._win.addEventListener("popstate", (e: any) => {
                 if (e.state && e.state.url !== U) {
-                    // console.log("onpopstate", e.state.url)
                     this.navigate(e.state.url, 0);
                 }
             });

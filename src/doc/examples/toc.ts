@@ -67,9 +67,9 @@ export default {
         }, {
             title: "debounce & change events", code: "forms2", content: forms2
         }, {
-            title: "data adaptation", code: "forms3", content: forms3
-        }, {
             title: "textarea & select", code: "select", content: select
+        }, {
+            title: "data adaptation", code: "forms3", content: forms3
         }]
     }, {
         title: "dynamic content",

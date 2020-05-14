@@ -39,7 +39,9 @@ const carEditor = $template`(data:CarDescription, className:string="", $template
                 // group of radio buttons
                 <label> 
                     <input type="radio" 
-                        name={"color" + $template.uid} // name must be unique
+                        // no-need for unique name as the data binding 
+                        // will automatically group the radio inputs
+                        // name={"color" + $template.uid} 
                         value={color} // this is the code associated to this radio button
                         @value={=data.color} // binding to the data model
                     /> 

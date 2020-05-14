@@ -23,7 +23,7 @@ const colorCodes = ["WH", "BK", "RD", "BL"],
 
 // @@extract: options
 @Data class ValueOptions {
-    debounce: number = 0;        // default debounce value
+    debounce: number = 250;      // default debounce value (250ms by default)
     events: string = "input";    // default events value
 }
 
@@ -33,7 +33,7 @@ const optionEditor = $template`(o:ValueOptions,
         evtFocus:boolean, 
         evtBlur:boolean, 
         className: string = ""
-        $) => {
+        $api) => {
     // sync o.events with the individual params
     $exec o.events = getEventsArg(evtInput, evtFocus, evtBlur);
 
@@ -44,9 +44,9 @@ const optionEditor = $template`(o:ValueOptions,
         </>
         <div>
             <div class="lbl"> Extra events: </>
-            <label> <input type="checkbox" @value={=$.evtInput}/> input </>
-            <label> <input type="checkbox" @value={=$.evtFocus}/> focus </>
-            <label> <input type="checkbox" @value={=$.evtBlur}/> blur </>
+            <label> <input type="checkbox" @value={=$api.evtInput}/> input </>
+            <label> <input type="checkbox" @value={=$api.evtFocus}/> focus </>
+            <label> <input type="checkbox" @value={=$api.evtBlur}/> blur </>
         </>
         <div>
             <div class="lbl"> Events value: </>
@@ -87,7 +87,7 @@ const carEditor = $template`(data:CarDescription,
                 // group of radio buttons
                 <label> 
                     <input type="radio" 
-                        name={"color" + $template.uid} // name must be unique
+                        // name={"color" + $template.uid} // name must be unique
                         value={color} // this is the code associated to this radio button
                         @value(data={=data.color} debounce={o.debounce} events={o.events})
                     /> 
@@ -105,6 +105,7 @@ const carEditor = $template`(data:CarDescription,
     </>
 }`;
 
+// @@extract: main
 const main = $template`(data:CarDescription, o:ValueOptions) => {
     <div class="columns">
         <div class="summary col1">

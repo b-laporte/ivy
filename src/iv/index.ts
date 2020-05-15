@@ -1,5 +1,5 @@
 import { IvTemplate, IvView, IvDocument, IvNode, IvContainer, IvBlockContainer, IvEltNode, IvParentNode, IvText, IvFrgNode, IvCptContainer, IvEltListener, IvParamNode, IvLogger, IvDecoNode, IvDecorator, IvDecoratorInstance, IvBinding } from './types';
-import { ΔD, Δp, Δdf, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch, createDictionary } from '../trax';
+import { ΔD, Δp, Δdf, ΔfStr, ΔfBool, ΔfNbr, Δf, Δlf, watch, unwatch, isMutating, createNewRefreshContext, commitChanges, version, resetProperty, createProperty, Δu, hasProperty, isDataObject, touch, createDictionary, ΔfRef as _ΔfRef } from '../trax';
 
 export let uidCount = 0; // counter used for unique ids (debug only, can be reset)
 
@@ -2287,6 +2287,7 @@ export const ζΔfBool = ΔfBool;
 export const ζΔfNbr = ΔfNbr;
 export const ζΔlf = Δlf;
 export const ζΔu = Δu;
+export const ΔfRef = _ΔfRef;
 export function API(c: any) {
     c.prototype[API_FLAG] = true;
     ΔD(c);

@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { $template, logger } from '../../iv';
 import { ElementNode, reset, getTemplate, stringify, editElt } from '../utils';
 import { Data, changeComplete } from '../../trax';
-import { value } from '../../iv/inputs';
+import { value, ValueAdapter } from '../../iv/inputs';
 
 describe('@value', () => {
     let body: ElementNode, defaultLog = logger.error, error = "";
@@ -123,15 +123,18 @@ describe('@value', () => {
         assert.equal(usr.firstName, "Marge!!!", "4");
     });
 
-    it("should support input2data and data2input", async function () {
-        function input2data(v: any) {
-            return ("" + v).replace(/^\:\:/i, "");
+    it("should support value adapters", async function () {
+        const adapter: ValueAdapter = {
+            value2data(v: any) {
+                return ("" + v).replace(/^\:\:/i, "");
+            },
+            data2value(d: any) {
+                return "::" + d;
+            }
         }
-        function data2input(d: any) {
-            return "::" + d;
-        }
+
         const tpl = $template`(user:User) => {
-            <input #field type="text" @value(data={=user.firstName} {input2data} {data2input})/>
+            <input #field type="text" @value(data={=user.firstName} {adapter})/>
         }`;
 
         const usr = new User();

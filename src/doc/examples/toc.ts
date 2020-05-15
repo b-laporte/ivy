@@ -69,7 +69,7 @@ export default {
         }, {
             title: "textarea & select", code: "select", content: select
         }, {
-            title: "data adaptation", code: "forms3", content: forms3
+            title: "value adapter", code: "forms3", content: forms3
         }]
     }, {
         title: "dynamic content",

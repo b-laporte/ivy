@@ -1,17 +1,23 @@
 import { API, defaultParam, required, IvElement, io, decorator } from ".";
+import { ref } from '../trax';
 
-const VALUE = "value",
+const U = undefined,
+    VALUE = "value",
     CHECKED = "checked",
     DATA = "data",
     SUPPORTED_TYPES = ["text", "radio", "checkbox", "number", "range"],
     PASSIVE = { passive: true }
 
+export interface ValueAdapter {
+    value2data?: Function;              // default depends on input type
+    data2value?: Function;              // default depends on input type
+}
+
 @API class Value {
     @required @defaultParam @io data: any;
     @required $targetElt: IvElement;
     events: string = "input";           // semi-colon-separated lists of events that should be listened to, on top of change - e.g. "input;focus;blur"
-    input2data?: Function;              // default depends on input type
-    data2input?: Function;              // default depends on input type
+    @ref adapter?: ValueAdapter;
     debounce: number = 0;               // debounce time in ms
 }
 export const value = decorator(Value, ($api: Value) => {
@@ -61,7 +67,7 @@ export const value = decorator(Value, ($api: Value) => {
                 return;
             }
         }
-        $api.data = $api.input2data!(v);
+        $api.data = $api.adapter!.value2data!(v);
     }
     return {
         $init() {
@@ -79,8 +85,14 @@ export const value = decorator(Value, ($api: Value) => {
             elt.addEventListener("change", changeHandler, PASSIVE);
         },
         $render() {
-            if ($api.input2data === undefined) {
-                $api.input2data = (v: any) => {
+            let adapter: ValueAdapter;
+            if ($api.adapter === U) {
+                adapter = $api.adapter = {};
+            } else {
+                adapter = $api.adapter;
+            }
+            if (adapter.value2data === undefined) {
+                adapter.value2data = (v: any) => {
                     if (inputType === "number") {
                         if (v === "") {
                             return 0; // todo: defaultValue
@@ -95,13 +107,13 @@ export const value = decorator(Value, ($api: Value) => {
                     return v;
                 }
             }
-            if ($api.data2input === undefined) {
-                $api.data2input = noop;
+            if (adapter.data2value === U) {
+                adapter.data2value = noop;
             }
             if (lastValue !== $api.data) {
                 // update the value in the field
                 lastValue = $api.data;
-                let val = $api.data2input(lastValue);
+                let val = adapter.data2value(lastValue);
                 if (inputType === "text" || inputType === "number") {
                     elt[VALUE] = val;
                 } else if (inputType === "range") {

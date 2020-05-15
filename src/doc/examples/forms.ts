@@ -126,23 +126,34 @@ export const forms3 = $template`() => {
     # Input bindings data conversion
     </!cdata>
     <*w.notions>
-        <.notion name="@value input2data & data2input"> to convert data between input and data model </>
+        <.notion name="@value adapter"> to convert data between input and data model </>
     </>
+    <!cdata @@md="top-desc">
+    In all previous examples, the \<input> value and the data stored in the data model were identical.
+    But there are cases where we would prefer to have those values in 2 distinct formats. 
+    
+    This is what is demonstrated here.
+    </!cdata>
     <*w.demo src="forms3" height=200/>
     <!cdata @@md>
-    ...
+    This is example is composed of 2 form elements:
+    - a number input bound to a month name in the data model ("JAN" to "DEC")
+    - a boolean input stored as a string indicator in the data model ("Y" or "N"):
     </!cdata>
     <*w.code @@extract="forms3/forms3.ts#data-model"/>
     <!cdata @@md>
-    ...
+    This data conversion (aka. adaptation) is done through the **adapter** parameter supported
+    by the *@value* decorator.
     </!cdata>
     <*w.code @@extract="forms3/forms3.ts#template"/>
     <!cdata @@md>
-    ...
+    The adapters are objects that can have 2 methods (both are optional):
+    - **data2value()** that is called to convert the data model value into the value to assign 
+    to the \<input> element
+    - **value2data()** that is called to convert the \<input> value into the data model value.
+
+    Here are the 2 adapters used in this example:
     </!cdata>
     <*w.code @@extract="forms3/forms3.ts#conversions"/>
-    <!cdata @@md>
-    ...
-    </!cdata>
 }`;
 

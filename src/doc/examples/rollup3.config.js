@@ -28,7 +28,7 @@ const production = !process.env.ROLLUP_WATCH,
         // 'labels3',
         // 'forms1',
         // 'forms2',
-        'forms3',
+        // 'forms3',
         // 'select',
         // 'dbmon',
         // 'todomvc',
@@ -36,7 +36,7 @@ const production = !process.env.ROLLUP_WATCH,
         // 'clock',
         // 'innerHTML',
         // 'fragment1',
-        // 'fragment2',
+        'fragment2',
         // 'preprocessors'
     ];
 

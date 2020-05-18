@@ -3,20 +3,6 @@ import { value } from "../../../iv/inputs";
 import { $template } from "../../../iv";
 import { $fragment, fragment } from '../../../iv/fragment';
 
-// @@extract: alert
-const alert = $template`(type="", $content:IvContent, title:IvContent) => {
-    <div class={"alert " + type}>
-        <span class="title"> 
-            $if (title) {
-                <! @content={title}/>
-            } else {
-                Warning:
-            }
-        </>
-       <! @content/>
-    </>
-}`;
-
 // @@extract: content
 const contentA = $fragment`
     // special char encoding with ! prefix
@@ -50,6 +36,19 @@ const contentC = $fragment`
     </>
 `;
 
+// @@extract: alert
+const alert = $template`(type="", $content:IvContent, title:IvContent) => {
+    <div class={"alert " + type}>
+        <span class="title"> 
+            $if (title) {
+                <! @content={title}/>
+            } else {
+                Warning:
+            }
+        </>
+       <! @content/>
+    </>
+}`;
 // @@extract: context
 const context = {
     helloClass: "blue",

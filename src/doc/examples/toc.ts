@@ -79,7 +79,7 @@ export default {
         }, {
             title: "$fragment strings", code: "fragment1", content: fragment1
         }, {
-            title: "dynamic @fragment", code: "fragment2", content: fragment2
+            title: "special characters and cdata", code: "fragment2", content: fragment2
         }]
     }, {
         title: "miscellaneous",

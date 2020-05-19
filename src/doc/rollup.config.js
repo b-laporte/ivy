@@ -32,7 +32,10 @@ export default {
             tsconfig: "tsconfig.rollup.json"
         }),
         copy({
-            targets: [{ src: ['src/doc/index.html'], dest: 'public' }] // warning: those files are not watched!
+            targets: [ // warning: those files are not watched!
+                { src: ['src/doc/index.html'], dest: 'public' },
+                { src: ['src/doc/api/mvc.png'], dest: 'public' }
+            ] 
         }),
         production && terser() // minify, but only in production
     ]

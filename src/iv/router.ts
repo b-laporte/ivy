@@ -97,7 +97,7 @@ const U = undefined,
     DATASET_ROUTER_LINK_URL = "routerLinkUrl",
     RX_PATH_VAR = /^\:([a-zA-Z_\$]\w*)$/i,    // e.g. :index in /records/:index
     RX_PATH_ELT = /^([^\/\*\+\s]+)$/i,        // e.g.foo in /foo/bar
-    RX_HASH_START = /^[^\#]*\#?/,             // e.g. /# or # or /foo/bar/#
+    RX_HASH_START = /^([^\#]*)\#?/,             // e.g. /# or # or /foo/bar/#
     RX_PARAM_SEPARATOR = /\;|\&/,             // i.e. ; or &
     RX_PARAM_KV = /^([^\=]*)\=(.*)$/i,        // e.g. foo=123
     RX_URL_ARGS = /(\?|\#).+$/gi,             // e.g. #foo or ?a=b#bar
@@ -123,6 +123,7 @@ class RouterImpl implements Router {
     routeTree: RouteTree = {};
     initialized = false;
     navState: any;
+    pageUrl = "";
     baseUrl = "";
     _win: UrlAccessor | undefined;
     _currentRoute: Route;
@@ -313,6 +314,9 @@ class RouterImpl implements Router {
 
         // get route url
         let url = win.location.href.replace(RX_HREF_START, "");
+        if (win.location.href.match(RX_HASH_START)) {
+            this.pageUrl = RegExp.$1;
+        }
         if (baseUrl === "#") {
             if (url.indexOf("#") > -1) {
                 url = url.replace(RX_HASH_START, "");
@@ -352,9 +356,13 @@ class RouterImpl implements Router {
         }
     }
 
-    async navigate(path: string, pushState: 0 | 1 | 2 = 1) {
+    async navigate(path: string, pushState: 0 | 1 | 2 = 1, scrollUp = true) {
         // pushState 0=no push 1=push 2=replace
         if (!this._win) error("Router not initialized: navigation is not possible");
+        if (path.indexOf("#") === 0) {
+            // authorize paths starting with a #
+            path = path.substr(1);
+        }
         // path: the part of the url after the baseUrl
         let r = this.getRoute(path), crc: NavController | undefined;
         if (r === null) return;
@@ -413,6 +421,12 @@ class RouterImpl implements Router {
             } else {
                 // console.log("history.replaceState", r.path)
                 this._win!.history.replaceState({ url: r.path }, "", url);
+            }
+        }
+        if (scrollUp) {
+            let doc = this._win!["document"] as any;
+            if (doc) {
+                doc.body.scrollIntoView();
             }
         }
     }
@@ -683,20 +697,25 @@ function isChildURL(child: string, parent: string): boolean {
 export const link = linkDecorator();
 export const activeLink = linkDecorator(true);
 
-function handleLinkClick(elt: any, router: Router) {
-    elt = findDatasetAncestor(elt, DATASET_ROUTER_LINK_URL);
-    if (elt !== null) {
-        // console.log("link navigation: ", elt[DATASET][DATASET_ROUTER_LINK_URL]);
-        router.navigate(elt[DATASET][DATASET_ROUTER_LINK_URL]);
+function handleLinkClick(elt: any, router: RouterImpl) {
+    let path = findRouterUrl(elt, DATASET_ROUTER_LINK_URL, router.pageUrl);
+    if (path !== null) {
+        // console.log("link navigation: ", path);
+        router.navigate(path);
     }
 }
 
-function findDatasetAncestor(elt: any, datasetName: string): any | null {
+function findRouterUrl(elt: any, datasetName: string, pageUrl: string): string | null {
     if (elt === U || elt === null || elt.tagName === "HTML") return null;
     if (elt[DATASET] !== U && elt[DATASET][datasetName] !== U) {
-        return elt;
+        return elt[DATASET][DATASET_ROUTER_LINK_URL];
+    } else if (elt.tagName === "A" && pageUrl !== "") {
+        const href: string = elt.href;
+        if (href.substr(0, pageUrl.length) === pageUrl) {
+            return href.substr(pageUrl.length);
+        }
     }
-    return findDatasetAncestor(elt.parentElement, datasetName);
+    return findRouterUrl(elt.parentElement, datasetName, pageUrl);
 }
 
 @API export class ActiveRoute {

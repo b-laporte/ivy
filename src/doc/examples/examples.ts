@@ -28,7 +28,6 @@ export function loadRoutes(r: Router): void {
 
 function handleMenuClick(e: IvEvent) {
     router!.navigate("/examples/" + e.data);
-    document.body.scrollIntoView();
 }
 
 const pageLayout = $template`() => {

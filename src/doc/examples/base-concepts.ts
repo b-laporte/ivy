@@ -1,4 +1,3 @@
-import { NavControllerLoadFunction } from './../../iv/router';
 import { $template } from "../../iv";
 import w from '../widgets';
 

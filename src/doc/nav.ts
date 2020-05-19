@@ -31,7 +31,7 @@ router.init(navState, window, "#");
 
 export const navBar = $template`(navState:NavigationState) => {
     <nav class="mainMenu">
-        <div class="container" @onclick={=>scrollTop()}>
+        <div class="container">
             <span class="mainLogo" @link="/">
                 <*w.ivyLogo className="ivyLogo"/>
             </>
@@ -51,21 +51,3 @@ export const navBar = $template`(navState:NavigationState) => {
         </>
     </>
 }`;
-
-function scrollTop() {
-    document.body.scrollIntoView();
-}
-
-/*
-Main pages
-#overview (or '' / default) -> home page
-#tutorial/overview
-#tutorial/components/a/b/c
-#examples/exampleXXX -> examples
-#api/xjs/template
-#api/xtr/xxx
-#api/trax/xxx
-
-Todo: anchors in a given page?
--> local links / external links?
-*/

@@ -407,6 +407,35 @@ describe('Template compiler', () => {
             // end`, "1");
     });
 
+    it("should support $template with internal backtick strings", async function () {
+        const src1 = `\// start
+            import { $template } from "../iv";
+
+            const x = $template\`() => {
+                <!cdata>
+                    \\\`hello\\\`
+                </!cdata>
+            }\`;
+
+            // end`;
+
+        const r = await compile(src1, { filePath: "a/b/c.ts", preProcessors: { "@@newParam": newParam } });
+
+        assert.equal(r.fileContent, `\// start
+            import { $template, ζinit, ζend, ζtxt, ζt } from "../iv";
+
+            const x = (function () {
+            const ζs0 = {};
+            return ζt("x", ".../b/c.ts", ζs0, function (ζ) {
+                let ζc = ζinit(ζ, ζs0, 1);
+                ζtxt(ζ, ζc, 0, 0, 0, 0, "\\n                    \`hello\`\\n                ", 0);
+                ζend(ζ, ζc);
+            });
+            })();
+
+            // end`, "1");
+    });
+
     it("should ignore undefined $fragment pre-processors", async function () {
         const src1 = `\// start
             import { $fragment } from "../iv/fragment";

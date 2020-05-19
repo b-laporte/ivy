@@ -19,6 +19,7 @@ const SK = ts.SyntaxKind,
     RX_LOG_ALL = /\/\/\s*ivy?\:\s*log[\-\s]?all/,
     RX_LOG = /\/\/\s*ivy?\:\s*log/,
     RX_BACK_TICK = /\`/g,
+    RX_BACKSLASH_BACKTICK = /\\\`/g,
     RX_DOLLAR = /\$/g,
     RX_LIST = /List$/,
     IV_INTERFACES = ["IvContent", "IvTemplate", "IvLogger", "IvElement", "IvDocument"],
@@ -218,7 +219,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                 changes.push({
                     start: getNodePos(node),
                     end: node.end,
-                    src: tt.template.getText().slice(1, -1),
+                    src: tt.template.getText().slice(1, -1).replace(RX_BACKSLASH_BACKTICK, "`"),
                     type: CHANGES.TEMPLATE
                 });
             } else if (name === FRAGMENT_TAG) {
@@ -232,7 +233,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
                     changes.push({
                         start: getNodePos(node),
                         end: node.end,
-                        src: tt.template.getText().slice(1, -1),
+                        src: tt.template.getText().slice(1, -1).replace(RX_BACKSLASH_BACKTICK, "`"),
                         type: CHANGES.FRAGMENT
                     });
                 }
@@ -359,7 +360,7 @@ export async function compile(source: string, pathOrOptions: string | Compilatio
 
         const root = await parse(src, ctxt) as XjsFragment;
         if (ctxt.undefinedPreProcessorsFound) {
-            return "$fragment`" + src + "`";
+            return "$fragment`" + src.replace(RX_BACK_TICK, "\\`") + "`";
         } else {
             return "$fragment`" + toString(root, "").replace(RX_BACK_TICK, "\\`").replace(RX_DOLLAR, "\\$") + "`";
         }

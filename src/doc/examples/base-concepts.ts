@@ -68,7 +68,6 @@ export const hello = $template`() => {
     <*w.code @@extract="hello/hello2.ts#instantiation" indicators="top"/>
 }`;
 
-
 export const expressions = $template`() => {
     <!cdata @@md>
     # Expressions & properties

@@ -29,11 +29,11 @@ const content: MenuContent = {
         title: "xjs",
         code: "xjs",
         items: [{
-            title: "general philosophy", code: "xjs_philosophy", content: philosophy
+            title: "general philosophy", code: "xjs", content: philosophy
         }, {
             title: "template definition", code: "tpl_def", content: templateDef
         }, {
-            title: "element nodes", code: "xjs", content: elementNodes
+            title: "element nodes", code: "xjs_elements", content: elementNodes
         }, {
             title: "params, attributes and properties", code: "params", content: params
         }, {

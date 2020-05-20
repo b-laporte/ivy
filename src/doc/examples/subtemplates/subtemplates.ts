@@ -6,6 +6,7 @@ import * as lib from "./lib";
 const greet = $template`(name:string, suffix="!", className="") => {
     <div class={"greeting " + className}>
         Hello {name}
+        // lib is imported in the current JS module
         <*lib.text value={suffix} />
     </div>
 }`;

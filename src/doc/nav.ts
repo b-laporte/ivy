@@ -33,7 +33,7 @@ export const navBar = $template`(navState:NavigationState) => {
     <nav class="mainMenu">
         <div class="container">
             <span class="mainLogo" @link="/">
-                <*w.ivyLogo className="ivyLogo"/>
+                <*w.ivyLogo className={"ivyLogo "+(navState.homePage? "homeLogo":"") }/>
             </>
             <div class="menu">
                 <ul class="primary">

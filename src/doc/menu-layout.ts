@@ -90,11 +90,17 @@ export const menuLayout = $template`(state:MenuPageState, content, changeEmitter
                 <*menu {content} {state} @onselect={e=>changeEmitter.emit(e.data)}/>
             </>
             <div class="mainpanel">
-                $if (item && item.content) {
-                    <*item.content/>
-                } else if (!item) {
-                    $log("[*menuLayout] Menu item not found");
-                }
+                <div>
+                    $if (item && item.content) {
+                        <*item.content/>
+                    } else if (!item) {
+                        $log("[*menuLayout] Menu item not found");
+                    }
+                </>
+                <div class="legal">
+                    <p> Code and documentation licensed under MIT </>
+                    <p> Copyright © 2020 Amadeus SAS </>
+                </>
             </>
         </>
     </div>

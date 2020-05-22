@@ -252,9 +252,46 @@ svg.ghLogo .logo {
 }
 
 .home .features p {
-    margin: 1rem 2rem;
+    position: relative;
     font-size: 1.4rem;
 }
+
+.home p.flexible {
+    top: 2rem;
+    left: 5rem;
+    font-size: 4rem;
+}
+
+.home p.reactive {
+    top: 1.8rem;
+    left: 12rem;
+    font-size: 3rem;
+}
+
+.home p.ts {
+    top: 4.7rem;
+    left: 15rem;
+    font-size: 1.5rem;
+}
+
+.home p.light {
+    top: 1rem;
+    left: 7rem;
+    font-size: 2rem;
+}
+
+.home p.efficient {
+    top: -11rem;
+    left: 14rem;
+    font-size: 2rem;
+}
+
+.home p.simple {
+    top: 1rem;
+    left: 10rem;
+    font-size: 2.5rem;
+}
+
 
 .home .legal {
     padding: 4rem 2rem 2rem 4rem; 

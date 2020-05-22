@@ -31,19 +31,19 @@ export default $template`() => {
                         It is based on <strong>two independent pillars</>: on one hand, a <strong>template syntax </>
                         named <a href="#/api/xjs">XJS</> that 
                         was designed as a refinement of React's JSX and, on the other 
-                        hand, a <strong>state-management</> (<a href="#/api/trax">trax</>) library that allows 
+                        hand, a <strong>state management library</> (<a href="#/api/trax">trax</>) that allows 
                         to track changes in data objects.
                     </>
                 </>
             </>
             <div class="colB">
                 <div class="features">
-                    <p> flexible </>
-                    <p> reactive </>
-                    <p> typescript-based </>
-                    <p> light-weight </>
-                    <p> efficient </>
-                    <p> easy ! </>
+                    <p class="flexible"> flexible </>
+                    <p class="reactive"> reactive </>
+                    <p class="ts"> typescript-based </>
+                    <p class="light"> light-weight </>
+                    <p class="efficient"> efficient </>
+                    <p class="simple"> simple ! </>
                 </>
             </>
         </>
@@ -179,7 +179,7 @@ export default $template`() => {
                     very hard
                     to support in a simple manner. This is why ivy supports a 
                     <strong> second kind of templates </> called 
-                    <a href="#/examples/fragment1"> $fragments </>. This templates are 
+                    <a href="#/examples/fragment1"> $fragments </>. These templates are 
                     interpreted dynamically at execution time and can thus be served 
                     by a Content Management System.
                 </>
